@@ -1,0 +1,481 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module L2_CommonFunctions {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Templates all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_LoopBack_TypeDefs all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from L2_CommonTemplates all;
+
+  group SubframeTiming {
+
+  function f_EUTRA_TimingInfoSubframeOffset(EUTRA_FDD_TDD_Mode_Type p_EUTRA_FDD_TDD_Mode,
+                                            integer p_Index)
+    return integer
+  {
+    var integer j;
+    var integer v_SubframeOffset;
+    
+    if (p_EUTRA_FDD_TDD_Mode == TDD)
+      {
+        // index  = 0, 1, 2, 3,  4,  5,  6, .. =>
+        // offset = 4, 5, 9, 10, 14, 15, ..
+        p_Index := p_Index+1;
+        j := ((p_Index+1) / 2);
+        v_SubframeOffset := p_Index + j * 3;
+      }
+    else // FDD
+      {
+        v_SubframeOffset := p_Index + tsc_EUTRA_SN4;
+      }
+    return v_SubframeOffset;
+  } // f_EUTRA_CalcSubframeOffset
+
+  function f_EUTRA_TimingInfoSubframeOffsetAdjust(SubFrameTiming_Type p_Timing,
+                                                  integer p_Subframe)
+    return SubFrameTiming_Type
+  {
+    var SubFrameTiming_Type v_Timing;
+    
+    v_Timing.SFN.Number := (p_Timing.SFN.Number + (p_Subframe/10)) mod 1024;
+    v_Timing.Subframe.Number := p_Subframe mod 10;
+
+    return v_Timing;
+  } // f_EUTRA_TimingInfoSubframeOffsetAdjust
+
+  function f_EUTRA_DataListSubframeOffset(EUTRA_FDD_TDD_Mode_Type p_EUTRA_FDD_TDD_Mode,
+                                          integer p_Index) return integer
+  {
+    var integer j;
+    var integer v_SubframeOffset;
+    
+    if (p_EUTRA_FDD_TDD_Mode == TDD)
+      {
+        // index  = 0, 1, 2, 3,  4,  5,  6, .. =>
+        // offset = 0, 1, 5, 6, 10, 11, ..
+        j := ((p_Index) / 2);
+        v_SubframeOffset := p_Index + j * 3;
+      }
+    else // FDD
+      {
+        v_SubframeOffset := p_Index;
+      }
+    return v_SubframeOffset;
+  } // f_EUTRA_CalcSubframeOffset_DataList
+
+  } // end of group SubframeTiming
+
+  group ULGRant_DLAllocation {
+
+  function f_EUTRA_ULGrantConfiguration_Common(EUTRA_CellId_Type   p_CellId,
+                                               template (value) TimingInfo_Type p_TimingInfo,
+                                               template (omit)  DciUlInfo_Type p_DciUlInfo,
+                                               template (omit)  PUCCH_Synch_Type p_PUCCH_Synch,
+                                               template (value) UL_GrantConfig_Type p_UL_GrantConfig) runs on EUTRA_PTC
+  { /* @sic R5s110147, R5s110634 additional changes: v_CnfFlag sic@ */
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_ULGrantAllocation_REQ(p_CellId, p_TimingInfo, p_DciUlInfo, p_PUCCH_Synch, p_UL_GrantConfig));
+  }
+
+  function f_EUTRA_PeriodicULGrantTransmission(EUTRA_CellId_Type p_CellId,
+                                               template (value) TimingInfo_Type p_TimingInfo ,
+                                               ImcsValue_Type  p_Imcs,
+                                               integer p_Nprb,
+                                                integer p_Period) runs on EUTRA_PTC
+  {
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        cs_DciInfo_CcchDcchDtchUL_Explicit(p_Imcs,  p_Nprb),
+                                        cs_PUCCH_Synch_Auto_Def,  // @sic R5-101177, R5-101178, R5-101050 sic@
+                                        cs_UL_GrantConfig_ContPeriodic(p_Period));
+  }
+
+  function f_EUTRA_PeriodicCyclicULGrantTransmission(EUTRA_CellId_Type p_CellId,
+                                                     template (value) TimingInfo_Type p_TimingInfo ,
+                                                     ImcsValue_Type  p_Imcs,
+                                                     integer p_Nprb,
+                                                     integer p_Period,
+                                                      integer p_Cycles,
+                                                     template (value) UL_TransRetransmissionList_Type p_TransRetransList := cs_TransRetransmissionListUL_Def) runs on EUTRA_PTC
+  {
+    /* Configures SS to start periodic UL grant transmission
+       Suitable for RLC and MAC test cases. */
+    /* @sic R5s100522: Additional MCC 160 changes sic@ */
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        cs_DciInfo_CcchDcchDtchUL_Explicit(p_Imcs, p_Nprb, p_TransRetransList),
+                                        cs_PUCCH_Synch_Auto_Def,  // @sic R5-101177, R5-101178, R5-101050 sic@
+                                        cs_UL_GrantConfig_NoOfGrants(p_Period, p_Cycles));
+  };
+
+  function f_EUTRA_OneULGrantTransmission(EUTRA_CellId_Type p_CellId,
+                                          template (value) TimingInfo_Type p_TimingInfo ,
+                                          ImcsValue_Type  p_Imcs,
+                                          integer p_Nprb,
+                                          template (value) UL_TransRetransmissionList_Type p_TransRetransList := cs_TransRetransmissionListUL_Def) runs on EUTRA_PTC
+  {
+    /* Configures SS to start periodic UL grant transmission
+     * Suitable for RLC and MAC test cases. */
+    /* @sic R5s100522: Additional MCC 160 changes sic@ */
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        cs_DciInfo_CcchDcchDtchUL_Explicit(p_Imcs, p_Nprb, p_TransRetransList),
+                                        cs_PUCCH_Synch_Auto_Def,  // @sic R5-101177, R5-101178, R5-101050 sic@
+                                        cs_UL_GrantConfig_OneTime);
+  }
+
+  function f_EUTRA_StartULGrantTransmissionOnSR_Reception(EUTRA_CellId_Type p_CellId,
+                                                          template (value) TimingInfo_Type p_TimingInfo,
+                                                          template (value) DciUlInfo_Type  p_ULDCIInfo) runs on EUTRA_PTC
+  {
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        p_ULDCIInfo,
+                                        cs_PUCCH_Synch_KeepAsItIs,
+                                        cs_UL_GrantConfig_Def);
+  }
+
+  function f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(EUTRA_CellId_Type p_CellId,
+                                                                        template (value) TimingInfo_Type p_TimingInfo,
+                                                                        template (value) DciUlInfo_Type  p_ULDCIInfo) runs on EUTRA_PTC
+  { /* starts UL grant transmission on SI reception
+       configures SS to maintain UE in PUCCH synchronised state
+       needs to be called when UE enters connected mode in a cell [after reception of RRCConnectionReq or HandoverComplete] */
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        p_ULDCIInfo,
+                                        cs_PUCCH_Synch_None,
+                                        cs_UL_GrantConfig_Def);
+  }
+
+  function f_EUTRA_StartExplicitULGrantTransmissionOnSR_Reception(EUTRA_CellId_Type p_CellId,
+                                                                  template (value) TimingInfo_Type p_TimingInfo,
+                                                                  ImcsValue_Type  p_Imcs,
+                                                                  integer p_Nprb) runs on EUTRA_PTC {
+    // starts UL grant transmission on SI reception
+    // configures SS to maintain UE in PUCCH synchronised state
+    //  needs to be called when UE enters connected mode in a cell [after reception of RRCConnectionReq or HandoverComplete]
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        cs_DciInfo_CcchDcchDtchUL_Explicit(p_Imcs,  p_Nprb),
+                                        cs_PUCCH_Synch_KeepAsItIs,
+                                        cs_UL_GrantConfig_Def);
+  }
+
+  function f_EUTRA_StopULGrantTransmission_PUCCH_Sync(EUTRA_CellId_Type p_CellId,
+                                                      template (value) TimingInfo_Type p_TimingInfo) runs on EUTRA_PTC
+  { // stops UL grant transmission
+    // configures SS to not maintain UE in PUCCH synchronised state
+    //  needs to be called when UE enters idle mode in a cell [after RRCConnectionRelease]
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        omit,   // no DCI info
+                                        cs_PUCCH_Synch_Auto_Def,  // @sic R5-101177, R5-101178, R5-101050 sic@
+                                        cs_UL_GrantConfig_Stop);
+  }
+
+  function f_EUTRA_StopULGrantTransmission_No_PUCCH_Sync(EUTRA_CellId_Type p_CellId,
+                                                         template (value) TimingInfo_Type p_TimingInfo) runs on EUTRA_PTC
+  { // stops UL grant transmission
+    // configures SS to not maintain UE in PUCCH synchronised state
+    //  needs to be called when UE enters idle mode in a cell [after RRCConnectionRelease]
+    //JKS NOTE:used in tc 7.1.2.6 step 8
+    f_EUTRA_ULGrantConfiguration_Common(p_CellId,
+                                        p_TimingInfo,
+                                        omit,   // no DCI info
+                                        cs_PUCCH_Synch_None,
+                                        cs_UL_GrantConfig_Stop);
+  }
+
+  } // end of group ULGRant_DLAllocation
+
+  group L2_EncodeDecode {
+
+  function f_PDCP_PDU_Encvalue(template (value) PDCP_PDU_Type p_PDCP_PDU) return octetstring
+  {
+    var bitstring v_Bitstring := encvalue(p_PDCP_PDU);
+    var octetstring v_Octetstring := bit2oct(f_OctetAlignedBitString(v_Bitstring));
+    return v_Octetstring;
+  }
+
+  function f_RLC_PDU_Encvalue(template (value) RLC_PDU_Type p_RLC_PDU) return octetstring {
+    var bitstring v_Bitstring := encvalue(p_RLC_PDU);
+    var octetstring v_Octetstring := bit2oct(f_OctetAlignedBitString(v_Bitstring));
+    return v_Octetstring;
+  }
+
+  function f_CheckIf_MAC_SDU_Is_RLC_AM_StatusPDU(MAC_SDU_Type p_MAC_SDU) return boolean
+  {
+    var bitstring v_RLCPDU := oct2bit(p_MAC_SDU);
+    var boolean v_Result := true;
+    var integer v_FirstBit := bit2int (substr  (v_RLCPDU, 0, 1));
+    
+    if (v_FirstBit != 0) { // D/C bit is not 0 i.e. not a status PDU but data PDU
+      v_Result := false;
+    }
+    return v_Result;
+  }
+
+  function f_MAC_SDU_Decode_ToRLC_AM_StatusPDU(MAC_SDU_Type p_MAC_SDU) return RLC_AM_StatusPDU_Type
+  {
+    var RLC_AM_StatusPDU_Type v_RLC_PDU;
+    var bitstring v_Bitstring := oct2bit(p_MAC_SDU);
+    var integer v_Result := decvalue(v_Bitstring, v_RLC_PDU);
+    if (v_Result != 0) {
+      FatalError(__FILE__, __LINE__, "RLC PDU cannot be decoded");
+    }
+    return v_RLC_PDU;
+  }
+
+  } // end of group L2_EncodeDecode
+
+  function f_SS_ConfigSchedulingRequestIndMode(EUTRA_CellId_Type p_CellId,
+                                               L1Mac_IndicationMode_Type p_SR_Mode) runs on EUTRA_PTC
+  {
+    f_EUTRA_SS_CommonL1MacIndCtrlConfig(p_CellId, cas_SchedulingReqIndConfig_REQ (p_CellId, p_SR_Mode));
+  }
+
+  group DRB_UM {
+
+  function f_EUTRA_SS_DRB2_ConfigUM_TM_Mode(EUTRA_CellId_Type p_CellId,
+                                            integer p_UM_SN_Size)
+    runs on EUTRA_PTC
+  { // @sic R5w100002r1 sic@
+    if (p_UM_SN_Size == tsc_UM_SN_Size_5) {
+      f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB(p_CellId, cds_DRB2_ConfigUM_TM_Mode_SN5);
+      
+    } else {
+      f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB(p_CellId, cs_DRB2_ConfigUM_TM_Mode_SN10);
+    }
+  }
+
+  } // end of group DRB_UM
+
+  group L1_MAC_Ind_Functions {
+
+  function f_SS_ConfigBufferStatusReportIndMode(EUTRA_CellId_Type p_CellId,
+                                                L1Mac_IndicationMode_Type p_BSR_Mode,
+                                                template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) runs on EUTRA_PTC
+  {
+    f_EUTRA_SS_CommonL1MacIndCtrlConfig(p_CellId, cas_BSR_IndConfig_REQ(p_CellId, p_BSR_Mode, p_TimingInfo));
+  }
+
+  function f_SS_ConfigUL_HARQ_IndMode(EUTRA_CellId_Type p_CellId,
+                                      L1Mac_IndicationMode_Type p_UL_HARQ_Mode,
+                                      template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                       template (omit) boolean p_CnfFlag := omit)  runs on EUTRA_PTC
+  {  /* @sic R5s120201: parameter p_CnfFlag sic@ */
+    f_EUTRA_SS_CommonL1MacIndCtrlConfig(p_CellId, cas_UL_HARQ_IndConfig_REQ (p_CellId, p_UL_HARQ_Mode, p_TimingInfo, p_CnfFlag));  //@sic R5s120024 sic@)
+  }
+
+  } // end of group L1_MAC_Ind_Functions
+
+  group Generic_L2_RRC_ReconfigSteps {
+
+  function fl_EUTRA_GenericRbEst_DisableBSR_PHR(EUTRA_CellId_Type p_CellId,
+                                                integer p_NoOfAddDRBs_AM,
+                                                integer p_NoOfAddDRBs_UM,
+                                                template (omit) EPS_QoSList_Type p_QoS,
+                                                template (omit) Tft_List_Type p_Tft,
+                                                boolean p_PDCP_StatusReportRequired := true) runs on EUTRA_PTC
+  {
+    var template (omit) DRB_ToAddModList v_DRB_ToAddModList := omit;                // => apply default setiing acc. 36.508 cl. 4.8.2.1.7 */
+    var template (value) MAC_MainConfig_Type v_MAC_MainConfig ;
+    var template (omit) PhysicalConfigDedicated v_PhysicalConfigDedicated := omit;  // => apply default setting acc. 36.508 cl. 4.8.2.1.6 */
+    if (p_NoOfAddDRBs_UM > 0) {
+      v_MAC_MainConfig := cs_508_MAC_MainConfig_Explicit_RBC_DrxS_DisableBSR_PHR; // short DRX cycle acc. to note in 36.508 table 4.6.3-16
+    } else {
+      v_MAC_MainConfig := cs_508_MAC_MainConfig_Explicit_RBC_DrxL_DisableBSR_PHR; // long DRX cycle acc. to note in 36.508 table 4.6.3-16
+    }
+    f_EUTRA_GenericRbEst_Common(p_CellId,
+                                p_NoOfAddDRBs_AM,
+                                p_NoOfAddDRBs_UM,
+                                v_DRB_ToAddModList,
+                                v_MAC_MainConfig,
+                                v_PhysicalConfigDedicated,
+                                p_QoS,
+                                p_Tft,
+                                p_PDCP_StatusReportRequired);
+  }
+
+  function f_EUTRA_RbEst_Def_DisableBSR_PHR(EUTRA_CellId_Type p_CellId,
+                                            boolean p_PDCP_StatusReportRequired := true) runs on EUTRA_PTC
+  {
+    fl_EUTRA_GenericRbEst_DisableBSR_PHR(p_CellId, 0, 0, omit, omit, p_PDCP_StatusReportRequired);
+  }
+
+  function f_EUTRA_RbEst_508_UM_DisableBSR_PHR(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  { /* additional UM bearer will be established */
+    var template (value) EPS_QoSList_Type v_Qos_List := {cs_508_EPS_QoS_Dedicated_1};
+    var template (value) Tft_List_Type v_Tft_List := {f_EUTRA_Get_508_TrafficFlowTemplate(1)};
+    fl_EUTRA_GenericRbEst_DisableBSR_PHR(p_CellId, 0, 1, v_Qos_List, v_Tft_List);
+  }
+
+  function f_EUTRA_LoopBackActivation_State4_Def_DisableBSR_PHR(EUTRA_CellId_Type p_CellId,
+                                                                template (value) UE_TestLoopModeA_LB_Setup_Type p_UE_TestLoopModeA_LB_Setup) runs on EUTRA_PTC
+  {
+    f_EUTRA_RbEst_Def_DisableBSR_PHR(p_CellId);                                       // bring UE to State 3
+    f_EUTRA_CloseUE_TestLoopModeA(p_CellId, p_UE_TestLoopModeA_LB_Setup);             // Step 1-2
+  }
+
+  function f_EUTRA_GenericRbEst_DisableBSR_PHR(EUTRA_CellId_Type p_CellId,
+                                               integer p_NoOfAddDRBs_AM,
+                                               integer p_NoOfAddDRBs_UM,
+                                               template (omit) DRB_ToAddModList p_DRB_ToAddModList,
+                                               template (omit) MAC_MainConfig_Type p_MAC_MainConfig,
+                                               template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated,
+                                               template (omit) EPS_QoSList_Type p_QoS,
+                                               template (omit) Tft_List_Type p_Tft,
+                                               boolean p_PDCP_StatusReportRequired := true) //@sic R5s100852 p_PDCP_StatusReportRequired added sic@
+    runs on EUTRA_PTC
+  {
+    var template (value) MAC_MainConfig_Type v_MAC_MainConfig ;
+    if (isvalue(p_MAC_MainConfig)) {
+      v_MAC_MainConfig := valueof(p_MAC_MainConfig);
+    } else {
+      if (p_NoOfAddDRBs_UM > 0) {
+         v_MAC_MainConfig := cs_508_MAC_MainConfig_Explicit_RBC_DrxS_DisableBSR_PHR; // short DRX cycle acc. to note in 36.508 table 4.6.3-16
+      } else {
+        v_MAC_MainConfig := cs_508_MAC_MainConfig_Explicit_RBC_DrxL_DisableBSR_PHR; // long DRX cycle acc. to note in 36.508 table 4.6.3-16
+      }
+    }
+    f_EUTRA_GenericRbEst_Common(p_CellId,
+                                p_NoOfAddDRBs_AM,
+                                p_NoOfAddDRBs_UM,
+                                p_DRB_ToAddModList,
+                                v_MAC_MainConfig,
+                                p_PhysicalConfigDedicated,
+                                p_QoS,
+                                p_Tft,
+                                p_PDCP_StatusReportRequired);
+  }
+
+  function f_EUTRA_GenericRbEst_DisablePHR(EUTRA_CellId_Type p_CellId,
+                                           integer p_NoOfAddDRBs_AM,
+                                           integer p_NoOfAddDRBs_UM,
+                                           template (omit) DRB_ToAddModList p_DRB_ToAddModList,
+                                           template (omit) MAC_MainConfig_Type p_MAC_MainConfig,
+                                           template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated,
+                                           template (omit) EPS_QoSList_Type p_QoS,
+                                           template (omit) Tft_List_Type p_Tft,
+                                           boolean p_PDCP_StatusReportRequired := true) //@sic R5s100852 p_PDCP_StatusReportRequired added sic@
+    runs on EUTRA_PTC
+  {//@sic R5-110712 sic@
+    var template (value) MAC_MainConfig_Type v_MAC_MainConfig ;
+    if (isvalue(p_MAC_MainConfig)) {
+      v_MAC_MainConfig := valueof(p_MAC_MainConfig);
+    } else {
+      if (p_NoOfAddDRBs_UM > 0) {
+        v_MAC_MainConfig := cs_MAC_MainConfig_Explicit_ReleasePHR(f_GetUeDrxConfig(DRX_S)); // short DRX cycle acc. to note in 36.508 table 4.6.3-16
+      } else {
+        v_MAC_MainConfig := cs_MAC_MainConfig_Explicit_ReleasePHR(f_GetUeDrxConfig(DRX_L)); // long DRX cycle acc. to note in 36.508 table 4.6.3-16
+      }
+    }
+    f_EUTRA_GenericRbEst_Common(p_CellId,
+                                p_NoOfAddDRBs_AM,
+                                p_NoOfAddDRBs_UM,
+                                p_DRB_ToAddModList,
+                                v_MAC_MainConfig,
+                                p_PhysicalConfigDedicated,
+                                p_QoS,
+                                p_Tft,
+                                p_PDCP_StatusReportRequired);
+  }
+
+  function f_EUTRA_GenericRbEst_WithRLC_UM_Params(EUTRA_CellId_Type p_CellId,
+                                                  template (omit) DRB_ToAddModList p_DRB_ToAddModList,
+                                                  template (omit) MAC_MainConfig_Type p_MAC_MainConfig := omit,
+                                                  template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated := omit) runs on EUTRA_PTC
+  {
+    var template (value) EPS_QoSList_Type v_Qos_List := {cs_508_EPS_QoS_Dedicated_1};
+    var template (value) Tft_List_Type v_Tft_List := {f_EUTRA_Get_508_TrafficFlowTemplate(1)};
+    
+    f_EUTRA_GenericRbEst_DisableBSR_PHR(p_CellId,
+                                        0,
+                                        1,
+                                        p_DRB_ToAddModList,
+                                        p_MAC_MainConfig,
+                                        p_PhysicalConfigDedicated,
+                                        v_Qos_List,
+                                        v_Tft_List);
+  }
+
+  function f_EUTRA_GenericRbEst_UM_Params(EUTRA_CellId_Type p_CellId,
+                                          template (value) PDCP_Config  p_PDCP_Config,
+                                          template (value) UL_UM_RLC p_UL_UM_RLC,
+                                           template (value) DL_UM_RLC p_DL_UM_RLC,
+                                          template (omit) MAC_MainConfig_Type p_MAC_MainConfig := omit,
+                                          template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated := omit,
+                                          boolean p_PDCP_StatusReportRequired := true) runs on EUTRA_PTC
+  {
+    var template (omit) DRB_ToAddModList v_DRB_ToAddModList:= omit;
+    
+    if(p_PDCP_StatusReportRequired)  // @sic R5s110207 sic@
+      {
+        v_DRB_ToAddModList[0] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1);
+      }
+    else
+      {
+        v_DRB_ToAddModList[0] := cs_DRB_ToAddMod_NoPDCP_StatusReport (tsc_DRB1);
+      }
+    v_DRB_ToAddModList[1] := cs_DRB_ToAddMod_RLC_UM (tsc_DRB2,
+                                                     p_PDCP_Config,
+                                                     p_UL_UM_RLC,
+                                                     p_DL_UM_RLC);
+    f_EUTRA_GenericRbEst_WithRLC_UM_Params (p_CellId,
+                                            v_DRB_ToAddModList,
+                                            p_MAC_MainConfig,
+                                            p_PhysicalConfigDedicated);
+  }
+
+  } // end of group Generic_L2_RRC_ReconfigSteps
+
+  group Common_L2Functions {
+
+  function f_Send_PDCCH_Order(EUTRA_CellId_Type p_CellId,
+                               template (value) TimingInfo_Type p_TimingInfo,
+                               template (value) RA_PDCCH_Order_Type p_RA_PDCCH_Order) runs on EUTRA_PTC
+  {
+    SYS.send(cas_RA_PDCCH_Order(p_CellId, p_TimingInfo, p_RA_PDCCH_Order)); //@sic Baseline R5s100135: cas_RA_PDCCH_Order does not require a confirmation sic@
+  }
+
+  function f_PhysicalConfigDedicated_Dsr_TransMax(EUTRA_CellId_Type p_CellId,
+                                                  Dsr_TransMax_Type p_Dsr_TransMax := n64) runs on EUTRA_PTC return template (value) PhysicalConfigDedicated
+  {
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info(p_CellId);
+    var SR_PUCCH_ResourceIndex_Type v_Sr_PUCCH_ResourceIndex := f_EUTRA_CellInfo_GetSR_PUCCH_ResourceIndex(p_CellId);
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (p_CellId);
+    var SR_ConfigIndex_Type v_SR_ConfigIndex := f_EUTRA_CellInfo_GetSR_ConfigIndex (p_CellId);
+    return cs_PhysicalConfigDedicated_Default_RBC_Dsr_TransMax(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                               v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                               v_AntennaInfo,
+                                                               v_Sr_PUCCH_ResourceIndex,
+                                                               v_SR_ConfigIndex,
+                                                               p_Dsr_TransMax);
+  }
+
+  } // end of group Common_L2Functions
+
+}

@@ -1,0 +1,211 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-07-27 17:07:03 +0200 (Fri, 27 Jul 2012) $
+// $Rev: 7062 $
+/******************************************************************************/
+module InterRat_CellSelection_EtoG_GERAN {
+
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+
+  function f_GERAN_CellInfo_SetSI2_CellBarred ( GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get(p_CellId);
+    
+    v_SysInfo.si2.rACHControlParam.cellBarAccess := '1'B;
+    f_GERAN_SysInfo_Set( p_CellId, v_SysInfo );
+  };
+
+  function f_GERAN_CellInfo_SetSI3_CellBarred ( GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get(p_CellId);
+    
+    v_SysInfo.si3.rACHControlParam.cellBarAccess := '1'B;
+    f_GERAN_SysInfo_Set( p_CellId, v_SysInfo );
+  };
+
+  function f_GERAN_CellInfo_SetSI4_CellBarred ( GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get(p_CellId);
+    
+    v_SysInfo.si4.rACHControlParam.cellBarAccess := '1'B;
+    f_GERAN_SysInfo_Set( p_CellId, v_SysInfo );
+  };
+
+  function f_TC_6_2_2_2_GERAN ( ) runs on GERAN_PTC
+  { /* Test case 6.2.2.2 Inter-RAT cell Selection / from E-UTRA RRC_IDLE to GSM_Idle/GPRS Packet_Idle, serving cell becomes non-suitable (SServingCell<0, barred) */
+
+    //@sic removed T0 and specified T2 from CR R5-104783 sic@
+
+    var integer v_T1_RF_SignalLevel_Cell24 := -80;
+    var integer v_T2_RF_SignalLevel_Cell24 := tsc_GERAN_ChPwrLvl_Off;
+    var integer v_T3_RF_SignalLevel_Cell24 := -80; //@sic R5-106569 sic@
+    var template (value) SYSTEMINFORMATIONTYPE2quater v_SI2quater1, v_SI2quater2;
+
+    //Initialise test case
+    f_GERAN_Init ( EUTRA_GERAN );
+
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell ( geran_Cell24 );
+
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+
+    f_GERAN_TestBody_Set( true );
+
+    //@siclog "Step 1" siclog@
+    //Set cell power level according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel( geran_Cell24, v_T1_RF_SignalLevel_Cell24 );
+
+    //@siclog "Step 2" siclog@
+    //does the test result of generic test procedure in 36.508
+    //subclause 6.4.2.9 indicate that the UE is camped on GERAN Cell 24?
+    f_GERAN_IdleMode_RAU( geran_Cell24 );
+
+    //Since Authentication parameters have been updated. Send them to EUTRA PTC
+    f_GERAN_SendAuthParameters(EUTRA);
+
+    //@siclog "Step 3" siclog@
+    //Set cell24 power level according to T2
+    f_GERAN_SetCellPowerLevel ( geran_Cell24, v_T2_RF_SignalLevel_Cell24 );//Set OFF
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+
+    //Receive updated Authentication parameters from EUTRA PTC from registration on Cell 1 after step4
+    f_GERAN_InterRAT_InitialiseAuthParams();
+
+    v_SI2quater1 := f_GERAN_SysInfo_GetSI2q_1 (geran_Cell24);
+    v_SI2quater2 := f_GERAN_SysInfo_GetSI2q_2 (geran_Cell24);
+    if (not isvalue(v_SI2quater2)) {     //@sic R5s120477 sic@
+      v_SI2quater2 := cs_SysInfoType2quater(cs_SI2quaterRO('0001'B, '0001'B, '0'B, '0'B, omit,
+                                                                        '0'B, omit,
+                                                                        '0'B, omit,
+                                                                        cs_EUTRAN_MeasParams_SI2({cs_RptdEUTRAN_NeighCellEmpty})));
+      v_SI2quater1.sI2quaterRO.sI2quater_COUNT := '0001'B;
+      v_SI2quater1.sI2quaterRO.eutranMeasParams.eutranMeasParams.eutranStop := '0'B;
+      v_SI2quater2.sI2quaterRO.eutranMeasParams.eutranMeasParams.eutranStart := '0'B;
+    }
+    // Easier to change this afterwards, rather than having an even more complicated template
+    v_SI2quater2.sI2quaterRO.eutranMeasParams.notAllowedCells := cs_RptdEUTRANNotAllowedCells_1 (cs_RptdEUTRANNotAllowedCell_1 (cs_NotAllowedCell_1 (cs_PCIDGroup ('000000000'B),  // @sic R5-121771 sic@
+                                                                                                                                                    cs_EUTRANFreqIndex_1 ('000'B))));
+    // Set the SI2 with the information provided from E-UTRA
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater1);
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, v_SI2quater2); // @sic R5s120129, R5s120477 sic@ sic@
+    
+    // Now send out new SI messages
+    f_GERAN_SendGSMSysInfo (geran_Cell24);
+
+    //@siclog "Step 6" siclog@
+    //Set Cell 24 power level according to T3
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    f_GERAN_SetCellPowerLevel ( geran_Cell24, v_T3_RF_SignalLevel_Cell24 );
+
+    //@siclog "Step 7" siclog@
+    //Check: does the test result of generic test procedure in 36.508
+    //subclause 6.4.2.9 indicate that the UE is camped on GERAN Cell 24?
+    f_GERAN_IdleMode_RAU ( geran_Cell24 );
+
+    //* @desc Tell the EUTRA component that the test is over
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+
+    f_GERAN_TestBody_Set ( false );
+
+    //* @desc Release Cell 24
+    f_GERAN_Postamble (geran_Cell24, G1_IDLE);
+  }// end f_TC_6_2_2_2_GERAN
+
+  function f_TC_6_2_2_6_GERAN ( ) runs on GERAN_PTC
+  { /* Inter-RAT Cell selection / From GSM_Idle / GPRS Packet_idle to E-UTRA_RRC_IDLE / Serving cell becomes non-suitable (SServingCell<0) */
+    var integer v_T0_RF_SignalLevel_Cell24 := -80;
+    var integer v_T1_RF_SignalLevel_Cell24 := tsc_GERAN_ChPwrLvl_Off;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Registered, Idle Mode (state 2) on a GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+    
+    //FFS if prose CR to remove this level setup is needed
+    f_GERAN_SetCellPowerLevel(geran_Cell24, v_T0_RF_SignalLevel_Cell24);
+    
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    //* @desc Trigger 1: Tell the EUTRA component that Cell 24 is configured
+    f_GERAN_SetCellPowerLevel(geran_Cell24, v_T1_RF_SignalLevel_Cell24);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 2" siclog@
+    //* @desc Trigger 2: Wait for completion of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    f_GERAN_TestBody_Set ( false );
+    
+    //* @desc Release Cell 24
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  } // end f_TC_6_2_2_6_GERAN
+
+  function f_TC_6_2_2_7_GERAN ( ) runs on GERAN_PTC
+  { /* Inter-RAT Cell selection / From GSM_Idle / GPRS Packet_idle to E-UTRA_RRC_IDLE, when the serving cell is barred */
+    var integer v_T0_T1_RF_SignalLevel_Cell24 := -80;
+    var template(value) SYSTEMINFORMATIONTYPE3 v_SI3;
+    var template(value) SYSTEMINFORMATIONTYPE4 v_SI4;
+
+    //var template (value) GERAN_SystemInformation_Type v_SysInfo;
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    // Change to specified RxLevAccessMin @sic R5s120527 sic@
+    v_SI3 := f_GERAN_SysInfo_GetSI3 (geran_Cell24);
+    v_SI4 := f_GERAN_SysInfo_GetSI4 (geran_Cell24);
+    v_SI3.cellSelParam.rXLEV_ACCESS_MIN := '001010'B;
+    v_SI4.cellSelParam.rXLEV_ACCESS_MIN := '001010'B;
+    f_GERAN_SysInfo_SetSI3 (geran_Cell24, v_SI3);
+    f_GERAN_SysInfo_SetSI4 (geran_Cell24, v_SI4);
+
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Registered, Idle Mode (state 2) on a GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+
+    //FFS if prose CR to remove this level setup is needed
+    f_GERAN_SetCellPowerLevel(geran_Cell24, v_T0_T1_RF_SignalLevel_Cell24);
+
+    f_GERAN_TestBody_Set( true );
+
+    //@siclog "Step 1" siclog@
+    // SS changes cell 1 and cell 24 levels and specific message contents for Cell 24
+    f_GERAN_SysInfo_SetSI13_RestOctets ( geran_Cell24, cds_SI13_RO_BCCH_CHANGE_MARK(f_GERAN_RAC_Get (geran_Cell24),
+                                                                                    f_GERAN_NMO_Get (geran_Cell24),
+                                                                                    '0000'B));
+    f_GERAN_CellInfo_SetSI2_CellBarred ( geran_Cell24 );
+    f_GERAN_CellInfo_SetSI3_CellBarred ( geran_Cell24 );
+    f_GERAN_CellInfo_SetSI4_CellBarred ( geran_Cell24 );
+    f_GERAN_SendGSMSysInfo ( geran_Cell24 );
+    
+    //* @desc Trigger 1: Tell the EUTRA component that Cell 24 is configured
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 2" siclog@
+    //* @desc Trigger 2: Wait for completion of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    f_GERAN_TestBody_Set ( false );
+    
+    //* @desc Release Cell 24
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  } // end f_TC_6_2_2_7_GERAN
+
+}

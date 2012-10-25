@@ -1,0 +1,286 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-26 13:00:16 +0200 (Thu, 26 Apr 2012) $
+// $Rev: 6579 $
+/******************************************************************************/
+
+module CDMA2000_Component {
+
+  import from CDMA2000_ASP_TypeDefs all;
+  import from CDMA2000_CellInfo all;
+  import from CDMA2000_CommonDefs all;
+  import from CDMA2000_Constants all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from UpperTesterDefs all;
+
+  type enumerated CDMA_Default_Enum_Type {StandardDefault};  /* @status    APPROVED */
+
+  type record CDMA2000_Ctrl_Type {      /* @status    APPROVED */
+    default                     Default,
+    boolean                     TestBody
+  };
+
+  type record CDMA2000_Global_Type {    /* @status    APPROVED */
+    CDMA2000_Ctrl_Type          Ctrl,
+    CDMA2000_CellArray_Type     CellArray
+  };
+
+  type component CDMA2000_PTC {         /* @status    APPROVED */
+    var  CDMA2000_Global_Type           vc_CDMA2000_Global;
+    port IRAT_CO_ORD_PORT               EUTRA;
+
+    port CDMA2000_SYSTEM_PORT           SYS;
+    port CDMA2000_SYSCMD_IND_PORT       SYSCMD_IND;
+    port CDMA2000_RLP_FLOW_PORT         RLP_FLOW;
+    
+    port UT_PTC_MTC_PORT                UT;
+  };
+
+  type component CDMA2000_SYSTEM {                              /* @status    APPROVED */
+    port CDMA2000_SYSTEM_PORT        CDMA2000_SYS;
+    port CDMA2000_SYSCMD_IND_PORT    CDMA2000_SYSCMD_IND;
+    port CDMA2000_RLP_FLOW_PORT      CDMA2000_RLP_FLOW;
+  };
+
+  function f_CDMA2000_PTC_Map(CDMA2000_PTC p_Cdma2000)
+  {
+    map(p_Cdma2000:SYS,        system:CDMA2000_SYS);
+    map(p_Cdma2000:SYSCMD_IND, system:CDMA2000_SYSCMD_IND);
+    map(p_Cdma2000:RLP_FLOW,   system:CDMA2000_RLP_FLOW);
+  }
+
+  altstep a_CDMA2000_StandardDefault() runs on CDMA2000_PTC
+  {
+    [] SYSCMD_IND.receive {
+      all timer.stop;
+      f_CDMA2000_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at SYSCMD_IND port");
+    }
+    [] SYS.receive {
+      all timer.stop;
+      f_CDMA2000_SetVerdictInconc(__FILE__, __LINE__, "unexpected receive event at Sys port");
+    }
+    [] RLP_FLOW.receive {
+      all timer.stop;
+      f_CDMA2000_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at RLP_FLOW port");
+    }
+    [] UT.receive {
+      all timer.stop;
+      f_CDMA2000_SetVerdictInconc(__FILE__, __LINE__, "unexpected receive event at UT port");
+    }
+    [] any timer.timeout {
+      all timer.stop;
+      f_CDMA2000_SetVerdictInconc(__FILE__, __LINE__, "unexpected timeout");
+    }
+  }
+
+  function f_CDMA2000_ActivateDefault(CDMA_Default_Enum_Type p_Default) runs on CDMA2000_PTC
+  {
+    deactivate(vc_CDMA2000_Global.Ctrl.Default);
+    
+    select (p_Default) {
+      case (StandardDefault) {
+        vc_CDMA2000_Global.Ctrl.Default := activate(a_CDMA2000_StandardDefault());
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "unknown default behaviour");
+      }
+    }
+  }
+
+  function f_CDMA2000_TestBody_Set(boolean p_TestBodyFlag) runs on CDMA2000_PTC
+  {
+    vc_CDMA2000_Global.Ctrl.TestBody := p_TestBodyFlag;
+  }
+
+  function fl_CDMA2000_TestBody_Check() runs on CDMA2000_PTC return boolean
+  {
+    return vc_CDMA2000_Global.Ctrl.TestBody;
+  }
+
+  function f_CDMA2000_SetVerdictFailOrInconc(charstring p_FileName,
+                                             LineNo_Type p_LineNo,
+                                             charstring p_Msg) runs on CDMA2000_PTC
+  {
+    if (fl_CDMA2000_TestBody_Check()) {
+      f_SetVerdict(fail, p_FileName, p_LineNo, p_Msg);
+    } else {
+      f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    }
+    self.kill;  // => testcase will terminate immediately
+  }
+
+  function f_CDMA2000_SetVerdictInconc(charstring p_FileName,
+                                       LineNo_Type p_LineNo,
+                                       charstring p_Msg)
+  {
+    f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    self.kill;  // => testcase will terminate immediately
+  }
+
+  function f_CDMA2000_PreliminaryPass(charstring p_FileName,
+                                      LineNo_Type p_LineNo,
+                                      charstring p_Msg) runs on CDMA2000_PTC
+  {
+    if (fl_CDMA2000_TestBody_Check()) {
+      f_SetVerdict(pass, p_FileName, p_LineNo, p_Msg);
+    }
+  }
+
+  function f_CDMA2000_Init(IRAT_ConfiguredPTCs_Type p_ConfiguredPTCs,
+                           CDMA2K_Type p_CDMA2K_Type := typeHRPD) runs on CDMA2000_PTC
+  {
+    //var IRAT_CoOrd_SysInfo_List_Type v_IR_SysInfoList;
+    
+    vc_CDMA2000_Global.Ctrl.Default := null;
+    vc_CDMA2000_Global.Ctrl.TestBody := false;
+    vc_CDMA2000_Global.CellArray := f_CDMA2000_CellArray_Init();
+    
+    // Now initialize sys info, together with EUTRA inter RAT parameters, for all cells
+    select (p_ConfiguredPTCs)
+    {
+      case (EUTRA_CDMA2000) {
+        //v_IR_SysInfoList[0] := f_IRAT_InitialCoOrd(EUTRA, f_CDMA2000_IR_SysInfoInit (vc_CDMA2000_Global.CellArray, p_CDMA2K_Type));
+        f_IRAT_InitialCoOrd(EUTRA, f_CDMA2000_IR_SysInfoInit (vc_CDMA2000_Global.CellArray, p_CDMA2K_Type));
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "wrong PTC configuration specified in test case");
+      }
+    }
+    f_CDMA2000_ActivateDefault(StandardDefault);
+  }
+
+  function f_CDMA2000_CellInfo_GetIndex (CDMA2000_CellId_Type p_CellId) return integer
+  {
+    select (p_CellId)
+    {
+      case (cdma2000_Cell15) {
+        return 0;
+      } case (cdma2000_Cell16) {
+        return 1;
+      } case (cdma2000_Cell17) {
+        return 2;
+      } case (cdma2000_Cell18) {
+        return 3;
+      } case (cdma2000_Cell18) {
+        return 3;
+      } case (cdma2000_Cell19) {
+        return 4;
+      } case (cdma2000_Cell20) {
+        return 5;
+      } case (cdma2000_Cell21) {
+        return 6;
+      } case (cdma2000_Cell22) {
+        return 7;
+      } case else {
+        FatalError (__FILE__, __LINE__, "Invalid CellId");
+        return 0;
+      }
+    }
+  }
+
+  function f_CDMA2000_CellInfo_SetCellPower ( CDMA2000_CellId_Type p_CellId,
+                                              template (value) CDMA2000_ReferenceCellPower_Type p_ReferenceCellPower ) runs on CDMA2000_PTC
+  {
+    var template (value) CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);  // template variable to avoid valueof
+    
+    v_CellInfo.ReferenceCellPower := p_ReferenceCellPower;
+    f_CDMA2000_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_CDMA2000_CellInfo_GetCellPower ( CDMA2000_CellId_Type p_CellId ) runs on CDMA2000_PTC return  CDMA2000_ReferenceCellPower_Type
+  {
+    var CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);
+    return v_CellInfo.ReferenceCellPower;
+  }
+
+  function f_CDMA2000_CellInfo_InitMaxReferencePower ( CDMA2000_CellId_Type p_CellId,
+                                                       PowerIoc_Type p_PowerIoc := tsc_PowerIocDef,
+                                                       PowerIor_Type p_PowerIor := tsc_PowerIorDef,
+                                                       template (omit) PilotOffset_Type p_PilotOffset ) runs on CDMA2000_PTC
+  {
+    var template (value) CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);  // template variable to avoid valueof
+    var template (value) PilotOffset_Type v_PilotOffset;
+    if (isvalue (p_PilotOffset))
+    {
+        v_PilotOffset := valueof(p_PilotOffset);
+    }
+    else
+    {
+        if (match (f_CDMA2000_Type_Get(p_CellId), typeHRPD)) // HRPD default offset to be applied
+        {
+            v_PilotOffset := tsc_PilotOffsetHRPDDef;
+        }
+        else // RTT1X default offset to be applied
+        {
+            v_PilotOffset := tsc_PilotOffsetDef;
+        }
+    }
+
+    v_CellInfo.ReferenceCellPower.CellPower := cs_CDMA2000_AbsoluteCellPowerDef(p_PowerIoc,p_PowerIor,v_PilotOffset);
+    v_CellInfo.ReferenceCellPower.CellAttenuation.Off := true;
+    f_CDMA2000_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  group Get_SetFunctions {
+
+  function f_CDMA2000_CellInfo_Set(CDMA2000_CellId_Type p_CellId,
+                                   template (value) CDMA2000_CellInfo_Type p_CellInfo) runs on CDMA2000_PTC
+  {
+    var integer v_Index := f_CDMA2000_CellInfo_GetIndex(p_CellId);
+    vc_CDMA2000_Global.CellArray[v_Index] := valueof (p_CellInfo);   /* valueof cannot be avoided here */
+  }
+
+  function f_CDMA2000_CellInfo_Get(CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC return CDMA2000_CellInfo_Type
+  {
+    var integer v_Index := f_CDMA2000_CellInfo_GetIndex(p_CellId);
+    return vc_CDMA2000_Global.CellArray[v_Index];
+  }
+
+  function f_CDMA2000_Type_Get (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC return CDMA2K_Type
+  {
+    var CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);
+    return v_CellInfo.CommonCellInfo.CommonCellParams.Type;
+  }
+
+  function f_CDMA2000_HRPD_CellParameters_Get (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC return HRPD_CellParameters_Type
+  {
+    var CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);
+    if (not (match (f_CDMA2000_Type_Get(p_CellId), typeHRPD)))
+      {
+        FatalError (__FILE__, __LINE__, "Non HRPD Cell Id passed ");
+      }
+    return v_CellInfo.ModeSpecificParams.HRPD;
+  }
+
+  function f_CDMA2000_RTT1X_CellParameters_Get (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC return RTT1X_CellParameters_Type
+  {
+    var CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);
+    if (not (match (f_CDMA2000_Type_Get(p_CellId), type1XRTT)))
+    {
+        FatalError (__FILE__, __LINE__, "Non RTT1X Cell Id passed ");
+    }
+    return v_CellInfo.ModeSpecificParams.RTT1X;
+    
+  }
+
+  function f_CDMA2000_CellPower_Get (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC return CDMA2000_AbsoluteCellPower_Type
+  {
+    var CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);
+    return v_CellInfo.ReferenceCellPower.CellPower;
+  }
+
+  function f_CDMA2000_CommonCellParameters_Get (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC return CDMA2000_CellParameters_Type
+  {
+    var CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get(p_CellId);
+    return v_CellInfo.CommonCellInfo.CommonCellParams;
+  }
+
+  } // end of group Get_SetFunctions
+
+}

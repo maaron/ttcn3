@@ -1,0 +1,169 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+module InterRat_PLMNSelection_GERAN {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_CommonTemplates all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UpperTesterFunctions all;
+
+  function f_TC_6_2_1_1_GERAN ( ) runs on GERAN_PTC
+  {
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var integer v_T0_RF_SignalLevel_Cell24 := tsc_GERAN_ServingCell;
+    var integer v_T3_RF_SignalLevel_Cell24 := tsc_GERAN_ChPwrLvl_Off;
+    var B3_Type v_UpdateType;
+    var octetstring v_PLMN13 := f_U_Asn2Nas_PlmnId ({ mcc := {0,0,2}, mnc := {8, 1}}); //PLMN13 according to Table 6.2.1.1.3.2-1: Cell PLMN identities
+    timer t_IdleMode_GenericTimer_GERAN := 360.0;   //Idle mode generic timer according to 36.523-3 cl. 7.8
+    
+    //Initialise test case
+    f_GERAN_Init ( EUTRA_GERAN ); // @sic R5s120568 sic@
+    
+    //Set PLMN according to Table 6.2.1.2.3.2-1: Cell PLMN identities
+    f_GERAN_PLMN_Set ( geran_Cell24, v_PLMN13 );
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, cs_SysInfoType2quater(cs_SI2quaterRO('0000'B,'0000'B, // @sic R5s120568 sic@
+                                                                  '0'B,
+                                                                  '0'B, omit,
+                                                                  '0'B, omit,
+                                                                  '0'B, omit,
+                                                                  omit, '0'B )));
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, omit);
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell ( geran_Cell24 );
+    f_GERAN_SetCellPowerLevel( geran_Cell24, tsc_GERAN_ChPwrLvl_Off );
+    
+    //Set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_GERAN_SetCellPowerLevel( geran_Cell24, v_T0_RF_SignalLevel_Cell24 );
+    
+    //Tell EUTRA PTC to start test case
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    
+    f_GERAN_TestBody_Set( true );
+    
+    //Receive updated Authentication parameters from EUTRA PTC
+    f_GERAN_InterRAT_InitialiseAuthParams();
+    
+    //@siclog "Step 21" siclog@
+    //Wait for CHANNEL REQUEST on cell 24
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    t_IdleMode_GenericTimer_GERAN.start;
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg(geran_Cell24,
+                                            car_G_LLC_UnitData_IND(cr_G_RA_UpdReqAny(cr_GMM_UpdateType,
+                                                                                     cr_RAI(omit),
+                                                                                     cr_PTMSI_SignatureAny ifpresent, ?)),
+                                            "Step 21");
+    t_IdleMode_GenericTimer_GERAN.stop;
+    
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_LLCDataInd.unit.msg.rauReq);
+    
+    //@siclog "Step 22 - 31" siclog@
+    //Perform RAU procedure on cell 24
+    f_GERAN_RAUWithoutRAUReq (geran_Cell24, v_UpdateType, true);
+    
+    //Since Authentication parameters have been updated. Send them to EUTRA PTC, who will send them to UTRAN PTC
+    //FFS - no functionality for sending the authentication parameters from GERAN PTC to UTRAN PTC exists
+    f_GERAN_SendAuthParameters(UTRAN);
+    
+    //@siclog "Step 32" siclog@
+    //Check if PLMN13 is indicated by UE
+    f_UT_PLMN_Check ( UT, "00281" );
+    //* @verdict pass PLMN13 is indicated by UE
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.1 Step 32");
+    
+    //@siclog "Step 34" siclog@
+    //Adjust cell power levels according to T3
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    f_IRAT_SendCoOrd ( UTRAN, cms_IRAT_Trigger );
+    f_GERAN_SetCellPowerLevel( geran_Cell24, v_T3_RF_SignalLevel_Cell24 );
+    
+    f_GERAN_TestBody_Set ( false );
+    
+    //Wait for end of test case and then release cell 24
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_1_4_GERAN() runs on GERAN_PTC
+  {
+    var octetstring v_PLMN2 := f_U_Asn2Nas_PlmnId ({ mcc := {0,0,2}, mnc := {1, 1}}); // @sic R5s120025 sic@
+
+    //Initialise test case
+    f_GERAN_Init (EUTRA_GERAN);
+
+    //Set PLMN according to Table 6.2.1.2.3.2-1: Cell PLMN identities
+    f_GERAN_PLMN_Set (geran_Cell24, v_PLMN2);
+    
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_SetCellPowerLevel(geran_Cell24, tsc_GERAN_ChPwrLvl_Off);
+
+    //Set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel(geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //Tell EUTRA PTC to start test case
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    f_GERAN_TestBody_Set(true);
+
+    //Wait for end of test case and then release cell 24
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+
+    f_GERAN_TestBody_Set (false);
+    
+    f_GERAN_SS_CellRelease (geran_Cell24);
+  }
+
+  function f_TC_6_2_1_6_GERAN ( ) runs on GERAN_PTC
+  {
+    var octetstring v_PLMN15 := f_U_Asn2Nas_PlmnId({ mcc := {0, 0, 1},  mnc := {1, 1} }); //PLMN15 @sic GP-120370 sic@
+    
+    //Initialise test case
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //Set PLMN according to Table 6.2.1.6.3.1-1
+    f_GERAN_PLMN_Set (geran_Cell24, v_PLMN15);
+    
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+
+    f_UT_USIM_Insert (UT, "36.523-1 Table 6.2.1.6.3.1-2");
+    f_GERAN_Preamble (geran_Cell24);
+    f_GERAN_SwitchPowerOff (geran_Cell24, NotSpecified);
+
+    f_GERAN_TestBody_Set(true);
+    f_GERAN_SetCellPowerLevel(geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //Bring UE to initial state
+    f_UT_SwitchOnUE(UT, false);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // @sic R5s120027 sic@
+    f_GERAN_IdleUpdated (geran_Cell24);
+    //Send updated authentication parameters to EUTRA PTC
+    f_GERAN_SendAuthParameters (EUTRA);
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_GERAN_TestBody_Set (false);
+    
+    //Release cell 24
+    f_GERAN_SS_CellRelease (geran_Cell24);
+  }
+
+}

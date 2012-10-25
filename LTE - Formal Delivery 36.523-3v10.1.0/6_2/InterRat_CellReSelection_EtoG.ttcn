@@ -1,0 +1,122 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:09:14 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7293 $
+/******************************************************************************/
+module InterRat_CellReSelection_EtoG {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_SysInfo_Templates all;
+
+  function f_TC_6_2_3_1_EUTRA ( ) runs on EUTRA_PTC
+  { /* @desc Test case 6.2.3.1 Inter-RAT Cell Reselection / from E-UTRA RRC_IDLE to GSM_Idle/GPRS Packet_Idle */
+    
+    var float v_WaitTime := 5.0;
+    var CellRes_Prio_Type v_CellRes_Prio_initial := 4;
+    var ReselectionThreshold v_ThreshServingLow_Cell1 := 10;
+    //@sic Created T3 and removed T0 from CR R5-104784 sic@
+    var AbsoluteCellPower_Type v_T2_Cell_Specific_RS_EPRE_Cell1 := -60;
+    var AbsoluteCellPower_Type v_T1_Cell_Specific_RS_EPRE_Cell1 := -70;
+    var AbsoluteCellPower_Type v_T3_Cell_Specific_RS_EPRE_Cell1 := -100;
+    var boolean v_CSInOtherRAT := false;
+    var template (value) CarrierFreqsInfoListGERAN v_CarrierFreqsInfoListGERAN;
+    var template (value) SystemInformationBlockType7 v_SystemInformationBlockType7;
+    var IRAT_CoOrd_SysInfo_Type v_GERANSysInfo24;
+    var IRAT_CoOrd_SysInfo_Type v_GERANSysInfo25;
+    
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+    
+    //* @desc Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//Combination 5 in TS 36.508 section 4.4.3.1.1
+    
+    //* @desc Set maximum cell power level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -60 );
+    
+    //Get SIB7... @sic R5-120604, R5s120290 sic@
+    v_GERANSysInfo24 := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    v_GERANSysInfo25 := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    v_CarrierFreqsInfoListGERAN := {
+      cs_CarrierFreqsInfoGERAN(cs_CarrierFreqsGERAN(v_GERANSysInfo24.Geran[0].Arfcn, f_ConvertGERAN_Band(v_GERANSysInfo24.Geran[0].BandIndicator), {}),
+                               5),  // priority
+      cs_CarrierFreqsInfoGERAN(cs_CarrierFreqsGERAN(v_GERANSysInfo25.Geran[0].Arfcn, f_ConvertGERAN_Band(v_GERANSysInfo25.Geran[0].BandIndicator), {}),
+                               3)   // priority
+    };
+    v_SystemInformationBlockType7 := cs_508_SystemInformationBlockType7_Def(v_CarrierFreqsInfoListGERAN, 7); // t_ReselectionGERAN = 7;  @sic R5s120290 sic@
+
+    //...the save back the SIB7
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell1, v_SystemInformationBlockType7);
+    
+    // --- Update SIB3 ---
+    //* @desc Set system information according to specific message contents
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio ( eutra_Cell1, v_CellRes_Prio_initial );
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow ( eutra_Cell1, v_ThreshServingLow_Cell1 );
+    
+    //* @desc Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //* @desc Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble_InterRAT(eutra_Cell1, STATE2_IDLEUPDATE, GERAN);
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 0" siclog@
+    f_Delay (6.0); // @sic R5-113678 sic@
+    
+    //@siclog "Step 1" siclog@
+    //Set cell1 paramters according to T1
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T1_Cell_Specific_RS_EPRE_Cell1 );
+    
+    //* @desc Trigger 1: GERAN component steps
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    
+    //@siclog "Step 5" siclog@
+    //Set cell1 parameters according to T2 in Table 6.2.3.1.3.2-1
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T2_Cell_Specific_RS_EPRE_Cell1 );
+    
+    //@siclog "Step 6" siclog@
+    //UE reselects cell1 and completes tracking area update procedure
+    t_IdleMode_GenericTimer.start;
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT (eutra_Cell1, tsc_RRC_TI_Def, v_CSInOtherRAT, false, true, omit, - , NORMAL); // @sic R5s120091, R5-123734 sic@
+    t_IdleMode_GenericTimer.stop;
+    // update security params and send them over
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+    
+    //@siclog "Step 7" siclog@
+    // Wait for 5 seconds */
+    f_Delay ( v_WaitTime );
+
+    //@siclog "Step 8" siclog@
+    //Set cell1 paramters according to T3
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T3_Cell_Specific_RS_EPRE_Cell1 );
+    //* @desc Trigger 3: Set cell25 parameters according to T2 in the GERAN component
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    //* @desc Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //* @desc Remove the non-camping cell
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+}

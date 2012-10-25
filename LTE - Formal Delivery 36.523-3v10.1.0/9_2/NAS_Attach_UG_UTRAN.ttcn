@@ -1,0 +1,956 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// * $Rev: 7242 $
+// ***************************************************************************
+
+module NAS_Attach_UG_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_NAS_PDU_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TTCN_ASP_Templates all;
+  import from UTRAN_TypeDefs all;
+  import from UpperTesterFunctions all;
+
+  function f_TC_9_2_1_1_11_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_1_11_EUTRA) */
+    /* @sic R5-113696: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+
+    var START_Value v_START_Value := '00000000000000000000'B;
+    var RRC_DATA_IND v_RRC_DataInd;
+    
+    f_UTRAN_Init(EUTRA_UTRAN);
+    
+    f_UTRAN_SS_CreateCellDCH(utran_Cell9);
+    f_UTRAN_SendDefSysInfo (utran_Cell9);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell9, PS_Only); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 21a1" siclog@
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell9, tsc_AttenuationServingCell);
+    
+    //  Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds? (F)
+    //@siclog "Step 21a2" siclog@
+    f_UTRAN_CheckNoAttachOnCell (utran_Cell9, 30.0, "Step 21a2");
+    
+    //@siclog "Step 21a3" siclog@
+    // The operator initiates an attach by MMI or by AT command.
+    f_UT_TriggerAttach(UT);
+    
+    //  Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds? (F)
+    //@siclog "Step 21a4" siclog@
+    f_UTRAN_CheckNoAttachOnCell (utran_Cell9, 30.0, "Step 21a4");
+    
+    //@siclog "Step 21a5" siclog@
+    f_UT_SwitchOffUE (UT, false, CNF_REQUIRED); // @sic R5s1100395 sic@
+    
+    //@siclog "Step 21a6" siclog@
+    f_UT_SwitchOnUE (UT, false );
+    
+    //@siclog "Step 21a7 Void" siclog@
+    
+    //  Check: Does the UE transmit an ATTACH REQUEST message with IMSI-1and TMSI status indicated invalid TMSI?
+    //@siclog "Step 21a8" siclog@
+    f_UTRAN_RRC_ConnEst(utran_Cell9); // Establish RRC connection
+    alt {
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                cr_U_AttachReqIMSInoTMSI(cr_AttachTypeAny,
+                                                                         f_Imsi2MobileIdentity(px_IMSI_Def), // MobileId = IMSI
+                                                                         cr_RAI(omit),
+                                                                         omit)))
+        -> value v_RRC_DataInd
+        {
+          v_START_Value := v_RRC_DataInd.ttcn_start;
+          f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_START_Value);
+        }
+    }
+    
+    //@siclog "Step 22" siclog@
+    f_UTRAN_GMM_Authentication();
+    f_UTRAN_RRC_Security(utran_Cell9,                        // SECURITY MODE COMMAND, SECURITY MODE COMPLETE
+                         true,
+                         ps_domain);
+    
+    f_UTRAN_AttachAccept(utran_Cell9, v_RRC_DataInd.msg.attachRequest.attachType.attachType);       // ATTACH ACCEPT, ATTACH COMPLETE
+    f_UTRAN_RRC_ConnRel(utran_Cell9, cell_Dch);
+    
+    f_UTRAN_TestBody_Set( false );
+    
+    // Test case now finished on UTRAN side
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_Postamble ( utran_Cell9, U1_IDLE, PS_Only); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_1_11_UTRAN
+
+  function f_TC_9_2_1_1_12_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_1_12_EUTRA) */
+    /* @sic R5-113696: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+    
+    f_UTRAN_Init(EUTRA_UTRAN);
+    
+    f_UTRAN_SS_CreateCellDCH (utran_Cell9);
+    f_UTRAN_SendDefSysInfo (utran_Cell9);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell9, PS_Only); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    // Second Trigger
+    //@siclog "Step 10a1" siclog@
+    // Set Cell 5 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell9, tsc_AttenuationServingCell);
+    
+    //@siclog "Step 10a3" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 2 minutes?
+    f_UTRAN_CheckNoAttachOnCell ( utran_Cell9, 120.0, "Step 10a3" );
+    
+    //@siclog "Step 10a4" siclog@
+    f_UT_TriggerAttach (UT);
+    
+    //@siclog "Step 10a5" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds?
+    f_UTRAN_CheckNoAttachOnCell ( utran_Cell9, 30.0, "Step 10a5" );
+    
+    //@siclog "Step 10a6" siclog@
+    // Set Cell 5 to "Non Suitable Cell"
+    f_UTRAN_SetCellPower (utran_Cell9, tsc_AttenuationCellOFF); // subject to prose CR approval;  @sic R5s110151 sic@
+    
+    // Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Third Trigger
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell ( utran_Cell9, f_UTRAN_CellInfo_GetConfigType (utran_Cell9) ); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_1_12_UTRAN
+
+  function f_TC_9_2_1_2_1b_UTRAN () runs on UTRAN_PTC
+  { // Combined attach procedure / Success / SMS only
+    
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    var U_RNTI v_U_RNTI;
+    var C_RNTI v_C_RNTI;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var template (value) DL_CCCH_Message v_RRC_ConnSetup;
+    var B3_Type v_UpdateType := '000'B;
+    var RRC_DATA_IND v_RRC_DataInd;
+    var InitialUE_Identity v_InitialUE_Id;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var RRCConnectionSetupComplete v_RRCConnectionSetupComplete;
+    var bitstring v_UE_CapabilityContainer;
+    var UE_CapabilityContainer_IEs v_UE_Capability_ASN;
+    var U_RLC_AM_IND v_RLC_AM_DATA_IND;
+    var STARTList v_STARTList;
+    var integer v_DomainCnt, v_Result;
+    var integer I;
+    var boolean v_DetachSent := false;
+    
+    f_UTRAN_Init(EUTRA_UTRAN);
+    
+    f_UTRAN_SS_CreateCellDCH(utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    // First Trigger
+    //@siclog "Step 1" siclog@
+    // +   Set Cell 5 as the "Non-Suitable cell".
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationNonSuitableCell);
+    
+    // Second Trigger
+    //@siclog "Step 2a3" siclog@
+    // +   Set Cell 5 as the "Suitable neighbour cell".
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationSuitableNeighbourCell);
+    
+    if (pc_CS_PS_voice_centric and px_UE_CS_PS_UsageSetting_Tested == VOICE_CENTRIC) {// @sic R5-115715, R5s120079r1, R5s120274 sic@
+      f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+      v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+      v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI(utran_Cell5);
+      v_C_RNTI := f_UTRAN_CellInfo_GetC_RNTI(utran_Cell5);
+      
+      //@siclog "Step 3a1" siclog@
+      U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                   tsc_RB0,
+                                   cdr_RRC_ConnReqWith_v860ext(?, cdr_RRCConnReq_v860ext_OptionalEUTRA(false, false)))) -> value v_RLC_TR_DATA_IND; // @sic R5s120427 sic@
+      v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+      f_UTRAN_CheckReleaseIndicator ( utran_Cell5, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+      f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Step 3a1");
+      
+      //@siclog "Step 3a2" siclog@
+      v_RRC_ConnSetup := f_Get_cs_108_RRC_ConnSetupDCH(utran_Cell5, v_InitialUE_Id);
+
+      //Set Cell configuration
+      f_UTRAN_CellInfo_SetConfigType ( utran_Cell5, cell_DCH_StandAloneSRB );
+
+      U_UM.send(cas_RRC_ConnSetup(utran_Cell5, tsc_RB0, v_RRC_ConnSetup));
+      
+      //@siclog "Step 3a3" siclog@
+      alt {
+        [] U_AM.receive ( car_RLC_Data_Ind ( utran_CellDedicated,
+                                             tsc_RB2,
+                                             cr_108_RRC_ConnSetupCmpl(tsc_RRC_TI, ?))) // can't check UE capabilities fully here
+          -> value v_RLC_AM_DATA_IND
+          {
+            v_RRCConnectionSetupComplete := v_RLC_AM_DATA_IND.data.aM_message.uL_DCCH_Message.message_.rrcConnectionSetupComplete;
+          }
+        // swallow any excess ConnReq messages that haven't been processed yet
+        [] U_TM.receive(car_RRC_ConnReq(?, tsc_RB0, cr_RRC_RrcConnReqAny))
+          {
+            repeat;
+          }
+      }
+      
+      v_UE_CapabilityContainer := v_RRCConnectionSetupComplete.v370NonCriticalExtensions.v380NonCriticalExtensions.v3a0NonCriticalExtensions.laterNonCriticalExtensions.v3g0NonCriticalExtensions.v4b0NonCriticalExtensions.v590NonCriticalExtensions.v5c0NonCriticalExtensions.v690NonCriticalExtensions.rrcConnectionSetupComplete_v690ext.ueCapabilityContainer;
+      v_Result := decvalue (v_UE_CapabilityContainer, v_UE_Capability_ASN);
+      
+      if (v_Result != 0) {
+        FatalError(__FILE__, __LINE__, "UE Capability cannot be decoded");
+      }
+      
+      if (match (v_UE_Capability_ASN.v6b0NonCriticalExtensions.v6e0NonCriticalExtensions.v770NonCriticalExtensions.v790NonCriticalExtensions.v860NonCriticalExtensions.ue_RadioAccessCapability_v860ext,
+                 cr_UE_RadioAccessCapMultiRATCap(cr_MultiModeRATCap_NotSupportEUTRA))) {
+        f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Step 3a3");
+      }
+      else {
+        f_UTRAN_SetVerdictFailOrInconc (__FILE__, __LINE__, "Step 3a3");
+      }
+      
+      // get start list
+      v_SecurityInfo := f_UTRAN_Security_Get();
+      v_STARTList := v_RRCConnectionSetupComplete.startList;
+      v_SecurityInfo.cipheringAlgorithmCapability := v_RRCConnectionSetupComplete.ue_RadioAccessCapability.securityCapability.cipheringAlgorithmCap;
+      v_SecurityInfo.integrProtAlgCap := v_RRCConnectionSetupComplete.ue_RadioAccessCapability.securityCapability.integrityProtectionAlgorithmCap;
+      v_DomainCnt := lengthof(v_STARTList);
+      if ((v_DomainCnt > 0) and (v_DomainCnt <= 2)) {
+        for (I:=0; I<v_DomainCnt; I:=I+1) {
+          if (v_STARTList[I].cn_DomainIdentity == cs_domain) {
+            v_SecurityInfo.start_CS := v_STARTList[I].start_Value;
+          } else {
+            v_SecurityInfo.start_PS := v_STARTList[I].start_Value;
+          }
+        }
+      } else {
+        FatalError(__FILE__, __LINE__, "invalid configuration");
+      }
+      
+      alt { // @sic R5-122012 sic@
+        [not v_DetachSent] EUTRA.receive(cmr_IRAT_Trigger)
+          { // this message should have been received before the RRC Connection established
+            v_DetachSent := true;
+            repeat;
+          }
+        //@siclog "Step 4a1" siclog@
+        [not v_DetachSent] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                                  tsc_RB3,
+                                                                  cr_U_RA_UpdReq_MSandUENetworkCap(cr_GMM_UpdateType(?, (tsc_I_UpdateTypeRAOnly, tsc_I_UpdateTypeCombined)),
+                                                                                    cr_RAI (omit),
+                                                                                    cr_PTMSI_SignatureAny ifpresent,
+                                                                                    ?,
+                                                                                    cr_MS_RadioAccessCapLVNotSupportEUTRA,
+                                                                                    omit)))    // @sic R5-123648 sic@
+          -> value v_RRC_DataInd
+          {
+            v_SecurityInfo.start_PS := v_RRC_DataInd.ttcn_start;
+            f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_SecurityInfo.start_PS);
+            v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_RRC_DataInd.msg.routingAreaUpdateRequest);
+            f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Step 4a1");
+            
+            f_UTRAN_Security_Set(v_SecurityInfo);
+            //@siclog "Steps 4a2-4a3" siclog@
+            f_UTRAN_GMM_RAU_Without_RAUReq ( utran_Cell5, v_SecurityInfo.start_PS, v_UpdateType, false, false );
+          }
+        //@siclog "Step 4b1" siclog@
+        [v_DetachSent] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_AttachReq_MSandUENetworkCap(cr_AttachType(?, (tsc_I_AttachTypeGPRSAtt, tsc_I_AttachTypeCombined)),
+                                                                                                           cr_MobileIdAny(omit),
+                                                                                                           cr_RAI(omit),
+                                                                                                           ?,
+                                                                                                           cr_MS_RadioAccessCapLVNotSupportEUTRA,
+                                                                                                           omit)))  // @sic R5-123648 sic@
+          -> value v_RRC_DataInd
+          {
+            v_SecurityInfo.start_PS := v_RRC_DataInd.ttcn_start;
+            f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_SecurityInfo.start_PS);
+            f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Step 4b1");
+            //@siclog "Steps 4b2-4b3" siclog@
+            f_UTRAN_GMM_Authentication();
+            f_UTRAN_RRC_Security(utran_Cell5,                        // SECURITY MODE COMMAND, SECURITY MODE COMPLETE
+                                 true,
+                                 ps_domain);
+            
+            //@siclog "Steps 4b4-4b5" siclog@
+            f_UTRAN_AttachAccept(utran_Cell5, v_RRC_DataInd.msg.attachRequest.attachType.attachType);       // ATTACH ACCEPT, ATTACH COMPLETE
+          }
+      }
+      f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+      f_UTRAN_TestBody_Set( false );
+      f_UTRAN_Postamble ( utran_Cell5, U2_CONNECTED, NotSpecified ); // @sic R5s110176, R5s120427 sic@
+    } else { // @sic R5-122012 sic@
+      f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+      f_UTRAN_TestBody_Set( false );
+      f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    }
+  }
+
+  function f_TC_9_2_1_2_1c_UTRAN () runs on UTRAN_PTC
+  { /* Combined attach procedure / Success / EPS and CS Fallback not preferred */
+
+    var B3_Type v_UpdateType := '000'B;
+    var InitialUE_Identity v_InitialUE_Id;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var template (value) DL_CCCH_Message v_RRC_ConnSetup;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var RRCConnectionSetupComplete v_RRCConnectionSetupComplete;
+    var bitstring v_UE_CapabilityContainer;
+    var UE_CapabilityContainer_IEs v_UE_Capability_ASN;
+    var U_RLC_AM_IND v_RLC_AM_DATA_IND;
+    var RRC_DATA_IND v_RRC_DataInd;
+    var STARTList v_STARTList;
+    var integer v_DomainCnt, v_Result;
+    var integer I;
+    var boolean v_DetachSent := false;
+    
+    f_UTRAN_Init(EUTRA_UTRAN);
+    
+    f_UTRAN_SS_CreateCellDCH(utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    //@siclog "Step 0" siclog@
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationNonSuitableCell); //T0
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 4" siclog@
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationSuitableNeighbourCell); //T1
+    
+    // Table 9.2.1.2.1c.3.2-3
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    //+   Check: Does the UE send an RRC CONNECTION REQUEST on Cell 5?
+    U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                 tsc_RB0,
+                                 cdr_RRC_ConnReqWith_v860ext(?, cdr_RRCConnReq_v860ext_OptionalEUTRA(false, false) ifpresent))) -> value v_RLC_TR_DATA_IND;
+    v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+    f_UTRAN_CheckReleaseIndicator ( utran_Cell5, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Parallel Behaviour");
+    
+    v_RRC_ConnSetup := f_Get_cs_108_RRC_ConnSetupDCH(utran_Cell5, v_InitialUE_Id);
+
+    //Set Cell configuration
+    f_UTRAN_CellInfo_SetConfigType ( utran_Cell5, cell_DCH_StandAloneSRB );
+    U_UM.send(cas_RRC_ConnSetup(utran_Cell5, tsc_RB0, v_RRC_ConnSetup));
+    
+    alt {
+      [] U_AM.receive ( car_RLC_Data_Ind ( utran_CellDedicated,
+                                           tsc_RB2,
+                                           cr_108_RRC_ConnSetupCmpl(tsc_RRC_TI, ?))) // can't check UE capabilities fully here
+        -> value v_RLC_AM_DATA_IND
+        {
+          v_RRCConnectionSetupComplete := v_RLC_AM_DATA_IND.data.aM_message.uL_DCCH_Message.message_.rrcConnectionSetupComplete;
+        }
+      // swallow any excess ConnReq messages that haven't been processed yet
+      [] U_TM.receive(car_RRC_ConnReq(?, tsc_RB0, cr_RRC_RrcConnReqAny))
+        {
+          repeat;
+        }
+    }
+    
+    v_UE_CapabilityContainer := v_RRCConnectionSetupComplete.v370NonCriticalExtensions.v380NonCriticalExtensions.v3a0NonCriticalExtensions.laterNonCriticalExtensions.v3g0NonCriticalExtensions.v4b0NonCriticalExtensions.v590NonCriticalExtensions.v5c0NonCriticalExtensions.v690NonCriticalExtensions.rrcConnectionSetupComplete_v690ext.ueCapabilityContainer;
+    v_Result := decvalue (v_UE_CapabilityContainer, v_UE_Capability_ASN);
+    
+    if (v_Result != 0) {
+      FatalError(__FILE__, __LINE__, "UE Capability cannot be decoded");
+    }
+    
+    if (not match (v_UE_Capability_ASN.v6b0NonCriticalExtensions.v6e0NonCriticalExtensions.v770NonCriticalExtensions.v790NonCriticalExtensions.v860NonCriticalExtensions.ue_RadioAccessCapability_v860ext,
+                   cr_UE_RadioAccessCapMultiRATCap(cr_MultiModeRATCap_NotSupportEUTRA))) {
+      f_UTRAN_SetVerdictFailOrInconc (__FILE__, __LINE__, "Parallel Behaviour");
+    }
+    
+    // get start list
+    v_SecurityInfo := f_UTRAN_Security_Get();
+    v_STARTList := v_RRCConnectionSetupComplete.startList;
+    v_SecurityInfo.cipheringAlgorithmCapability := v_RRCConnectionSetupComplete.ue_RadioAccessCapability.securityCapability.cipheringAlgorithmCap;
+    v_SecurityInfo.integrProtAlgCap := v_RRCConnectionSetupComplete.ue_RadioAccessCapability.securityCapability.integrityProtectionAlgorithmCap;
+    v_DomainCnt := lengthof(v_STARTList);
+    if ((v_DomainCnt > 0) and (v_DomainCnt <= 2)) {
+      for (I:=0; I<v_DomainCnt; I:=I+1) {
+        if (v_STARTList[I].cn_DomainIdentity == cs_domain) {
+          v_SecurityInfo.start_CS := v_STARTList[I].start_Value;
+        } else {
+          v_SecurityInfo.start_PS := v_STARTList[I].start_Value;
+        }
+      }
+    } else {
+      FatalError(__FILE__, __LINE__, "invalid configuration");
+    }
+    f_UTRAN_Security_Set(v_SecurityInfo);
+    
+    alt {
+      [] EUTRA.receive(cmr_IRAT_Trigger)
+        { // this message should have been received before the RRC Connection established
+          v_DetachSent := true;
+          repeat;
+        }
+      [not v_DetachSent] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                                tsc_RB3,
+                                                                cr_U_RA_UpdReq_MSandUENetworkCap(cr_GMM_UpdateType(?, (tsc_I_UpdateTypeRAOnly, tsc_I_UpdateTypeCombined)),
+                                                                                  cr_RAI (omit),
+                                                                                  cr_PTMSI_SignatureAny ifpresent,
+                                                                                  ?,
+                                                                                  cr_MS_RadioAccessCapLVNotSupportEUTRA,
+                                                                                  omit))) // @sic R5-123648 sic@
+        -> value v_RRC_DataInd
+        {
+          v_SecurityInfo.start_PS := v_RRC_DataInd.ttcn_start;
+          f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_SecurityInfo.start_PS);
+          v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_RRC_DataInd.msg.routingAreaUpdateRequest);
+          f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Step 1a1");
+          
+          f_UTRAN_Security_Set(v_SecurityInfo);
+          //@siclog "Steps 1a2-1a3" siclog@
+          f_UTRAN_GMM_RAU_Without_RAUReq ( utran_Cell5, v_SecurityInfo.start_PS, v_UpdateType, false, false );
+        }
+      [v_DetachSent] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_AttachReq_MSandUENetworkCap(cr_AttachType(?, (tsc_I_AttachTypeGPRSAtt, tsc_I_AttachTypeCombined)),
+                                                                                                         cr_MobileIdAny(omit),
+                                                                                                         cr_RAI(omit),
+                                                                                                         ?,
+                                                                                                         cr_MS_RadioAccessCapLVNotSupportEUTRA,
+                                                                                                         omit) )) // @sic R5-123648 sic@
+        -> value v_RRC_DataInd
+        {
+          v_SecurityInfo.start_PS := v_RRC_DataInd.ttcn_start;
+          f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_SecurityInfo.start_PS);
+          f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Step 1b1");
+          f_UTRAN_GMM_Authentication();
+          f_UTRAN_RRC_Security(utran_Cell5,                        // SECURITY MODE COMMAND, SECURITY MODE COMPLETE
+                               true,
+                               ps_domain);
+          
+          f_UTRAN_AttachAccept(utran_Cell5, v_RRC_DataInd.msg.attachRequest.attachType.attachType);       // ATTACH ACCEPT, ATTACH COMPLETE
+        }
+    }
+    f_UTRAN_RRC_ConnRel(utran_Cell5, cell_Dch);
+    
+    //@siclog "Step 12" siclog@
+    f_UTRAN_SwitchPower_Off (utran_Cell5, U1_IDLE, NotSpecified);
+    
+    //@siclog "Step 13" siclog@
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationNonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    // So just wait for trigger to take down the cell
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  }
+
+  function f_TC_9_2_1_2_1d_UTRAN () runs on UTRAN_PTC
+  { /* Combined attach procedure / Success / EPS and CS Fallback not preferred/ data centric UE */
+
+    timer t_WaitS := 90.0; // @sic subject to prose CR approval R5s120156 sic@
+
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    f_UTRAN_SS_CreateCellDCH(utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationNonSuitableCell);// @sic subject to prose CR approval R5s120156 sic@
+    f_UTRAN_TestBody_Set( true );
+    
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5); // @sic R5s120461 sic@
+    //@siclog "Step 17" siclog@
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationSuitableNeighbourCell);// @sic subject to prose CR approval R5s120156 sic@
+    //+   Check: Does the UE try to access the UTRAN Cell 5 in the next 20s?
+    t_WaitS.start;
+    alt { // if the UE tries to access the cell, it will send an RRC Conn Req
+      [] U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                      tsc_RB0,
+                                      cr_RRC_RrcConnReqAny))
+        {
+          t_WaitS.stop;
+          f_UTRAN_SetVerdictFailOrInconc (__FILE__, __LINE__, "Step 17");
+        }
+      [] t_WaitS.timeout {}
+    }
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    // @siclog "Step 24-42" siclog@
+    // Steps 1-19 of the procedure in table 6.4.3.7.1-1 of 36.508
+    f_UTRAN_CS_Fallback_WithRedirection (utran_Cell5);
+    
+    f_UTRAN_CC_Disconnect (utran_Cell5, cs_TI_MT);
+    f_UTRAN_WaitForRAUOnSameRRC( utran_Cell5);
+    f_UTRAN_RRC_ConnRel ( utran_Cell5, cell_Dch);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    // @siclog "Step 53-71" siclog@
+    // Steps 1-19 of the procedure in table 6.4.3.7.1-1 of 36.508
+    f_UTRAN_CS_Fallback_WithRedirection (utran_Cell5, false);
+    
+    // Test case now finished on UTRAN side
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_Postamble (utran_Cell5, U5_CSCALL);
+    
+  } // f_TC_9_2_1_2_1d_UTRAN
+
+  function f_TC_9_2_1_2_5_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_2_5_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell5, Combined); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    fl_TC_9_2_1_2_5_6and7_Body_UTRAN ();
+    
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } // fl_TC_9_2_1_2_5_UTRAN
+
+  function f_TC_9_2_1_2_6_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_2_6_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+    
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell5, Combined); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    fl_TC_9_2_1_2_5_6and7_Body_UTRAN (); // @sic R5-112616 sic@
+    
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_2_6_UTRAN
+
+  function f_TC_9_2_1_2_7_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_2_7_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell5, Combined); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    fl_TC_9_2_1_2_5_6and7_Body_UTRAN ();
+    
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } // fl_TC_9_2_1_2_7_UTRAN
+
+  function fl_TC_9_2_1_2_5_6and7_Body_UTRAN () runs on UTRAN_PTC
+  {
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell5));
+    
+    // First Trigger
+    //@siclog "Step 1" siclog@
+    // Set Cell 5 to "Non Suitable Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationNonSuitableCell);
+    
+    // Second Trigger
+    //@siclog "Step 8a1" siclog@
+    // Set Cell 5 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationServingCell);
+    
+    //@siclog "Step 8a3" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds?
+    f_UTRAN_CheckNoAttachOnCell ( utran_Cell5, 30.0, "Step 8a3");
+
+    //@siclog "Step 8a4" siclog@
+    //  The UE is powered off or switched off
+    f_UT_SwitchOffUE(UT, false, CNF_REQUIRED); // @sic R5s1100395 sic@
+    
+    //@siclog "Step 8a5" siclog@
+    f_UT_SwitchOnUE (UT, false );
+    
+    //@siclog "Step 8a6" siclog@
+    // Check: Does the UE send an ATTACH REQUEST?
+    f_UTRAN_RRC_ConnEst(utran_Cell5); // Establish RRC connection
+    alt {
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                cr_U_AttachReqIMSInoTMSI(cr_AttachType(?, tsc_I_AttachTypeCombined),
+                                                                         f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                         cr_RAI (omit, cr_LAI(omit, v_PLMN, 'FFFE'O), ?))))
+        {
+          f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Step 8a6");
+        }
+    }
+    
+    //@siclog "Step 9 Void" siclog@
+    
+    //@siclog "Step 10" siclog@
+    // Set Cell 5 to "Non Suitable Cell"
+    f_UTRAN_SetCellPower (utran_Cell5,tsc_AttenuationCellOFF);
+    // Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Test Finished
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+  } // end of function fl_TC_9_2_1_2_5_6and7_Body_UTRAN
+
+  function f_TC_9_2_1_2_8_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_2_8_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+    
+    var START_Value v_START_Value := '00000000000000000000'B;
+    var octetstring v_PLMN;
+    var octetstring v_LAC;
+    var RRC_DATA_IND v_RRC_DataInd;
+    
+    var template (value) MobileIdentity v_MobileIdIMSI := f_Imsi2MobileIdentity(px_IMSI_Def);
+    v_MobileIdIMSI.iei := '17'O; // Need to include iei in LUAccept, but function returns without iei @sic R5s110315 sic@
+    
+    f_UTRAN_Init(EUTRA_UTRAN);
+    v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell5));
+    v_LAC := f_UTRAN_CellInfo_GetLAC(utran_Cell5);
+    
+    f_UTRAN_SS_CreateCellDCH(utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell5, Combined); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    //The SS configures: Cell 5 as a "Suitable neighbour cell".
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationSuitableNeighbourCell);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_RRC_ConnEst (utran_Cell5);
+    
+    // IF pc_UTRAN THEN the following messages are sent and shall be received on cell 5.
+    //  Check: Does the UE transmit a LOCATION UPDATING REQUEST message on Cell 5? (1, P)
+    //@siclog "Step 6a1 - 6a2" siclog@
+    alt{
+      [] U_Dc.receive(car_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_LocationUpdatingRequestIMSI))
+        -> value v_RRC_DataInd {
+        f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Step 6a2");
+        v_START_Value := v_RRC_DataInd.ttcn_start;
+        f_UTRAN_SS_SecurityDownloadStart(cs_domain, v_START_Value);
+      }
+    }
+    
+    //@siclog "Step 6a3 - 6a4" siclog@
+    f_UTRAN_MM_Authentication (); // @sic R5-112622, R5s110340, R5s110594 sic@
+    f_UTRAN_RRC_Security (utran_Cell5, true, cs_domain); // @sic R5s110315 sic@
+    
+    // The SS transmits a LOCATION UPDATING ACCEPT message with Location updating type = "IMSI attach" as specified in 3GPP TS 24.008.
+    //@siclog "Step 6a5" siclog@
+    U_Dc.send (cas_DataReq_CS(utran_CellDedicated, tsc_RB3, cs_U_LocUpdAcpIMSI (v_PLMN, v_LAC, v_MobileIdIMSI)));
+    f_UTRAN_RRC_ConnRel (utran_Cell5, cell_Dch);
+    // Test case now finished on UTRAN side
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationNonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_TestBody_Set( false );
+    f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_2_8_UTRAN
+
+  function f_TC_9_2_1_2_9_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_2_9_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+    
+    var PLMN_Identity v_PLMN := {mcc := {0,0,1}, mnc := {0,2}};
+       
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    
+    f_UTRAN_CellInfo_SetPLMNIdentity (utran_Cell9, v_PLMN); // @sic R5-123079 sic@
+    
+    f_UTRAN_SS_CreateCellDCH(utran_Cell9); // @sic R5-123079 sic@
+    f_UTRAN_SendDefSysInfo (utran_Cell9); // @sic R5-123079 sic@
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    // First Trigger
+    //@siclog "Step 9a1" siclog@
+    // +   Set Cell 5 as the "Serving cell".
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell9, tsc_AttenuationServingCell); // @sic R5-123079 sic@
+    
+    //+   The following messages are sent and shall be received on cell 5.
+    //+   Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds?
+    //@siclog "Step 9a2 - 9a3" siclog@
+    f_UTRAN_CheckNoAttachOnCell (utran_Cell9, 30.0, "Step 9a3");
+    
+    //@siclog "Step 10" siclog@
+    // +   Set Cell 5 as the "Non-Suitable cell".
+    f_UTRAN_SetCellPower (utran_Cell9, tsc_AttenuationCellOFF);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    // So just wait for trigger to take down the cell
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_ReleaseCell ( utran_Cell9, f_UTRAN_CellInfo_GetConfigType (utran_Cell9) ); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_2_9_UTRAN
+
+  function f_TC_9_2_1_2_11_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_2_11_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+
+    var octetstring v_PLMN;
+    
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell9)); // @sic R5-123079 sic@
+    
+    f_UTRAN_SS_CreateCellDCH (utran_Cell9); // @sic R5-123079 sic@
+    f_UTRAN_SendDefSysInfo (utran_Cell9); // @sic R5-123079 sic@
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell9, Combined); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 16a1" siclog@
+    // Set Cell 5 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell9, tsc_AttenuationSuitableNeighbourCell);
+    
+    //@siclog "Step 16a2" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message without P-TMSI, P-TMSI signature, RAI, TMSI
+    f_UTRAN_RRC_ConnEst(utran_Cell9); // Establish RRC connection
+    alt {
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                cr_U_AttachReqIMSInoTMSI(cr_AttachType(?, tsc_I_AttachTypeCombined),
+                                                                         f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                         cr_RAI (omit, cr_LAI(omit, v_PLMN, 'FFFE'O), ?))))
+        {
+          f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Step 16a2");
+        }
+    }
+    
+    //@siclog "Step 16a3" siclog@
+    // Send an ATTACH REJECT message with GMM Cause "Roaming not allowed in this location area"
+    U_Dc.send(cas_DataReq_PS(utran_CellDedicated,
+                             tsc_RB3,
+                             cs_U_AttachReject('0D'O)  // cause "Roaming not allowed in this location area"
+                             ));
+    f_UTRAN_RRC_ConnRel(utran_Cell9, cell_Dch);
+    
+    //@siclog "Step 17" siclog@
+    f_UT_SwitchOffUE (UT, false, CNF_REQUIRED); // @sic R5s1100395 sic@
+    
+    //@siclog "Step 18" siclog@
+    f_UTRAN_SetCellPower (utran_Cell9, tsc_AttenuationCellOFF);
+    // Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell ( utran_Cell9, f_UTRAN_CellInfo_GetConfigType (utran_Cell9) ); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_2_11_UTRAN
+
+  function f_TC_9_2_1_2_13_UTRAN () runs on UTRAN_PTC
+  { /* Combined attach / Rejected / Roaming not allowed in this tracking area */
+    /* Test Purpose (see f_TC_9_2_1_2_13_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+    var PLMN_Identity v_ASN1_PLMN := {mcc:= {0,0,2}, mnc := {1,0,1}};
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId (v_ASN1_PLMN); // @sic R5s120507 sic@
+    
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    f_UTRAN_CellInfo_SetPLMNIdentity(utran_Cell8, v_ASN1_PLMN); // @sic R5s120507, R5-123079 sic@
+    
+    f_UTRAN_SS_CreateCellDCH (utran_Cell8); // @sic R5-123079 sic@
+    f_UTRAN_SendDefSysInfo (utran_Cell8); // @sic R5-123079 sic@
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell8, Combined); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 14a1" siclog@
+    // Set Cell 5 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell8, tsc_AttenuationServingCell);
+    
+    //@siclog "Step 14a3" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message without P-TMSI, P-TMSI signature, RAI, TMSI
+    f_UTRAN_RRC_ConnEst(utran_Cell8); // Establish RRC connection
+    alt {
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                cr_U_AttachReqIMSInoTMSI (cr_AttachType(?, tsc_I_AttachTypeCombined),
+                                                                          f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                          cr_RAI (omit, cr_LAI(omit, v_PLMN, 'FFFE'O), ?))))
+        {
+          f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Step 14a3");
+        }
+    }
+    
+    //@siclog "Step 14a4" siclog@
+    // Send an ATTACH REJECT message with GMM Cause "No suitable cells in location area"
+    U_Dc.send(cas_DataReq_PS(utran_CellDedicated,
+                             tsc_RB3,
+                             cs_U_AttachReject('0F'O)  // cause "No suitable cells in location area"
+                             ));
+    
+    //@siclog "Step 14a5" siclog@
+    f_UTRAN_RRC_ConnRel(utran_Cell8, cell_Dch); // @sic R5s110168 change 2.8 sic@
+    
+    //@siclog "Step 15" siclog@
+    // Set Cell 5 to "Non Suitable Cell"
+    f_UTRAN_SetCellPower (utran_Cell8, tsc_AttenuationNonSuitableCell);
+    
+    // Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell ( utran_Cell8, f_UTRAN_CellInfo_GetConfigType (utran_Cell8) ); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_2_13_UTRAN
+
+  function f_TC_9_2_1_2_15_UTRAN () runs on UTRAN_PTC
+  { /* Test Purpose (see f_TC_9_2_1_2_15_EUTRA) */
+    /* @sic R5-113805: pc_UTRA and px_RATComb_Tested are checked at top-level sic@ */
+    
+    var octetstring v_PLMN;
+    
+    f_UTRAN_Init(EUTRA_UTRAN); // This is still only a 2 PTC test
+    v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell5));
+    
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5s110232 sic@
+    // Pre-Preamble on UTRAN cell first to set PTSMI, PTSMI Sig and TMSI in USIM
+    f_UTRAN_Pre_Preamble (utran_Cell5, Combined); // @sic R5s110176 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_UTRAN_TestBody_Set( true );
+    
+    // First Trigger
+    //@siclog "Step 1" siclog@
+    // Set Cell 5 to "Non Suitable Cell"
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationNonSuitableCell);
+    
+    // Second Trigger
+    //@siclog "Step 13a1" siclog@
+    // Set Cell 5 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationServingCell);
+    
+    //@siclog "Step 13a2" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message without P-TMSI, P-TMSI signature, RAI, TMSI
+    f_UTRAN_RRC_ConnEst(utran_Cell5); // Establish RRC connection
+    alt {
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                cr_U_AttachReqIMSInoTMSI (cr_AttachType(?, tsc_I_AttachTypeCombined),
+                                                                          f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                          cr_RAI (omit, cr_LAI(omit, v_PLMN, 'FFFE'O), ?))))
+        {
+          f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Step 13a2");
+        }
+    }
+    
+    //@siclog "Step 13A1" siclog@
+    f_UTRAN_SwitchPower_Off (utran_Cell5, U2_CONNECTED, Combined); // @sic R5s120162 sic@
+    //@siclog "Step 14" siclog@
+    // Set Cell 5 to "Non Suitable Cell Off";  @sic @sic R5s110199 sic@
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationCellOFF);
+    
+    // Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    // Test case now finished on UTRAN side
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } // f_TC_9_2_1_2_15_UTRAN
+
+}

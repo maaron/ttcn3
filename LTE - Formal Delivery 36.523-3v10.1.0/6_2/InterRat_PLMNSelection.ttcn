@@ -1,0 +1,478 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:09:14 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7293 $
+/******************************************************************************/
+module InterRat_PLMNSelection {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_NASCommonFunctions all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from NAS_CommonTypeDefs all;
+  import from UpperTesterFunctions all;
+
+  template (value) PLMN_Identity cs_HPLMN_002_81 := { mcc := {0,0,2},  mnc :={8,1} };  /* PLMN13 according to 36.523-1 Table 6.0.1-1
+                                                                                          @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_002_91 := { mcc := {0,0,2},  mnc :={9,1} };  /* PLMN14 according to 36.523-1 Table 6.0.1-1
+                                                                                          @status    APPROVED */
+
+  function f_TC_6_2_1_1_EUTRA() runs on EUTRA_PTC
+  {
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+    
+    //Initialise all cell, security and mobile parameters  @sic R5s120568 sic@
+    f_EUTRA_Init (c1);
+    f_IRAT_InitialCoOrd(UTRAN, fl_IRAT_ListOfFrequencies() );
+    f_IRAT_InitialCoOrd(GERAN, fl_IRAT_ListOfFrequencies() );
+    
+    
+    //Set TAC according to 36.523-1 Table 6.0.1-2
+    //TAC for Cell 1 is set to 1 in f_EUTRA_Init ();
+    f_EUTRA_CellInfo_SetTAC(eutra_Cell3, tsc_IdleMode_TAC_Cell3);
+    
+    //Set PLMN according to Table 6.2.1.2.3.2-1: Cell PLMN identities
+    f_EUTRA_CellInfo_SetPLMN_1Entry ( eutra_Cell1, cs_HPLMN_002_11 );//PLMN2 according to 36.523-1 Table 6.0.1-1
+    f_EUTRA_CellInfo_SetPLMN_1Entry ( eutra_Cell3, cs_HPLMN_002_91 );//PLMN14 according to 36.523-1 Table 6.0.1-1
+    
+    //Set Minimum UL flag for Cell 1
+    f_EUTRA_SetCellConfigCapability ( eutra_Cell3, minimumUplinkCell );
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell3 );
+    
+    //Equip UE with a USIM containing default values except for those shown in Table 6.2.1.1.3.1-1
+    f_UT_USIM_Insert ( UT, "36.523-1 Table 6.2.1.1.3.1-1" );
+    
+    //Preamble to remove RPLMN in UE and bring UE to initial state
+    f_EUTRA_Preamble_Reject(eutra_Cell1, tsc_EmmCause_IllegalMe, NORMAL);
+    
+    //Set initial cell power level according to T0
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);//EUTRA -> UTRA -> GERAN -> EUTRA
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_ServingCellRS_EPRE );
+    
+    //Wait for correct power levels and then start the test case
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Switch UE on
+    f_EUTRA_SwitchOnUEandStartIP(eutra_Cell1); // @sic R5s120065 sic@
+    t_IdleMode_GenericTimer.start;
+    
+    //@siclog "Step 2" siclog@
+    //Wait for RRCConnectionRequest on cell 1
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);   // @sic R5-120721 change 3 sic@
+    
+    t_IdleMode_GenericTimer.stop;
+    //@verdict pass UE sends RRCConnectionRequest on cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.1 step 2");
+    
+    //@siclog "Step 3 - 17" siclog@
+    //Perform registration on cell 1
+    f_EUTRA_IdleUpdated_WithoutRRCConnReq ( eutra_Cell1, STATE2_IDLEUPDATE, -, tsc_SHT_NoSecurityProtection );
+    
+    //Since Authentication parameters have been updated. Send them to GERAN PTC
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+    
+    //@siclog "Step 18" siclog@
+    //Check if PLMN2 is indicated by UE
+    f_UT_PLMN_Check ( UT, tsc_UT_PLMN2 );
+    //* @verdict pass PLMN2 is indicated by UE
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.1 Step 18");
+    
+    //@siclog "Step 19" siclog@
+    //Adjust cell power levels according to T1
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    //@siclog "Step 20" siclog@
+    //Adjust cell power levels according to T2
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);//Tell GERAN PTC to start with/at step 21.
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE );
+    
+    //@siclog "Step 34" siclog@
+    //Adjust cell power levels according to T3
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    f_EUTRA_SetCellPower ( eutra_Cell3, tsc_ServingCellRS_EPRE );
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Wait till end of test case then release cells
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_1_2_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var IRAT_CoOrd_SysInfo_Type v_SysInfoOtherRAT; // @sic R5s120489 sic@
+
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+    
+    v_CellPowerList_AtT0 := {
+      cs_CellPower ( eutra_Cell1, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_Cell12, tsc_ServingCellRS_EPRE )
+    };
+    
+    //Initialise all cell, security and mobile parameters
+    f_EUTRA_Init(c1);   //SIB2, SIB3 & SIB6 are transmitted  @sic R5-121760 sic@
+    
+    // Coordination with UTRAN @sic R5s120489 sic@
+    v_SysInfoOtherRAT := f_IRAT_InitialCoOrd(UTRAN, fl_IRAT_ListOfFrequencies() );
+
+    //Set TAC according to 36.523-1 Table 6.0.1-2
+    //TAC for Cell 1 is set to 1 in f_EUTRA_Init ();
+    f_EUTRA_CellInfo_SetTAC ( eutra_Cell12, tsc_IdleMode_TAC_Cell12 );
+    
+    //Set PLMN according to Table 6.2.1.2.3.2-1: Cell PLMN identities
+    f_EUTRA_CellInfo_SetPLMN_1Entry ( eutra_Cell1, cs_HPLMN_002_11 );
+    f_EUTRA_CellInfo_SetPLMN_1Entry ( eutra_Cell12, cs_HPLMN_002_81 ); //@sic R5s110371 Change 1 sic@
+    
+    //Set Minimum UL flag for Cell 1
+    f_EUTRA_SetCellConfigCapability ( eutra_Cell1, minimumUplinkCell );
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell12 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Equip UE with a USIM containing default values except for those shown in Table 6.2.1.2.3.1-1
+    f_UT_USIM_Insert ( UT, "36.523-1 Table 6.2.1.2.3.1-1" );
+
+    //Preamble to remove RPLMN in UE and bring UE to initial state
+    f_EUTRA_Preamble_Reject(eutra_Cell12, tsc_EmmCause_IllegalMe, NORMAL); //@sic R5s110371 Change 2 sic@
+
+    //Set initial cell power level according to T0
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT0 );
+    
+    //Wait for correct power levels and then start the test case
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Switch UE on
+    f_EUTRA_SwitchOnUEandStartIP(eutra_Cell12); // @sic R5s120065 sic@
+    t_IdleMode_GenericTimer.start;
+    
+    //@siclog "Step 2" siclog@
+    //Wait for RRCConnectionRequest on cell 12
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell12);   // @sic R5-120721 change 3 sic@
+    t_IdleMode_GenericTimer.stop;
+    //@verdict pass UE sends RRCConnectionRequest on cell 12
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.2 Step 2");
+
+    //@siclog "Step 3 - 17" siclog@
+    //Perform registration on cell 12
+    f_EUTRA_IdleUpdated_WithoutRRCConnReq ( eutra_Cell12, STATE2_IDLEUPDATE, -, tsc_SHT_NoSecurityProtection ); //@sic R5s110371 Change 2 sic@
+    
+    //Since Authentication parameters have been updated. Send them to UTRAN PTC
+    f_EUTRA_SendAuthParameters (eutra_Cell12, UTRAN);
+    
+    //@siclog "Step 18" siclog@
+    //Check if PLMN13 is indicated by UE
+    f_UT_PLMN_Check ( UT, tsc_UT_PLMN13 );
+    //* @verdict pass PLMN13 is indicated by UE
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.2 Step 18");
+    
+    //@siclog "Step 19" siclog@
+    //Adjust cell power levels according to T1
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPower ( eutra_Cell12, tsc_NonSuitableOffCellRS_EPRE );
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Wait till end of test case then release cells
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_1_3_EUTRA() runs on EUTRA_PTC
+  {
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL);    // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+    var B3_Type v_PDNType := f_GetPdnType();
+    
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+    
+    v_CellPowerList_AtT0 := {
+      cs_CellPower (eutra_Cell1, tsc_ServingCellRS_EPRE),
+      cs_CellPower (eutra_Cell12, tsc_ServingCellRS_EPRE)
+    };
+    
+    //Initialise all cell, security and mobile parameters
+    f_EUTRA_Init (c4);//SIB2, SIB3 & SIB6 are transmitted
+    
+    //Set TAC according to 36.523-1 Table 6.0.1-2
+    //TAC for Cell 1 is set to 1 in f_EUTRA_Init ();
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell12, tsc_IdleMode_TAC_Cell12);
+    
+    //Set PLMN according to Table 6.2.1.3.3.2-1: Cell PLMN identities
+    f_EUTRA_CellInfo_SetPLMN_2Entries (eutra_Cell1, cs_HPLMN_002_81, cs_HPLMN_002_11, 1); // @sic R5s110690 sic@
+    f_EUTRA_CellInfo_SetPLMN_2Entries (eutra_Cell12, cs_HPLMN_002_81, cs_HPLMN_002_91);
+    
+    //Set Minimum UL flag for Cell 12
+    f_EUTRA_SetCellConfigCapability ( eutra_Cell12, minimumUplinkCell );
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell12);
+    
+    //Equip UE with a USIM containing default values except for those shown in Table 6.2.1.3.3.1-1
+    f_UT_USIM_Insert (UT, "36.523-1 Table 6.2.1.3.3.1-1");
+
+    //Preamble to remove RPLMN in UE and bring UE to initial state
+    f_EUTRA_Preamble_Reject(eutra_Cell1, tsc_EmmCause_IllegalMe, NORMAL, 2); // @sic R5s110690 sic@
+
+    //Set initial cell power level according to T0
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+    
+    //Wait for correct power levels and then start the test case
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Switch UE on
+    f_EUTRA_SwitchOnUEandStartIP(eutra_Cell1); // @sic R5s120065 sic@
+    t_IdleMode_GenericTimer.start;
+    
+    //@siclog "Step 2" siclog@
+    //Wait for RRCConnectionRequest on cell 1
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);   // @sic R5-120721 change 3 sic@
+
+    t_IdleMode_GenericTimer.stop;
+    //@verdict pass UE sends RRCConnectionRequest on cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.3 Step 2");
+
+    //@siclog "Step 3" siclog@
+    //Send RRC Connection Setup
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_Cell1 );
+    
+    //@siclog "Step 4" siclog@
+    //Receive RRCConnectionSetupComplete with ATTACH REQUEST and piggybacked PDN CONNECTIVITY REQUEST.
+    //selectedPLMN-Identity in RRCConnectionSetupComplete shall indicate 2 (PLMN2)
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete (tsc_RRC_TI_Def, ?, -, 2),   // selectedPLMN_Identity = 2
+                                                       cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                         cr_508_ATTACH_REQUEST(v_AttachType,
+                                                                                                               v_AdditionalUpdateType),
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNType)));
+    //@siclog "Step 5 - 17" siclog@
+    //Perform registration on cell 1
+    f_EUTRA_IdleUpdated_Step5_17(eutra_Cell1, STATE2_IDLEUPDATE, NORMAL, v_NasInd);
+    
+    //Since Authentication parameters have been updated. Send them to UTRAN PTC
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN);
+    
+    //@siclog "Step 18" siclog@
+    //Check if PLMN2 is indicated by UE
+    f_UT_PLMN_Check (UT, tsc_UT_PLMN2);
+    //* @verdict pass PLMN2 is indicated by UE
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.3 Step 18");
+    
+    //@siclog "Step 19" siclog@
+    //Adjust cell power levels according to T1
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE);
+
+    //@siclog "Step 20A" siclog@
+    // SS adjusts cell levels according to row T2 of table 6.2.1.3.3.2-2.
+    // @sic R5-121761 sic@
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell12, tsc_NonSuitableOffCellRS_EPRE);
+
+    f_EUTRA_TestBody_Set (false);
+    
+    //Wait till end of test case then release cells
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_1_4_EUTRA() runs on EUTRA_PTC
+  {
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL); // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+    var B3_Type v_PDNType := f_GetPdnType();
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+    
+    //Initialise all cell, security and mobile parameters
+    f_EUTRA_Init (c5);//SIB2, SIB3 & SIB7 are transmitted
+    
+    //Set TAC according to 36.523-1 Table 6.0.1-2
+    //TAC for Cell 1 is set to 1 in f_EUTRA_Init ();
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell12, tsc_IdleMode_TAC_Cell12);
+    
+    //Set PLMN according to Table 6.2.1.2.3.2-1: Cell PLMN identities
+    f_EUTRA_CellInfo_SetPLMN_1Entry (eutra_Cell12, cs_HPLMN_002_81);
+    
+    //Set Minimum UL flag for Cell 1
+    f_EUTRA_SetCellConfigCapability (eutra_Cell12, minimumUplinkCell);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell12);
+    
+    //Equip UE with a USIM containing default values except for those shown in Table 6.2.1.4.3.1-1
+    f_UT_USIM_Insert (UT, "36.523-1 Table 6.2.1.4.3.1-1");
+
+    //Bring UE to initial state
+    //Preamble to ensure the UE is attached to PLMN1
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    //Set Manual PLMN selection by manually select the already registered PLMN
+    f_UT_ManualPLMN_Select (UT,
+                            f_Asn2Nas_PlmnId (f_EUTRA_CellInfo_GetGutiPLMN (eutra_Cell1)),
+                            -,
+                            CNF_REQUIRED); //@sic R5s110633 Change 3 sic@
+    //Switch/power off UE to bring it to initial state
+    f_EUTRA_UE_Detach_SwitchOffUe (eutra_Cell1, RRC_IDLE);
+
+    //Set initial cell parameters according to T0
+    f_EUTRA_CellInfo_SetPLMN_1Entry (eutra_Cell1, cs_HPLMN_002_11);
+    f_EUTRA_ModifySysinfoUE_Off (eutra_Cell1);
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPower (eutra_Cell12, tsc_ServingCellRS_EPRE);
+    
+    //Wait for correct power levels and then start the test case
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Switch UE on
+    f_EUTRA_SwitchOnUEandStartIP(eutra_Cell1, CNF_REQUIRED); // @sic R5s120065 R5s120361 sic@
+    
+    //@siclog "Step 2-3" siclog@
+    //Display a list of available PLMNs & Select PLMN2
+    f_UT_ManualPLMN_Select (UT, f_Asn2Nas_PlmnId(valueof(cs_HPLMN_002_11)));  // @sic R5-106675 Can't think of another solution Hellen sic@
+    t_IdleMode_GenericTimer.start;
+    
+    //@siclog "Step 4" siclog@
+    //Receive RRC Connection Request message
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);   // @sic R5-120721 change 3 sic@
+
+    t_IdleMode_GenericTimer.stop;
+    //@verdict pass UE sends RRCConnectionRequest on cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.4 Step 4");
+
+    //@siclog "Step 5 - 19" siclog@
+    //Perform registration on cell 1
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_Cell1 );
+    
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                       cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                         cr_508_ATTACH_REQUEST(v_AttachType,
+                                                                                                               v_AdditionalUpdateType),
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNType)));
+    f_EUTRA_IdleUpdated_Step5_17 (eutra_Cell1, STATE2_IDLEUPDATE, NORMAL, v_NasInd);
+    
+    //@siclog "Step 20" siclog@
+    //Check if PLMN2 is indicated by UE
+    f_UT_PLMN_Check (UT, tsc_UT_PLMN2);
+    //* @verdict pass PLMN2 is indicated by UE
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.4 Step 20");
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Tell GERAN PTC that test case is over and perform postamble
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    f_EUTRA_Postamble(eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_6_2_1_6_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var boolean v_CSInOtherRAT;
+    timer t_Tmin := 120.0;
+    timer t_Tmax := 360.0 + tsc_IdleMode_GenericTimer;
+    
+    //Initialise all cell, security and mobile parameters
+    f_EUTRA_Init (c5); // subject to prose CR approval @sic R5s120027 sic@
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -60);  //@sic R5s120027 sic@
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //SS starts timer of tmin = 2 minutes and tmax =(6 minutes + cell selection time) after the previous registration
+    //wait for GERAN PTC to perform steps 1 and 2
+    f_IRAT_WaitForCoOrd_Trigger (GERAN); //@sic R5s120027 sic@
+    t_Tmin.start; //@sic R5s120027 sic@
+    t_Tmax.start;  //@sic R5s120027 sic@
+    
+    //@siclog "Step 2" siclog@
+    //SS adjusts cell levels for Cell 1 according to row T1 of table 6.2.1.6.3.2-1
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, -60);
+    
+    //@siclog "Step 3" siclog@
+    //Wait for RRCConnectionRequest on cell 1 after tmin but before tmax expires
+    alt {
+      [] t_Tmin.timeout {
+        if (f_EUTRA_RRC_ConnectionRequest_Common(eutra_Cell1, t_Tmax)) {  // @sic R5-120721 change 3 sic@
+          //@verdict pass UE sends RRCConnectionRequest on cell 1
+          f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.6 step 3");
+        }
+        else {
+          //* @verdict fail RRCConnectionRequest not received within t_Tmax time
+          f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 6.2.1.6 Step 3 - RRCConnectionRequest not received within t_Tmax time");
+        }
+      }
+      [] SRB.receive(car_SRB0_RrcPdu_IND (eutra_Cell1, cr_508_RRCConnectionRequest))
+        {
+          //* @verdict fail RRCConnectionRequest received within t_Tmin time
+          f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 6.2.1.6 Step 3 - RRCConnectionRequest received within t_Tmin time");
+        }
+    }
+    
+    //@siclog "Step 4-10" siclog@
+    //Perform the steps from step 2 to step 8 as specified in TS 36.508 table 6.4.2.7A-1
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT_WithoutRRCConneReq(eutra_Cell1,
+                                                                tsc_RRC_TI_Def, //RRC_TransactionIdentifier
+                                                                v_CSInOtherRAT, //p_CSInOtherRAT
+                                                                false,           //p_PDPContext
+                                                                false,          //p_PreambleOnLTE
+                                                                omit);          // @sic R5-123734 sic@
+    
+    //Tell GERAN PTC that test case is over
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble(eutra_Cell1, E1_IDLE);
+  }
+
+}

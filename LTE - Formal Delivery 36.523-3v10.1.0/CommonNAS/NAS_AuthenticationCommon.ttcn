@@ -1,0 +1,90 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 00:32:42 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7245 $
+/******************************************************************************/
+
+module NAS_AuthenticationCommon {
+
+  import from CommonDefs all;
+  import from Parameters all;
+
+  type record Common_AuthenticationParams_Type {       /* parameters related/used to/by EUTRA/UTRAN/GERAN authentication
+                                                          @status    APPROVED */
+    B128_Type               RandValue,
+    B128_Type               AUTN,
+    B32_128_Type            XRES,
+    B64_Type                KcGSM,
+    B3_Type                 KeySeq,
+    B128_Type               CK,
+    B128_Type               IK
+  };
+
+  type enumerated AuthenticationError_Type {noError, macError, sqnFailure};        /* @status    APPROVED */
+
+  const B32_Type  tsc_AuthUndefinedB32 := oct2bit ('FFFFFFFF'O);         /* @status    APPROVED */
+
+  const B128_Type tsc_AuthUndefinedB128 := tsc_AuthUndefinedB32 & tsc_AuthUndefinedB32 & tsc_AuthUndefinedB32 & tsc_AuthUndefinedB32;    /* @status    APPROVED */
+
+  const B256_Type tsc_AuthUndefinedB256 := tsc_AuthUndefinedB128 & tsc_AuthUndefinedB128;        /* @status    APPROVED */
+
+  template (value) Common_AuthenticationParams_Type cs_CommonAuthParams_Init (template (value) B128_Type p_Rand) :=
+  { /* @status    APPROVED */
+    RandValue          := p_Rand,
+    AUTN               := tsc_AuthUndefinedB128,
+    XRES               := tsc_AuthUndefinedB128,
+    KcGSM              := tsc_AuthUndefinedB32 & tsc_AuthUndefinedB32,
+    KeySeq             := '111'B,
+    CK                 := tsc_AuthUndefinedB128,
+    IK                 := tsc_AuthUndefinedB128
+  };
+
+  function f_AuthenticationInit(Common_AuthenticationParams_Type p_Auth_Params,
+                                AuthenticationError_Type p_AuthenticationError := noError) return Common_AuthenticationParams_Type
+  { /* @sic R5-123085 harmonisation of IMS (AuthenticationInit and the two error variants are needed for IMS too) sic@ */
+    var Common_AuthenticationParams_Type v_Auth_Params := p_Auth_Params;
+    var B128_Type v_XDOut;
+    var B80_Type v_AUTN_2;
+    var B64_Type v_CDOut;
+    var B64_Type v_XDOut_Half;
+    var B64_Type v_MAC;
+    var B48_Type v_AK;
+    var B48_Type v_AUTN_1;
+    var B48_Type v_AuthSQN := '000000000000000000000000000000000000000000000000'B;
+    var B16_Type v_AuthAMF := px_AuthAMF;
+
+    if (p_AuthenticationError == sqnFailure) {
+      v_AuthAMF := '1111111111111111'B;      //AMF_resynch value
+    }
+    
+    v_XDOut := v_Auth_Params.RandValue xor4b px_AuthK;
+    v_CDOut := v_AuthSQN & v_AuthAMF;
+    v_XDOut_Half := substr( v_XDOut, 0, 64);
+    v_AK := substr( v_XDOut, 24, 48);
+    v_AUTN_1 := v_AuthSQN xor4b v_AK;
+    v_MAC := v_XDOut_Half xor4b v_CDOut;
+    if (p_AuthenticationError == macError) {
+      v_MAC := not4b(v_MAC);  // @sic R5s110313 sic@
+    }
+    v_AUTN_2 := v_AuthAMF & v_MAC;
+    v_Auth_Params.AUTN   := v_AUTN_1 & v_AUTN_2;
+    // v_IKey := 128 bits of v_XDOut, wrapped, starting from offset 16
+    v_Auth_Params.IK := substr( v_XDOut, 16, (128 - 16)) & substr( v_XDOut, 0, 16);
+    // v_CKey := 128 bits of v_XDOut, wrapped, starting from offset 8
+    v_Auth_Params.CK   := substr( v_XDOut, 8, (128 - 8)) & substr( v_XDOut, 0, 8);
+    v_Auth_Params.XRES := v_XDOut;
+
+    if (p_AuthenticationError == noError) {
+      // ((CK1 XOR CK2) XOR (IK1 XOR IK2))
+      v_Auth_Params.KcGSM := (substr( v_Auth_Params.CK, 0, 64) xor4b substr( v_Auth_Params.CK, 64, 64)) xor4b (substr( v_Auth_Params.IK, 0, 64) xor4b substr( v_Auth_Params.IK, 64, 64));
+      v_Auth_Params.KeySeq := int2bit(((bit2int(v_Auth_Params.KeySeq)+1) mod 8), 3);
+    }
+    return (v_Auth_Params);
+  }
+
+}

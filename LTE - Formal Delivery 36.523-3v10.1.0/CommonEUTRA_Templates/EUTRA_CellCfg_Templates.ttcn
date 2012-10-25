@@ -1,0 +1,1022 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module EUTRA_CellCfg_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_PdcchConfig all;
+  import from EUTRA_RRC_Templates all;
+  import from TestcaseProperties all;
+
+  const Imcs_Type       tsc_Imcs_qpskMax := {Value := 9};       /* @status    APPROVED */
+
+  const TimingAdvanceIndex_Type tsc_TA_Def := 31;               /* by default all timing advance in a typical simulation environment will be zero
+                                                                 * @sic R5s090180: 0->31;  sic@
+                                                                 * @status    APPROVED */
+
+  const TimingAdvance_Period_Type tsc_TA_Period_Def := 600;     /* corresponding to Default of TimingAlignment timer =SF750
+                                                                 * @status    APPROVED */
+
+  template (value) ToRS_EPRE_Ratios_Type cs_PowerRatios_Def :=
+  { /* @status    APPROVED */
+    RA := 0,
+    RB := 0
+  };
+
+  template (value) ToRS_EPRE_Ratios_Type cs_PowerRatiosPDSCH_Def :=
+  { /* @status    APPROVED */
+    RA := -3,
+    RB := -3
+  };
+
+  template (value) AntennaPort_Type cs_AntennaPort_Configure(AntennaPortId_Type p_Id) :=
+  { /* @status    APPROVED */
+    Id := p_Id,
+    Config := {
+      AddOrReconfigure := {
+        PowerAttenuation := true,     // FFS
+        PropagationDelay := true      // FFS
+      }
+    }
+  };
+
+  template (value) DownlinkAntennaGroupConfig_Type cs_DownlinkAntennaGroupConfig_Def (AntennaInfoCommon p_AntennaInfoCommon):=  // new MIMO
+  { /* @status    APPROVED */
+    AntennaInfoCommon := cs_AntennaInfoCommon_r8(p_AntennaInfoCommon),
+    AntennaPort := {                  /* list of antenna ports */
+      cs_AntennaPort_Configure(0)
+    }
+  };
+
+  template (value) PhysicalLayerConfigDL_Type cs_PhysicalLayerConfigDL(EUTRA_FDD_TDD_Mode_Type p_FDD_TDD,
+                                                                       Dl_Bandwidth_Type p_Dl_Bandwidth, /* p_Dl_Bandwidth = n6, n15, n25, n50, n75, n100 */
+                                                                       template (value) PHICH_Config_Type p_PHICH_Config,
+                                                                       CfiValue_Type    p_CfiValue,
+                                                                       AntennaInfoCommon p_AntennaInfoCommon) :=
+  { /* @sic R5-101050: additional parameter to support other bandwidth than 5MHz sic@ */
+    /* @status    APPROVED */
+    AntennaGroup := cs_DownlinkAntennaGroupConfig_Def (p_AntennaInfoCommon),
+    Pbch := {
+      RelativeTxPower := cs_PowerRatios_Def
+    },
+    Pcfich := {
+      CfiValue := p_CfiValue,           // @sic R5s090180: replace tsc_CfiValue_Def by a parameter value sic@
+      RelativeTxPower := cs_PowerRatios_Def
+    },
+    Phich := {
+      PhichConfig := p_PHICH_Config,         /* as signalled in the MIB */
+      RelativeTxPower := cs_PowerRatios_Def
+    },
+    Pdcch := f_EUTRA_PdcchConfig_Init(p_FDD_TDD, p_Dl_Bandwidth, cs_PowerRatios_Def),
+    Pdsch := {
+      RelativeTxPower := {    // Acc. 36.508 Table 6.2.1.2-1
+        RachResponse := cs_PowerRatios_Def,         //  0 dB   @sic R5-121089 sic@
+        BcchOnPdsch := cs_PowerRatios_Def,          //  0 dB   @sic R5-121089 sic@
+        PcchOnPdsch := cs_PowerRatios_Def,          //  0 dB   @sic R5-121089 sic@
+        CcchOnPdsch := cs_PowerRatios_Def,          //  0 dB   @sic R5-121089 sic@
+        DcchDtchOnPdsch := cs_PowerRatiosPDSCH_Def  // -3 dB   @sic R5-121089 sic@
+      }
+    },
+    Pss := {
+      RelativeTxPower := cs_PowerRatios_Def
+    },
+    Sss := {
+      RelativeTxPower := cs_PowerRatios_Def
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_RachProcedureConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                               template (omit) C_RNTI p_CRNTI,
+                                                               template (value) RachProcedureConfig_Type p_RachProcedureConfig,
+                                                               template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,  // @sic R5s100178 sic@
+                                                               template (omit) boolean p_CnfFlag := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100801, R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      Cell  := {
+        AddOrReconfigure := {
+          Basic    := omit,
+          Active   := {
+            C_RNTI                := p_CRNTI,
+            PhysicalLayerConfigUL := omit,
+            RachProcedureConfig   := p_RachProcedureConfig,
+            CcchDcchDtchConfig    := omit
+          }
+        }
+      }
+    }
+  };
+
+  template (value) StaticCellInfo_Type cs_StaticCellInfo_FDD(PhysCellId    p_PhysicalCellIdentity,
+                                                             FrequencyBand_Type      p_EutraBand,
+                                                             ARFCN_ValueEUTRA        p_EarfcnDL,
+                                                             ARFCN_ValueEUTRA        p_EarfcnUL,
+                                                             Dl_Bandwidth_Type       p_Dl_Bandwidth,
+                                                             Ul_Bandwidth_Type       p_Ul_Bandwidth,
+                                                             integer                 p_Tcell,
+                                                             integer                 p_SfnOffset) :=
+  { /* @sic R5s100029 change 3: additional parameters p_Tcell, p_SfnOffset sic@ */
+    /* @status    APPROVED */
+    Common := {
+      RAT := {
+        FDD := true
+      },
+      PhysicalCellId := p_PhysicalCellIdentity,
+      eNB_CellId     := omit,
+      EutraBand      := p_EutraBand,
+      CellTimingInfo := {
+        Tcell := p_Tcell,            /* @sic R5s100029 sic@ */
+        SfnOffset := p_SfnOffset     /* @sic R5s100029 sic@ */
+      }
+    },
+    Downlink := {
+      Earfcn       := p_EarfcnDL,
+      Bandwidth    := p_Dl_Bandwidth,
+      RBSize       := n_RB_SC_12,                 /* normal sub-frequency spacing */
+      CyclicPrefix := normal
+    },
+    Uplink := {
+      Earfcn       := p_EarfcnUL,
+      Bandwidth    := p_Ul_Bandwidth,
+      CyclicPrefix := normal
+    }
+  };
+
+  template (value) StaticCellInfo_Type cs_StaticCellInfo_TDD(PhysCellId    p_PhysicalCellIdentity,
+                                                             FrequencyBand_Type      p_EutraBand,
+                                                             ARFCN_ValueEUTRA        p_EarfcnDL,
+                                                             Dl_Bandwidth_Type       p_Dl_Bandwidth, // @sic R5s100190 sic@
+                                                             integer                 p_Tcell, // @sic R5s100513 sic@
+                                                             integer                 p_SfnOffset, // @sic R5s100513 sic@
+                                                             TDD_Config              p_TDD_Config) :=
+  { /* @status    APPROVED */
+    Common := {
+      RAT := {
+        TDD := {
+          Configuration := cs_TDD_Config_r8(p_TDD_Config)
+        }
+      },
+      PhysicalCellId := p_PhysicalCellIdentity,
+      eNB_CellId     := omit,
+      EutraBand      := p_EutraBand,
+      CellTimingInfo := {
+        Tcell := p_Tcell, // @sic R5s100513 sic@
+        SfnOffset := p_SfnOffset // @sic R5s100513 sic@
+      }
+    },
+    Downlink := {
+      Earfcn       := p_EarfcnDL,
+      Bandwidth    := p_Dl_Bandwidth,             // @sic R5s100190 sic@
+      RBSize       := n_RB_SC_12,                 /* normal sub-frequency spacing */
+      CyclicPrefix := normal
+    },
+    Uplink := omit
+  };
+
+  group SchedulingInfo_UL_DL {
+
+  template (value) FreqDomainSchedulCommon_Type cs_FreqDomainSchedul(integer p_FirstRbIndex,
+                                                                     integer p_MaxRbCnt) :=
+  { /* Frequency domain scheduling */
+    /* @status    APPROVED */
+    FirstRbIndex := p_FirstRbIndex,
+    MaxRbCnt     := p_MaxRbCnt
+  };
+
+  template (value) FreqDomainSchedulExplicit_Type cs_FreqDomainSchedulExplicit(integer p_FirstRbIndex,
+                                                                               integer p_Nprb) :=
+  { /* Frequency domain explicit scheduling */
+    /* @status    APPROVED */
+    FirstRbIndex := p_FirstRbIndex,
+    Nprb := p_Nprb
+  };
+
+  template (value) UL_TransRetransmissionList_Type cs_TransRetransmissionListUL_Def :=
+  { /* default list of possible retransmission and their Redundency versions to be applied in UL; corresponding to maxHARQ-Tx = 5 */
+    /* @status    APPROVED */
+    /* @sic R5s100135 sic@ */
+    /* @sic R5w100214 slide 3/4: non-adapive retransmissions are obsolete sic@ */
+    { NewTransmission := true }             // new transmission with RV=0 and NDI toggled
+  };
+
+  template (value) RedundancyVersionListDL_Type cs_RedundancyVersionListDL_Def :=
+  { /* Redundency version by default to be applied DL; corresponding to maxHARQ-Tx = 5 */
+    /* @status    APPROVED */
+    0, 2, 3, 1, 0
+  };
+
+  template (value) RedundancyVersionListDL_Type cs_RedundancyVersionListDL_OneValue :=
+  { /* Redundency version for BCCH and PCCH - only one value is provided as no retransmission is necessary */
+    /* @status    APPROVED */
+    0
+  };
+
+  } // end of group SchedulingInfo_UL_DL
+
+  group SchedulingInfo_UL {
+
+  template (value) TransmissionRepetition_Type cs_TransmissionRepetition_Continous :=
+  { /* Default UL Auto PUCCH Synch to be continous */
+    /* @status    APPROVED */
+    Continuous := true
+  };
+
+  template (value) UL_GrantConfig_Type cs_UL_GrantConfig_Def :=
+  { /* Default UL Grant transmission on reception of every SI reception */
+    /* @status    APPROVED */
+    OnSR_Reception := true
+  };
+
+  template (value) UL_GrantConfig_Type cs_UL_GrantConfig_Stop :=
+  { /* @status    APPROVED */
+    None  := true
+  };
+
+  template (value) PUCCH_AutoSynch_Type  cs_PUCCH_AutoSynch_Def(TimingAdvance_Period_Type p_TimingAdvance_Period := tsc_TA_Period_Def) :=
+  { /* PUCCH Synch Auto mode */
+    /* @sic R5-101050 change 12: TA period as optional parameter sic@ */
+    /* @status    APPROVED */
+    TimingAdvance  := tsc_TA_Def,
+    TA_Period      := p_TimingAdvance_Period,              /* time period after which TA MAC control elements need to be automatically transmitted */
+    TA_Repetition  := cs_TransmissionRepetition_Continous  /* number of TA MAC control element repetitions to be automatically transmitted or 'Continuous' */
+  };
+
+  template (value) PUCCH_Synch_Type cs_PUCCH_Synch_Auto_Def(TimingAdvance_Period_Type p_TimingAdvance_Period := tsc_TA_Period_Def) :=
+  { /* @status    APPROVED */
+    /* @sic R5-101050 change 12: TA period as optional parameter sic@ */
+    Auto  := cs_PUCCH_AutoSynch_Def(p_TimingAdvance_Period)
+  };
+
+  template (value) PUCCH_Synch_Type cs_PUCCH_Synch_None :=
+  { /* @status    APPROVED */
+    None  := true
+  };
+
+  template (omit) PUCCH_Synch_Type cs_PUCCH_Synch_KeepAsItIs := omit;  /* @status    APPROVED */
+
+  template (value) DciUlInfo_Type cs_DciInfo_CcchDcchDtchUL_Def :=
+  { /* @status    APPROVED */
+    Imcs  := tsc_Imcs_qpskMax, // Selected Max allowed for QPSK
+    TransRetransmissionList := cs_TransRetransmissionListUL_Def,
+    FreqDomainSchedul := cs_FreqDomainSchedulExplicit(0, 25)
+  };
+
+  template (value) DciUlInfo_Type cs_DciInfo_CcchDcchDtchUL_Explicit(ImcsValue_Type  p_Imcs,
+                                                                     integer p_Nprb,
+                                                                     template (value) UL_TransRetransmissionList_Type p_TransRetransList := cs_TransRetransmissionListUL_Def,
+                                                                     integer p_FirstRbIndex := 0) := /* @sic R5s110573 added p_FirstRbIndex sic@ */
+  { /* @status    APPROVED */
+    /* @sic R5s100522: Additional MCC 160 changes sic@ */
+    Imcs := {Value := p_Imcs},
+    TransRetransmissionList := p_TransRetransList,
+    FreqDomainSchedul := cs_FreqDomainSchedulExplicit(p_FirstRbIndex, p_Nprb)
+  };
+
+  } // end of group SchedulingInfo_UL
+
+  group SchedulingInfo_DL {
+
+  type enumerated DlSchedulingClass_Type {      /* local type only used for fl_DciDlInfo_Init
+                                                   @status    APPROVED */
+    e_DlSchedulingClass_BCCH,
+    e_DlSchedulingClass_PCCH,
+    e_DlSchedulingClass_RAR,
+    e_DlSchedulingClass_UeSpecific
+  };
+
+  function fl_GetResourceAllocationScheme () return EUTRA_ResourceAllocationScheme_Type
+  {  // @sic R5s110122: remove p_Dl_Bandwidth sic@
+    var charstring v_TestcaseName := testcasename(); // This operation now defined in TTCN3 v4.2.1
+    var boolean v_TestcaseDciFormat1A := f_GetTestcaseAttrib_DciFormat1A(v_TestcaseName);   // @sic R5s110034; changed due to change of GCR priorities after RAN5 #52 sic@
+    var boolean v_Testcase3IntraFreq := f_GetTestcaseAttrib_3IntraFreq(v_TestcaseName); // @sic R5s110034 sic@
+    var boolean v_TestcaseMimo := f_GetTestcaseAttrib_Mimo(v_TestcaseName); // @sic R5s110320 sic@
+    var boolean v_TestcaseDlCcchMsgInSeparateMacPdu := f_GetTestcaseAttrib_DlCcchMsgInSeparateMacPdu(v_TestcaseName); // @sic R5-120721 change 3 sic@
+
+    if (v_TestcaseDciFormat1A or                // @sic changed due to change of GCR priorities after RAN5 #52 sic@
+        v_Testcase3IntraFreq or                 // @sic R5s110122 sic@
+        v_TestcaseMimo or                       // @sic R5s110320 sic@
+        v_TestcaseDlCcchMsgInSeparateMacPdu)    // @sic R5-120721 change 3 sic@
+      {
+        return dci1A;
+      }
+    return dci1C_dci1;
+  }
+
+  template (value) DciDlInfoCommon_Type cs_DciDlInfoCommon_Init :=
+  { /* @status    APPROVED */
+    Format := dci_1A,
+    ResourceAllocType := ra_2_Localised,
+    Modulation_1stCW := qpsk,
+    Modulation_2ndCW := unused,
+    FreqDomainSchedul := cs_FreqDomainSchedul(0, 0),
+    RedundancyVersionList := cs_RedundancyVersionListDL_Def
+  };
+
+  function fl_DciDlInfo_Init(DlSchedulingClass_Type p_SchedulClass,
+                             Dl_Bandwidth_Type p_Dl_Bandwidth := n25)       //@sic R5s110034: delete sysinfoCombination parameter sic@
+    return template (value) DciDlInfoCommon_Type
+  {
+    var template (value) DciDlInfoCommon_Type v_DciDlInfoCommon := cs_DciDlInfoCommon_Init;
+    var EUTRA_ResourceAllocationScheme_Type v_ResourceAllocationScheme := fl_GetResourceAllocationScheme();  // @sic R5s110122 sic@
+    var charstring v_TestcaseName := testcasename();
+    var boolean v_TestcaseAttrib_3IntraFreq := f_GetTestcaseAttrib_3IntraFreq(v_TestcaseName);
+    
+    if (p_SchedulClass == e_DlSchedulingClass_UeSpecific) {
+      v_DciDlInfoCommon.Modulation_1stCW := qam64;
+    }
+
+    // For BCCH/PCCH, only one redundancy version is initialised as there is no ACK and retransmission
+    select (p_SchedulClass) {
+      case (e_DlSchedulingClass_BCCH, e_DlSchedulingClass_PCCH) {
+        v_DciDlInfoCommon.RedundancyVersionList := cs_RedundancyVersionListDL_OneValue;  // No retransmission for BCCH/PCCH, then only one redundancy value is provided
+      }
+    }
+
+    select (v_ResourceAllocationScheme) {
+      case (dci1A) {
+        // ***** DCI 1A for all channels *****
+        // Format and ResourceAllocType are already set correctly
+        select (p_SchedulClass) {
+          case (e_DlSchedulingClass_BCCH) {
+            v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(0, 4);       // localised allocation
+            //MaxRbCnt= Max PRB [3] -Rb Start [0]  +1
+          }
+          case (e_DlSchedulingClass_PCCH) {
+            v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(4, 1);       // localised allocation
+            // MaxRbCnt = Max PRB [4] -Rb Start [4]  +1
+          }
+          case (e_DlSchedulingClass_RAR) {
+            v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(5, 4);       // localised allocation
+            // MaxRbCnt = Max PRB [8] -Rb Start [5]  +1
+          }
+          case else {  // @sic R5-103846 sic@
+            select (p_Dl_Bandwidth) {
+              case (n25) {   // 5 Mhz
+                if (v_TestcaseAttrib_3IntraFreq) {
+                  v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(16, 9);
+                  //MaxRbCnt =  Max PRB [24] -Rb Start [16]  +1
+                }
+                else {
+                  v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(5, 20);
+                  // MaxRbCnt =  Max PRB [24] -Rb Start [5]  +1
+                }
+              }
+              case (n50) {   // 10 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(28, 22);       // localised allocation
+                // MaxRbCnt = Max PRB [49] -Rb Start [28]  +1
+              }
+              case else {   // 20 Mhz and others
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(9, 22);       // localised allocation
+                // MaxRbCnt =  Max PRB [30] -Rb Start [9]  +1
+                // @sic R5s120101 sic@
+              }
+            }
+          }
+        }
+      }
+      case (dci1C_dci1) {
+        // ***** DCI 1C for BCCH, PCCH, RAR and DCI 1 for UE specific channels *****
+        v_DciDlInfoCommon.Format := dci_1C;
+        v_DciDlInfoCommon.ResourceAllocType := ra_2_Distributed;
+        select (p_SchedulClass) {
+          case (e_DlSchedulingClass_BCCH) {
+            v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(0, 4);      // virtual resource allocation
+            //MaxRbCnt = Max vPRB [3] -Rb Start [0]  +1
+          }
+          case (e_DlSchedulingClass_PCCH) {
+            select (p_Dl_Bandwidth) {    // @sic R5-103846 sic@
+              case (n25) {   // 5 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(4, 2);       // virtual resource allocation
+                //MaxRbCnt = Max vPRB [5] -Rb Start [4]  +1
+              }
+              case else {   // 10 Mhz - 20 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(4, 4);       // virtual resource allocation
+                // MaxRbCnt = Max vPRB [7] -Rb Start [4]  +1
+              }
+            }
+          }
+          case (e_DlSchedulingClass_RAR) {
+            select (p_Dl_Bandwidth) {    // @sic R5-103846 sic@
+              case (n25) {   // 5 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(6, 4);       // virtual resource allocation
+                //MaxRbCnt = Max vPRB [9] -Rb Start [6]  +1
+              }
+              case else {   // 10 Mhz - 20 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(8, 4);       // virtual resource allocation
+                // MaxRbCnt = Max vPRB [11] -Rb Start [8]  +1
+              }
+            }
+          }
+          case else {
+            //@sic R5s120101 sic@
+            v_DciDlInfoCommon.Format := dci_1;
+            v_DciDlInfoCommon.ResourceAllocType := ra_0;   /* @sic R5s100172 sic@ */
+            select (p_Dl_Bandwidth) {    // @sic R5-103846 sic@
+              case (n25) {   // 5 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(2, 23);       // localised allocation, but not consecutive
+                //MaxRbCnt = Max PRB [24] -RB Start [2] +1
+              }
+              case (n50) {   // 10 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(3, 47);       // localised allocation, but not consecutive
+                // MaxRbCnt = Max PRB [49] -RB Start [3] +1
+              }
+              case else {   //  20 Mhz
+                v_DciDlInfoCommon.FreqDomainSchedul := cs_FreqDomainSchedul(4, 80);       // localised allocation, but not consecutive
+                // MaxRbCnt = Max PRB [83] -RB Start [4] +1
+              }
+            }
+          }
+        }
+      }
+    }
+    return v_DciDlInfoCommon;
+  }
+
+  template (value) DciDlInfoCommon_Type cs_DciInfo_Pcch(Dl_Bandwidth_Type p_Dl_Bandwidth) := fl_DciDlInfo_Init(e_DlSchedulingClass_PCCH, p_Dl_Bandwidth);                 /* @status    APPROVED */
+
+  template (value) DciDlInfoCommon_Type cs_DciInfo_Sib1 := fl_DciDlInfo_Init(e_DlSchedulingClass_BCCH);                 /* @status    APPROVED */
+
+  template (value) DciDlInfoCommon_Type cs_DciInfo_SI_Def := fl_DciDlInfo_Init(e_DlSchedulingClass_BCCH);               /* @status    APPROVED */
+
+  template (value) DciDlInfoCommon_Type cs_DciInfo_CcchDcchDtchDL( Dl_Bandwidth_Type p_Dl_Bandwidth) := fl_DciDlInfo_Init(e_DlSchedulingClass_UeSpecific, p_Dl_Bandwidth); /* @status    APPROVED @sic R5s110034: delete sysinfoCombination parameter sic@ */
+
+  template (value) DciDlInfoCommon_Type cs_DciInfo_RandomAccessResponse( Dl_Bandwidth_Type p_Dl_Bandwidth) := fl_DciDlInfo_Init(e_DlSchedulingClass_RAR, p_Dl_Bandwidth);  /* @status    APPROVED */
+
+  } // end of group SchedulingInfo_DL
+
+  template (value) SiSchedul_Type cs_SiSchedul_Def(SiPeriodicity_Type p_Periodicity,                    /* as in Sib1 */
+                                                   integer p_SubframeOffset) :=
+  { /* default scheduling for a single scheduling information (SI) which may contain one ore several Sibs;
+       it is assumed that the SI occurs only once within the window (therefore there is just one parameter for the subframe offset) */
+    /* @status    APPROVED */
+    Periodicity := p_Periodicity,
+    Window := {
+      {
+        DciInfo := cs_DciInfo_SI_Def,
+        SubframeOffset := p_SubframeOffset
+      }
+    }
+  };
+
+  template (value) AllSiSchedul_Type cs_SiSchedulList_Def(SiWindowLength_Type p_SiWindowLength,           /* as in Sib1 */
+                                                          template (value) SiSchedulList_Type p_SiSchedulList,
+                                                          template (omit) SiSchedulList_Type p_SegmentedSiSchedulList := omit) :=
+  { /* common template for one or more SIs */
+    /* @status    APPROVED */
+    /* @sic R5-112161: new optional parameter for segmented SIs sic@ */
+    WindowLength := p_SiWindowLength,
+    SiList := p_SiSchedulList,
+    SegmentedSiList := p_SegmentedSiSchedulList
+  };
+
+  template (value) UplinkGrant_Type cs_InitialGrant_Def(integer p_RB_Allocation := 0,   // Corresponding to RIV = 0 => RBstart =0, Nprb =1
+                                                        integer p_MCS := 15) :=         // Imcs=15 => Itbs=14 => Tbs=256;
+  { /* @sic R5s100073: change of default values to be independent from bandwidth sic@ */
+    /* @status    APPROVED */
+    HoppingFlag  := '0'B,               // no hopping
+    RB_Allocation := int2bit(p_RB_Allocation, 10),
+    ModAndCodScheme := int2bit(p_MCS, 4),
+    TPC_Command := int2bit(3,3),        // As per table 6.2 of 36.213 results in 0 dB
+    UL_Delay  := '0'B,
+    CQI_Req  := '0'B
+  };
+
+  template (value) RapIdCtrl_Type cs_RapIdCtrl_Auto :=
+  { /* @status    APPROVED */
+    Automatic := true   /* SS shall automatically use same RAPID as received from the UE */
+  };
+
+  template (value) RandomAccessResponse_Type cs_RAR_None :=
+  { /* @status    APPROVED */
+    None  := true
+  };
+
+  template (value) RandomAccessBackoffIndicator_Type cs_BI_None :=
+  { /* @status    APPROVED */
+    None  := true
+  };
+
+  template (value) TempC_RNTI_Type cs_TempC_RNTI_SameAsC_RNTI :=
+  { /* @status    APPROVED */
+    SameAsC_RNTI := true        /* in the RA response SS shall use the same C-RNTI as configured in ActiveCellConfig_Type;
+                                   this is useful for initial random access */
+  };
+
+  template (value) RandomAccessResponseConfig_Type cs_RandomAccessResponseConfig_Def(RACH_TimingAdvance_Type p_RAR_TA,
+                                                                                     Dl_Bandwidth_Type p_Dl_Bandwidth,  // @sic R5-103846 sic@
+                                                                                     integer p_RA_GrantRIV := 0,
+                                                                                     integer p_RA_GrantIMCS := 15) :=
+  { /* ASP for initial configuration of a cell */
+    /* @sic R5-103846: adding Dl_Bandwidth and sysinfo combination parameters sic@ */
+    /* @sic R5s100430 Additional Changes: merge of cs_RandomAccessResponseConfig_InitialAccess_Def and cs_RandomAccessResponseConfig_InitialAccess_Grant sic@ */
+    /* @status    APPROVED */
+    Ctrl := {
+      DciInfo := cs_DciInfo_RandomAccessResponse(p_Dl_Bandwidth),
+      Rar := {
+        List := {
+          {
+            RapId := {
+              Automatic := true
+            },
+            InitialGrant := cs_InitialGrant_Def(p_RA_GrantRIV, p_RA_GrantIMCS),   // @sic R5s100430 Additional Changes sic@
+            TimingAdvance := p_RAR_TA,
+            TempC_RNTI := cs_TempC_RNTI_SameAsC_RNTI
+          }
+        }
+      },
+      BackoffInd := cs_BI_None
+    }
+  };
+
+  template (value) RandomAccessResponseConfig_Type cs_RandomAccessResponseConfig_None(Dl_Bandwidth_Type p_Dl_Bandwidth):= // @sic R5-103846 sic@
+  { /* will cause no RAR tx */
+    /* @status    APPROVED */
+    Ctrl  := {
+      DciInfo      := cs_DciInfo_RandomAccessResponse(p_Dl_Bandwidth), // May be we can omit this
+      Rar          := cs_RAR_None,
+      BackoffInd   := cs_BI_None
+    }
+  };
+
+  template (value) ContentionResolution_ContainedRlcPdu_Type cs_ContentionResolution_RlcPdu_None :=
+  { /* @status    APPROVED */
+    None := true
+  };
+
+  template (value) ContentionResolution_ContainedRlcPdu_Type cs_ContentionResolution_RlcPdu(octetstring p_RLC_PDU) :=
+  { /* @status    APPROVED */
+    RlcPdu := p_RLC_PDU
+  };
+
+  template (value) ContentionResolutionCtrl_Type cs_ContentionResolutionCtrl_Def(template (value) ContentionResolution_ContainedRlcPdu_Type p_ContainedRlcPdu := cs_ContentionResolution_RlcPdu_None) :=
+  { /* @status    APPROVED */
+    /* @sic R5-120721 change 3: parameter p_ContainedRlcPdu sic@ */
+    TCRNTI_Based := {
+      MacPdu := {
+        ContainedId := {
+          XorMask := tsc_ContentionResolutionId_Unchanged
+        },
+        ContainedRlcPdu := p_ContainedRlcPdu
+      }
+    }
+  };
+
+  template (value) ContentionResolutionCtrl_Type cs_ContReslCtrl_CRNTI(ImcsValue_Type p_IMCS := 0,
+                                                                       integer p_Nprb:= 1):=
+  { /* results in  Contention resolution for T-CRNTI */
+    /* @status    APPROVED */
+    CRNTI_Based := {
+      AutomaticGrant := cs_DciInfo_CcchDcchDtchUL_Explicit(p_IMCS, p_Nprb)  /* with default parameters (p_IMCS := 0, p_Nprb:= 1) it results in UL GRANT of 16 bits,
+                                                                               with redundency version list for one transmission.
+                                                                               This should result in a grant suitable for MAC to send Padding BSR;
+                                                                               @sic R5w100214 slide 3/4 => cs_DciUlInfo_ContentionResolution replaced by cs_DciInfo_CcchDcchDtchUL_Explicit sic@ */
+    }
+  };
+
+  template (value) ContentionResolutionCtrl_Type cs_ContReslCtrl_None_TCRNTI :=
+  { /* results in no Contention resolution for T-CRNTI */
+    /* @status    APPROVED */
+    TCRNTI_Based := {
+      NoContResolID := true //SS shall not include contention resolution ID
+    }
+  };
+
+  template (value) RachProcedureConfig_Type cs_RachProcedureConfig_Def(template (omit) RACH_ConfigCommon_Type  p_RACH_ConfigCommon,
+                                                                       RACH_TimingAdvance_Type p_RAR_TA,
+                                                                       Dl_Bandwidth_Type p_Dl_Bandwidth,   // @sic R5-103846 sic@
+                                                                       template (value) ContentionResolution_ContainedRlcPdu_Type p_ContainedRlcPdu := cs_ContentionResolution_RlcPdu_None) :=
+  { /* @status    APPROVED */
+    /* @sic R5-120721 change 3: parameter p_ContainedRlcPdu sic@ */
+    RACH_ConfigCommon := p_RACH_ConfigCommon,
+    RACH_ConfigDedicated := omit,
+    RachProcedureList := {
+      {
+        RAResponse := cs_RandomAccessResponseConfig_Def (p_RAR_TA, p_Dl_Bandwidth),
+        ContentionResolutionCtrl := cs_ContentionResolutionCtrl_Def(p_ContainedRlcPdu)
+      }
+    }
+  };
+
+  template (value) RachProcedureConfig_Type cs_RachProcedureConfig_CRNTI(RACH_TimingAdvance_Type p_RAR_TA,
+                                                                         Dl_Bandwidth_Type p_Dl_Bandwidth,  // @sic R5-103846 sic@
+                                                                         integer p_RA_GrantRIV := 0,        // => RB start=0, Nprb=1
+                                                                         integer p_RA_GrantIMCS := 4,       // Imcs=4 => Grant = 56 bits
+                                                                         ImcsValue_Type p_InitalGrantIMCS := 0,   // minimum grant per default
+                                                                         integer p_InitalGrantNprb:= 1) :=        // minimum grant per default
+  { /* @sic R5s100430 Additional Changes: merge of cs_RachProcedureConfig_CRNTI_Def and cs_RachProcedureConfig_CRNTI_InitialGrant sic@ */
+    /* @status    APPROVED */
+    RACH_ConfigCommon := omit, // not change from initial value
+    RACH_ConfigDedicated := omit,
+    RachProcedureList := {
+      {
+        RAResponse := cs_RandomAccessResponseConfig_Def(p_RAR_TA, p_Dl_Bandwidth, p_RA_GrantRIV, p_RA_GrantIMCS),
+        ContentionResolutionCtrl := cs_ContReslCtrl_CRNTI (p_InitalGrantIMCS, p_InitalGrantNprb)
+      }
+    }
+  };
+
+  template (value) RachProcedureConfig_Type cs_RachProcedureConfig_NoResponse(Dl_Bandwidth_Type p_Dl_Bandwidth) :=
+  { /* Rach Response config for sending no response to UE */
+    /* @status    APPROVED */
+    RACH_ConfigCommon := omit,
+    RACH_ConfigDedicated := omit,
+    RachProcedureList := {
+      { // preamble reception 1. No RAR Tx & no Contention Resolution
+        RAResponse := cs_RandomAccessResponseConfig_None (p_Dl_Bandwidth),
+        ContentionResolutionCtrl := cs_ContReslCtrl_None_TCRNTI
+      }
+    }
+  };
+
+  template (value) DrxCtrl_Type cs_DrxCtrl_None :=
+  { /* @status    APPROVED */
+    None := true
+  };
+
+  template (value) DrxCtrl_Type cs_DrxCtrl_Config(template (value) DRX_Config p_DRX_Config) :=
+  { /* @status    APPROVED */
+    Config := {
+      R8 := p_DRX_Config
+    }
+  };
+
+  template (value) MeasGapCtrl_Type cs_MeasGapCtrl_None :=
+  { /* @status    APPROVED */
+    None := true
+  };
+
+  template (value) MeasGapCtrl_Type cs_MeasGapCtrl_Config(template (value) MeasGapConfig p_MeasGapConfig) :=
+  { /* @status    APPROVED */
+    Config := {
+      R8 := p_MeasGapConfig
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_CellConfig_Def_REQ(EUTRA_CellId_Type                        p_CellId,
+                                                          template (value) TimingInfo_Type         p_TimingInfo,
+                                                          template (value) StaticCellInfo_Type     p_StaticCellInfo,
+                                                          template (value) AllSiSchedul_Type       p_SiSchedul,
+                                                          EUTRA_CellInfo_Type                      p_CellInfo,
+                                                          template (value) ContentionResolution_ContainedRlcPdu_Type p_ContentionResolution_ContainedRlcPdu) :=
+  { /* @status    APPROVED */
+    /* @sic R5w110104: MimoInfo removed from CcchDcchDtchConfigDL_Type sic@ */
+    /* @sic R5-120721 change 3: parameter p_ContentionResolution_ContainedRlcPdu (either "none" or e.g. RRC Connection Setup to be sent in the sama MAC ODU as the Contention Resolution MAC CE sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          Basic := {
+            ConfigCapability := p_CellInfo.CellConfigCapability,
+            StaticCellInfo := p_StaticCellInfo,
+            PhysicalLayerConfigDL := cs_PhysicalLayerConfigDL(p_CellInfo.FDD_TDD_Info.FDD_TDD,
+                                                              p_CellInfo.Frequency.DL_ChBandwidth,
+                                                              cs_PHICH_Config_r8(p_CellInfo.Sysinfo.BCCH_Info.MIB.message_.phich_Config),
+                                                              p_CellInfo.PhysicalParameters.Cfi,
+                                                              p_CellInfo.AntennaInfo.SS_AntennaInfoCommon),
+            InitialCellPower := {
+              MaxReferencePower := p_CellInfo.ReferencePower.MaxReferencePower,
+              Attenuation := p_CellInfo.ReferencePower.Attenuation
+            },
+            BcchConfig := {
+              //Sib2Config := cs_BCCH_Configuration,
+              Pbch := true,                                 /* no configuration parameters required */
+              Pdsch := {
+                Sib1Schedul := {
+                  DciInfo := cs_DciInfo_Sib1
+                },
+                SiSchedul := p_SiSchedul
+              },
+              BcchInfo := p_CellInfo.Sysinfo.BCCH_Info
+            },
+            PcchConfig := {
+              DciInfo := cs_DciInfo_Pcch (p_CellInfo.Frequency.DL_ChBandwidth)
+            }
+          },
+          Active := {
+            C_RNTI := p_CellInfo.RNTI.C_RNTI,
+            PhysicalLayerConfigUL := {
+              Prach := cs_PRACH_Config_r8( cs_PRACH_Config_Def( p_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.prach_Config)),
+              Pucch := {
+                Common := cs_PUCCH_ConfigCommon_r8( p_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.pucch_ConfigCommon),      /* @sic R5s100135 sic@ */
+                Dedicated := cs_PUCCH_ConfigDedicated_r8( p_CellInfo.FDD_TDD_Info.pucch_Config)
+              },
+              Pusch := {
+                Common := cs_PUSCH_ConfigCommon_r8( p_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.pusch_ConfigCommon),     /* @sic R5s100135 sic@ */
+                Dedicated := cs_PUSCH_ConfigDedicated_r8( cs_508_PUSCH_ConfigDedicated_Default)
+              },
+              TimingAdvance := {
+                InitialValue := 0
+              },
+              SRS_UL_Config := {
+                Common := cs_SoundingRS_UL_ConfigCommon_r8( p_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.soundingRS_UL_ConfigCommon),     /* @sic R5s100135 sic@ */
+                Dedicated := cs_SoundingRS_UL_ConfigDedicated_r8( p_CellInfo.FDD_TDD_Info.soundingRS_UL_Config)
+              },
+              SR_Config := cs_SchedulingRequestConfig_r8( cs_508_SchedulingRequest_Config_Default (p_CellInfo.PhysicalParameters.sr_PUCCH_ResourceIndex, p_CellInfo.FDD_TDD_Info.sr_ConfigIndex)),  // @sic R5s090312 R5-102177 sic@
+              CQI_ReportConfig := cs_CQI_ReportConfig_r8andLater( cs_508_CQI_ReportConfig_Default(p_CellInfo.FDD_TDD_Info.cqi_ReportConfig)),
+              UplinkPowerControlCommon := cs_UplinkPowerControlCommon_r8(p_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.uplinkPowerControlCommon),     /* @sic R5s100135 sic@ */
+              UplinkPowerControlDedicated := cs_UplinkPowerControlDedicated_r8(cs_508_UplinkPowerControlDedicated_Default)
+            },
+            RachProcedureConfig := cs_RachProcedureConfig_Def( cs_RACH_ConfigCommon_r8(p_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.rach_ConfigCommon),
+                                                               p_CellInfo.PhysicalParameters.RAR_TA,
+                                                               p_CellInfo.Frequency.DL_ChBandwidth,     /* @sic R5s100135 sic@ */
+                                                               p_ContentionResolution_ContainedRlcPdu), /* @sic R5-120721 change 3 sic@ */
+            CcchDcchDtchConfig := {
+              MeasGapCtrl := cs_MeasGapCtrl_None, /* @sic R5s110743 sic@ */
+              DL := {
+                DciInfo := { Auto := cs_DciInfo_CcchDcchDtchDL(p_CellInfo.Frequency.DL_ChBandwidth)},
+                AntennaInfo := cs_AntennaInfoDedicated_r8andLater( p_CellInfo.AntennaInfo.SS_AntennaInfoDedicated),
+                HarqProcessConfig := { /* @sic R5w100214, R5w100220 sic@ */
+                  AllProcesses := true
+                }
+              },
+              UL := {
+                DciInfo := cs_DciInfo_CcchDcchDtchUL_Def,
+                Hopping := {
+                  Deactivated := true       // FFS
+                },
+                PUCCH_Synch  := { None  := true},
+                UL_GrantConfig  := { None  := true}
+              },
+              DrxCtrl := cs_DrxCtrl_None, /* no connected mode DRX configured per default */
+              TtiBundling := cs_TTI_BundlingConfig_r8(false)
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_DrxCtrl_REQ(EUTRA_CellId_Type p_CellId,
+                                                   template (value) TimingInfo_Type p_TimingInfo,
+                                                   template (value) DrxCtrl_Type p_DrxCtrl,
+                                                   template (omit) boolean p_CnfFlag := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100801, R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          Basic := omit,
+          Active := {
+            C_RNTI := omit,
+            PhysicalLayerConfigUL := omit,
+            RachProcedureConfig := omit,
+            CcchDcchDtchConfig := {
+              MeasGapCtrl := omit,
+              DL := omit,
+              UL := omit,
+              DrxCtrl := p_DrxCtrl,
+              TtiBundling := omit
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_MeasGapCtrl_REQ(EUTRA_CellId_Type p_CellId,
+                                                       template (value) TimingInfo_Type p_TimingInfo,
+                                                       template (value) MeasGapCtrl_Type p_MeasGapCtrl,
+                                                       template (omit) boolean p_CnfFlag := omit) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          Basic := omit,
+          Active := {
+            C_RNTI := omit,
+            PhysicalLayerConfigUL := omit,
+            RachProcedureConfig := omit,
+            CcchDcchDtchConfig := {
+              MeasGapCtrl := p_MeasGapCtrl,  /* @sic R5s110743 sic@ */
+              DL := omit,
+              UL := omit,
+              DrxCtrl := omit,
+              TtiBundling := omit
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) ActiveCellConfig_Type  cs_NewC_RNTI_ConfigReq(template (value) C_RNTI p_CRNTI) :=
+  { /* @status    APPROVED */
+    C_RNTI  := p_CRNTI,
+    PhysicalLayerConfigUL := omit,
+    RachProcedureConfig   := omit,
+    CcchDcchDtchConfig    := omit
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_ActiveCellConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                            template (value) TimingInfo_Type p_TimingInfo,
+                                                            template (value) ActiveCellConfig_Type p_ActiveCellConfig) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          Basic := omit,
+          Active := p_ActiveCellConfig
+        }
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_ULGrantAllocation_REQ(EUTRA_CellId_Type   p_CellId,
+                                                             template (value) TimingInfo_Type p_TimingInfo,
+                                                             template (omit)  DciUlInfo_Type p_DciUlInfo := cs_DciInfo_CcchDcchDtchUL_Def,
+                                                             template (omit)  PUCCH_Synch_Type p_PUCCH_Synch,
+                                                             template (omit)  UL_GrantConfig_Type p_UL_GrantConfig := cs_UL_GrantConfig_Def,
+                                                             template (omit) boolean p_CnfFlag := omit) :=
+  { /* @desc      common template to be used in all UL grant configurations */
+    /* @status    APPROVED */
+    /* @sic R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      Cell := {
+      AddOrReconfigure := {
+        Basic := omit,
+        Active := {
+            C_RNTI := omit,
+            PhysicalLayerConfigUL := omit,
+            RachProcedureConfig := omit,
+            CcchDcchDtchConfig := {
+              MeasGapCtrl := omit,
+              DL := omit,
+              UL := {
+                DciInfo := p_DciUlInfo,
+                Hopping := {
+                  Deactivated := true
+                },
+                PUCCH_Synch  := p_PUCCH_Synch,
+                UL_GrantConfig  := p_UL_GrantConfig
+              },
+              DrxCtrl := omit,
+              TtiBundling := omit
+            }
+          }
+      }
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_ULGrantAllocation_Def_REQ(EUTRA_CellId_Type p_CellId,
+                                                                 template (value) TimingInfo_Type p_TimingInfo,
+                                                                 template (value) PUCCH_Synch_Type p_PUCCH_Synch) :=
+    /* @status    APPROVED */
+    /* ASP to configure UL Grant and enable default UL allocation */
+    cas_ULGrantAllocation_REQ(p_CellId, p_TimingInfo, -, p_PUCCH_Synch);
+
+  template (value) SYSTEM_CTRL_REQ cas_ULGrantAllocation_Stop_REQ(EUTRA_CellId_Type p_CellId,
+                                                                  template (value) TimingInfo_Type p_TimingInfo) :=
+    /* @status    APPROVED */
+    /* ASP to configure disable default UL Grant and PUCCH synchronisation */
+    cas_ULGrantAllocation_REQ(p_CellId, p_TimingInfo, omit, cs_PUCCH_Synch_None, cs_UL_GrantConfig_Stop);
+
+  template (value) SYSTEM_CTRL_REQ cas_PUCCH_Synch_Config_REQ(EUTRA_CellId_Type p_CellId,
+                                                              template (value) TimingInfo_Type p_TimingInfo,
+                                                              template (value) PUCCH_Synch_Type p_PUCCH_Synch,
+                                                              template (omit) boolean p_CnfFlag := omit) :=
+    /* ASP to configure PUCCH_Synch */
+    /* @status    APPROVED */
+    /* @sic R5s100801, R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    cas_ULGrantAllocation_REQ(p_CellId, p_TimingInfo, omit, p_PUCCH_Synch, omit, p_CnfFlag);
+
+  template (value) SYSTEM_CTRL_REQ cas_CellConfig_Power_REQ(template (value) CellAttenuationList_Type p_CellAttenuationList,
+                                                            template (value) TimingInfo_Type p_TimingInfo,
+                                                            EUTRA_CellId_Type p_CellId := eutra_Cell_NonSpecific,
+                                                            template (omit) boolean p_CnfFlag := omit) :=
+  { /* ASPs to modify cell power */
+    /* @status    APPROVED */
+    /* @sic R5-110877: in context with adjusting power levels of multiple cells usage of cas_CellConfig_Power_REQ is corrected acc. to ASP documentation sic@ */
+    /* @sic R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg( p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      CellAttenuationList := p_CellAttenuationList
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_ModifySysinfo_Def_REQ(EUTRA_CellId_Type                              p_CellId,
+                                                             template (value) TimingInfo_Type         p_TimingInfo,
+                                                             template (value) AllSiSchedul_Type       p_SiSchedul,      /* scheduling of SIs */
+                                                             template (value) BcchInfo_Type           p_BcchInfo,
+                                                             Dl_Bandwidth_Type                        p_Dl_Bandwidth) :=   // @sic R5-103846 sic@
+  { /* ASPs to modify system information */
+    /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, tsc_NoCnfReq),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          Basic := {
+            ConfigCapability := omit,
+            StaticCellInfo := omit,
+            PhysicalLayerConfigDL := omit,
+            InitialCellPower := omit,
+            BcchConfig := {
+              //Sib2Config := cs_BCCH_Configuration,
+              Pbch := true,                                 /* no configuration parameters required */
+              Pdsch := {
+                Sib1Schedul := {
+                  DciInfo := cs_DciInfo_Sib1
+                },
+                  SiSchedul := p_SiSchedul
+              },
+              BcchInfo := p_BcchInfo
+            },
+            PcchConfig := {
+              DciInfo := cs_DciInfo_Pcch(p_Dl_Bandwidth)
+            }
+          },
+          Active := omit
+        }
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_CellConfig_UpdatePRACH_Info_REQ(EUTRA_CellId_Type  p_CellId,
+                                                                       template (value) TimingInfo_Type p_TimingInfo,
+                                                                       PRACH_ConfigSIB p_PRACH_ConfigSIB) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          Basic := omit,
+          Active := {
+            C_RNTI := omit,
+            PhysicalLayerConfigUL := {
+              Prach := cs_PRACH_Config_r8(cs_PRACH_Config_Def(p_PRACH_ConfigSIB)),
+              Pucch := omit,
+              Pusch := omit,
+              TimingAdvance := omit,
+              SRS_UL_Config := omit,
+              SR_Config := omit,
+              CQI_ReportConfig := omit,
+              UplinkPowerControlCommon := omit,
+              UplinkPowerControlDedicated := omit
+            },
+            RachProcedureConfig := omit,
+            CcchDcchDtchConfig := omit
+          }
+        }
+      }
+    }
+  };
+
+  template (value) RachProcedureConfig_Type cs_RachProcedureConfig_CRNTI_Dedicated(RACH_TimingAdvance_Type p_RAR_TA,
+                                                                                   Dl_Bandwidth_Type p_Dl_Bandwidth,  // @sic R5-103846 sic@
+                                                                                   template (value) RACH_ConfigDedicated p_Rach_ConfigDedicated := cs_RACH_ConfigDedicated) := //@sic R5s100496 cl. 4.3 sic@
+  { /* @status    APPROVED */
+    RACH_ConfigCommon := omit, // not change from initial value
+    RACH_ConfigDedicated := cs_RACH_ConfigDedicated_r8(p_Rach_ConfigDedicated),
+    RachProcedureList := {
+      {
+        RAResponse := cs_RandomAccessResponseConfig_Def(p_RAR_TA, p_Dl_Bandwidth),
+        ContentionResolutionCtrl := cs_ContReslCtrl_CRNTI_None // as dedicated resource indicated hence no PDCCH address for UE needed.
+      }
+    }
+  };
+
+  template (value) RA_PDCCH_Order_Type  cs_RA_PDCCH_Order (template  (value) PrachPreambleIndex_Type p_PreambleIndex := tsc_EUTRA_PrachPreambleIndex_Dedicated_Def,
+                                                           template  (value) PrachMaskIndex_Type p_PrachMaskIndex := 0) :=     /* see also 36.212 cl. 5.3.3.1.3 */
+  { /* @status    APPROVED */
+    /* @sic R5s100138 change 5: additional comments sic@ */
+    PreambleIndex := p_PreambleIndex,  /* naming acc. 36.212 cl. 5.3.3.1.3 */
+    PrachMaskIndex := p_PrachMaskIndex /* naming acc. 36.212 cl. 5.3.3.1.3 */
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_RA_PDCCH_Order(EUTRA_CellId_Type p_CellId,
+                                                      template (value) TimingInfo_Type p_TimingInfo,
+                                                      template (value) RA_PDCCH_Order_Type p_RA_PDCCH_Order) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, tsc_NoCnfReq), //@sic Baseline R5s100135 sic@
+    Request := {
+      PdcchOrder := p_RA_PDCCH_Order
+    }
+  };
+
+  template (value) ContentionResolutionCtrl_Type cs_ContReslCtrl_CRNTI_None :=
+  { /* results in no Contention resolution for T-CRNTI */
+    /* @status    APPROVED */
+    CRNTI_Based := {
+      None := true
+    }
+  };
+
+}

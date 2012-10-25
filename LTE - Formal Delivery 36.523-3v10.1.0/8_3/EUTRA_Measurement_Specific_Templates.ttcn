@@ -1,0 +1,1174 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 11:22:49 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7283 $
+/******************************************************************************/
+
+module EUTRA_Measurement_Specific_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Measurement_Templates all;
+  import from EUTRA_RRC_Templates all;
+
+  template (value) MAC_MainConfig_Type cs_MAC_MainConfig_TA_Infinitive :=
+  { /* @status    APPROVED */
+    explicitValue := cs_MAC_MainConfig_Common(omit, omit, infinity_, omit)
+  };
+
+  template (value) DRX_Config cs_DRX_Config_Measurement_Specific :=
+  { /* @status    APPROVED */
+    /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    setup := {
+      onDurationTimer := psf6,
+      drx_InactivityTimer := psf60,
+      drx_RetransmissionTimer := psf16,
+      longDRX_CycleStartOffset := {
+        sf2560 := 0
+      },
+      shortDRX := omit
+    }
+  };
+
+  template (value) DRX_Config cds_DRX_Config_SF1280 modifies cs_DRX_Config_Measurement_Specific :=
+  { /* @status    APPROVED */
+    /* @sic R5-110719, R5s100850 sic@ */
+    /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    setup := {
+      longDRX_CycleStartOffset := {
+        sf1280 := 4 // @sic R5s110352 sic@
+      }
+    }
+  };
+
+  template (value) DRX_Config cds_DRX_Config_SF2560 modifies cs_DRX_Config_Measurement_Specific :=
+  { /* @status    APPROVED */
+    /* @sic R5-110719, R5s100850 sic@ */
+    /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    setup := {
+      longDRX_CycleStartOffset := {
+        sf2560 := 4 // @sic R5s110730, R5s110699, R5s110738 sic@
+      }
+    }
+  };
+
+  template (value) CellsToAddModListUTRA_FDD cs_CellsToAddModListUTRA_FDD_2Entries(template (value) CellsToAddModUTRA_FDD.cellIndex p_CellIndex_1,
+                                                                                   template (value) PhysCellIdUTRA_FDD p_PhysCellId_1,
+                                                                                   template (value) CellsToAddModUTRA_FDD.cellIndex p_CellIndex_2,
+                                                                                   template (value) PhysCellIdUTRA_FDD p_PhysCellId_2 ) :=
+  { /* @status    APPROVED */
+    cs_CellsToAddModUTRA_FDD(p_CellIndex_1, p_PhysCellId_1),
+    cs_CellsToAddModUTRA_FDD(p_CellIndex_2, p_PhysCellId_2)
+  };
+
+  template (value) CellsToAddModUTRA_TDD cs_CellsToAddModUTRA_TDD(template (value) CellsToAddModUTRA_TDD.cellIndex p_CellIndex,
+                                                                  template (value) PhysCellIdUTRA_TDD p_PhysCellId ) :=
+  { /* @status    APPROVED */
+    cellIndex := p_CellIndex,
+    physCellId := p_PhysCellId
+  };
+
+  template (value) CellsToAddModListUTRA_TDD cs_CellsToAddModListUTRA_TDD_1Entry(template (value) CellsToAddModUTRA_TDD.cellIndex p_CellIndex,
+                                                                                 template (value) PhysCellIdUTRA_TDD p_PhysCellId ) :=
+  { /* @status    APPROVED */
+    cs_CellsToAddModUTRA_TDD(p_CellIndex, p_PhysCellId)
+  };
+
+  template (value) CellsToAddModListUTRA_TDD cs_CellsToAddModListUTRA_TDD_2Entries(template (value) CellsToAddModUTRA_TDD.cellIndex p_CellIndex_1,
+                                                                                   template (value) PhysCellIdUTRA_TDD p_PhysCellId_1,
+                                                                                   template (value) CellsToAddModUTRA_TDD.cellIndex p_CellIndex_2,
+                                                                                   template (value) PhysCellIdUTRA_TDD p_PhysCellId_2 ) :=
+  { /* @status    APPROVED */
+    cs_CellsToAddModUTRA_TDD(p_CellIndex_1, p_PhysCellId_1),
+    cs_CellsToAddModUTRA_TDD(p_CellIndex_2, p_PhysCellId_2)
+  };
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_ResumeInterFreqMeas(RRC_TransactionIdentifier p_RRC_TI) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS( p_RRC_TI,
+                                                       cs_MeasConfig(omit,
+                                                                     omit,
+                                                                     omit,
+                                                                     omit,
+                                                                     omit,
+                                                                     omit,
+                                                                     cs_QuantityConfig_Def,
+                                                                     cs_508_MeasGapConfig_GP1) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_1_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                                          p_MeasurementBandwidth,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A1,
+                                                                                                       cs_ReportConfig_reportConfigEUTRA_eventA1_RSRP( -72,
+                                                                                                                                                       6,
+                                                                                                                                                       ms256,
+                                                                                                                                                       rsrp,
+                                                                                                                                                       both,
+                                                                                                                                                       1,
+                                                                                                                                                       ms1024,
+                                                                                                                                                       infinity_ ) ), //@sic R5-094520: Changed from r1 to infinity_ sic@
+                                                                    
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry(1,
+                                                                                                 tsc_IdMeasObject_f1,
+                                                                                                 tsc_IdReportConfig_A1)));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_2_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth ) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                                          p_MeasurementBandwidth,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A2,
+                                                                                                       cs_ReportConfig_reportConfigEUTRA_eventA2_RSRP(-83,
+                                                                                                                                                      6,
+                                                                                                                                                      ms320, //@sic R5s100176: Change 3: Change value of timeToTrigger parameter from 256ms to 320ms sic@
+                                                                                                                                                      rsrp,
+                                                                                                                                                      both,
+                                                                                                                                                      1,
+                                                                                                                                                      ms1024,
+                                                                                                                                                      infinity_ ) ), //@sic R5-095507: Changed from r1 to infinity_ sic@
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry(1,
+                                                                                                 tsc_IdMeasObject_f1,
+                                                                                                 tsc_IdReportConfig_A2)));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_3_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA     p_EUTRA_DL_CarrierFreq_1,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth_1,
+                                                                                 ARFCN_ValueEUTRA     p_EUTRA_DL_CarrierFreq_2,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth_2) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_1,
+                                                                                                                                            p_MeasurementBandwidth_1,
+                                                                                                                                            omit,
+                                                                                                                                            omit,
+                                                                                                                                            omit),
+                                                                                                       tsc_IdMeasObject_f2,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_2,
+                                                                                                                                            p_MeasurementBandwidth_2,
+                                                                                                                                            omit,
+                                                                                                                                            omit,
+                                                                                                                                            omit) ),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                                       cs_ReportConfig_reportConfigEUTRA_eventA3( 0, //@sic R5-101032r2: Changed a3_Offset from 20 to 0 sic@
+                                                                                                                                                  false,
+                                                                                                                                                  0,
+                                                                                                                                                  ms0,
+                                                                                                                                                  rsrp,
+                                                                                                                                                  sameAsTriggerQuantity,
+                                                                                                                                                  1,
+                                                                                                                                                  ms1024,
+                                                                                                                                                  r1 ) ), //@sic R5-095507: Changed from r1 to infinity_ sic@
+                                                                                                                                                          //@sic R5-105011: Changed from infinity_ to r1 sic@
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3,
+                                                                                                   2, tsc_IdMeasObject_f2, tsc_IdReportConfig_A3 ),
+                                                                    cs_QuantityConfig( cs_QuantityConfigEUTRA( omit, omit ), omit, omit, omit ), //@sic R5s100495: change 2 sic@
+                                                                    cs_508_MeasGapConfig_GP1,
+                                                                    omit,
+                                                                    omit,
+                                                                    omit ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_4_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_1,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth_1,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_2,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth_2,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_3,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth_3) :=
+  /* @status    APPROVED */
+  cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                    cs_MeasConfig(omit,
+                                                                  cs_MeasObjectToAddModList_3Entries(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_1, p_MeasurementBandwidth_1, omit, omit, omit ),
+                                                                                                     tsc_IdMeasObject_f2,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_2, p_MeasurementBandwidth_2, omit, omit, omit ),
+                                                                                                     tsc_IdMeasObject_f3, //@sic R5-103829r2 sic@
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_3, p_MeasurementBandwidth_3, omit, omit, omit ) ), //@sic R5-103829r2 sic@
+                                                                  omit,
+                                                                  cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfigEUTRA_PERIODICAL,
+                                                                                                     cs_508_ReportConfigEUTRA_Periodical), //@sic R5-112534 sic@
+                                                                  omit,
+                                                                  cs_MeasIdToAddModList_3Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfigEUTRA_PERIODICAL,
+                                                                                                 2, tsc_IdMeasObject_f2, tsc_IdReportConfigEUTRA_PERIODICAL,
+                                                                                                 3, tsc_IdMeasObject_f3, tsc_IdReportConfigEUTRA_PERIODICAL ), //@sic R5-103829r2 sic@
+                                                                  cs_QuantityConfig_Def,
+                                                                  cs_508_MeasGapConfig_GP1));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_4_Step10(RRC_TransactionIdentifier p_RRC_TI) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit, omit, omit, omit,
+                                                                    cs_MeasIdToRemoveList_3Entries( 1, 2, 3 ), //@sic R5-103829r2 sic@
+                                                                    omit));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_5_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth ) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                                          p_MeasurementBandwidth,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_2Entries(1,
+                                                                                                         cs_ReportConfig_reportConfigEUTRA_eventA3( -20, false, 0, ms0, rsrp, sameAsTriggerQuantity, 1, ms1024, r1 ), //@sic R5s100187 Change 2: Set the a3-Offset for both events to 0 sic@
+                                                                                                         //@sic R5-105041r2: set a3-Offset from 0 to -12 sic@
+                                                                                                         //@sic R5s100556, R5-105071: set a3-Offset from -12 to -20 sic@
+                                                                                                         2,
+                                                                                                         cs_ReportConfig_reportConfigEUTRA_eventA3( 0, false, 0, ms0, rsrp, sameAsTriggerQuantity, 1, ms1024, r1 ) ), //@sic R5s100187, Change 2: Set the a3-Offset for both events to 0 sic@
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f1, 1,
+                                                                                                   2, tsc_IdMeasObject_f1, 2 ) ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_6_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_1,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth_1,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_2,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth_2 ) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_1, p_MeasurementBandwidth_1, omit, omit, omit ),
+                                                                                                       tsc_IdMeasObject_f2,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_2, p_MeasurementBandwidth_2, omit, omit, omit ) ),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_2Entries(tsc_IdReportConfig_A2,
+                                                                                                         cs_ReportConfig_reportConfigEUTRA_eventA2_RSRP( -83, 6, ms320, rsrp, both, 1, ms1024, r1 ),
+                                                                                                         tsc_IdReportConfig_A3,
+                                                                                                         cs_ReportConfig_reportConfigEUTRA_eventA3( 0, false, 0, ms640, rsrp, sameAsTriggerQuantity, 1, ms1024, r1 ) ), //@sic R5-115763 sic@
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A2, //@sic R5-106622, R5s110354 sic@
+                                                                                                   2, tsc_IdMeasObject_f2, tsc_IdReportConfig_A3 ),
+                                                                    cs_QuantityConfig_Def,
+                                                                    cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_7_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth,
+                                                                                 PhysCellId p_PhysCellId ) :=
+  /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_1Entry(1,
+                                                                                          cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                               p_MeasurementBandwidth,
+                                                                                                                               omit,
+                                                                                                                               cs_BlackCellsToAddModList_1Entry(1,
+                                                                                                                                                                p_PhysCellId,
+                                                                                                                                                                omit),
+                                                                                                                               omit)),
+                                                         omit,
+                                                         cs_ReportConfigToAddModList_1Entry(1,
+                                                                                            cs_ReportConfig_reportConfigEUTRA_eventA3( 0, false, 0, ms640, rsrp, both, 3, ms1024, r1 )), //@sic R5s100678 sic@
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry( 1, 1, 1 )),
+                                           omit,
+                                           omit,
+                                           omit);
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_7_Step7(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth) :=
+  /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_1Entry(1,
+                                                                                          cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                               p_MeasurementBandwidth,
+                                                                                                                               cs_CellIndexList_1Entry( 1 ),
+                                                                                                                               omit,
+                                                                                                                               omit ) ),
+                                                         omit,
+                                                         omit,
+                                                         omit,
+                                                         omit ),
+                                           omit,
+                                           omit,
+                                           omit );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_8_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                                          p_MeasurementBandwidth,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                                       cs_508_ReportConfigEUTRA_A3),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3 ) ) );
+
+  template (value) MeasConfig cs_MeasConfig_8_3_1_8_Step5 :=
+    /* @status    APPROVED */
+    cs_MeasConfig(cs_MeasObjectToRemoveList_1Entry(tsc_IdMeasObject_f1),  // @sic R5-101082 sic@
+                  omit,
+                  cs_ReportConfigToRemoveList_1Entry(tsc_IdReportConfig_A3),
+                  omit,
+                  cs_MeasIdToRemoveList_1Entry(1),
+                  omit);
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_9_Step1_pc25(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                      ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_1,
+                                                                                      AllowedMeasBandwidth p_MeasurementBandwidth_1,
+                                                                                      ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_2,
+                                                                                      AllowedMeasBandwidth p_MeasurementBandwidth_2) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_1,
+                                                                                                                                            p_MeasurementBandwidth_1,
+                                                                                                                                            omit,
+                                                                                                                                            omit,
+                                                                                                                                            omit),
+                                                                                                       tsc_IdMeasObject_f2,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_2,
+                                                                                                                                            p_MeasurementBandwidth_2,
+                                                                                                                                            omit,
+                                                                                                                                            omit,
+                                                                                                                                            omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                                       cs_508_ReportConfigEUTRA_A3),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3,
+                                                                                                   2, tsc_IdMeasObject_f2, tsc_IdReportConfig_A3),
+                                                                    cs_QuantityConfig( cs_QuantityConfigEUTRA( omit, omit ), omit, omit, omit ), //@sic R5s100493 change 1 sic@
+                                                                    cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_9_Step1_notpc25(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                         ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                         AllowedMeasBandwidth p_MeasurementBandwidth) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                                          p_MeasurementBandwidth,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                                       cs_508_ReportConfigEUTRA_A3),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3) ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_10_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                  ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_1,
+                                                                                  AllowedMeasBandwidth p_MeasurementBandwidth_1,
+                                                                                  ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_2,
+                                                                                  AllowedMeasBandwidth p_MeasurementBandwidth_2) :=
+  /* @status    APPROVED */
+  cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                    cs_MeasConfig(omit,
+                                                                  cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_1,
+                                                                                                                                          p_MeasurementBandwidth_1,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit),
+                                                                                                     tsc_IdMeasObject_f2,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_2,
+                                                                                                                                          p_MeasurementBandwidth_2,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit)),
+                                                                  omit,
+                                                                  cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                                     cs_508_ReportConfigEUTRA_A3 ), //@sic R5-106572 sic@
+                                                                  omit,
+                                                                  cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3,
+                                                                                                 2, tsc_IdMeasObject_f2, tsc_IdReportConfig_A3 ),
+                                                                  cs_QuantityConfig_Def, //@sic R5s100516 Change 1 sic@
+                                                                  cs_508_MeasGapConfig_GP1 ));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_11_Step1_pc25(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                       ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_1,
+                                                                                       AllowedMeasBandwidth p_MeasurementBandwidth_1,
+                                                                                       ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq_2,
+                                                                                       AllowedMeasBandwidth p_MeasurementBandwidth_2 ) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_1,
+                                                                                                                                            p_MeasurementBandwidth_1,
+                                                                                                                                            omit,
+                                                                                                                                            omit,
+                                                                                                                                            omit),
+                                                                                                       tsc_IdMeasObject_f2,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq_2,
+                                                                                                                                            p_MeasurementBandwidth_2,
+                                                                                                                                            omit,
+                                                                                                                                            omit,
+                                                                                                                                            omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                                       cs_ReportConfig_reportConfigEUTRA_eventA3( 0,
+                                                                                                                                                  false,
+                                                                                                                                                  0,
+                                                                                                                                                  ms640,
+                                                                                                                                                  rsrp,
+                                                                                                                                                  both, //@sic R5s100879 sic@
+                                                                                                                                                  1,
+                                                                                                                                                  ms1024,
+                                                                                                                                                  r1 ) ),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3,
+                                                                                                   2, tsc_IdMeasObject_f2, tsc_IdReportConfig_A3 ),
+                                                                    cs_QuantityConfig_Def,
+                                                                    cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_1_11_Step1_notpc25(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                          ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                          AllowedMeasBandwidth p_MeasurementBandwidth ) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                                                                          p_MeasurementBandwidth,
+                                                                                                                                          omit,
+                                                                                                                                          omit,
+                                                                                                                                          omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                                       cs_ReportConfig_reportConfigEUTRA_eventA3( 0,
+                                                                                                                                                  false,
+                                                                                                                                                  0,
+                                                                                                                                                  ms640,
+                                                                                                                                                  rsrp,
+                                                                                                                                                  both, //@sic R5s100879 sic@
+                                                                                                                                                  1,
+                                                                                                                                                  ms1024,
+                                                                                                                                                  r1 )),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3 ) ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_1_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                 AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                 ARFCN_ValueGERAN p_StartingARFCN,
+                                                                                 BandIndicatorGERAN p_BandIndicator,
+                                                                                 ExplicitListOfARFCNs p_ExplicitListOfARFCNs ) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries( //@sic CR R5-112614 sic@
+                                                                                                       tsc_IdMeasObject_f1,
+                                                                                                       cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ), //@sic CR R5-112614 sic@
+                                                                                                       tsc_IdMeasObject_f11,
+                                                                                                       cs_MeasObject_measObjectGERAN(p_StartingARFCN,
+                                                                                                                                     p_BandIndicator,
+                                                                                                                                     cs_FollowingARFCNs_explicitListOfARFCNs( p_ExplicitListOfARFCNs ),
+                                                                                                                                     0,
+                                                                                                                                     omit,
+                                                                                                                                     omit ) ),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(1,
+                                                                                                       cs_ReportConfig_reportConfigInterRAT_eventB2_GERAN( -69, -79, 0, ms0, 6, ms1024, infinity_)), //@sic R5-106182 sic@
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry( 1, tsc_IdMeasObject_f11, 1 ),
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                      omit,
+                                                                                      cs_QuantityConfigGERAN( rssi, fc0 ),
+                                                                                      omit ),  // @sic CR R5-101039 sic@
+                                                                    cs_508_MeasGapConfig_GP2 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_2_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                 AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                 ARFCN_ValueGERAN p_StartingARFCN_1,
+                                                                                 BandIndicatorGERAN p_BandIndicator_1,
+                                                                                 ExplicitListOfARFCNs p_ExplicitListOfARFCNs_1) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit, //@sic R5s120244 sic@
+                                                                    cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ),
+                                                                                                       tsc_IdMeasObject_f12,
+                                                                                                       cs_MeasObject_measObjectGERAN(p_StartingARFCN_1,
+                                                                                                                                     p_BandIndicator_1,
+                                                                                                                                     cs_FollowingARFCNs_explicitListOfARFCNs( p_ExplicitListOfARFCNs_1 ),
+                                                                                                                                     0,
+                                                                                                                                     omit,
+                                                                                                                                     omit)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfigInterRAT_PERIODICAL,
+                                                                                                       cs_508_ReportConfigInterRAT_Periodical),
+                                                                    omit, //@sic R5s120244 sic@
+                                                                    cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f12, tsc_IdReportConfigInterRAT_PERIODICAL),
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA(omit, omit),
+                                                                                      omit,
+                                                                                      cs_QuantityConfigGERAN(rssi, fc0),
+                                                                                      omit),  // @sic CR R5-101039 sic@
+                                                                    cs_508_MeasGapConfig_GP2));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_RemoveMeasId_2Entries(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                         integer p_MeasId_1,
+                                                                                         integer p_MeasId_2) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    omit,
+                                                                    omit,
+                                                                    omit,
+                                                                    cs_MeasIdToRemoveList_2Entries(p_MeasId_1, p_MeasId_2), //@sic R5-103829r2 sic@
+                                                                    omit,
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA(omit, omit),
+                                                                                      omit,
+                                                                                      cs_QuantityConfigGERAN(rssi, fc0),
+                                                                                      omit),
+                                                                    cs_508_MeasGapConfig_GP2));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_3_Step1_FDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq1,
+                                                                                     AllowedMeasBandwidth p_MeasurementBandwidth1,
+                                                                                     ARFCN_ValueUTRA p_CarrierFreq,
+                                                                                     PhysCellIdUTRA_FDD p_PhysCellIdUTRA_FDD ) :=
+    
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries(1,
+                                                                                                       cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq1,
+                                                                                                                                            p_MeasurementBandwidth1,
+                                                                                                                                            omit,
+                                                                                                                                            omit,
+                                                                                                                                            omit),
+                                                                                                       tsc_IdMeasObject_f8,
+                                                                                                       cs_MeasObject_measObjectUTRA(p_CarrierFreq,
+                                                                                                                                    0,
+                                                                                                                                    omit,
+                                                                                                                                    cs_MeasObjectUTRA_cellsToAddModList_FDD( cs_CellsToAddModListUTRA_FDD_1Entry( 1, p_PhysCellIdUTRA_FDD ) ), //@sic R5-106182 sic@
+                                                                                                                                    omit ) ),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(1, cs_ReportConfig_reportConfigInterRAT_eventB2_UTRA_EcN0( -69, -18, 3, ms1024, 6, ms1024, infinity_ ) ), //@sic R5-106182, R5-120528 sic@
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry( 1, tsc_IdMeasObject_f8, 1 ),
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                      cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, fc0 ),
+                                                                                      omit,
+                                                                                      omit ), // @sic CR R5-101039 sic@
+                                                                    cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_3_Step1_TDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueUTRA p_CarrierFreq,
+                                                                                     PhysCellIdUTRA_TDD p_PhysCellIdUTRA_TDD ) :=
+  /* @status    APPROVED */
+  cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                    cs_MeasConfig(omit,
+                                                                  cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f8,
+                                                                                                   cs_MeasObject_measObjectUTRA(p_CarrierFreq,
+                                                                                                                                0,
+                                                                                                                                omit,
+                                                                                                                                cs_MeasObjectUTRA_cellsToAddModList_TDD( cs_CellsToAddModListUTRA_TDD_1Entry( 1, p_PhysCellIdUTRA_TDD ) ), //@sic R5-106182 sic@
+                                                                                                                                omit ) ),
+                                                                  omit,
+                                                                  cs_ReportConfigToAddModList_1Entry(1,
+                                                                                                     cs_ReportConfig_reportConfigInterRAT_eventB2_UTRA_RSCP( -69, -79, 3, ms1024, 6, ms1024, infinity_ ) ), //@sic R5-106182, R5-120528 sic@ //TBD: No threshold for TDD in prose
+                                                                  omit,
+                                                                  cs_MeasIdToAddModList_1Entry( 1, tsc_IdMeasObject_f8, 1 ),
+                                                                  cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                    cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, fc0 ),
+                                                                                    omit,
+                                                                                    omit ), // @sic CR R5-101039 sic@
+                                                                  cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_4_Step1_FDD(
+                                     RRC_TransactionIdentifier p_RRC_TI,
+                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                     ARFCN_ValueUTRA p_CarrierFreq,
+                                     PhysCellIdUTRA_FDD p_PhysCellIdUTRA_FDD_1,
+                                     PhysCellIdUTRA_FDD p_PhysCellIdUTRA_FDD_2 ) :=
+  /* @status    APPROVED */
+  cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                    cs_MeasConfig(omit,
+                                                                  cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1, //@sic CR R5-112614 sic@
+                                                                                                     cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ), //@sic CR R5-112614 sic@
+                                                                                                     tsc_IdMeasObject_f8,
+                                                                                                     cs_MeasObject_measObjectUTRA(p_CarrierFreq,
+                                                                                                                                  0,
+                                                                                                                                  omit,
+                                                                                                                                  cs_MeasObjectUTRA_cellsToAddModList_FDD(cs_CellsToAddModListUTRA_FDD_2Entries(1,
+                                                                                                                                                                                                                p_PhysCellIdUTRA_FDD_1,
+                                                                                                                                                                                                                2,
+                                                                                                                                                                                                                p_PhysCellIdUTRA_FDD_2)),
+                                                                                                                                  omit)),
+                                                                  omit,
+                                                                  cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfigInterRAT_PERIODICAL,
+                                                                                                     cs_ReportConfig_reportConfigInterRAT_periodical( reportStrongestCells, 2, ms1024, infinity_ ) ),
+                                                                  omit,
+                                                                  cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f8, tsc_IdReportConfigInterRAT_PERIODICAL),
+                                                                  cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                    cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, omit ),
+                                                                                    omit,
+                                                                                    omit ), // @sic CR R5-101039 sic@
+                                                                  cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_4_Step1_TDD(
+                                     RRC_TransactionIdentifier p_RRC_TI,
+                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                     ARFCN_ValueUTRA p_CarrierFreq,
+                                     PhysCellIdUTRA_TDD p_PhysCellIdUTRA_TDD_1,
+                                     PhysCellIdUTRA_TDD p_PhysCellIdUTRA_TDD_2 ) :=
+  /* @status    APPROVED */
+  cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                    cs_MeasConfig(omit,
+                                                                  cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1, //@sic CR R5-112614 sic@
+                                                                                                     cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ), //@sic CR R5-112614 sic@
+                                                                                                     tsc_IdMeasObject_f8,
+                                                                                                     cs_MeasObject_measObjectUTRA(p_CarrierFreq,
+                                                                                                                                  0,
+                                                                                                                                  omit,
+                                                                                                                                  cs_MeasObjectUTRA_cellsToAddModList_TDD( cs_CellsToAddModListUTRA_TDD_2Entries( 1,
+                                                                                                                                                                                                                  p_PhysCellIdUTRA_TDD_1,
+                                                                                                                                                                                                                  2,
+                                                                                                                                                                                                                  p_PhysCellIdUTRA_TDD_2)),
+                                                                                                                                  omit)),
+                                                                  omit,
+                                                                  cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfigInterRAT_PERIODICAL,
+                                                                                                     cs_ReportConfig_reportConfigInterRAT_periodical( reportStrongestCells, 2, ms1024, infinity_ ) ),
+                                                                  omit,
+                                                                  cs_MeasIdToAddModList_1Entry( 1, tsc_IdMeasObject_f8, tsc_IdReportConfigInterRAT_PERIODICAL ),
+                                                                  cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                    cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, omit ),
+                                                                                    omit,
+                                                                                    omit ), // @sic CR R5-101039 sic@
+                                                                  cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_RemoveMeasId_1Entry(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                       integer p_MeasId) :=
+  /* @status    APPROVED */
+  cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                    cs_MeasConfig(omit,
+                                                                  omit,
+                                                                  omit,
+                                                                  omit,
+                                                                  cs_MeasIdToRemoveList_1Entry( p_MeasId ),
+                                                                  omit,
+                                                                  cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                    cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, omit ),
+                                                                                    omit,
+                                                                                    omit ), // @sic CR R5-101039 sic@
+                                                                  cs_508_MeasGapConfig_GP1 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_5_Step1_FDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                     ARFCN_ValueUTRA p_UTRA_Freq,
+                                                                                     PhysCellIdUTRA_FDD p_PhysCellIdUTRA_FDD, //@sic R5-106182 sic@
+                                                                                     ARFCN_ValueGERAN p_GERAN_startingARFCN,
+                                                                                     BandIndicatorGERAN p_GERAN_bandIndicator) := //@sic R5-123119 sic@
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_3Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_508_MeasObjectEUTRA_GENERIC(p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth),
+                                                                                                       tsc_IdMeasObject_f8,
+                                                                                                       cs_MeasObject_measObjectUTRA(p_UTRA_Freq,
+                                                                                                                                    0,
+                                                                                                                                    omit,
+                                                                                                                                    cs_MeasObjectUTRA_cellsToAddModList_FDD(cs_CellsToAddModListUTRA_FDD_1Entry(1, p_PhysCellIdUTRA_FDD)),
+                                                                                                                                    omit),
+                                                                                                       tsc_IdMeasObject_f11,
+                                                                                                       cs_MeasObject_measObjectGERAN(p_GERAN_startingARFCN, p_GERAN_bandIndicator, cs_FollowingARFCNs_explicitListOfARFCNs({}), 0, omit, omit)), //@sic R5-123119 sic@
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfigInterRAT_PERIODICAL, cs_508_ReportConfigInterRAT_Periodical),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f8,  tsc_IdReportConfigInterRAT_PERIODICAL,
+                                                                                                   2, tsc_IdMeasObject_f11, tsc_IdReportConfigInterRAT_PERIODICAL),
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA(omit, omit),
+                                                                                      cs_QuantityConfigUTRA(cpich_EcN0, pccpch_RSCP, omit),
+                                                                                      cs_QuantityConfigGERAN(rssi, omit),
+                                                                                      omit),
+                                                                    cs_508_MeasGapConfig_GP2));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_5_Step1_TDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                     ARFCN_ValueUTRA p_UTRA_Freq,
+                                                                                     PhysCellIdUTRA_TDD p_PhysCellIdUTRA_TDD, //@sic R5-106182 sic@
+                                                                                     ARFCN_ValueGERAN p_GERAN_startingARFCN,
+                                                                                     BandIndicatorGERAN p_GERAN_bandIndicator) := //@sic R5-123119 sic@
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_3Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth), //@sic CR R5-112614 sic@
+                                                                                                       tsc_IdMeasObject_f8,
+                                                                                                       cs_MeasObject_measObjectUTRA(p_UTRA_Freq,
+                                                                                                                                    0,
+                                                                                                                                    omit,
+                                                                                                                                    cs_MeasObjectUTRA_cellsToAddModList_TDD(cs_CellsToAddModListUTRA_TDD_1Entry(1, p_PhysCellIdUTRA_TDD)),
+                                                                                                                                    omit),
+                                                                                                       tsc_IdMeasObject_f11,
+                                                                                                       cs_MeasObject_measObjectGERAN(p_GERAN_startingARFCN, p_GERAN_bandIndicator, cs_FollowingARFCNs_explicitListOfARFCNs({}), 0, omit, omit)), //@sic R5-123119 sic@
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfigInterRAT_PERIODICAL, cs_508_ReportConfigInterRAT_Periodical),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_2Entries(1, tsc_IdMeasObject_f8, tsc_IdReportConfigInterRAT_PERIODICAL,
+                                                                                                   2, tsc_IdMeasObject_f11, tsc_IdReportConfigInterRAT_PERIODICAL),
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA(omit, omit),
+                                                                                      cs_QuantityConfigUTRA(cpich_EcN0, pccpch_RSCP, omit),
+                                                                                      cs_QuantityConfigGERAN(rssi, omit),
+                                                                                      omit),
+                                                                    cs_508_MeasGapConfig_GP2));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_6_Step1_FDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth,
+                                                                                     ARFCN_ValueUTRA p_UTRA_Freq,
+                                                                                     PhysCellIdUTRA_FDD p_PhysCellIdUTRA_FDD, //@sic R5-106182 sic@
+                                                                                     ARFCN_ValueGERAN p_GERAN_startingARFCN,
+                                                                                     BandIndicatorGERAN p_GERAN_bandIndicator,
+                                                                                     template (value) ExplicitListOfARFCNs p_GERAN_explicitListOfARFCNs) :=
+  /* @status    APPROVED */
+  cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                    cs_MeasConfig(omit,
+                                                                  cs_MeasObjectToAddModList_3Entries(tsc_IdMeasObject_f1,
+                                                                                                     cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ),
+                                                                                                     tsc_IdMeasObject_f8,
+                                                                                                     cs_MeasObject_measObjectUTRA(p_UTRA_Freq,
+                                                                                                                                  0,
+                                                                                                                                  omit,
+                                                                                                                                  cs_MeasObjectUTRA_cellsToAddModList_FDD(cs_CellsToAddModListUTRA_FDD_1Entry(1,
+                                                                                                                                                                                                              p_PhysCellIdUTRA_FDD)), //@sic R5-106182 sic@
+                                                                                                                                  omit),
+                                                                                                     tsc_IdMeasObject_f11,
+                                                                                                     cs_508_MeasObjectGERAN_GENERIC(p_GERAN_startingARFCN, p_GERAN_bandIndicator, p_GERAN_explicitListOfARFCNs)),
+                                                                  omit,
+                                                                  cs_ReportConfigToAddModList_3Entries(tsc_IdReportConfig_A2,
+                                                                                                       cs_508_ReportConfigEUTRA_A2( -95 ),
+                                                                                                       tsc_IdReportConfig_B2_UTRA,
+                                                                                                       cs_508_ReportConfigInterRAT_B2_UTRA_ConditionFDD( -95, (-70-(-60)) ), //TBD: There's no Ec/No value offered in the Prose
+                                                                                                       tsc_IdReportConfig_B2_GERAN,
+                                                                                                       cs_508_ReportConfigInterRAT_B2_GERAN( -95, -75 ) ),
+                                                                  omit,
+                                                                  cs_MeasIdToAddModList_3Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A2,
+                                                                                                 2, tsc_IdMeasObject_f8, tsc_IdReportConfig_B2_UTRA,
+                                                                                                 3, tsc_IdMeasObject_f11, tsc_IdReportConfig_B2_GERAN ),
+                                                                  cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                    cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, fc4 ),
+                                                                                    cs_QuantityConfigGERAN( rssi, fc2 ),
+                                                                                    omit ),
+                                                                  cs_508_MeasGapConfig_GP2 ) );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_2_6_Step1_TDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth,
+                                                                                     ARFCN_ValueUTRA p_UTRA_Freq,
+                                                                                     PhysCellIdUTRA_TDD p_PhysCellIdUTRA_TDD, //@sic R5-106182 sic@
+                                                                                     ARFCN_ValueGERAN p_GERAN_startingARFCN,
+                                                                                     BandIndicatorGERAN p_GERAN_bandIndicator,
+                                                                                     template (value) ExplicitListOfARFCNs p_GERAN_explicitListOfARFCNs) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_3Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_508_MeasObjectEUTRA_GENERIC(p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth),
+                                                                                                       tsc_IdMeasObject_f8,
+                                                                                                       cs_MeasObject_measObjectUTRA(p_UTRA_Freq,
+                                                                                                                                    0,
+                                                                                                                                    omit,
+                                                                                                                                    cs_MeasObjectUTRA_cellsToAddModList_TDD(cs_CellsToAddModListUTRA_TDD_1Entry(1, p_PhysCellIdUTRA_TDD)), //@sic R5-106182 sic@
+                                                                                                                                    omit),
+                                                                                                       tsc_IdMeasObject_f11,
+                                                                                                       cs_508_MeasObjectGERAN_GENERIC(p_GERAN_startingARFCN, p_GERAN_bandIndicator, p_GERAN_explicitListOfARFCNs)),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_3Entries(tsc_IdReportConfig_A2,
+                                                                                                         cs_508_ReportConfigEUTRA_A2(-95),
+                                                                                                         tsc_IdReportConfig_B2_UTRA,
+                                                                                                         cs_508_ReportConfigInterRAT_B2_UTRA_ConditionTDD(-95, -70),
+                                                                                                         tsc_IdReportConfig_B2_GERAN,
+                                                                                                         cs_508_ReportConfigInterRAT_B2_GERAN(-95, -75)),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_3Entries(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A2,
+                                                                                                   2, tsc_IdMeasObject_f8, tsc_IdReportConfig_B2_UTRA,
+                                                                                                   3, tsc_IdMeasObject_f11, tsc_IdReportConfig_B2_GERAN),
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA(omit, omit),
+                                                                                      cs_QuantityConfigUTRA(cpich_EcN0, pccpch_RSCP, fc4),
+                                                                                      cs_QuantityConfigGERAN(rssi, fc2),
+                                                                                      omit),
+                                                                    cs_508_MeasGapConfig_GP2));
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_1_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth ) :=
+  /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                          cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq, p_MeasurementBandwidth, omit, omit, omit)),
+                                                         omit,
+                                                         cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3,
+                                                                                            cs_ReportConfig_reportConfigEUTRA_eventA3(0, false, 0, ms0, rsrp, sameAsTriggerQuantity, 1, ms1024, r1)),  // @sic R5-101130: Changed a3_Offset (1st parameter) from 20 to 0 sic@
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f1, tsc_IdReportConfig_A3)),
+                                           omit,
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_TA_Infinitive),  /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+                                           omit );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_1_Step5(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                 AllowedMeasBandwidth p_MeasurementBandwidth,
+                                                                                 PhysCellId p_PhysCellId ) :=
+  /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f1,
+                                                                                          cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq, p_MeasurementBandwidth, omit, omit, p_PhysCellId)), //@sic Thomas R5-110717 sic@
+                                                         cs_ReportConfigToRemoveList_1Entry(tsc_IdReportConfig_A3),
+                                                         cs_ReportConfigToAddModList_1Entry(tsc_ReportConfigId_CGI,
+                                                                                            cs_ReportConfig_reportConfigEUTRA_periodical(reportCGI, rsrp, sameAsTriggerQuantity, 1, ms1024, r1)),
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry(2, tsc_IdMeasObject_f1, tsc_ReportConfigId_CGI ) ), //@sic Thomas R5-110717 sic@
+                                           omit,
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_Explicit_DisableBSR_ReleasePHR(cds_DRX_Config_SF1280, infinity_)),  /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+                                           omit );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_2_Step1_FDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                     ARFCN_ValueUTRA p_CarrierFreq,
+                                                                                     PhysCellIdUTRA_FDD p_PhysCellIdUTRA_FDD ) :=
+    /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1, //@sic CR R5-112614 sic@
+                                                                                            cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ), //@sic CR R5-112614 sic@
+                                                                                            tsc_IdMeasObject_f8,
+                                                                                            cs_MeasObject_measObjectUTRA(p_CarrierFreq,
+                                                                                                                         0,
+                                                                                                                         omit,
+                                                                                                                         cs_MeasObjectUTRA_cellsToAddModList_FDD( cs_CellsToAddModListUTRA_FDD_1Entry( 1, p_PhysCellIdUTRA_FDD ) ),
+                                                                                                                         omit ) ),
+                                                         omit,
+                                                         cs_ReportConfigToAddModList_1Entry(1,
+                                                                                            cs_ReportConfig_reportConfigInterRAT_periodical( reportStrongestCellsForSON, 1, ms1024, r1 ) ),
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry( 1, tsc_IdMeasObject_f8, 1 ),
+                                                         cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                           cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, fc0 ),
+                                                                           omit,
+                                                                           omit ), // @sic R5-101039 sic@
+                                                         cs_508_MeasGapConfig_GP1 ),
+                                           omit,
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_TA_Infinitive),  /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+                                           omit );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_2_Step1_TDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                     ARFCN_ValueUTRA p_CarrierFreq,
+                                                                                     PhysCellIdUTRA_TDD p_PhysCellIdUTRA_TDD ) :=
+    /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1, //@sic CR R5-112614 sic@
+                                                                                            cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ), //@sic CR R5-112614 sic@
+                                                                                            tsc_IdMeasObject_f8,
+                                                                                            cs_MeasObject_measObjectUTRA(p_CarrierFreq,
+                                                                                                                         0,
+                                                                                                                         omit,
+                                                                                                                         cs_MeasObjectUTRA_cellsToAddModList_TDD( cs_CellsToAddModListUTRA_TDD_1Entry( 1, p_PhysCellIdUTRA_TDD ) ),
+                                                                                                                         omit ) ),
+                                                         omit,
+                                                         cs_ReportConfigToAddModList_1Entry(1,
+                                                                                            cs_ReportConfig_reportConfigInterRAT_periodical( reportStrongestCellsForSON, 1, ms1024, r1 ) ),
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry( 1, tsc_IdMeasObject_f8, 1 ),
+                                                         cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                           cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, fc0 ),
+                                                                           omit,
+                                                                           omit ), // @sic R5-101039 sic@
+                                                         cs_508_MeasGapConfig_GP1 ),
+                                           omit,
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_TA_Infinitive),  /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+                                           omit );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_2_Step5_FDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                     PhysCellIdUTRA_FDD p_PhysCellIdUTRA_FDD ) :=
+    /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f8, //@sic Thomas R5-110719 sic@
+                                                                                          cs_MeasObject_measObjectUTRA( p_EUTRA_DL_CarrierFreq, 0, omit, omit, { utra_FDD := p_PhysCellIdUTRA_FDD } ) ),
+                                                         omit,
+                                                         cs_ReportConfigToAddModList_1Entry(tsc_ReportConfigId_CGI,
+                                                                                            cs_ReportConfig_reportConfigInterRAT_periodical( reportCGI, 1, ms1024, r1 ) ),
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry( 2, tsc_IdMeasObject_f8, tsc_ReportConfigId_CGI ), //@sic Thomas R5-110719 sic@
+                                                         cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                           cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, omit ),
+                                                                           omit,
+                                                                           omit ), // @sic R5-101039 sic@
+                                                         cs_508_MeasGapConfig_GP1 ),
+                                           omit,
+                                           //@sic R5-105002 sic@
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_Explicit_DisableBSR_ReleasePHR(cds_DRX_Config_SF2560, infinity_)),  /* @sic R5s110176 BASELINE MOVING 2011, R5s110738 sic@ */
+                                           omit );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_2_Step5_TDD(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                     PhysCellIdUTRA_TDD p_PhysCellIdUTRA_TDD ) :=
+    /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f8,  //@sic Thomas R5-110719 sic@
+                                                                                          cs_MeasObject_measObjectUTRA( p_EUTRA_DL_CarrierFreq, 0, omit, omit, { utra_TDD := p_PhysCellIdUTRA_TDD } ) ),
+                                                         omit,
+                                                         cs_ReportConfigToAddModList_1Entry(tsc_ReportConfigId_CGI,
+                                                                                            cs_ReportConfig_reportConfigInterRAT_periodical( reportCGI, 1, ms1024, r1 ) ),
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry( 2, tsc_IdMeasObject_f8, tsc_ReportConfigId_CGI ),  //@sic Thomas R5-110719 sic@
+                                                         cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                           cs_QuantityConfigUTRA( cpich_EcN0, pccpch_RSCP, omit ),
+                                                                           omit,
+                                                                           omit ), // @sic R5-101039 sic@
+                                                         cs_508_MeasGapConfig_GP1),
+                                           omit,
+                                           //@sic R5-105002 sic@
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_Explicit_DisableBSR_ReleasePHR(cds_DRX_Config_SF2560, infinity_)),  /* @sic R5-120272 sic@ */
+                                           omit );
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_3_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                 AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                 ARFCN_ValueGERAN p_StartingARFCN,
+                                                                                 BandIndicatorGERAN p_BandIndicator,
+                                                                                 ExplicitListOfARFCNs p_ExplicitListOfARFCNs) :=
+    /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1, //@sic CR R5-112614 sic@
+                                                                                            cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ), //@sic CR R5-112614 sic@
+                                                                                            tsc_IdMeasObject_f11,
+                                                                                            cs_MeasObject_measObjectGERAN(p_StartingARFCN,
+                                                                                                                          p_BandIndicator,
+                                                                                                                          cs_FollowingARFCNs_explicitListOfARFCNs(p_ExplicitListOfARFCNs),
+                                                                                                                          0,
+                                                                                                                          '11111111'B,
+                                                                                                                          omit)),
+                                                         omit,
+                                                         cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_B2_GERAN,
+                                                                                            cs_508_ReportConfigInterRAT_B2_GERAN( -69, -79 ) ),
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f11, tsc_IdReportConfig_B2_GERAN),
+                                                         cs_QuantityConfig(cs_QuantityConfigEUTRA(omit, omit),
+                                                                           omit,
+                                                                           cs_QuantityConfigGERAN(rssi, fc0),
+                                                                           omit), // @sic R5-101039 sic@
+                                                         cs_508_MeasGapConfig_GP2),
+                                           omit,
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_TA_Infinitive),  /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+                                           omit);
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_3_3_3_Step5(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                 ARFCN_ValueGERAN p_StartingARFCN,
+                                                                                 BandIndicatorGERAN p_BandIndicator,
+                                                                                 ExplicitListOfARFCNs p_ExplicitListOfARFCNs,
+                                                                 PhysCellIdGERAN p_PhysCellId ) :=
+
+    /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                           cs_MeasConfig(omit,
+                                                         cs_MeasObjectToAddModList_1Entry(tsc_IdMeasObject_f11, //@sic Thomas R5-110719 sic@
+                                                                                          cs_MeasObject_measObjectGERAN(p_StartingARFCN,
+                                                                                                                        p_BandIndicator,
+                                                                                                                        cs_FollowingARFCNs_explicitListOfARFCNs( p_ExplicitListOfARFCNs ),
+                                                                                                                        0,
+                                                                                                                        '11111111'B,
+                                                                                                                        p_PhysCellId  ) ), //@sic R5s110699 sic@
+                                                         cs_ReportConfigToRemoveList_1Entry(tsc_IdReportConfig_B2_GERAN), //@sic R5s110699 sic@
+                                                         cs_ReportConfigToAddModList_1Entry(tsc_ReportConfigId_CGI,
+                                                                                            cs_ReportConfig_reportConfigInterRAT_periodical( reportCGI, 1, ms1024, r1 ) ),
+                                                         omit,
+                                                         cs_MeasIdToAddModList_1Entry( 2, tsc_IdMeasObject_f11, tsc_ReportConfigId_CGI ), //@sic Thomas R5-110719 sic@
+                                                         cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                           omit,
+                                                                           cs_QuantityConfigGERAN( rssi, fc0 ),
+                                                                           omit ), // @sic R5-101039 sic@
+                                                         cs_508_MeasGapConfig_GP2 ),
+                                           omit,
+                                           //@sic R5-105002 sic@
+                                           cs_RadioResourceConfigDedicated_MacPhy(cs_MAC_MainConfig_Explicit_DisableBSR_ReleasePHR(cds_DRX_Config_SF2560, infinity_)),  /* @sic R5s110176 BASELINE MOVING 2011, R5s110699 sic@ */
+                                           omit );
+
+  template UL_DCCH_Message cr_MeasurementReport_CheckAny := cr_MeasurementReport( ?, *, *, * ); /* @status    APPROVED */
+
+  template UL_DCCH_Message cr_MeasurementReport_Eutra_1Entry_srvCell(template integer p_MeasId) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(p_MeasId, ?, ?, *);
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_1_7_Step6( PhysCellId p_PhysCellId ) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(
+    1, ?, ?,
+    cr_MeasResultNeighCells_measResultListEUTRA_1Entry( p_PhysCellId, omit, ?, ? ) );
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_1_7_Step9(PhysCellId p_PhysCellId_1,
+                                                              PhysCellId p_PhysCellId_2 ) :=
+                                                                                           /* @status    APPROVED */
+  cr_MeasurementReport(1,
+                       ?,
+                       ?,
+                       cr_MeasResultNeighCells_measResultListEUTRA_2Entries(p_PhysCellId_1, omit, ?, ?,
+                                                                            p_PhysCellId_2, omit, ?, ? ) );
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_1_8_Step4(PhysCellId p_PhysCellId) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(1, ?, ?,
+                       cr_MeasResultNeighCells_measResultListEUTRA_1Entry( p_PhysCellId, omit, ?, ? ) );
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_3_1_Step7(PhysCellId p_PhysCellId,
+                                                              PLMN_Identity p_PLMN_Identity,
+                                                              CellIdentity p_CellIdentity,
+                                                              template TrackingAreaCode p_TrackingAreaCode,
+                                                              template PLMN_IdentityList2 p_PLMN_IdentityList2) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(2,
+                       ?,
+                       ?,
+                       cr_MeasResultNeighCells_measResultListEUTRA_1Entry(p_PhysCellId,
+                                                                          cr_Cgi_Info_EUTRA( p_PLMN_Identity, p_CellIdentity, p_TrackingAreaCode, p_PLMN_IdentityList2 ),
+                                                                          omit, //@sic R5s100850 sic@
+                                                                          omit));
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_3_2_Step7_FDD(template PhysCellIdUTRA_FDD p_PhysCellId,
+                                                                  template PLMN_Identity p_PLMN_Identity,
+                                                                  template CellGlobalIdUTRA.cellIdentity p_CellIdentity,
+                                                                  template MeasResultUTRA.cgi_Info.locationAreaCode p_LocationAreaCode,
+                                                                  template MeasResultUTRA.cgi_Info.routingAreaCode p_RoutingAreaCode,
+                                                                  template PLMN_IdentityList2 p_PLMN_IdentityList2 ) :=
+    /* @status    APPROVED */
+    cr_MeasurementReport(2,
+                         ?,
+                         ?,
+                         cr_MeasResultNeighCells_measResultListUTRA_1Entry_FDD(p_PhysCellId,
+                                                                               cr_Cgi_Info_UTRA(p_PLMN_Identity,
+                                                                                                p_CellIdentity,
+                                                                                                p_LocationAreaCode,
+                                                                                                p_RoutingAreaCode,
+                                                                                                p_PLMN_IdentityList2),
+                                                                               omit,
+                                                                               omit ) ); //@sic Thomas R5-110719 sic@
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_3_2_Step7_TDD(template PhysCellIdUTRA_TDD p_PhysCellId,
+                                                                  template PLMN_Identity p_PLMN_Identity,
+                                                                  template CellGlobalIdUTRA.cellIdentity p_CellIdentity,
+                                                                  template MeasResultUTRA.cgi_Info.locationAreaCode p_LocationAreaCode,
+                                                                  template MeasResultUTRA.cgi_Info.routingAreaCode p_RoutingAreaCode,
+                                                                  template PLMN_IdentityList2 p_PLMN_IdentityList2 ) :=
+    /* @status    APPROVED */
+    cr_MeasurementReport(2,
+                         ?,
+                         ?,
+                         cr_MeasResultNeighCells_measResultListUTRA_1Entry_TDD(p_PhysCellId,
+                                                                               cr_Cgi_Info_UTRA(p_PLMN_Identity,
+                                                                                                p_CellIdentity,
+                                                                                                p_LocationAreaCode,
+                                                                                                p_RoutingAreaCode,
+                                                                                                p_PLMN_IdentityList2 ),
+                                                                               omit,
+                                                                               omit ) ); //@sic Thomas R5-110719 sic@
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_3_3_Step4(template integer p_ARFCN,
+                                                              template BandIndicatorGERAN p_BandIndicator,
+                                                              template PhysCellIdGERAN p_PhysCellId) :=
+    /* @status    APPROVED */
+    cr_MeasurementReport(1, ?, ?, cr_MeasResultNeighCells_measResultListGERAN_1Entry(p_ARFCN, p_BandIndicator, p_PhysCellId, omit, ?));
+
+  template UL_DCCH_Message cr_MeasurementReport_8_3_3_3_Step7(template integer p_ARFCN,
+                                                              template BandIndicatorGERAN p_BandIndicator,
+                                                              template PhysCellIdGERAN p_PhysCellId,
+                                                              template PLMN_Identity p_PLMN_Identity,
+                                                              template CellGlobalIdGERAN.locationAreaCode p_LocationAreaCode,
+                                                              template CellGlobalIdGERAN.cellIdentity p_CellIdentity,
+                                                              template MeasResultGERAN.cgi_Info.routingAreaCode p_RoutingAreaCode) :=
+    /* @status    APPROVED */
+    cr_MeasurementReport(2, ?, ?, cr_MeasResultNeighCells_measResultListGERAN_1Entry(p_ARFCN,
+                                                                                     p_BandIndicator,
+                                                                                     p_PhysCellId,
+                                                                                     cr_Cgi_Info_GERAN(p_PLMN_Identity,
+                                                                                                       p_LocationAreaCode,
+                                                                                                       p_CellIdentity,
+                                                                                                       p_RoutingAreaCode),
+                                                                                     ? ) ); //@sic R5s110699 sic@
+
+  template UL_DCCH_Message cr_MeasurementReport_Eutra_1Entry_rsrp(template integer p_MeasId,
+                                                                  template PhysCellId p_PhysCellId ) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(p_MeasId, ?, ?,
+                       cr_MeasResultNeighCells_measResultListEUTRA_1Entry( p_PhysCellId, omit, ?, omit ) );
+
+  template UL_DCCH_Message cr_MeasurementReport_Eutra_1Entry_both(template integer p_MeasId,
+                                                                  template PhysCellId p_PhysCellId) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(p_MeasId, ?, ?,
+                       cr_MeasResultNeighCells_measResultListEUTRA_1Entry( p_PhysCellId, omit, ?, ? ) );
+
+  template UL_DCCH_Message cr_MeasurementReport_Utran_2Entries_FDD(template integer p_MeasId,
+                                                                   template PhysCellIdUTRA_FDD p_PhysCellId_1,
+                                                                   template PhysCellIdUTRA_FDD p_PhysCellId_2 ) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(p_MeasId,
+                       ?,
+                       ?,
+                       cr_MeasResultNeighCells_measResultListUTRA_2Entries_FDD(p_PhysCellId_1, omit, omit, ?,
+                                                                               p_PhysCellId_2, omit, omit, ? ) );
+
+  template UL_DCCH_Message cr_MeasurementReport_Utran_2Entries_TDD(template integer p_MeasId,
+                                                                   template PhysCellIdUTRA_TDD p_PhysCellId_1,
+                                                                   template PhysCellIdUTRA_TDD p_PhysCellId_2 ) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(p_MeasId,
+                       ?,
+                       ?,
+                       cr_MeasResultNeighCells_measResultListUTRA_2Entries_TDD(p_PhysCellId_1, omit, ?, omit,
+                                                                               p_PhysCellId_2, omit, ?, omit ) );
+
+}

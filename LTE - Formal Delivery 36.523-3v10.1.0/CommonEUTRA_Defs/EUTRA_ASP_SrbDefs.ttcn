@@ -1,0 +1,93 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2010-10-21 13:02:56 +0200 (Thu, 21 Oct 2010) $
+// $Rev: 4092 $
+/******************************************************************************/
+
+module EUTRA_ASP_SrbDefs {
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:2002" all;
+  import from EPS_NAS_MsgContainers all;
+
+  //****************************************************************************
+
+  group SRB_DATA_ASPs {                         /* ASP Definitions to send/receive peer-to-peer messages on SRBs */
+
+  type record C_Plane_Request_Type {                            /* RRC and/or NAS PDU to be send to the UE;
+                                                                   Note: it may be necessary to allow more than one NAS PDU (-> "record of") => FFS */
+
+    RRC_MSG_Request_Type        Rrc                   optional, /* omit:    NAS message shall be present; NAS message shall be sent in DLInformationTransfer
+                                                                 * present: if NAS message is present also, (piggybacked) NAS PDU shall be security protected
+                                                                 *          (if necessary) and inserted in RRC PDU's DedicatedInfoNAS */
+    NAS_MSG_RequestList_Type    Nas                   optional  /* omit:    RRC message shall be present; RRC message does not contain (piggybacked) NAS PDU
+                                                                 * present: if RRC message is omitted => NAS message shall be sent embedded in DLInformationTransfer
+                                                                 *          if RRC message is present => NAS message is piggybacked in RRC message
+                                                                 * in case of RRC message is sent on CCCH, NAS message shall be omitted
+                                                                 * NOTE:
+                                                                 *   acc. DEC 08 ASN.1 RRCConnectionReconfiguration may contain DedicatedInfoNAS several times */
+  };
+
+  type record C_Plane_Indication_Type {                         /* RRC and/or NAS PDU to be received from the UE;
+                                                                   Note: it may be necessary to allow more than one NAS PDU (-> "record of") => FFS */
+
+    RRC_MSG_Indication_Type     Rrc                   optional, /* omit:    NAS message shall be present; NAS message is received in ULInformationTransfer
+                                                                 * present: if NAS message is present also, DedicatedInfoNAS contains unstructured and
+                                                                 *          ciphered NAS message and the NAS message is the deciphered message in structured format */
+    NAS_MSG_IndicationList_Type Nas                   optional  /* omit:    RRC message shall be present; RRC message does not contain (piggybacked) NAS PDU
+                                                                 * present: if RRC message is omitted => NAS message has been received in ULInformationTransfer
+                                                                 *          if RRC message is present => NAS message has been piggybacked in RRC message
+                                                                 * NOTE:
+                                                                 *   even though currently (DEC 08 ASN.1) there is no RRC PDU in UL containing more than one
+                                                                 *   DedicatedInfoNAS we provide a list to allow extendability */
+  };
+
+  type record SRB_COMMON_REQ {                                  /* common ASP to send PDUs to SRB0, SRB1 or SRB2 */
+    ReqAspCommonPart_Type       Common,                         /* CellId           identifier of the cell
+                                                                 * RoutingInfo      SRB0, SRB1, SRB2
+                                                                 * TimingInfo       Now in normal cases;
+                                                                 *                  For latency tests TimingInfo can be set to the SFN/subframe
+                                                                 *                  in which the RRC messages shall be sent out (in this case and
+                                                                 *                  if the RRC PDU is too long to be sent in one TTI
+                                                                 *                  the TimingInfo corresponds to the first TTI)
+                                                                 * ControlInfo
+                                                                 *   CnfFlag:=false;
+                                                                 *   FollowOnFlag
+                                                                 *     true: Indicates that the message(s) to be sent on the same TTI will follow
+                                                                 *           NOTE 1: When FollowOnFlag is true, TimingInfo shall always be "Now". Otherwise SS shall produce an error
+                                                                 *           NOTE 2: the follow on flag applies only for messages of the same SRB
+                                                                 *     false: Indicates that no more message(s) will follow
+                                                                 */
+    C_Plane_Request_Type        Signalling
+  };
+
+  type record SRB_COMMON_IND {                                  /* common ASP to receive PDUs from SRB0, SRB1 or SRB2 */
+    IndAspCommonPart_Type       Common,                         /* CellId           identifier of the cell
+                                                                 * RoutingInfo      SRB0, SRB1, SRB2
+                                                                 * TimingInfo       time when message has been received
+                                                                 *                  (as received from the SS by the NAS emulator) */
+    C_Plane_Indication_Type     Signalling
+  };
+
+  } // End group SRB_DATA_ASPs
+
+  //****************************************************************************
+
+  group Port_Definitions {
+
+  type port EUTRA_SRB_PORT message {            /* EUTRA PTC: Port for Sending/Receiving data on SRBs */
+    out SRB_COMMON_REQ;
+    in  SRB_COMMON_IND;
+  };
+
+  type port NASEMU_SRB_PORT message {           /* NASEMU PTC: Port for Sending/Receiving data on SRBs (interface to EUTRA PTC) */
+    out SRB_COMMON_IND;
+    in  SRB_COMMON_REQ;
+  };
+
+  } // End group Port_Definitions
+}

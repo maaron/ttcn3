@@ -1,0 +1,237 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-13 14:23:57 +0200 (Wed, 13 Jun 2012) $
+// $Rev: 6895 $
+/******************************************************************************/
+
+module IP_PTC_Templates {
+
+  import from IP_ASP_TypeDefs all;
+
+  template (value) IP_AddrInfo_Type cs_IPv4Addr(template (value) charstring p_IPv4Addr) :=
+  { /* @status    APPROVED */
+    V4 := {
+      Addr := p_IPv4Addr
+    }
+  };
+
+  template (value) IP_AddrInfo_Type cs_IPv6Addr(template (value) charstring p_IPv6Addr) :=
+  { /* @status    APPROVED */
+    V6 := {
+      Addr := p_IPv6Addr,
+      ScopeId := omit
+    }
+  };
+
+  template (value) IP_Socket_Type cs_IP_Socket(template (omit) IP_AddrInfo_Type p_IpAddr,
+                                               template (omit) PortNumber_Type  p_PortNumber) :=
+  { /* @status    APPROVED */
+    IpAddr := p_IpAddr,
+    Port   := p_PortNumber
+  };
+
+  template IP_Socket_Type cr_IP_Socket(template IP_AddrInfo_Type p_IpAddr,
+                                       template PortNumber_Type  p_PortNumber) :=
+  { /* @status    APPROVED */
+    IpAddr := p_IpAddr,
+    Port   := p_PortNumber
+  };
+
+  template IP_Socket_Type cr_IP_Socket_Any  := cr_IP_Socket(?, ?);              /* @status    APPROVED */
+
+  template IP_Socket_Type cr_IP_Socket_Omit := cr_IP_Socket(omit, omit);        /* @status    APPROVED */
+
+  template IP_Socket_Type cr_IP_Socket_AnyICMP  := cr_IP_Socket(?, omit);       /* @status    APPROVED */
+
+  template (value) IP_Connection_Type cs_IP_ConnectionId(InternetProtocol_Type p_Protocol,
+                                                         template (omit) IP_Socket_Type p_LocalSocket := omit,
+                                                         template (omit) IP_Socket_Type p_RemoteSocket := omit) :=
+  { /* @status    APPROVED */
+    Protocol := p_Protocol,
+    Local := p_LocalSocket,
+    Remote := p_RemoteSocket
+  };
+
+  template IP_Connection_Type cr_IP_ConnectionId(InternetProtocol_Type p_Protocol,
+                                                 template IP_Socket_Type p_LocalSocket,
+                                                 template IP_Socket_Type p_RemoteSocket) :=
+  { /* @status    APPROVED */
+    Protocol := p_Protocol,
+    Local := p_LocalSocket,
+    Remote := p_RemoteSocket
+  };
+
+  template (value) IP_Connection_Type cs_UDP_ConnectionId(template (omit) IP_Socket_Type p_LocalSocket,
+                                                          template (omit) IP_Socket_Type p_RemoteSocket := omit) :=
+    /* @status    APPROVED */
+    cs_IP_ConnectionId(udp, p_LocalSocket, p_RemoteSocket);
+
+  template IP_Connection_Type cr_UDP_ConnectionId(template IP_Socket_Type p_LocalSocket,
+                                                  template IP_Socket_Type p_RemoteSocket) :=
+    /* @status    APPROVED */
+    cr_IP_ConnectionId(udp, p_LocalSocket, p_RemoteSocket);
+
+  template (value) IP_Connection_Type cs_ICMPv6_ConnectionId(template (omit) IP_Socket_Type p_LocalSocket,
+                                                             template (omit) IP_Socket_Type p_RemoteSocket := omit) :=
+    /* @status    APPROVED */
+    cs_IP_ConnectionId(icmpv6, p_LocalSocket, p_RemoteSocket);
+
+  template IP_Connection_Type cr_ICMPv6_ConnectionId(template IP_Socket_Type p_LocalSocket,
+                                                     template IP_Socket_Type p_RemoteSocket) :=
+    /* @status    APPROVED */
+    cr_IP_ConnectionId(icmpv6, p_LocalSocket, p_RemoteSocket);
+
+  function fl_IP_SockOptList(boolean p_AllowBroadcast) return IP_SockOptList_Type
+  {
+    var IP_SockOptList_Type v_SockOptList;
+    v_SockOptList := {};
+    if (p_AllowBroadcast) {
+      v_SockOptList[0] := {SO_BROADCAST := true};
+    }
+    return v_SockOptList;
+  }
+
+  template (value) IP_SOCKET_REQ cs_UDP_SOCKET_REQ(template (value) IP_Socket_Type p_LocalSocket,
+                                                   boolean p_AllowBroadcast) :=
+  { /* @status    APPROVED */
+    CTRL := {
+      ConnectionId := cs_UDP_ConnectionId(p_LocalSocket, omit),
+      Req := {
+        UDP := {
+          SocketReq := {
+            SockOptList := fl_IP_SockOptList(p_AllowBroadcast)
+          }
+        }
+      }
+    }
+  };
+
+  template (value) IP_SOCKET_REQ cs_UDP_DATA_REQ(template (value) IP_Socket_Type p_LocalSocket,
+                                                 template (value) IP_Socket_Type p_RemoteSocket,
+                                                 template (value) octetstring    p_UDP_Data) :=
+  { /* @status    APPROVED */
+    /* @sic R5-113734 change 8 sic@ */
+    DATA := {
+      ConnectionId := cs_UDP_ConnectionId(p_LocalSocket, p_RemoteSocket),
+      Req := {
+        UDP := {
+          SendTo := {
+            Buffer := p_UDP_Data
+          }
+        }
+      }
+    }
+  };
+
+  template (value) IP_SOCKET_REQ cs_UDP_CLOSE_REQ(template (value) IP_Socket_Type p_LocalSocket) :=
+  { /* @status    APPROVED */
+    CTRL := {
+      ConnectionId := cs_UDP_ConnectionId(p_LocalSocket, omit),
+      Req := {
+        UDP := {
+          Close := true
+        }
+      }
+    }
+  };
+
+  template (value) IP_SOCKET_REQ cs_ICMPv6_SOCKET_REQ(template (value) IP_Socket_Type p_LocalSocket,
+                                                      boolean p_AllowBroadcast) :=
+  { /* @status    APPROVED */
+    CTRL := {
+      ConnectionId := cs_ICMPv6_ConnectionId(p_LocalSocket, omit),
+      Req := {
+        ICMP := {
+          SocketReq := {
+            SockOptList := fl_IP_SockOptList(p_AllowBroadcast)
+          }
+        }
+      }
+    }
+  };
+
+  template (value) IP_SOCKET_REQ cs_ICMPv6_DATA_REQ(template (value) IP_Socket_Type p_LocalSocket,
+                                                    template (value) IP_Socket_Type p_RemoteSocket,
+                                                    template (value) Datagram_Content_Type p_ICMP_Data) :=
+  { /* @status    APPROVED
+     * @sic R5-113734 change 8 sic@ */
+    DATA := {
+      ConnectionId := cs_ICMPv6_ConnectionId(p_LocalSocket, p_RemoteSocket),
+      Req := {
+        ICMP := {
+          SendTo := {
+            Buffer := p_ICMP_Data
+          }
+        }
+      }
+    }
+  };
+
+  template (value) IP_SOCKET_REQ cs_ICMPv6_CLOSE_REQ(template (value) IP_Socket_Type p_LocalSocket) :=
+  { /* @status    APPROVED */
+    CTRL := {
+      ConnectionId := cs_ICMPv6_ConnectionId(p_LocalSocket, omit),
+      Req := {
+        ICMP := {
+          Close := true
+        }
+      }
+    }
+  };
+
+  template IP_SOCKET_IND cr_UDP_SOCKET_CNF(template IP_Socket_Type p_LocalSocket) :=
+  { /* @status    APPROVED */
+    CTRL := {
+      ConnectionId := cr_UDP_ConnectionId(p_LocalSocket, cr_IP_Socket_Omit),
+      Ind := {
+        UDP := {
+          SocketCnf := true
+        }
+      }
+    }
+  };
+
+  template IP_SOCKET_IND cr_UDP_DATA_IND(template IP_Socket_Type p_LocalSocket) :=
+  { /* @status    APPROVED */
+    /* @sic R5-113734 change 8 sic@ */
+    DATA := {
+      ConnectionId := cr_UDP_ConnectionId(p_LocalSocket, cr_IP_Socket_Any),
+      Ind := {
+        UDP := {
+          RecvFrom := ?
+        }
+      }
+    }
+  };
+
+  template IP_SOCKET_IND cr_ICMPv6_SOCKET_CNF(template IP_Socket_Type p_LocalSocket) :=
+  { /* @status    APPROVED */
+    CTRL := {
+      ConnectionId := cr_ICMPv6_ConnectionId(p_LocalSocket, cr_IP_Socket_Omit),
+      Ind := {
+        ICMP := {
+          SocketCnf := true
+        }
+      }
+    }
+  };
+
+  template IP_SOCKET_IND cr_ICMPv6_DATA_IND(template IP_Socket_Type p_LocalSocket) :=
+  { /* @status    APPROVED */
+    /* @sic R5-113734 change 8 sic@ */
+    DATA := {
+      ConnectionId := cr_ICMPv6_ConnectionId(p_LocalSocket, cr_IP_Socket_AnyICMP),
+      Ind := {
+        ICMP := {
+          RecvFrom := ?
+        }
+      }
+    }
+  };
+
+}

@@ -1,0 +1,500 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module RLC_AM_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_RRC_Templates all;
+  import from L2_CommonTemplates all;
+  import from RLC_Common all;
+
+group RLCAMTemplates {
+
+template (value) UL_AM_RLC cds_TX_AM_RLC_no_mRT (T_PollRetransmit p_T_PollRetransmit,
+                                                 PollPDU p_PollPDU,
+                                                 PollByte p_PollByte)
+  modifies cs_508_DRB_UL_AM_RLC :=
+{ /* @status    APPROVED */
+  t_PollRetransmit := p_T_PollRetransmit,
+  pollPDU := p_PollPDU,
+  pollByte := p_PollByte
+};
+
+template (value) DL_AM_RLC cds_RX_AM_RLC_Common (T_Reordering p_T_Reordering,
+                                                 T_StatusProhibit p_T_StatusProhibit)
+  modifies cs_508_DRB_DL_AM_RLC :=
+{ /* @status    APPROVED */
+  t_Reordering := p_T_Reordering,
+  t_StatusProhibit := p_T_StatusProhibit
+};
+
+template (value) DL_AM_RLC cds_RX_AM_RLC_t_Reord (T_Reordering p_T_Reordering)
+  modifies cs_508_DRB_DL_AM_RLC :=
+{ /* @status    APPROVED */
+  t_Reordering := p_T_Reordering
+};
+
+template (value) DL_AM_RLC cds_RX_AM_RLC_StatProh (T_StatusProhibit p_T_StatusProhibit)
+  modifies cs_508_DRB_DL_AM_RLC :=
+{ /* @status    APPROVED */
+  t_StatusProhibit := p_T_StatusProhibit
+};
+
+template RLC_Status_SegOffset_Type cr_Status_SO(B15_Type p_SOstart,
+                                                B15_Type p_SOend) :=
+{ /* @status    APPROVED */
+  Start := p_SOstart,
+  End := p_SOend
+};
+
+template RLC_Status_NACK_List_Type cr_NACK_List_4NACKs_NoSOs(integer p_NACK_SN_1,
+                                                             integer p_NACK_SN_2,
+                                                             integer p_NACK_SN_3,
+                                                             integer p_NACK_SN_4) :=
+{ /* @status    APPROVED */
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_1, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, tsc_E2_NoSO_Follows, omit),
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_2, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, tsc_E2_NoSO_Follows, omit),
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_3, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, tsc_E2_NoSO_Follows, omit),
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_4, tsc_NACK_SN_Size), tsc_E1_NoNACK_Follows, tsc_E2_NoSO_Follows, omit)
+};
+
+template RLC_Status_NACK_Type cr_RLC_Status_NACK (B10_Type p_NACK_SN,
+                                                  B1_Type  p_Extn1,
+                                                  B1_Type  p_Extn2,
+                                                  template (omit) RLC_Status_SegOffset_Type p_Status_SO) :=
+{ /* @status    APPROVED */
+  NACK_SN := p_NACK_SN,
+  Extn1  :=  p_Extn1,
+  Extn2  :=  p_Extn2,
+  SO := p_Status_SO
+};
+
+template (value) RLC_Status_SegOffset_Type cs_Status_SO(B15_Type p_SOstart,
+                                                        B15_Type p_SOend) :=
+{ /* @status    APPROVED */
+  Start := p_SOstart,
+  End := p_SOend
+};
+
+template (value) RLC_Status_NACK_List_Type cs_NACK_List_5NACKs_NoSOs (integer p_NACK_SN_1,
+                                                                      integer p_NACK_SN_2,
+                                                                      integer p_NACK_SN_3,
+                                                                      integer p_NACK_SN_4,
+                                                                      integer p_NACK_SN_5) :=
+{ /* @status    APPROVED */
+  cs_RLC_Status_NACK (int2bit(p_NACK_SN_1, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, tsc_E2_NoSO_Follows, omit),
+  cs_RLC_Status_NACK (int2bit(p_NACK_SN_2, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, tsc_E2_NoSO_Follows, omit),
+  cs_RLC_Status_NACK (int2bit(p_NACK_SN_3, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, tsc_E2_NoSO_Follows, omit),
+  cs_RLC_Status_NACK (int2bit(p_NACK_SN_4, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, tsc_E2_NoSO_Follows, omit),
+  cs_RLC_Status_NACK (int2bit(p_NACK_SN_5, tsc_NACK_SN_Size), tsc_E1_NoNACK_Follows, tsc_E2_NoSO_Follows, omit)
+};
+
+template (value) RLC_Status_NACK_List_Type cs_NACK_List(integer p_NACK_SN,
+                                                        B1_Type p_Extn2,
+                                                        template (omit) RLC_Status_SegOffset_Type p_Status_SO) :=
+{ /* @status    APPROVED */
+  cs_RLC_Status_NACK (int2bit(p_NACK_SN, tsc_NACK_SN_Size), tsc_E1_NoNACK_Follows, p_Extn2, p_Status_SO)
+};
+
+template RLC_Status_NACK_List_Type cr_NACK_List (integer p_NACK_SN,
+                                                 B1_Type p_Extn2,
+                                                 template (omit) RLC_Status_SegOffset_Type p_Status_SO) :=
+{ /* @status    APPROVED */
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN, tsc_NACK_SN_Size), tsc_E1_NoNACK_Follows, p_Extn2, p_Status_SO)
+};
+
+template RLC_Status_NACK_List_Type cr_NACK_List_2NACKs (integer p_NACK_SN_1,
+                                                        B1_Type p_Extn2_1,
+                                                        template (omit) RLC_Status_SegOffset_Type p_Status_SO_1,
+                                                        integer p_NACK_SN_2,
+                                                        B1_Type p_Extn2_2,
+                                                        template (omit) RLC_Status_SegOffset_Type p_Status_SO_2) :=
+{ /* @status    APPROVED */
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_1, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, p_Extn2_1, p_Status_SO_1),
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_2, tsc_NACK_SN_Size), tsc_E1_NoNACK_Follows, p_Extn2_2, p_Status_SO_2)
+};
+
+template RLC_Status_NACK_List_Type cr_NACK_List_3NACKs(integer p_NACK_SN_1,
+                                                       B1_Type p_Extn2_1,
+                                                       template (omit) RLC_Status_SegOffset_Type p_Status_SO_1,
+                                                       integer p_NACK_SN_2,
+                                                       B1_Type p_Extn2_2,
+                                                       template (omit) RLC_Status_SegOffset_Type p_Status_SO_2,
+                                                       integer p_NACK_SN_3,
+                                                       B1_Type p_Extn2_3,
+                                                       template (omit) RLC_Status_SegOffset_Type p_Status_SO_3) :=
+{ /* @status    APPROVED */
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_1, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, p_Extn2_1, p_Status_SO_1),
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_2, tsc_NACK_SN_Size), tsc_E1_NACK_Follows, p_Extn2_2, p_Status_SO_2),
+  cr_RLC_Status_NACK (int2bit(p_NACK_SN_3, tsc_NACK_SN_Size), tsc_E1_NoNACK_Follows, p_Extn2_3, p_Status_SO_3)
+};
+
+template (value) RLC_Status_NACK_Type cs_RLC_Status_NACK (B10_Type p_NACK_SN,
+                                                          B1_Type  p_Extn1,
+                                                          B1_Type  p_Extn2,
+                                                          template (omit) RLC_Status_SegOffset_Type p_Status_SO) :=
+{ /* @status    APPROVED */
+  NACK_SN := p_NACK_SN,
+  Extn1  :=  p_Extn1,
+  Extn2  :=  p_Extn2,
+  SO := p_Status_SO
+};
+
+template (value) RLC_AMD_PDU_Type cs_AMD_PDUoneSDU(integer p_SN,
+                                                   B1_Type p_Poll,
+                                                   RLC_DataFieldList_Type p_RLC_SduData) :=
+{ /* @desc      serves to transmit one SDU in one AMD PDU */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDU,
+      Poll := p_Poll,
+      FramingInfo :=  tsc_FI_FullSDU,
+      Extension := tsc_E_Data,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := omit,
+    FlexPart := omit
+  },
+  Data := p_RLC_SduData
+};
+
+template RLC_AMD_PDU_Type cr_AMD_PDUoneSDU(integer p_SN,
+                                           B1_Type p_Poll,
+                                           RLC_DataFieldList_Type p_RLC_SduData) :=
+{ /* @desc      serves to receive one SDU in one AMD PDU */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDU,
+      Poll := p_Poll,
+      FramingInfo :=  tsc_FI_FullSDU,
+      Extension := tsc_E_Data,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := omit,
+    FlexPart := omit
+  },
+  Data := p_RLC_SduData
+};
+
+template RLC_AMD_PDU_Type cr_AMD_PDUoneSDU_Any(template (present) B10_Type p_SN,
+                                               template (present) B1_Type p_Poll,
+                                               template (present) RLC_DataFieldList_Type p_RLC_SduData) :=
+{ /* @desc      serves to receive one SDU in one AMD PDU */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDU,
+      Poll := p_Poll,
+      FramingInfo :=  tsc_FI_FullSDU,
+      Extension := tsc_E_Data,
+      SN := p_SN
+    },
+    SegmentPart := omit,
+    FlexPart := omit
+  },
+  Data := p_RLC_SduData
+};
+
+template (value) RLC_AMD_PDU_Type cs_AMD_PDU_NoLIs (integer p_SN,
+                                                    B1_Type p_Poll,
+                                                    RLC_FramingInfo_Type p_FramingInfo,
+                                                    template (value) RLC_DataFieldList_Type p_Data) :=
+{ /* @desc      serves to transmit one AMD PDU without Length Indicators */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDU,
+      Poll := p_Poll,
+      FramingInfo :=  p_FramingInfo,
+      Extension := tsc_E_Data,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := omit,
+    FlexPart := omit
+  },
+  Data := p_Data
+};
+
+template RLC_AMD_PDU_Type cr_AMD_PDU_NoLIs(integer p_SN,
+                                           B1_Type p_Poll,
+                                           RLC_FramingInfo_Type p_FramingInfo,
+                                           template (present) RLC_DataFieldList_Type p_Data) :=
+{ /* @desc      serves to receive one AMD PDU without Length Indicators */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDU,
+      Poll := p_Poll,
+      FramingInfo :=  p_FramingInfo,
+      Extension := tsc_E_Data,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := omit,
+    FlexPart := omit
+  },
+  Data := p_Data
+};
+
+template (value) RLC_AMD_PDU_Type cs_AMD_PDU_LIs(integer p_SN,
+                                                 B1_Type p_Poll,
+                                                 RLC_FramingInfo_Type p_FramingInfo,
+                                                 template (value) RLC_PDU_Header_FlexPart_Type p_Header_FlexPart,
+                                                 RLC_DataFieldList_Type p_Data) :=
+{ /* serves to transmit one PDU in one AMD PDU with Length Indicators */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDU,
+      Poll := p_Poll,
+      FramingInfo :=  p_FramingInfo,
+      Extension := tsc_E_BitAndLI,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := omit,
+    FlexPart := p_Header_FlexPart
+  },
+  Data := p_Data
+};
+
+template RLC_AMD_PDU_Type cr_AMD_PDU_LIs(integer p_SN,
+                                         B1_Type p_Poll,
+                                         RLC_FramingInfo_Type p_FramingInfo,
+                                         template RLC_PDU_Header_FlexPart_Type p_Header_FlexPart,
+                                         RLC_DataFieldList_Type p_Data) :=
+{ /* @desc      serves to receive one PDU in one AMD PDU with Length Indicators */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDU,
+      Poll := p_Poll,
+      FramingInfo :=  p_FramingInfo,
+      Extension := tsc_E_BitAndLI,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := omit,
+    FlexPart := p_Header_FlexPart
+  },
+  Data := p_Data
+};
+
+template (value) RLC_AMD_PDU_Type cs_AMD_PDU_seg_NoLIs(integer p_SN,
+                                                       B1_Type p_Poll,
+                                                       RLC_FramingInfo_Type p_FramingInfo,
+                                                       B1_Type p_LastSegmentFlag,
+                                                       integer p_SegOffset,
+                                                       RLC_DataFieldList_Type p_Data) :=
+{ /* @desc      serves to transmit one AMD PDU segment without Length Indicators */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDUseg,
+      Poll := p_Poll,
+      FramingInfo :=  p_FramingInfo,
+      Extension := tsc_E_Data,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := {
+      LastSegmentFlag := p_LastSegmentFlag,
+      SegOffset := int2bit (p_SegOffset, 15)
+    },
+    FlexPart := omit
+  },
+  Data := p_Data
+};
+
+template (value) RLC_AMD_PDU_Type cs_AMD_PDU_seg_LIs(integer p_SN,
+                                                     B1_Type p_Poll,
+                                                     RLC_FramingInfo_Type p_FramingInfo,
+                                                     B1_Type p_LastSegmentFlag,
+                                                     integer p_SegOffset,
+                                                     template (value) RLC_PDU_Header_FlexPart_Type p_Header_FlexPart,
+                                                     RLC_DataFieldList_Type p_Data) :=
+{ /* @desc      serves to transmit one AMD PDU segment without Length Indicators */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDUseg,
+      Poll := p_Poll,
+      FramingInfo :=  p_FramingInfo,
+      Extension := tsc_E_BitAndLI,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := {
+      LastSegmentFlag := p_LastSegmentFlag,
+      SegOffset := int2bit (p_SegOffset, 15)
+    },
+    FlexPart := p_Header_FlexPart
+  },
+  Data := p_Data
+};
+
+template RLC_AMD_PDU_Type cr_AMD_PDU_seg(integer p_SN,
+                                         B1_Type p_Poll,
+                                         RLC_FramingInfo_Type p_FramingInfo,
+                                         B1_Type p_LastSegmentFlag,
+                                         integer p_SegOffset,
+                                         template RLC_PDU_Header_FlexPart_Type p_Header_FlexPart,
+                                         template RLC_DataFieldList_Type p_Data) :=
+{ /* @desc      serves to receive one AMD PDU segment without Length Indicators */
+  /* @status    APPROVED */
+  Header := {
+    FixPart := {
+      D_C := tsc_DC_DataPDU,
+      ReSeg := tsc_RF_AMDPDUseg,
+      Poll := p_Poll,
+      FramingInfo :=  p_FramingInfo,
+      Extension := tsc_E_Data,
+      SN := int2bit (p_SN, tsc_AM_SN_Size)
+    },
+    SegmentPart := {
+      LastSegmentFlag := p_LastSegmentFlag,
+      SegOffset := int2bit (p_SegOffset, 15)
+    },
+    FlexPart := p_Header_FlexPart
+  },
+  Data := p_Data
+};
+
+template (value) RLC_AM_StatusPDU_Type cs_STATUS_PDU_Nack(integer p_ACK_SN,
+                                                          template (omit) RLC_Status_NACK_List_Type p_NACK_List,
+                                                          template (omit) RLC_Status_Padding_Type p_Padding) :=
+{ /* @desc      serves to transmit one STATUS PDU with NackList and Padding */
+  /* @status    APPROVED */
+  D_C := tsc_D_C_Control,
+  Type := tsc_CPT_STATUSPDU,
+  Ack := {
+    ACK_SN := int2bit (p_ACK_SN, tsc_AM_SN_Size),
+    Extn1 := tsc_E1_NACK_Follows
+  },
+  NackList := p_NACK_List,
+  Padding := p_Padding
+};
+
+template RLC_AM_StatusPDU_Type cr_STATUS_PDU_Nack(integer p_ACK_SN,
+                                                  template (omit) RLC_Status_NACK_List_Type p_NACK_List,
+                                                  template  RLC_Status_Padding_Type p_Padding) :=   // Replace template (omit) by Template: correction done during delivery
+{ /* @desc      serves to receive one STATUS PDU with NackList and Padding */
+  /* @status    APPROVED */
+  D_C := tsc_D_C_Control,
+  Type := tsc_CPT_STATUSPDU,
+  Ack := {
+    ACK_SN := int2bit (p_ACK_SN, tsc_AM_SN_Size),
+    Extn1 := tsc_E1_NACK_Follows
+  },
+  NackList := p_NACK_List,
+  Padding := p_Padding
+};
+
+template DRB_COMMON_IND car_DRB1_RLCAmStatusAndDataInd(EUTRA_CellId_Type p_CellId,
+                                                       template (present) RLC_AM_StatusPDU_Type p_STATUS_PDU,
+                                                       template (present) RLC_AMD_PDU_Type p_AMD_PDU) :=
+{ /* @status    APPROVED */
+  Common := cr_IndAspCommonPart_RB (p_CellId, tsc_RbId_DRB1),
+  U_Plane := {
+    SubframeData := {
+      PduSduList := {
+        RlcPdu := {
+          {Status := p_STATUS_PDU},
+          {AMD := p_AMD_PDU}
+        }
+      },
+      NoOfTTIs := 1
+      // @sic R5w100222 slide 4 - RedundancyVersion removed sic@
+    }
+  } // U_Plane
+}; // car_DRB1_RLCAmStatusAndDataInd
+
+} // end of group RLCAMTemplates
+
+group RLCRadioBearerConfigTemplates {
+
+template (value) RadioBearer_Type cs_DRB1_ConfigAM_TM_Mode :=
+{ /* @status    APPROVED */
+  Id := {
+    Drb := tsc_DRB1
+  },
+  Config := {
+    AddOrReconfigure := {
+      Pdcp := cs_PDCP_Configuration_None,
+      Rlc := {
+        Rb := {
+          TM := true
+        },
+        TestMode := {
+          Info := {
+            TransparentMode_AMD := true      // @sic R5w100002r1 sic@
+          }
+        }
+      },
+      LogicalChannelId := omit,
+      Mac := cs_MAC_Configuration_AM,        // @sic R5s090314: Additional comments sic@
+      DiscardULData := omit     // @sic RAN5 #55 sidebar meeting sic@
+    }
+  }
+};
+
+} // end of group RLCRadioBearerConfigTemplates
+
+group RRCTemplates {
+
+template (value) DRB_ToAddMod cs_DRB_ToAddMod_RLC_AM (DRB_Identity p_DRB_Id,
+                                                      template (value) UL_AM_RLC p_UL_AM_RLC,
+                                                      template (value) DL_AM_RLC p_DL_AM_RLC) :=
+  /* According to 36.508 cl. 4.8.2.1.7 Table 4.8.2.1.7-1 (using condition AM) */
+  /* @status    APPROVED */
+  cs_508_DRB_ToAddMod_Common(p_DRB_Id,
+                             cs_508_PDCP_Config_DRB_AM,
+                             cs_508_RLC_Config_DRB_AM (p_UL_AM_RLC,
+                                                       p_DL_AM_RLC),
+                             cs_508_LogicalChannelConfig_DRB_AM);
+
+template (value) DRB_ToAddMod cs_DRB_ToAddMod_RLC_AM_Reconfig (DRB_Identity p_DRB_Id,
+                                                               template (value) UL_AM_RLC p_UL_AM_RLC,
+                                                               template (value) DL_AM_RLC p_DL_AM_RLC):=
+{ /* @status    APPROVED */
+  eps_BearerIdentity := omit,
+  drb_Identity := p_DRB_Id,
+  pdcp_Config := omit,
+  rlc_Config := cs_508_RLC_Config_DRB_AM (p_UL_AM_RLC,p_DL_AM_RLC),
+  logicalChannelIdentity := omit,
+  logicalChannelConfig := omit
+};
+
+template (value) RadioResourceConfigDedicated cs_SRB2_1AM_DRB_Reconfig_RLC ( template (omit) CQI_ReportPeriodic p_CQI_ReportingPeriodic,
+                                                                             template (omit) SoundingRS_UL_ConfigDedicated p_SoundingRsUl_ConfigDedicated,
+                                                                             template (value) PhysicalConfigDedicated_AntennaInfo_Type p_AntennaInfo, // @sic R5-100786 sic@
+                                                                             template (value) UL_AM_RLC p_UL_AM_RLC,
+                                                                             template (value) DL_AM_RLC p_DL_AM_RLC) :=
+  /* @status    APPROVED */
+  cs_508_RadioResourceConfigDedicated_SRB2({cs_DRB_ToAddMod_RLC_AM_Reconfig (tsc_DRB1, p_UL_AM_RLC, p_DL_AM_RLC)},
+                                            cs_508_MAC_MainConfig_Explicit_RBC_DrxL_DisableBSR_PHR,
+                                            cs_508_PhysicalConfigDedicated_Default_RBC(p_CQI_ReportingPeriodic, p_SoundingRsUl_ConfigDedicated, p_AntennaInfo));
+
+} // end of group RRCTemplates
+
+}

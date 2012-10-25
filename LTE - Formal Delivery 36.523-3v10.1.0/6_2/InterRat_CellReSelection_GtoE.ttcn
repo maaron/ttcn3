@@ -1,0 +1,438 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:46:27 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7316 $
+/******************************************************************************/
+module InterRat_CellReSelection_GtoE {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonIratDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_RRCSteps all;
+
+  function f_TC_6_2_3_14_EUTRA ( ) runs on EUTRA_PTC
+  { /* Test case 6.2.3.14 Inter-RAT Cell Reselection /from GSM_Idle/GPRS Packet_Idle to E-UTRA (priority of E-UTRA cells are higher than the serving cell) */
+    var boolean v_CSInOtherRAT := false;
+    var float v_TimerValue;
+    timer t_WaitTimer := 105.0;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Send cell information to Geran side to update SI on preamble
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+
+    //Set power levels acc. to Pre-test conditions
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_SuitableCellRS_EPRE);
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //Start step1 after cell configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+
+    //@siclog "Step 1" siclog@
+    //Check for no RRCConnectionRequest message on Cell 1
+    v_TimerValue := 75.0; // @sic GP-120371 sic@
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {
+      //* @verdict fail UE sent RRCConnectionRequest message on Cell 1 within v_TimerValue
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 6.2.3.14 Step 1");
+    }
+
+    // Tell the GERAN component to change SI2Quarter in Cell24
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    // Wait for GERAN re-configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+
+    //@siclog "Step 5" siclog@
+    //Check that UE camps on Cell 1 with the generic test procedure TS 36.508 subclause 6.4.2.7A
+    t_WaitTimer.start; // subject prose CR approval @sic R5s120016, GP-120371 sic@
+    f_EUTRA_508CheckCampOnNewEutraCellUponMobilityFromAnotherRAT ( eutra_Cell1, v_CSInOtherRAT, false, false, omit, NORMAL ); // @sic R5s120016, R5-123734 sic@
+    t_WaitTimer.stop;
+
+    // Tell the GERAN component that the test case is over
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    f_EUTRA_TestBody_Set ( false );
+
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }
+
+  function f_TC_6_2_3_15_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT Cell Reselection /from GSM_Idle/GPRS Packet_Idle to E-UTRA (priority of E-UTRA cells are lower than the serving cell) */
+    
+    var boolean v_CSInOtherRAT := false;
+    var float v_TimerValue;
+    timer t_WaitTimer := 60.0; // @sic GP-120372 sic@
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Send cell information to Geran side to update SI on preamble
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN,
+                                         f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    
+    //Set power levels acc. to Pre-test conditions
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_SuitableCellRS_EPRE);
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //Start step1 after cell configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    
+    //@siclog "Step 1" siclog@
+    //Check for no RRCConnectionRequest message on Cell 1
+    v_TimerValue := 30.0; // @sic GP-120372 sic@
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {
+      //* @verdict fail UE sent RRCConnectionRequest message on Cell 1 within t_WaitTime
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Step 1");
+    }
+    
+    // Tell the GERAN component to change SI2Quarter in Cell24
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    // Wait for GERAN re-configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    
+    //@siclog "Step 5" siclog@
+    //Check that UE camps on Cell 1 with the generic test procedure TS 36.508 subclause 6.4.2.7A
+    t_WaitTimer.start; // subject prose CR approval @sic GP-120372 sic@
+    f_EUTRA_508CheckCampOnNewEutraCellUponMobilityFromAnotherRAT ( eutra_Cell1, v_CSInOtherRAT, false, false, omit, NORMAL ); // @sic R5-123734 sic@
+    t_WaitTimer.stop;
+    
+    // Tell the GERAN component that the test case is over
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }
+
+  function f_TC_6_2_3_16_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT Cell Reselection /from GSM_Idle to E-UTRA based on H_PRIO criteria */
+    var boolean v_CSInOtherRAT := false;
+    var float v_TimerValue;
+    timer t_Wait60 := 60.0;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+    
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -80);
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Send cell information to Geran side to update SI on preamble
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+
+    //Set power levels acc. to Pre-test conditions
+    f_EUTRA_SetCellPower (eutra_Cell1, -80);
+
+    f_EUTRA_TestBody_Set ( true );
+    
+    //Start step1 after cell configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+
+    //@siclog "Step 1" siclog@
+    //Check for no RRCConnectionRequest message on Cell 1
+    v_TimerValue := 30.0;
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {
+      //* @verdict fail UE sent RRCConnectionRequest message on Cell 1 within t_WaitTime
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 6.2.3.16 Step 1");
+    }
+    
+    // Tell the GERAN component to change SI2Quarter in Cell24
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    // Wait for GERAN re-configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+
+    //@siclog "Step 5" siclog@
+    //Check that UE camps on Cell 1 with the generic test procedure TS 36.508 subclause 6.4.2.7A
+    t_Wait60.start; // @sic GP-120497 sic@
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, mo_Signalling);
+    t_Wait60.stop;
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT_WithoutRRCConneReq(eutra_Cell1,
+                                                                tsc_RRC_TI_Def,
+                                                                v_CSInOtherRAT,
+                                                                false,
+                                                                false,
+                                                                omit); // @sic R5-123734 sic@
+
+    // Tell the GERAN component that the test case is over
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    f_EUTRA_TestBody_Set ( false );
+
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }
+
+  function f_TC_6_2_3_17_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT Cell Reselection /from GSM_Idle/GPRS Packet_Idle to E-UTRA (priority E-UTRA cells) */
+    
+    var boolean v_CSInOtherRAT := false;
+    var template (value) CellPowerList_Type v_CellPowerList;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+    
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -60);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell3, -80);
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell3 );
+    
+    //Send cell information to Geran side to update SI on preamble
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell3),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell3)));
+    
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //Start step1 after cell configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    
+    //@siclog "Step 1" siclog@
+    v_CellPowerList := {
+      cs_CellPower (eutra_Cell1, -60),
+      cs_CellPower (eutra_Cell3, -80)
+    };
+    f_EUTRA_SetCellPowerList(v_CellPowerList);
+    
+    //@siclog "Step 2" siclog@
+    //Check that UE camps on Cell 3 with the generic test procedure TS 36.508 subclause 6.4.2.7A
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT ( eutra_Cell3, v_CSInOtherRAT, false, false, omit); // @sic R5-123734 sic@
+    
+    // Tell the GERAN component that the test case is over
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell3, E1_IDLE ); // @sic R5s120423 sic@
+  }
+
+  function f_TC_6_2_3_18_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT Cell Reselection /from GSM_Idle/GPRS Packet_Idle to E-UTRA (blacklisted E-UTRA cells) */
+    var boolean v_CSInOtherRAT := false;
+    var float v_TimerValue;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -60);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell3, -80);
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell3 );
+
+    //Send cell information to Geran side to update SI on preamble
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell3),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell3)));
+
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //Start step1 after cell configuration
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SetCellPower (eutra_Cell1, -60);
+
+    //@siclog "Step 2" siclog@
+    //Check for no RRCConnectionRequest message on Cell 1
+    v_TimerValue := 75.0;
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {
+      //* @verdict fail UE sent RRCConnectionRequest message on Cell 1 within t_WaitTime
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Step 2");
+    }
+
+    //@siclog "Step 3" siclog@
+    f_EUTRA_SetCellPower (eutra_Cell3, -80);
+    
+    //@siclog "Step 2" siclog@
+    //Check that UE camps on Cell 3 with the generic test procedure TS 36.508 subclause 6.4.2.7A
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT ( eutra_Cell3, v_CSInOtherRAT, false, false, omit); // @sic R5-123734 sic@
+
+    // Tell the GERAN component that the test case is over
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    f_EUTRA_TestBody_Set ( false );
+
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell3, E1_IDLE );
+  }
+
+  function f_TC_6_2_3_19_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var boolean v_CSInOtherRAT := false;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Send cell information to Geran side to update SI on preamble
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)),
+                                                                         cs_EUTRA_HOInfo (f_ConvertUL_BandwidthToInteger (f_EUTRA_CellInfo_GetUL_ChBandwidth (eutra_Cell1)),
+                                                                                          f_EUTRA_CellInfo_GetPhyCellId(eutra_Cell1),
+                                                                                          f_EUTRA_CellInfo_GetRootSequenceIndex (eutra_Cell1)));
+
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    
+    //Turn cell on
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_SuitableCellRS_EPRE);
+    f_EUTRA_TestBody_Set ( true );
+    
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    
+    //@siclog "Step 5" siclog@
+    //Check that UE camps on Cell 3 with the generic test procedure TS 36.508 subclause 6.4.2.7A
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT ( eutra_Cell1, v_CSInOtherRAT, false, false, omit); // @sic R5-123734 sic@
+    
+    // Tell the GERAN component that the test case is over
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }
+
+  function f_TC_6_2_3_21_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From GPRS Packet_Transfer (NC0 Mode) to E-UTRA */
+    
+    var boolean v_CSInOtherRAT := false;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+    
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -70);
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    
+    //@siclog "Step 4" siclog@
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    //Turn cell on
+    f_EUTRA_SetCellPower (eutra_Cell1, -70);
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 5" siclog@
+    //Check that UE camps on Cell 1 with the generic test procedure TS 36.508 subclause 6.4.2.7A
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT ( eutra_Cell1, v_CSInOtherRAT, true, false, omit); // @sic R5-123734 sic@
+    
+    // Tell the GERAN component that the UE has camped
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    // Test case now over
+    f_EUTRA_TestBody_Set ( false );
+    
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }
+
+  function f_TC_6_2_3_24_EUTRA() runs on EUTRA_PTC
+  { /* Inter-RAT cell Reselection from GPRS Packet_Transfer to E-UTRA in CCN mode(PACKET CELL CHANGE ORDER) */
+
+    var boolean v_CSInOtherRAT := false;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c5);    //EUTRA-GERAN configuration
+
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell1, -60);
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def(eutra_Cell1);
+    
+    //Send cell information to Geran side to update SI on preamble
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(GERAN,
+                                         f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)),
+                                         cs_EUTRA_HOInfo (f_ConvertUL_BandwidthToInteger (f_EUTRA_CellInfo_GetUL_ChBandwidth (eutra_Cell1)),
+                                                          f_EUTRA_CellInfo_GetPhyCellId(eutra_Cell1),
+                                                          f_EUTRA_CellInfo_GetRootSequenceIndex (eutra_Cell1)));
+    
+    //Receive Authentication parameters updated in the RAU on GERAN side
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(GERAN);
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 2" siclog@
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    //Turn cell on
+    f_EUTRA_SetCellPower (eutra_Cell1, -60);
+       
+    //@siclog "Step 5" siclog@
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, mo_Signalling);    // @sic R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+    
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT_WithoutRRCConneReq(eutra_Cell1,
+                                                                tsc_RRC_TI_Def,
+                                                                v_CSInOtherRAT,
+                                                                false,
+                                                                false,
+                                                                omit); // @sic R5-123734 sic@
+
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+    
+    f_EUTRA_TestBody_Set ( false );
+         
+    // Tell the GERAN component that the test is now over
+    f_IRAT_SendCoOrd(GERAN, cms_IRAT_Trigger);
+    
+    // Switch off UE and expect Detach Request
+    f_EUTRA_Postamble(eutra_Cell1, E2_CONNECTED);
+  }
+
+}

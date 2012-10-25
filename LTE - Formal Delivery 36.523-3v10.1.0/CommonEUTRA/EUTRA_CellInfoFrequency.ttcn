@@ -1,0 +1,1795 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-08 13:53:40 +0200 (Fri, 08 Jun 2012) $
+// $Rev: 6798 $
+/******************************************************************************/
+module EUTRA_CellInfoFrequency {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_CommonDefs all;
+
+  type record FrequencyLowMidHigh_Type {
+    /* This structure is used to contain the different EARFCN as per 36.508 cl 4.3.1
+       @status    APPROVED */
+    CarrierFreqEUTRA      FrequencyLow,
+    CarrierFreqEUTRA      FrequencyMid,
+    CarrierFreqEUTRA      FrequencyHigh
+  };
+
+  type record Frequency_fList_Type {
+    /* This structure is used to contain the different frequencies f1, f2, f3, f4 as per 36.508 cl 6.2.3.1
+       @status    APPROVED */
+    CarrierFreqEUTRA      f1,
+    CarrierFreqEUTRA      f2,
+    CarrierFreqEUTRA      f3,
+    CarrierFreqEUTRA      f4
+  };
+
+  const ARFCN_ValueEUTRA tsc_DummyFrequency := 0;  /* Dummy frequency value to be used when the frequency is Not Applicable for the band;
+                                                      @status    APPROVED */
+
+  template (value) Frequency_fList_Type cs_FrequencyInitDummy:=
+  { /* To initialise f1,f2,f3,f4 with dummy frequency values  */
+    /* @status    APPROVED */
+    f1 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency },
+    f2 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency },
+    f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency },
+    f4 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }
+  };
+
+  function f_EUTRA_GetHighestDL_Bandwidth (FrequencyBand_Type p_Band) return Dl_Bandwidth_Type
+  {
+    var Dl_Bandwidth_Type v_Dl_Bandwidth;
+    
+    select (p_Band){
+      case (1,2,3,4,7,9,10,20,22,33,35,36,37,38,39,40,41,42,43) {  //@sic R5s110709 sic@
+        v_Dl_Bandwidth := n100;   // Max ChBandwidth = 20
+      }
+      case (5,6,8,11,12,13,14,17,18,24,25) {  // @sic R5-115722 R5-121738 sic@
+        v_Dl_Bandwidth := n50;     // Max ChBandwidth = 10
+      }
+      case (19,21,26,34) {  // @sic R5-121905 sic@
+        v_Dl_Bandwidth := n75;    // Max ChBandwidth = 15
+      }
+      case else{
+        FatalError (__FILE__, __LINE__, "invalid Band");
+      }
+    };
+    return v_Dl_Bandwidth;
+  }
+
+  function f_EUTRA_GetHighestUL_Bandwidth (FrequencyBand_Type p_Band) return Ul_Bandwidth_Type
+  {
+    var Ul_Bandwidth_Type v_Ul_Bandwidth;
+    
+    select (p_Band){
+      case (1,2,3,4,7,9,10,20,22,33,35,36,37,38,39,40,41,42,43) {  //@sic R5s110709 sic@
+        v_Ul_Bandwidth := n100;   // Max ChBandwidth = 20
+      }
+      case (5,6,8,11,12,13,14,17,24, 25) { // @sic R5-115722 sic@
+        v_Ul_Bandwidth := n50;   // Max ChBandwidth = 10
+      }
+      case (18,19,21,26,34) {  //@sic R5-121905 sic@
+        v_Ul_Bandwidth := n75;   // Max ChBandwidth = 15
+      }
+      case else{
+        FatalError (__FILE__, __LINE__, "invalid Band");
+      }
+    };
+    return v_Ul_Bandwidth;
+  }
+
+  function f_EUTRA_InitFrequencyLowMidHigh ( FrequencyBand_Type p_Band,
+                                             Dl_Bandwidth_Type  p_DL_ChBandwidth,
+                                             Ul_Bandwidth_Type  p_UL_ChBandwidth ) return FrequencyLowMidHigh_Type
+  {
+    var FrequencyLowMidHigh_Type v_FreqLMH;
+    
+    select (p_Band){
+      case (1) {   // Band 1
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 25;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 575;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 50;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 550;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 75;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 525;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 100;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 500;
+          }
+          case else{    // ChBandwidth = 1.4 or 3 or else
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18025;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 18575;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18050;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 18550;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18075;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 18525;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18100;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 18500;
+          }
+          case else{    // ChBandwidth = 1.4 or 3 or else
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (2) {   // Band 2
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 607;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 900;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1193;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 615;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 900;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1185;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 625;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 900;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1175;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 650;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 900;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1150;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 675;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 900;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1125;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 700;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 900;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1100;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18607;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18900;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19193;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18615;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18900;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19185;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18625;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18900;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19175;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18650;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18900;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19150;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18675;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18900;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19125;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 18700;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 18900;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19100;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (3) {   // Band 3
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1207;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 1575;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1943;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1215;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 1575;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1935;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1225;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 1575;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1925;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1250;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 1575;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1900;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1275;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 1575;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1875;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1300;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 1575;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 1850;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19207;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 19575;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19943;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19215;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 19575;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19935;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19225;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 19575;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19925;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19250;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 19575;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19900;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19275;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 19575;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19875;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19300;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 19575;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 19850;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (4) {   // Band 4
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1957;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2175;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2393;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1965;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2175;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2385;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 1975;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2175;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2375;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2000;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2175;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2350;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2025;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2175;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2325;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2050;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2175;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2300;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19957;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20175;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20393;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19965;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20175;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20385;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 19975;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20175;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20375;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20000;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20175;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20350;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20025;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20175;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20325;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20050;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20175;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20300;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (5) {   // Band 5
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2407;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2525;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2643;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2415;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2525;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2635;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2425;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2525;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2625;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2450;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2525;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2600;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20407;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20525;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20643;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20415;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20525;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20635;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20425;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20525;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20625;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20450;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20525;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20600;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (6) {   // Band 6
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2675;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2700;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2725;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2700;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 2700;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 2700;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20675;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20700;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20725;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20700;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 20700;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 20700;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (7) {   // Band 7
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2775;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3425;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2800;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3400;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2825;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3375;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 2850;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3350;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20775;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21100;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21425;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20800;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21100;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21400;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20825;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21100;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21375;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 20850;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21100;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21350;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (8) {   // Band 8
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3457;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3625;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3793;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3465;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3625;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3785;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3475;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3625;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3775;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3500;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3625;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 3750;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21457;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21625;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21793;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21465;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21625;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21785;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21475;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21625;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21775;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21500;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21625;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 21750;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (9) {   // Band 9
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3825;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3975;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4125;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3850;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3975;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4100;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3875;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3975;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4075;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 3900;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 3975;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4050;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21825;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21975;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22125;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21850;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21975;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22100;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21875;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21975;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22075;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 21900;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 21975;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22050;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (10) {   // Band 10
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 4175;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 4450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4725;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 4200;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 4450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4700;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 4225;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 4450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4675;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 4250;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 4450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4650;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 22175;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 22450;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22725;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 22200;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 22450;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22700;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 22225;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 22450;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22675;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 22250;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 22450;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22650;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (11) {   // Band 11 @sic R5-100847 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 4775;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 4850;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4925;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 4800;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 4850;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 4900;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 22775;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 22850;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22925;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 22800;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 22850;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 22900;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (12) {   // Band 12 @sic R5-110846 sic@
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5017;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5095;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5173;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5025;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5095;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5165;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5035;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5095;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5155;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5060;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5095;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5130;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23017;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23095;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23173;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23025;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23095;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23165;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23035;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23095;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23155;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23060;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23095;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23130;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (13) {   // Band 13
+        select (p_DL_ChBandwidth){ // @sic R5-104089 sic@
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5205;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5230;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5255;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5230;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5230;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5230;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23205;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23230;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23255;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23230;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23230;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23230;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (14) {   // Band 14
+        select (p_DL_ChBandwidth){  // @sic R5-104089 sic@
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5305;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5330;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5355;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5330;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5330;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5330;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23305;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23330;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23355;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23330;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23330;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23330;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (15) {   // Band 15
+        //FFS in 36.508
+      }
+      case (16) {   // Band 16
+        //FFS in 36.508
+      }
+      case (17) {   // Band 17
+        select (p_DL_ChBandwidth){  // @sic R5-104089 sic@
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5755;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5790;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5825;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5780;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5790;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5800;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23755;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23790;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23825;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23780;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23790;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23800;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (18) {   // Band 18
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5875;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5925;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5975;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5900;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5925;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5950;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 5925;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 5925;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 5925;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23875;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23925;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23975;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23900;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23925;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23950;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 23925;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 23925;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 23925;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (19) {   // Band 19
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6025;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6075;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6125;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6050;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6075;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6100;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6075;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6075;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6075;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5   @sic R5s110235 sic@
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24025;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24075;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24125;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24050;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24075;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24100;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24075;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24075;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24075;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (20) {   // Band 20  @sic R5-100846 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6175;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6425;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6200;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6400;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6225;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6375;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6250;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6300;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6350;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {// @sic R5s100485 sic@
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24175;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24425;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24200;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24400;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24225;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24375;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24250;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24300;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24350;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (21) {   // Band 21 @sic R5-100847 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6475;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6525;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6575;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6500;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6525;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6550;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6525;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 6525;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 6525;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24475;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24525;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24575;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24500;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24525;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24550;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24525;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 24525;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 24525;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (22) {   // Band 22 @sic R5-115185 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6625;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7375;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6650;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7350;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6675;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7325;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 6700;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7300;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24625;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25000;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25375;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24650;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25000;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25350;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24675;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25000;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25325;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 24700;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25000;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25300;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (23) {   // Band 23  @sic R5-113749sic@
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 7507;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7600;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7693;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 7515;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7600;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7685;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 7525;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7600;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7675;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 7550;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7600;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7650;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 25507;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25600;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25693;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 25515;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25600;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25685;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 25525;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25600;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25675;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 25550;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25600;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25650;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (24) {   // Band 21 @sic R5-112381 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 7725;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7870;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8015;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 7750;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 7870;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 7990;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+        select (p_UL_ChBandwidth) {
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 25725;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25870;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26015;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 25750;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 25870;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 25990;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (25) {   // Band 25  @sic R5-113500 sic@
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8047;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8365;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8683;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8055;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8365;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8675;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8065;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8365;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8665;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8090;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8365;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8640;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8115;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8365;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8615;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8140;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8365;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8590;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26047;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26365;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26683;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26055;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26365;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26675;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26065;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26365;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26665;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26090;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26365;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26640;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26115;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26365;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26615;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26140;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26365;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26590;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (26) {   // Band 26  @sic R5-121905 sic@
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8697;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8865;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 9033;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8705;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8865;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 9025;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8715;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8865;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 9015;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8800;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8865;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8990;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 8825;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 8865;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 8965;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        };
+        select (p_UL_ChBandwidth) {
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26697;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26865;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 27033;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26705;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26865;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 27025;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26715;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26865;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 27015;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26800;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26865;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26990;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.ul_CarrierFreq := 26825;
+            v_FreqLMH.FrequencyMid.ul_CarrierFreq := 26865;
+            v_FreqLMH.FrequencyHigh.ul_CarrierFreq := 26965;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (33) {   // Band 33
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36025;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36175;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36050;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36150;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36075;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36125;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36100;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36100;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36100;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (34) {     // Band 34
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36225;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36275;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36325;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36250;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36275;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36300;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36275;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36275;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36275;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (35) {     // Band 35
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36357;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36943;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36365;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36935;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36375;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36925;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36400;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36900;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36425;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36875;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36450;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 36650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 36850;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (36) {     // Band 36
+        select (p_DL_ChBandwidth){
+          case (n6){  // ChBandwidth = 1.4
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36957;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37250;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37543;
+          }
+          case (n15){  // ChBandwidth = 3
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36965;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37250;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37535;
+          }
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 36975;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37250;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37525;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37000;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37250;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37500;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37025;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37250;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37475;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37050;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37250;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37450;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (37) {     // Band 37
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37575;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37725;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37600;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37700;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37625;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37675;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37650;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 37650;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 37650;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (38) {     // Band 38
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37775;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38225;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37800;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38200;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37825;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38175;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 37850;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38000;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38150;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (39) {     // Band 39
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38275;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38625;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38300;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38600;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38325;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38575;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38350;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 38450;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 38550;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (40) {     // Band 40
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38675;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 39150;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 39625;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38700;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 39150;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 39600;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38725;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 39150;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 39575;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 38750;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 39150;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 39550;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (41) {     // Band 41 @sic R5106116 R5-110542 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 39675;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 40620;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 41565;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 39700;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 40620;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 41540;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 39725;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 40620;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 41515;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 39750;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 40620;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 41490;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (42) {     // Band 42 @sic R5-110968 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 41615;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 42590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 43565;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 41640;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 42590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 43540;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 41665;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 42590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 43515;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 41690;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 42590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 43490;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case (43) {     // Band 43 @sic R5-110968 sic@
+        select (p_DL_ChBandwidth){
+          case (n25){  // ChBandwidth = 5
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 43615;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 44590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 45565;
+          }
+          case (n50){  // ChBandwidth = 10
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 43640;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 44590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 45540;
+          }
+          case (n75){  // ChBandwidth = 15
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 43665;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 44590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 45515;
+          }
+          case (n100){  // ChBandwidth = 20
+            v_FreqLMH.FrequencyLow.dl_CarrierFreq := 43690;
+            v_FreqLMH.FrequencyMid.dl_CarrierFreq := 44590;
+            v_FreqLMH.FrequencyHigh.dl_CarrierFreq := 45490;
+          }
+          case else{
+            FatalError (__FILE__, __LINE__, "invalid ChannelBandwidth");
+          }
+        }
+      }
+      case else{
+        FatalError (__FILE__, __LINE__, "invalid Band");
+      }
+    }
+    
+    // Assign UL EARFCN to omit for TDD mode
+    if ( p_Band >= 33 ) {
+      // TDD mode
+      // UL EARFCN = DL EARFCN
+      v_FreqLMH.FrequencyLow.ul_CarrierFreq := omit;
+      v_FreqLMH.FrequencyMid.ul_CarrierFreq := omit;
+      v_FreqLMH.FrequencyHigh.ul_CarrierFreq := omit;
+    }
+    return v_FreqLMH;
+  };
+
+  function f_EUTRA_InitFrequency_f1Tof4   (  FrequencyBand_Type p_Band,
+                                             Dl_Bandwidth_Type  p_DL_ChBandwidth,
+                                             Ul_Bandwidth_Type  p_UL_ChBandwidth ) return Frequency_fList_Type
+  {
+    var FrequencyLowMidHigh_Type v_FreqLMH;
+    var template(value) Frequency_fList_Type v_Freq := cs_FrequencyInitDummy;   //Initialise with Dummy value
+    
+    // Initialise Frequencies Low/Mid/High for the primary Band
+    v_FreqLMH:= f_EUTRA_InitFrequencyLowMidHigh(p_Band, p_DL_ChBandwidth, p_UL_ChBandwidth );
+    
+    // Most of the bands assigns f1->Mid  f2->High  f3->Low
+    v_Freq.f1 := v_FreqLMH.FrequencyMid;
+    v_Freq.f2 := v_FreqLMH.FrequencyHigh;
+    v_Freq.f3 := v_FreqLMH.FrequencyLow;
+    
+    // Assign f4 and update f1/f2/f3 for specific bands
+    select (p_Band){
+      case (1) {   // Band 1
+        v_Freq.f4.dl_CarrierFreq := 350;
+        v_Freq.f4.ul_CarrierFreq := 18350;
+      }
+      case (2) {   // Band 2
+        v_Freq.f4.dl_CarrierFreq := 950;
+        v_Freq.f4.ul_CarrierFreq := 18950;
+      }
+      case (3) {   // Band 3
+        v_Freq.f4.dl_CarrierFreq := 1625;
+        v_Freq.f4.ul_CarrierFreq := 19625;
+      }
+      case (4) {   // Band 4
+        v_Freq.f4.dl_CarrierFreq := 2225;
+        v_Freq.f4.ul_CarrierFreq := 20225;
+      }
+      case (5) {   // Band 5
+        v_Freq.f4.dl_CarrierFreq := 2575;
+        v_Freq.f4.ul_CarrierFreq := 20575;   // @sic R5s120383 sic@
+      }
+      case (6, 14, 17) {   // Band 6, 14, 17
+        if (p_DL_ChBandwidth == n25) {
+          v_Freq.f1 := v_FreqLMH.FrequencyLow;
+          v_Freq.f2 := v_FreqLMH.FrequencyHigh;
+          v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency };  // @sic R5s110353 sic@
+        } else {
+          // Signalling test with channel bandwidth different from 5 MHz, Mid Range defined in clause 4.3.1 is applied.
+          v_Freq.f1 := v_FreqLMH.FrequencyMid;
+          v_Freq.f2 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+          v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+        };
+      }
+      case (7) {   // Band 7
+        v_Freq.f4.dl_CarrierFreq := 3150;
+        v_Freq.f4.ul_CarrierFreq := 21150;
+      }
+      case (8) {   // Band 8
+        v_Freq.f4.dl_CarrierFreq := 3675;
+        v_Freq.f4.ul_CarrierFreq := 21675;
+      }
+      case (9) {   // Band 9
+        v_Freq.f4.dl_CarrierFreq := 4025;
+        v_Freq.f4.ul_CarrierFreq := 22025;
+      }
+      case (10) {   // Band 10
+        v_Freq.f4.dl_CarrierFreq := 4500;
+        v_Freq.f4.ul_CarrierFreq := 22500;
+      }
+      case (11) {   // Band 11  @sic R5-100847 R5s120206 sic@
+        v_Freq.f1 := v_FreqLMH.FrequencyLow;
+        v_Freq.f2 := v_FreqLMH.FrequencyHigh;
+        v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency };
+      }
+      case (12, 19, 20, 21, 34) {   // Band 12, 18, 19, 20, 21, 34 @sic R5-100847 R5-104685 sic@
+        // do nothing f4 is already initialised with the dummy value
+      }
+      case (13) {   // Band 13  @sic R5-101207 sic@
+        v_Freq.f1 := v_FreqLMH.FrequencyMid;
+        v_Freq.f2 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+        v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+      }
+     case (18) {   // Band 18  @sic R5s120206 R5-121712 sic@
+        v_Freq.f1 := v_FreqLMH.FrequencyLow;
+        v_Freq.f2 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency };
+        v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency };
+      }
+       case (22) {   // Band 22 @sic R5-115185 sic@
+        v_Freq.f4.dl_CarrierFreq := 6950;
+        v_Freq.f4.ul_CarrierFreq := 24950;
+      }
+      case (23) {   // Band 23 @sic R5-113749 sic@
+        if (p_DL_ChBandwidth == n25) {
+                v_Freq.f1.dl_CarrierFreq := 7575;
+                v_Freq.f1.ul_CarrierFreq := 25575;
+                v_Freq.f4.dl_CarrierFreq := 7625;
+                v_Freq.f4.ul_CarrierFreq := 25625;
+        } else {
+          // Signalling test with channel bandwidth different from 5 MHz, Mid Range defined in clause 4.3.1 is applied.
+          v_Freq.f1 := v_FreqLMH.FrequencyLow;
+          v_Freq.f2 := v_FreqLMH.FrequencyHigh;
+          v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency };
+          v_Freq.f4 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency };
+        };
+      }
+      case (24) {   // Band 24  @sic R5-113521 sic@
+        v_Freq.f4.dl_CarrierFreq := 7920;
+        v_Freq.f4.ul_CarrierFreq := 25920;
+      }
+      case (25) {   // Band 25  @sic R5-113500 sic@
+        v_Freq.f4.dl_CarrierFreq := 8390;
+        v_Freq.f4.ul_CarrierFreq := 26390;
+      }
+      case (26) {   // Band 26  @sic R5-121905 sic@
+        v_Freq.f4.dl_CarrierFreq := 8865;
+        v_Freq.f4.ul_CarrierFreq := 26865;
+      }
+      case (33) {   // Band 33
+        if (p_DL_ChBandwidth == n25) {
+          v_Freq.f1.dl_CarrierFreq := 36075;
+          v_Freq.f4.dl_CarrierFreq := 36125;
+        } else {
+          // Signalling test with channel bandwidth different from 5 MHz, Mid Range defined in clause 4.3.1 is applied.
+          v_Freq.f1 := v_FreqLMH.FrequencyMid;
+        };
+      }
+      case (35) {   // Band 35
+        v_Freq.f4.dl_CarrierFreq := 36700;
+      }
+      case (36) {   // Band 36
+        v_Freq.f4.dl_CarrierFreq := 37300;
+      }
+      case (37) {   // Band 37
+        if (p_DL_ChBandwidth == n25) {
+          v_Freq.f1.dl_CarrierFreq := 37625;
+          v_Freq.f4.dl_CarrierFreq := 37675;
+        } else {
+          // Signalling test with channel bandwidth different from 5 MHz, Mid Range defined in clause 4.3.1 is applied.
+          v_Freq.f1 := v_FreqLMH.FrequencyMid;
+        }
+      }
+      case (38) {   // Band 38
+        if (p_DL_ChBandwidth == n100) {  // default bandwidth = 20Mhz @sic R5-103813 sic@
+          v_Freq.f1 := v_FreqLMH.FrequencyLow;
+          v_Freq.f2 := v_FreqLMH.FrequencyHigh;
+          v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+        } else {
+          // Signalling test with channel bandwidth different from 20 MHz, Mid Range defined in clause 4.3.1 is applied.
+          v_Freq.f1 := v_FreqLMH.FrequencyMid;
+          v_Freq.f2 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+          v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+        };
+      }
+      case (39) {   // Band 39
+         if (p_DL_ChBandwidth == n100) {  // default bandwidth = 20Mhz @sic R5-120617 sic@
+           v_Freq.f1 := v_FreqLMH.FrequencyLow;
+           v_Freq.f2 := v_FreqLMH.FrequencyHigh;
+           v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency };
+          }else {
+          // Signalling test with channel bandwidth different from 20 MHz, Mid Range defined in clause 4.3.1 is applied.
+          v_Freq.f1 := v_FreqLMH.FrequencyMid;
+          v_Freq.f2 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+          v_Freq.f3 := {dl_CarrierFreq := tsc_DummyFrequency, ul_CarrierFreq := tsc_DummyFrequency }; // @sic R5s110353 sic@
+          };
+        }
+      case (40) {   // Band 40 @sic R5-101207 sic@
+        v_Freq.f4.dl_CarrierFreq := 39350;
+      }
+      case (41) {   // Band 41 @sic R5-106116 sic@
+        v_Freq.f4.dl_CarrierFreq := 40970;
+      }
+      case (42) {   // Band 41 @sic R5-110968 sic@
+        v_Freq.f4.dl_CarrierFreq := 42640;
+      }
+      case (43) {   // Band 41 @sic R5-110968 sic@
+        v_Freq.f4.dl_CarrierFreq := 44640;
+      }
+      case else {        FatalError (__FILE__, __LINE__, "invalid Band"); }
+    }
+    return valueof(v_Freq);
+  };
+
+}

@@ -1,0 +1,327 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:49:20 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7317 $
+/******************************************************************************/
+
+module CDMA2000_CommonFunctions {
+
+  import from CDMA2000_ASP_TypeDefs all;
+  import from CDMA2000_CellInfo all;
+  import from CDMA2000_CommonDefs all;
+  import from CDMA2000_Component all;
+  import from CDMA2000_Constants all;
+  import from CDMA2000_Parameters all;
+  import from CDMA2000_Templates all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  function f_CDMA2000_SS_CommonCellConfig(CDMA2000_CellId_Type p_CellId,
+                                          template (value) CDMA2000_SYSTEM_CTRL_REQ p_SYSTEM_CTRL_REQ) runs on CDMA2000_PTC
+  {
+    SYS.send( p_SYSTEM_CTRL_REQ );
+    if (valueof(p_SYSTEM_CTRL_REQ.Common.ControlInfo.CnfFlag) == true) {
+      SYS.receive ( car_CDMA2000_CellConfig_CNF ( p_CellId ) );
+    }
+  }
+
+  function f_CreateCell_HRPD (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC
+  {
+    var template (value) CDMA2000_CellParameters_Type v_CellParameters := f_CDMA2000_CommonCellParameters_Get(p_CellId);
+    var template (value) HRPD_CellParameters_Type v_HRPD_CellParameters := f_CDMA2000_HRPD_CellParameters_Get(p_CellId);
+    var template (value) CDMA2000_AbsoluteCellPower_Type v_CDMA2000_AbsoluteCellPower := f_CDMA2000_CellPower_Get(p_CellId);
+    f_CDMA2000_SS_CommonCellConfig (p_CellId, cas_HRPD_CellConfig_REQ (p_CellId, v_CellParameters, v_HRPD_CellParameters, v_CDMA2000_AbsoluteCellPower));
+  }
+
+  function f_CreateCell_RTT1X (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC
+  {
+    var template (value) CDMA2000_CellParameters_Type v_CellParameters := f_CDMA2000_CommonCellParameters_Get(p_CellId);
+    var template (value) RTT1X_CellParameters_Type v_RTT1X_CellParameters := f_CDMA2000_RTT1X_CellParameters_Get(p_CellId);
+    var template (value) CDMA2000_AbsoluteCellPower_Type v_CDMA2000_AbsoluteCellPower := f_CDMA2000_CellPower_Get(p_CellId);
+    f_CDMA2000_SS_CommonCellConfig (p_CellId, cas_RTT1X_CellConfig_REQ (p_CellId, v_CellParameters, v_RTT1X_CellParameters, v_CDMA2000_AbsoluteCellPower));
+  }
+
+  function f_CDMA2000CreateCell (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC
+  {
+    if (match (f_CDMA2000_Type_Get(p_CellId), typeHRPD))
+      { // HRPD Cell
+        f_CreateCell_HRPD (p_CellId);
+      }
+    else
+      { // RTT1X Cell;
+        f_CreateCell_RTT1X (p_CellId);
+      }
+    
+    // Other initializations to be done here
+    
+  } // end of f_CDMA2000CreateCell
+
+  function f_CDMA2000_ReleaseCells (CDMA2000_CellId_Type p_CellId := cdma2000_Cell_NonSpecific,
+                                    template (value) CDMA2000_TimingInfo_Type p_TimingInfo := cs_CDMA2000_TimingInfoNow) runs on CDMA2000_PTC
+  {
+    f_CDMA2000_SS_CommonCellConfig( p_CellId, cas_CDMA2000_CellRel_REQ (p_CellId, p_TimingInfo));
+  }
+
+  function fl_CDMA2000_ChangeCellAttenuation(CDMA2000_CellId_Type p_CellId,
+                                             PowerIor_Type p_NewPowerLevel) runs on CDMA2000_PTC return CDMA2000_Attenuation_Type
+  {
+    var CDMA2000_ReferenceCellPower_Type v_CurrentCellPower := f_CDMA2000_CellInfo_GetCellPower( p_CellId );
+    var PowerIor_Type v_CurrentRefPowerLevel := v_CurrentCellPower.CellPower.PowerIor;
+    var CDMA2000_Attenuation_Type v_Attenuation;
+    var integer v_AttenuationValue;
+    
+    if (p_NewPowerLevel == tsc_NonSuitableOffCellPowerIor) {
+      v_Attenuation.Off := true;
+    } else {
+      v_AttenuationValue := v_CurrentRefPowerLevel - p_NewPowerLevel;  // v_CurrentRefPowerLevel and p_NewPowerLevel both are negative values
+      
+      if (v_AttenuationValue < 0) {  // i.e. |p_NewPowerLevel| < |v_CurrentRefPowerLevel|
+        FatalError (__FILE__, __LINE__, "Initial reference power has invalid value");
+      } else {
+        v_Attenuation.Value := v_AttenuationValue;
+      }
+    }
+    
+    v_CurrentCellPower.CellAttenuation := v_Attenuation;
+    f_CDMA2000_CellInfo_SetCellPower (p_CellId, v_CurrentCellPower);
+    
+    return v_Attenuation;
+  }
+
+  type record CDMA2000_CellPower_Type { /* @status    APPROVED */
+    CDMA2000_CellId_Type CellId,
+    PowerIor_Type NewPowerLevel
+  };
+
+  type record length(1..tsc_CDMA2000_MaxNumberOfCells) of CDMA2000_CellPower_Type CDMA2000_CellPowerList_Type;  /* used together with f_CDMA2000_SetCellPowerList
+                                                                                                                   @status    APPROVED */
+
+  template (value) CDMA2000_CellPower_Type cs_CDMA2000_CellPower(CDMA2000_CellId_Type p_CellId,
+                                                                 PowerIor_Type p_NewPowerLevel) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    NewPowerLevel := p_NewPowerLevel
+  };
+
+  function f_CDMA2000_SetCellPowerList (template (value) CDMA2000_CellPowerList_Type p_CellPowerList,
+                                        template (value) CDMA2000_TimingInfo_Type p_TimingInfo := cs_CDMA2000_TimingInfoNow) runs on CDMA2000_PTC
+  { /* @status    APPROVED */
+    var integer i;
+    var CDMA2000_CellPower_Type v_CellPower;
+    var CDMA2000_CellAttenuationList_Type v_CellAttenuationList;
+    
+    for (i:=0; i<lengthof(p_CellPowerList); i:=i+1) {
+      v_CellPower := valueof(p_CellPowerList[i]);   // valueof cannot be avoided here
+      v_CellAttenuationList[i].CellId := v_CellPower.CellId;
+      v_CellAttenuationList[i].Attenuation := fl_CDMA2000_ChangeCellAttenuation(v_CellPower.CellId, v_CellPower.NewPowerLevel);
+    }
+    
+    SYS.send( cas_CDMA2000_CellConfig_Power_REQ ( v_CellAttenuationList, p_TimingInfo ) );
+    SYS.receive ( car_CDMA2000_CellConfig_Power_CNF ); //TBD ASP can be car_CDMA2000_CellConfig_Power_CNF
+  }
+
+  function f_CDMA2000_SetCellPower (CDMA2000_CellId_Type p_CellId,
+                                    PowerIor_Type p_NewPowerLevel,
+                                    template (value) CDMA2000_TimingInfo_Type p_TimingInfo := cs_CDMA2000_TimingInfoNow) runs on CDMA2000_PTC
+  {
+    var template (value) CDMA2000_CellPowerList_Type v_CellPowerList := { cs_CDMA2000_CellPower(p_CellId, p_NewPowerLevel) };
+    f_CDMA2000_SetCellPowerList ( v_CellPowerList, p_TimingInfo );
+  }
+
+  function f_CDMA2000_RegisterHRPDCell (CDMA2000_CellId_Type p_CellId,
+                                        RLP_FlowId_Type p_RLP_FlowId := tsc_RLP_FlowId1,
+                                        HRPD_UE_InitStateType p_HRPD_UE_InitState := idle_Null,
+                                        CDMA2000_AttachType p_CDMA2000_AttachType := tsc_InitialAttach) runs on CDMA2000_PTC
+  {
+    timer t_Watchdog := tsc_WatchDogDef;              // Local wait Timer
+    t_Watchdog.start;
+     //@sic R5s120051 sic@
+    if ( (not (p_HRPD_UE_InitState == preregister)) and (not pc_AutomaticHRPD_PDN_Connection))
+    {
+        f_UT_Trigger_HRPD_PDN_Connection (UT);
+
+    };
+    SYSCMD_IND.send (cas_HRPD_SYSTEM_CMD(p_CellId,
+                                         -, // timing info now
+                                         cs_HRPD_SysCmd_RegAndDefBearerEst_Def(p_RLP_FlowId, p_HRPD_UE_InitState, p_CDMA2000_AttachType)));
+    if (not (p_HRPD_UE_InitState == preregister))
+      {// expect InitialAccessProb if  normal registration by a UE camping in HRPD cell
+        SYSCMD_IND.receive(car_HRPD_SYSTEM_IND (p_CellId,
+                                                -, // routing info none
+                                                -, // timing info any
+                                                cr_HRPD_SysInd_InitialAccesProbRcvd));
+      }
+    SYSCMD_IND.receive(car_HRPD_SYSTEM_IND (p_CellId,
+                                            -, // routing info none
+                                            -, // timing info any
+                                            cr_SysInd_RegAndDefBearer(cr_RegAndDefBearerEstInd_Def)));
+    t_Watchdog.stop;
+  }
+
+  function f_CDMA2000_RegisterRTT1XCell (CDMA2000_CellId_Type p_CellId,
+                                         boolean  p_PreReg := false, // no pre registration
+                                         template (omit) B32_Type  p_RAND := omit
+                                         ) runs on CDMA2000_PTC
+  {
+    timer t_Watchdog := tsc_WatchDogDef;
+
+    t_Watchdog.start;
+    SYSCMD_IND.send (cas_RTT1X_SYSTEM_CMD(p_CellId,
+                                          -, // timing info now
+                                          cs_RTT1X_SysCmd_Reg_Def(powerUpAttach, p_PreReg, p_RAND )));
+    if (not p_PreReg)
+      { // expect InitialAccessProb if not normal registration by a UE camping in RTT1X cell
+        SYSCMD_IND.receive(car_RTT1X_SYSTEM_IND (p_CellId,
+                                                 -, // Routing info none
+                                                 -, // timing info now
+                                                 cr_RTT1X_SysInd_InitialAccesProbRcvd));
+      };
+    SYSCMD_IND.receive(car_RTT1X_SYSTEM_IND (p_CellId,
+                                             -, // Routing info none
+                                             -, // timing info now
+                                             cr_SysInd_CS_RegCmpl(cr_CS_RegCmplInd_Def(powerUpAttach))));
+    t_Watchdog.stop;
+  }
+
+  function f_CDMA2000_CheckUEDoesNotCamponHRPDCell (CDMA2000_CellId_Type p_CellId,
+                                                    float p_WaitTimer :=tsc_WatchDogDef) runs on CDMA2000_PTC
+  {
+    timer t_Watchdog := p_WaitTimer;
+    t_Watchdog.start;
+    SYSCMD_IND.send (cas_HRPD_SYSTEM_CMD(p_CellId,
+                                         -, // timing info now
+                                         cs_ConfigReportInitAccesProbe_HRPD));
+    alt {
+      []SYSCMD_IND.receive(car_HRPD_SYSTEM_IND (p_CellId,
+                                                -, // routing info none
+                                                -, // timing info any
+                                                cr_HRPD_SysInd_InitialAccesProbRcvd))
+        {
+          t_Watchdog.stop;
+          f_CDMA2000_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE is sending Access probe");
+        }
+      []t_Watchdog.timeout {
+        f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE did not send Access probe");
+      }
+    }
+  }
+
+  function f_CDMA2000_CheckUEDoesNotCamponRTT1XCell (CDMA2000_CellId_Type p_CellId,
+                                                     float p_WaitTimer := tsc_WatchDogDef) runs on CDMA2000_PTC
+  {
+    timer t_Watchdog := p_WaitTimer;
+
+    t_Watchdog.start;
+    SYSCMD_IND.send (cas_RTT1X_SYSTEM_CMD(p_CellId,
+                                          -, // timing info now
+                                          cs_ConfigReportInitAccesProbe_RTT1X));
+    alt {
+      []SYSCMD_IND.receive(car_RTT1X_SYSTEM_IND (p_CellId,
+                                                 -, // Routing info none
+                                                 -, // timing info now
+                                                 cr_RTT1X_SysInd_InitialAccesProbRcvd))
+        {
+          t_Watchdog.stop;
+          f_CDMA2000_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE is sending Access probe");
+        }
+      []t_Watchdog.timeout {
+        f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE did not send Access probe");
+      }
+    }
+  }
+
+  function f_CDMA2000_Send_IR_SysInfoToEUTRA (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC
+  { //@sic R5s100848 sic@
+    var CDMA2000_CellInfo_Type v_CellInfo := f_CDMA2000_CellInfo_Get( p_CellId );
+    
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_SysInfo ( cs_CoOrdCDMA2000_SysInfoOneCell(f_CDMA2000_IR_InitSingleSysInfo ( v_CellInfo ))) );
+  }
+
+  function f_HRPD_DetachOnSwitchOff(CDMA2000_CellId_Type p_CellId,
+                                    HRPD_UE_InitStateType p_InitState := tsc_HRPD_UE_InitState_Active) runs on CDMA2000_PTC
+  {
+    if (pc_SwitchOnOff) { // The UE can actually be switched off
+      
+      select (p_InitState){
+        case (dormant)  { // expect Access probe and DefaultBearerRelDetachInd_Type
+          
+          SYSCMD_IND.send (cas_HRPD_SYSTEM_CMD(p_CellId,
+                                               -, // timing info now
+                                               cs_HRPD_DetachOnSwitchOff(p_InitState)));
+          f_UT_SwitchOffUE (UT, false);
+          SYSCMD_IND.receive(car_HRPD_SYSTEM_IND (p_CellId,
+                                                  -, // routing info none
+                                                  -, // timing info any
+                                                  cr_HRPD_SysInd_InitialAccesProbRcvd));
+          SYSCMD_IND.receive(car_HRPD_SYSTEM_IND (p_CellId,
+                                                  -, // routing info none
+                                                  -, // timing info any
+                                                  cr_HRPD_DetachOnSwitchOffInd));
+        }
+        case (active_Connected, preregister) { //expect  DefaultBearerRelDetachInd_Type
+          
+          SYSCMD_IND.send (cas_HRPD_SYSTEM_CMD(p_CellId,
+                                               -, // timing info now
+                                               cs_HRPD_DetachOnSwitchOff(p_InitState)));
+          f_UT_SwitchOffUE (UT, false);
+          SYSCMD_IND.receive(car_HRPD_SYSTEM_IND (p_CellId,
+                                                  -, // routing info none
+                                                  -, // timing info any
+                                                  cr_HRPD_DetachOnSwitchOffInd));
+        }
+        case else { // null state
+          //do nothing
+        }
+      } // end of switch
+
+    }
+    else {     // The power must be removed from the UE
+
+      f_UT_PowerOffUE (UT);
+
+    }
+  }// end of f_HRPD_DetachOnSwitchOff
+
+  function f_RTT1X_DetachOnSwitchOff(CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC
+  {
+    if (pc_SwitchOnOff) { // The UE can actually be switched off
+        
+      SYSCMD_IND.send (cas_RTT1X_SYSTEM_CMD(p_CellId,
+                                            -, // timing info now
+                                            cs_RTT1X_DetachOnSwitchOff));
+      f_UT_SwitchOffUE (UT, false);
+      SYSCMD_IND.receive(car_RTT1X_SYSTEM_IND (p_CellId,
+                                               -, // Routing info none
+                                               -, // timing info now
+                                               cr_RTT1X_SysInd_InitialAccesProbRcvd));
+      SYSCMD_IND.receive(car_RTT1X_SYSTEM_IND (p_CellId,
+                                               -, // Routing info none
+                                               -, // timing info now
+                                               cr_RTT1X_DetachOnSwitchOffInd));
+    }
+    else { // The power must be removed from the UE
+      f_UT_PowerOffUE (UT);
+    }
+  }// end of f_RTT1X_DetachOnSwitchOff
+
+  function f_HRPD_Postamble (CDMA2000_CellId_Type p_CellId,
+                             HRPD_UE_InitStateType p_InitState := tsc_HRPD_UE_InitState_Active) runs on CDMA2000_PTC
+  {
+    f_HRPD_DetachOnSwitchOff(p_CellId,   p_InitState);
+    f_CDMA2000_ReleaseCells(); //Delete all configured CDMA2000 cells
+  }// end of f_HRPD_Postamble
+
+  function f_RTT1X_Postamble (CDMA2000_CellId_Type p_CellId) runs on CDMA2000_PTC
+  {
+    f_RTT1X_DetachOnSwitchOff(p_CellId);
+    f_CDMA2000_ReleaseCells(); //Delete all configured CDMA2000 cells
+  }// end of f_RTT1X_Postamble
+
+}

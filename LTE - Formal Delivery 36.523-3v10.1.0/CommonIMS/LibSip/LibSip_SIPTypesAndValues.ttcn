@@ -1,0 +1,1861 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: LTE_IWD_12wk36
+/******************************************************************************/
+
+/**
+ *  @author   STF 346, STF366, STF368, STF369
+ *  @version  $Id: LibSip_SIPTypesAndValues.ttcn 498 2011-02-17 14:28:29Z poglitsch $
+ *  @desc     This module defines message, header, structured and simple SIP
+ *            types as well constants used by LipSip constructs. <br>
+ *            Note that any changes made to the definitions in this module
+ *            may be overwritten by future releases of this library
+ *            End users are encouraged to contact the distributers of this
+ *            module regarding their modifications or additions
+ *  @remark   Adding of new message and header types is ok;
+ *            Adding of new optional header fields in @see MessageHeader type
+ *            is ok but should be done at same time as dummy template updates;
+ *            Existing message or header types shall not be changed or removed -
+ *            change requests shall be made to http://t-ort.etsi.org
+ */
+
+module LibSip_SIPTypesAndValues language "TTCN-3:2005"
+{
+    import from LibSip_SDPTypes all;
+    import from LibSip_XMLTypes all;
+    // import from LibSip_SimpleMsgSummaryTypes all;
+
+group Constants
+{
+group SimpleConstants
+    {
+      // SIP name protocol plus version
+      const charstring c_sipNameVersion := "SIP/2.0";
+      
+      // SIP name protocol
+      const charstring c_sipName := "SIP";
+      
+      // SIP version
+      const charstring c_sipVersion := "2.0";
+      
+      // SIP scheme
+      const charstring c_sipScheme := "sip";
+      
+      // TEL scheme
+      const charstring c_telScheme := "tel";
+      
+      // TAG_ID
+      const charstring c_tagId := "tag";
+      
+      // BRANCH_ID
+      const charstring c_branchId := "branch";
+      
+      // BRANCH_COOKIE
+      const charstring c_branchCookie := "z9hG4bK";
+      
+      // EXPIRES_ID
+      const charstring c_expiresId := "expires";
+      
+      // MADDR_ID
+      const charstring c_maddrId := "maddr";
+      
+      // METHOD_ID
+      const charstring c_methodId := "method";
+      
+      // RECEIVED_ID
+      const charstring c_receivedId := "received";
+      
+      // TTL_ID
+      const charstring c_ttlId := "ttl";
+      
+      // USER_ID
+      const charstring c_userId := "user";
+      
+      // SDP name application
+      const charstring c_sdpAplication := "application/sdp";
+      
+      // XML name application
+      const charstring c_xmlAplication := "application/xml";
+      
+      // MIME name application
+      const charstring c_mimeMultipart := "multipart/mixed";
+
+      // IMS 3GPP name application
+      const charstring c_ims3gppAplication := "application/3gpp-ims+xml";
+
+      // IMS 3GPP name CW application
+      const charstring c_ims3gppCwApplication := "application/vnd.3gpp.cw+xml";
+
+      // IMS ETSI name MCID application
+      const charstring c_imsEtsiMcidApplication := "application/vnd.etsi.mcid+xml";
+
+      // IMS ETSI name CUG application
+      const charstring c_imsEtsiCugApplication := "application/vnd.etsi.cug+xml";
+
+      // IMS ETSI name Simservs application(TIP/TIR, ACR, CDIV, OIP/OIR, CUG)
+      const charstring c_imsEtsiSimservsApplication := "application/vnd.etsi.simservs+xml";
+      
+      // OCTET-STREAM name application
+      const charstring c_octetAplication := "application/octet-stream";
+
+      // PLAIN-TEXT name application
+      const charstring c_plainText := "text/plain";
+
+      //text content of 1300 bytes for messages with message body
+      const charstring c_longMessageContent_1300Bytes :=//"Hello!";
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+      "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"&
+    oct2char('0D'O) & oct2char('0A'O); // CRLF
+
+ 
+      // Default SIP port number : 5060
+      const integer c_defaultSipPort := 5060;
+      
+      // Default SIP protocol : UDP
+      const charstring c_defaultSipProt := "UDP";
+      
+      // Fixed IP multicast address
+      const charstring c_mcastSipIpaddr := "224.0.1.75";
+      
+      // Short delta-second used in expires parameter to acknowledge a registration
+      const charstring c_shortRegistration := "3600";
+
+      // ([RFC3891]Sec 6.1)
+      const charstring c_earlyFlag := "early-only";
+
+      // option tag replaces ([RFC3261])
+      const charstring c_replaces := "replaces";
+      
+      // option tag 100rel (reliable provisional response [RFC3262])
+      const charstring c_tag100rel := "100rel";
+      
+      // option tag from-change ([RFC4916])
+      const charstring c_tagFromChange := "from-change";
+      
+      // option tag precondition (ch.11 [RFC3312])
+      const charstring c_tagPrecond := "precondition";
+
+      // due to problem with TAU compiler because hardcoded return statement constant is created
+      const HostPort c_hostport_dummy := {host:="", portField:=c_defaultSipPort};
+
+      // CLIP/CLIR information
+      const PrivacyValue c_privacy_none := "none";
+      const PrivacyValue c_privacy_id := "id";
+      const PrivacyValue c_privacy_header := "header";
+      const PrivacyValue c_privacy_user := "user";
+      const PrivacyValue c_privacy_critical := "critical";
+      const PrivacyValue c_privacy_session := "session";
+
+      // @ (at) sign
+      const charstring c_AT := "@";
+      //MRO
+      const charstring c_SP := oct2char('20'O);
+      const charstring c_SLASH := oct2char('2F'O);
+      const charstring c_LT := oct2char('3C'O);
+      const charstring c_GT := oct2char('3E'O);
+
+      // * (wildchard) sign
+      const charstring c_WILDCARD := "*";
+
+      const integer c_CRlen := 2; // length of new line (0d0a)
+
+      const GenericParam c_Integrity_protected_yes := {"integrity-protected","yes"}
+      const GenericParam c_Integrity_protected_no := {"integrity-protected","no"}
+      const GenericParam c_Integrity_protected_ip_assoc_pending := {"integrity-protected","ip-assoc-pending"}
+
+
+} //end group SimpleConstants
+
+group AuthorizationConstants {
+
+    const charstring c_ik := "";
+    const charstring c_ck := "";
+    const charstring c_algorithm := "MD5";
+    const charstring c_nonce := "";
+    const charstring c_nonce_value := "0edff6c521cc3f407f2d9e01cf6ed82b";
+
+} //end group AuthorizationConstants
+
+group PChargingVectorConstants {
+
+    const charstring c_icid := "icid-value";
+    const charstring c_icid_value := "123abc";
+    const charstring c_icid_generated_at := "icid-generated-at";
+    const charstring c_orig_ioi := "orig-ioi";
+    const charstring c_term_ioi := "term-ioi";
+
+} //end group PChargingVectorConstants
+
+group HeaderFieldConstants {
+
+    const CallId    c_empty_CallId :=
+    {
+      fieldName := CALL_ID_E,
+      callid := ""
+    };
+
+    const ContentType   c_empty_ContentType :=
+    {
+      fieldName := CONTENT_TYPE_E,
+      mediaType := ""
+    };
+
+    const CSeq  c_empty_cSeq := {
+        fieldName := CSEQ_E,
+        seqNumber:=0,
+        method:="EMPTY" };
+
+    const From  c_empty_From := {
+      fieldName := FROM_E,
+      addressField := {nameAddr :=
+        {displayName := omit,
+          addrSpec := {
+            scheme  := c_sipScheme,
+            userInfo := omit ,
+            hostPort := {host:="127.0.0.1", portField:=c_defaultSipPort},
+            urlParameters := omit,
+            headers := omit
+          }
+        }
+      },
+      fromParams := omit
+    };
+
+    const MaxForwards c_maxForwards70 := {fieldName:=MAX_FORWARDS_E, forwards:=70}
+
+    const SipUrl c_empty_RequestUri :=
+    {
+      scheme  := c_sipScheme,
+      userInfo := omit ,
+      hostPort := {host:="127.0.0.1", portField:=c_defaultSipPort},
+      urlParameters := omit,
+      headers := omit
+    };
+
+    const SipUrl c_unavailableUri :=
+    {
+            scheme  := c_sipScheme,
+            userInfo := {userOrTelephoneSubscriber:="unavailable", password:=omit},
+            hostPort := {host:="anonymous.invalid", portField:=c_defaultSipPort},
+            urlParameters := omit,
+            headers := omit
+    };
+
+    const To    c_empty_To :=
+    { // value of To header
+      fieldName := TO_E,
+      addressField :=
+      {
+        nameAddr :=
+        {
+          displayName := omit,
+          addrSpec :=
+          {
+            scheme  := c_sipScheme,
+            userInfo := omit ,
+            hostPort := {host:="127.0.0.1", portField:=c_defaultSipPort},
+            urlParameters := omit,
+            headers := omit
+          }
+        }
+      },
+      toParams := omit
+    };
+
+    const Via c_empty_Via := {
+      fieldName := VIA_E,
+      viaBody :={
+        {sentProtocol := {
+            protocolName := c_sipName,
+            protocolVersion := c_sipVersion,
+            transport := c_defaultSipProt
+          },
+          sentBy := {host:="127.0.0.1", portField:=c_defaultSipPort},
+          viaParams:= omit
+        }
+      }};
+
+
+}
+
+
+group UserProfileConstants
+{
+      // number of user profile from 1-10 for SIP profile
+      const integer c_userProfile_SIP1_home := 1;
+      const integer c_userProfile_SIP2_home := 2;
+
+} //end group UserProfileConstants
+
+group StatusLines
+    {
+        const StatusLine c_statusLine100    :=  {c_sipNameVersion, 100, "Trying"};
+        const StatusLine c_statusLine180    :=  {c_sipNameVersion, 180, "Ringing"};
+        const StatusLine c_statusLine181    :=  {c_sipNameVersion, 181, "Call is Being Forwarded"};
+        const StatusLine c_statusLine182    :=  {c_sipNameVersion, 182, "Queued"};
+        const StatusLine c_statusLine183    :=  {c_sipNameVersion, 183, "Session Progress"};
+
+        const StatusLine c_statusLine200    :=  {c_sipNameVersion, 200, "OK"};
+        const StatusLine c_statusLine202    :=  {c_sipNameVersion, 202, "Accepted"};
+
+        const StatusLine c_statusLine300    :=  {c_sipNameVersion, 300, "Multiple Choices"};
+        const StatusLine c_statusLine301    :=  {c_sipNameVersion, 301, "Moved Permanently"};
+        const StatusLine c_statusLine302    :=  {c_sipNameVersion, 302, "Moved Temporarily"};
+        const StatusLine c_statusLine305    :=  {c_sipNameVersion, 305, "Use Proxy"};
+        const StatusLine c_statusLine380    :=  {c_sipNameVersion, 380, "Alternative Service"};
+
+        const StatusLine c_statusLine400    :=  {c_sipNameVersion, 400, "Bad Request"};
+        const StatusLine c_statusLine401    :=  {c_sipNameVersion, 401, "Unauthorized"};
+        const StatusLine c_statusLine402    :=  {c_sipNameVersion, 402, "Payment Required"};
+        const StatusLine c_statusLine403    :=  {c_sipNameVersion, 403, "Forbidden"};
+        const StatusLine c_statusLine404    :=  {c_sipNameVersion, 404, "Not Found"};
+        const StatusLine c_statusLine405    :=  {c_sipNameVersion, 405, "Method Not Allowed"};
+        const StatusLine c_statusLine406    :=  {c_sipNameVersion, 406, "Not Acceptable"};
+        const StatusLine c_statusLine407    :=  {c_sipNameVersion, 407, "Proxy authentication required"};
+        const StatusLine c_statusLine408    :=  {c_sipNameVersion, 408, "Request Timeout"};
+        const StatusLine c_statusLine410    :=  {c_sipNameVersion, 410, "Gone"};
+        const StatusLine c_statusLine413    :=  {c_sipNameVersion, 413, "Request Entity too long"};
+        const StatusLine c_statusLine414    :=  {c_sipNameVersion, 414, "Request-uri too long"};
+        const StatusLine c_statusLine415    :=  {c_sipNameVersion, 415, "Unsupported Media type"};
+        const StatusLine c_statusLine416    :=  {c_sipNameVersion, 416, "Unsupported URI scheme"};
+        const StatusLine c_statusLine420    :=  {c_sipNameVersion, 420, "Bad Extension"};
+        const StatusLine c_statusLine421    :=  {c_sipNameVersion, 421, "Extension required"};
+        const StatusLine c_statusLine422    :=  {c_sipNameVersion, 422, "Session Interval Too Small"};
+        const StatusLine c_statusLine423    :=  {c_sipNameVersion, 423, "Interval Too Brief"};
+        const StatusLine c_statusLine433    :=  {c_sipNameVersion, 433, "Anonymity Disallowed"};
+        const StatusLine c_statusLine480    :=  {c_sipNameVersion, 480, "Temporarily Unavailable"};
+        const StatusLine c_statusLine481    :=  {c_sipNameVersion, 481, "Call/Transaction doesnot exist"};
+        const StatusLine c_statusLine482    :=  {c_sipNameVersion, 482, "Loop Detected"};
+        const StatusLine c_statusLine483    :=  {c_sipNameVersion, 483, "Too many hops"};
+        const StatusLine c_statusLine484    :=  {c_sipNameVersion, 484, "Address Incomplete"};
+        const StatusLine c_statusLine485    :=  {c_sipNameVersion, 485, "Ambiguous"};
+        const StatusLine c_statusLine486    :=  {c_sipNameVersion, 486, "Busy Here"};
+        const StatusLine c_statusLine487    :=  {c_sipNameVersion, 487, "Request Terminated"};
+        const StatusLine c_statusLine488    :=  {c_sipNameVersion, 488, "Not acceptable here"};
+        const StatusLine c_statusLine493    :=  {c_sipNameVersion, 493, "Undecipherable"};
+        const StatusLine c_statusLine500    :=  {c_sipNameVersion, 500, "Server Internal error"};
+        const StatusLine c_statusLine501    :=  {c_sipNameVersion, 501, "Not implemented"};
+        const StatusLine c_statusLine502    :=  {c_sipNameVersion, 502, "Bad Gateway"};
+        const StatusLine c_statusLine503    :=  {c_sipNameVersion, 503, "Service Unavailable"};
+        const StatusLine c_statusLine504    :=  {c_sipNameVersion, 504, "Server timeout"};
+        const StatusLine c_statusLine505    :=  {c_sipNameVersion, 505, "Version not supported"};
+        const StatusLine c_statusLine513    :=  {c_sipNameVersion, 513, "Message too long"};
+        const StatusLine c_statusLine580    :=  {c_sipNameVersion, 580, "Precondition failure"};
+        const StatusLine c_statusLine600    :=  {c_sipNameVersion, 600, "Busy Everywhere"};
+        const StatusLine c_statusLine603    :=  {c_sipNameVersion, 603, "Decline"};
+        const StatusLine c_statusLine604    :=  {c_sipNameVersion, 604, "Does not exist anywhere"};
+        const StatusLine c_statusLine606    :=  {c_sipNameVersion, 606, "Not acceptable"};
+
+} //end StatusLines
+
+group SIPSyncPointNames {
+        const charstring c_Ringing := "Ringing";
+        const charstring c_uPlane := "uPlane";
+        const charstring c_sync1 := "sync1";
+        const charstring c_sync2 := "sync2";
+        const charstring c_sync3 := "sync3";
+        const charstring c_sync4 := "sync4";
+        const charstring c_uPlaneStop := "uPlaneStop";
+        const charstring c_annoucA := "announcementA";
+        const charstring c_annoucB := "announcementB";
+        const charstring c_annouc := "announcement";
+        const charstring c_voicem := "voiceMessage";
+ }
+
+} //end group Constants
+
+group Types {
+group SubTypes{// Subtypes
+    
+    group TokenTypes // TokensTypes
+    {
+      // [20]
+      type enumerated FieldName
+      {
+        ACCEPT_E,
+        ACCEPT_ENCODING_E,
+        ACCEPT_LANGUAGE_E,
+        ALERT_INFO_E,
+        ALLOW_E,
+        AUTHENTICATION_INFO_E,
+        AUTHORIZATION_E,
+        CALL_ID_E,
+        CALL_INFO_E,
+        CONTACT_E,
+        CONTENT_DISPOSITION_E,
+        CONTENT_ENCODING_E,
+        CONTENT_LANGUAGE_E,
+        CONTENT_LENGTH_E,
+        CONTENT_TYPE_E,
+        CSEQ_E,
+        DATE_E,
+        ERROR_INFO_E,
+        EXPIRES_E,
+        FROM_E,
+        IN_REPLY_TO_E,
+        MAX_FORWARDS_E,
+        MIME_VERSION_E,
+        MIN_EXPIRES_E,
+        ORGANIZATION_E,
+        PRIORITY_E,
+        PROXY_AUTHENTICATE_E,
+        PROXY_AUTHORIZATION_E,
+        PROXY_REQUIRE_E,
+        RECORD_ROUTE_E,
+        REPLY_TO_E,
+        REQUIRE_E,
+        RETRY_AFTER_E,
+        ROUTE_E,
+        SERVER_E,
+        SUBJECT_E,
+        SUPPORTED_E,
+        TIMESTAMP_E,
+        TO_E,
+        UNSUPPORTED_E,
+        USER_AGENT_E,
+        VIA_E,
+        WARNING_E,
+        WWW_AUTHENTICATE_E,
+        
+        // [3262/7.1]
+        RACK_E,
+        RSEQ_E,
+
+        // [3265/7.2]
+        ALLOW_EVENTS_E,
+        EVENT_E,
+        SUBSCRIPTION_STATE_E,
+
+        // [3313]
+        P_MEDIA_AUTHORIZATION_E,
+
+        // [3323]
+        PRIVACY_E,
+
+        // [3325]
+        P_ASSERTED_ID_E,
+        P_PREFERRED_ID_E,
+        P_PREFERRED_SERVICE_E,
+
+        // [3326]
+        REASON_E,
+
+        // [3515] - REFER method
+        REFER_TO_E,
+
+        // [3891]
+        REPLACES_E,
+
+        // [3892] - REFER method
+        REFERRED_BY_E,
+
+        // [4244]
+        HISTORY_INFO_E,
+
+        // [3313]
+        P_MEDIA_AUTH_E,
+
+        // [3327]
+        PATH_E,
+
+        // [3329]
+        SECURITY_CLIENT_E,
+        SECURITY_SERVER_E,
+        SECURITY_VERIFY_E,
+
+        // [3455]
+        P_ACCESS_NETWORK_INFO_E,
+        P_ASSOCIATED_URI_E,
+        P_CALLED_PARTY_E,
+        P_CHARGING_FUNCTION_ADDRESSES_E,
+        P_CHARGING_VECTOR_E,
+        P_VISITED_NETWORK_E,
+
+        // [3608]
+        SERVICE_ROUTE_E,
+
+        // [3841]
+        ACCEPT_CONTACT_E,
+        REQUEST_DISPOSITION_E,
+
+        // [4028]
+        MIN_SE_E,
+        SESSION_EXPIRES_E,
+
+        P_ASSERTED_SERVICE_E,
+
+        //[5009]
+        P_EARLY_MEDIA_E,
+
+        //http://tools.ietf.org/html/draft-johnston-sipping-cc-uui-07
+        //Transporting User to User Call Control Information in SIP for ISDN Interworking
+        USER_TO_USER_E,
+        
+        GEOLOCATION_E // draft-ietf-sipcore-location-conveyance-04
+      }
+      
+      // [7.1]
+      type enumerated Method {
+          ACK_E,
+          BYE_E,
+          CANCEL_E,
+          INVITE_E,
+          OPTIONS_E,
+          REGISTER_E,
+          PRACK_E, // Note: this element is not defined in [5]
+          SUBSCRIBE_E, NOTIFY_E, // [3265]
+          PUBLISH_E, // [3903/12]
+          REFER_E, // [3515]
+          UPDATE_E, // [3311]
+          MESSAGE_E, // [3428]
+          INFO_E,   // [2976]
+          UNKNOWN_METHOD_E
+          }
+
+      // [20.1, 20.3, 20.4, 20.7, 20.9, 20.10, 20.11, 20.18, 20.20, 20.27, 20.28, 20.30, 20.31,
+      // 20.33, 20.34, 20.39, 20.42, 20.44]
+      type record GenericParam
+      {
+        charstring                 id,
+        charstring                paramValue optional
+      }
+      
+      // [?]
+      type set of GenericParam SemicolonParam_List;
+      
+      // [?]
+      type set of GenericParam AmpersandParam_List;
+      
+      // [?]
+      type set of GenericParam CommaParam_List;
+      
+      // [20.10, 20.20, 20.30, 20.31, 20.34, 20.39, 20.42, 20.43]
+      type record HostPort
+      {
+        charstring             host optional,                // hostname, IPv4 or IPv6
+        integer                portField optional        // represented as an integer
+      }
+      
+      // [20.10, 20.20, 20.30, 20.31, 20.34, 20.39]
+/**
+ *
+ * @desc identifier for user or telephone subscriber
+ * @member userOrTelephoneSubscriber provides the username or a phone name identifying the subscriber
+ * @member password related password information
+ *
+ */
+     type record UserInfo
+      {
+        charstring         userOrTelephoneSubscriber,
+        charstring         password optional
+      }
+      
+      // [19.1.1 ;used in: 20.10, 20.20, 20.30, 20.31, 20.34, 20.39]
+
+
+/**
+ *
+ * @desc Uniform Resource Identifier (URI)
+ * @member scheme distinguishes call types, e.g. voice, fax etc. or related address scheme, e.g. tel, sip
+ * @member userInfo Contains user information (also in non-SIP URLs) with optional parameter as passwords
+ * @member hostPort Hostname or IP address information and port identifier of the target
+ * @member urlParameters Contains either SIP or TEL URL parameters, separated by semicolons, e.g. transport=tcp or user=phone
+ * @member headers Additional information added after the parameters, e.g. priority=urgent
+ */
+      type record SipUrl
+      {
+        charstring      scheme,  // e.g "sip" or "tel"
+        UserInfo        userInfo optional,
+        HostPort        hostPort optional,
+        SemicolonParam_List urlParameters optional,
+        AmpersandParam_List headers optional
+      }
+      
+      // [20.1, RFC2616 14.1]
+      type record AcceptBody
+      {
+        charstring      mediaRange,
+        SemicolonParam_List acceptParam optional
+      }
+      
+      // [20.1, RFC2616 14.1]
+      type set of AcceptBody AcceptBody_List;
+      
+      // [20.4]
+      type record AlertInfoBody
+      {
+        charstring          url,    // any URI
+        SemicolonParam_List genericParams optional
+      }
+      
+      // [20.4]
+      type set of AlertInfoBody AlertInfoBody_List;
+      
+      // [20.8]
+      type charstring CallidString;    // token ["@" token]
+      
+      // [20.8]
+      type set of CallidString CallidString_List;
+      
+      // [20.9]
+      type record CallInfoBody
+      {
+        charstring          url,    // any URI
+        SemicolonParam_List     infoParams optional
+      }
+      
+      // [20.9]
+      type set of CallInfoBody CallInfoBody_List;
+      
+      // [20.27, 20.44, .......10.32, 10.48; RFC2616 14.33, 14.47; RFC2617 1.2]
+      type union Challenge
+      {
+        CommaParam_List digestCln,
+        OtherAuth   otherChallenge
+      }
+      
+      // [20.10, 20.20, 20.30, 20.31, 20.34, 20.39]
+      type record NameAddr
+      {
+        charstring  displayName optional,
+        SipUrl      addrSpec
+      }
+      
+      // [20.10, 20.20, 20.31, 20.39]
+      type union Addr_Union
+      {
+        NameAddr    nameAddr,
+        SipUrl      addrSpecUnion // STS: "Union" added to filed name to avoid dangerous name equivalence with 2nd NameAddr field
+      }
+      
+      // [20.10]
+      type record ContactAddress
+      {
+        Addr_Union      addressField,
+        SemicolonParam_List contactParams optional
+      }
+      
+      // [20.10]
+      type set of ContactAddress ContactAddress_List; // 1 or more elements
+      
+      // [20.10]
+      type union ContactBody
+      {
+        charstring      wildcard,
+        ContactAddress_List contactAddresses
+      }
+      
+      // [20.2, 20.12; RFC2616 14.3, 14.11]
+      type charstring ContentCoding;
+      
+      // [20.2, 20.12; RFC2616 14.3, 14.11]
+      type set of ContentCoding ContentCoding_List;
+      
+      // [20.7, 20.28; RFC2616 14.35 RFC2617 1.2]
+      type union Credentials
+      {
+        CommaParam_List digestResponse,
+        OtherAuth       otherResponse
+      }
+      
+      // allow multiple Authorization headers due to RFC3261 ch. 20.7 and 20.28
+      type record of Credentials CredentialsList;
+      
+      // [20.19, 20.23, 20.33]
+      type charstring   DeltaSec;   // an external operation can handle this field
+      
+      // [20.18]
+      type record ErrorInfoBody
+      {
+        charstring          uri,        // any URI
+        SemicolonParam_List     genericParams optional
+      }
+      
+      // [20.18]
+      type set of ErrorInfoBody ErrorInfoBody_List;
+      
+      // [20.3 RFC2616 14.4]
+      type record LanguageBody
+      {
+        charstring      languageRange,
+        SemicolonParam_List acceptParam optional
+      }
+      
+      // [20.3 RFC2616 14.4]
+      type set of LanguageBody LanguageBody_List;
+      
+      // [20.13; RFC2616 14.12]
+      type charstring LanguageTag;
+      
+      // [20.13; RFC2616 14.12]
+      type set of LanguageTag LanguageTag_List;
+      
+      // [20.5]
+      type set of charstring Method_List;
+      
+      
+      // [20.29, 20.32, 20.37, 20.40]
+      type charstring OptionTag;
+      
+      // [20.29, 20.32, 20.37, 20.40]
+      type set of OptionTag OptionTag_List;
+      
+      
+      // [20.7, 20.27, 20.28, 20.44  ; RFC2616 14.33, 14.47; RFC2617 1.2]
+      type record OtherAuth
+      {
+        charstring      authScheme,
+        CommaParam_List authParams
+      }
+      
+      type record Payload
+      {
+        integer     payloadlength,
+        charstring      payloadvalue
+      }
+      
+      // [20.30,20.34]
+      type record RouteBody
+      {
+        NameAddr            nameAddr,
+        SemicolonParam_List rrParam optional
+      }
+      
+      // [20.30,20.34]
+      type record of RouteBody RouteBody_List;
+      
+      // [20.42]
+      type record SentProtocol
+      {
+        charstring      protocolName,
+        charstring      protocolVersion,
+        charstring      transport
+      }
+      
+      // [20.35, 20.41; RFC2616 14.43]
+      type charstring ServerVal;
+      
+      // [20.35, 20.41; RFC2616 14.43]
+      type set of ServerVal ServerVal_List;
+      
+      // [20.38]
+      type record TimeValue
+      {
+        integer         majorDigit,     // represented as an integer
+        integer         minorDigit optional // represented as an integer
+      }
+      
+      // [20.42]
+      type record ViaBody
+      {
+        SentProtocol    sentProtocol,
+        HostPort        sentBy,
+        SemicolonParam_List viaParams optional
+      }
+      
+      // [20.42]
+      type record of ViaBody ViaBody_List;
+      
+      // [20.43]
+      type union WarnAgent
+      {
+        HostPort        hostPort,
+        charstring      pseudonym
+      }
+      
+      // [20.43]
+      type record WarningValue
+      {
+        integer     warnCode,   // represented as an integer
+        WarnAgent       warnAgent,
+        charstring      warnText
+      }
+      
+      // [20.43]
+      type set of WarningValue WarningValue_List;
+
+      type Addr_Union PAssertedIDValue;
+      
+      type record of PAssertedIDValue PAssertedIDValue_List;
+
+      type charstring PAssertedServiceValue;
+
+      type Addr_Union PPreferredIDValue;
+      
+      type record of PPreferredIDValue PPreferredIDValue_List;
+
+      type charstring PrivacyValue;
+      
+      type record of PrivacyValue PrivacyValue_List;
+
+      
+    } // end group TokensType
+    
+    
+    group HeaderFieldTypes  // Header Fields
+    {
+    group CommonHeaderFieldTypes
+    {
+      // [20.1, RFC2616 14.1]
+      type record Accept
+      {
+        FieldName       fieldName (ACCEPT_E),
+        AcceptBody_List         acceptArgs optional
+      }
+      
+      // [20.2, RFC2616 14.3]
+      type record AcceptEncoding
+      {
+        FieldName       fieldName (ACCEPT_ENCODING_E),
+        ContentCoding_List  contentCoding optional
+      }
+      
+      // [20.3, RFC2616 14.4]
+      type record AcceptLanguage
+      {
+        FieldName       fieldName (ACCEPT_LANGUAGE_E),
+        LanguageBody_List   languageBody optional
+      }
+      
+      // [20.4]
+      type record AlertInfo
+      {
+        FieldName       fieldName (ALERT_INFO_E),
+        AlertInfoBody_List  alertInfoBody optional
+      }
+      
+      // [20.5]
+      type record Allow
+      {
+        FieldName       fieldName (ALLOW_E),
+        Method_List     methods optional
+      }
+      
+      // [20.6]
+      type record AuthenticationInfo
+      {
+        FieldName       fieldName (AUTHENTICATION_INFO_E),
+        CommaParam_List ainfo
+      }
+      
+      // [20.7 RFC2617 3.2.2]
+      type record Authorization
+      {
+        FieldName       fieldName (AUTHORIZATION_E),
+        CredentialsList body // changed from Credentials to allow multiple Authorization headers
+      }
+      
+      // [20.8]
+      type record CallId
+      {
+        FieldName       fieldName (CALL_ID_E),
+        CallidString        callid
+      }
+      
+      // [20.9]
+      type record CallInfo
+      {
+        FieldName       fieldName (CALL_INFO_E),
+        CallInfoBody_List   callInfoBody optional
+      }
+      
+      // [20.10]
+      type record Contact
+      {
+        FieldName       fieldName (CONTACT_E),
+        ContactBody     contactBody
+      }
+      
+      // [20.11]
+      type record ContentDisposition
+      {
+        FieldName       fieldName (CONTENT_DISPOSITION_E),
+        charstring      dispositionType,
+        SemicolonParam_List dispositionParams optional
+      }
+      
+      // [20.12 RFC2616 14.11]
+      type record ContentEncoding
+      {
+        FieldName       fieldName (CONTENT_ENCODING_E),
+        ContentCoding_List  contentCoding
+      }
+      
+      // [20.13 RFC2616 14.12]
+      type record ContentLanguage
+      {
+        FieldName       fieldName (CONTENT_LANGUAGE_E),
+        LanguageTag_List    languageTag
+      }
+      
+      // [20.14]
+      type record ContentLength
+      {
+        FieldName       fieldName (CONTENT_LENGTH_E),
+        integer     len // this field is represented as an integer
+      }
+      
+      // [20.15]
+      type record ContentType
+      {
+        FieldName       fieldName (CONTENT_TYPE_E),
+        charstring      mediaType
+      }
+      
+      // [20.16]
+      type record CSeq
+      {
+        FieldName       fieldName (CSEQ_E),
+        integer     seqNumber,  // this field is represented as an integer
+        charstring      method
+      }
+      
+      // [20.17]
+      type record Date
+      {
+        FieldName       fieldName (DATE_E),
+        charstring      sipDate
+      }
+      
+      // [20.18]
+      type record ErrorInfo
+      {
+        FieldName       fieldName (ERROR_INFO_E),
+        ErrorInfoBody_List  errorInfo optional
+      }
+      
+      // [20.19]
+      type record Expires
+      {
+        FieldName       fieldName (EXPIRES_E),
+        DeltaSec        deltaSec
+      }
+      
+      // [20.20]
+      type record From
+      {
+        FieldName       fieldName (FROM_E),
+        Addr_Union      addressField,
+        SemicolonParam_List fromParams optional
+      }
+      
+      // [20.21]
+      type record InReplyTo
+      {
+        FieldName       fieldName (IN_REPLY_TO_E),
+        CallidString_List   callids
+      }
+      
+      // [20.22]
+      type record MaxForwards
+      {
+        FieldName       fieldName (MAX_FORWARDS_E),
+        integer     forwards    // this field is represented as an integer
+      }
+      
+      // [20.23]
+      type record MinExpires
+      {
+        FieldName       fieldName (MIN_EXPIRES_E),
+        DeltaSec        deltaSec
+      }
+      
+      // [20.24 RFC2616 19.4.1]
+      type record MimeVersion
+      {
+        FieldName       fieldName (MIME_VERSION_E),
+        integer     majorNumber,    // this field is represented as an integer
+        integer     minorNumber // this field is represented as an integer
+      }
+      
+      // [20.25]
+      type record Organization
+      {
+        FieldName       fieldName (ORGANIZATION_E),
+        charstring      organization
+      }
+      
+      // [20.26]
+      type record Priority
+      {
+        FieldName       fieldName (PRIORITY_E),
+        charstring      priorityValue
+      }
+      
+      // [20.27 RFC2616 14.33 RFC2617 1.2]
+      type record ProxyAuthenticate
+      {
+        FieldName       fieldName (PROXY_AUTHENTICATE_E),
+        Challenge       challenge
+      }
+      
+      // [20.28 RFC2616 14.35 RFC2617 1.2]
+      type record ProxyAuthorization
+      {
+        FieldName       fieldName (PROXY_AUTHORIZATION_E),
+        CredentialsList     credentials // changed from Credentials to allow multiple Authorization headers
+      }
+      
+      // [20.29]
+      type record ProxyRequire
+      {
+        FieldName       fieldName (PROXY_REQUIRE_E),
+        OptionTag_List  optionsTags
+      }
+      
+      // [20.30]
+      type record RecordRoute
+      {
+        FieldName       fieldName (RECORD_ROUTE_E),
+        RouteBody_List  routeBody
+      }
+      
+      // [20.31]
+      type record ReplyTo
+      {
+        FieldName       fieldName (REPLY_TO_E),
+        Addr_Union      addressField,
+        SemicolonParam_List replyToParams optional
+      }
+      
+      // [20.32]
+      type record Require
+      {
+        FieldName       fieldName (REQUIRE_E),
+        OptionTag_List  optionsTags
+      }
+      
+      // [20.33]
+      type record RetryAfter
+      {
+        FieldName       fieldName (RETRY_AFTER_E),
+        DeltaSec        deltaSec,
+        charstring      comment optional,
+        SemicolonParam_List retryParams optional
+      }
+      
+      // [20.34]
+      type record Route
+      {
+        FieldName       fieldName (ROUTE_E),
+        RouteBody_List  routeBody
+      }
+      
+      // [20.35 RFC2616 14.38]
+      type record Server
+      {
+        FieldName       fieldName (SERVER_E),
+        ServerVal_List  serverBody
+      }
+      
+      // [20.36]
+      type record Subject
+      {
+        FieldName       fieldName (SUBJECT_E),
+        charstring      summary
+      }
+      
+      // [20.37]
+      type record Supported
+      {
+        FieldName       fieldName (SUPPORTED_E),
+        OptionTag_List  optionsTags optional
+      }
+      
+      // [20.38]
+      type record Timestamp
+      {
+        FieldName       fieldName (TIMESTAMP_E),
+        TimeValue       timeValue optional,
+        TimeValue       delay optional
+      }
+      
+      // [20.39]
+      type record To
+      {
+        FieldName       fieldName (TO_E),
+        Addr_Union          addressField,
+        SemicolonParam_List toParams optional
+      }
+      
+      // [20.40]
+      type record Unsupported
+      {
+        FieldName       fieldName (UNSUPPORTED_E),
+        OptionTag_List      optionsTags
+      }
+      
+      // Undefined header field
+      type record UndefinedHeader
+      {
+        charstring      headerName,
+        charstring      headerValue
+      }
+      
+      type set of UndefinedHeader UndefinedHeader_List;
+      
+      // [20.41 RFC2616 14.43]
+      type record UserAgent
+      {
+        FieldName       fieldName (USER_AGENT_E),
+        ServerVal_List  userAgentBody
+      }
+      
+      // [20.42]
+      type record Via
+      {
+        FieldName       fieldName (VIA_E),
+        ViaBody_List        viaBody
+      }
+      
+      // [20.43]
+      type record Warning
+      {
+        FieldName       fieldName (WARNING_E),
+        WarningValue_List   warningValue
+      }
+      
+      // [20.44 RFC2616 14.47 RFC2617 1.2]
+      type record WwwAuthenticate
+      {
+        FieldName       fieldName (WWW_AUTHENTICATE_E),
+        Challenge       challenge
+      }
+      }//end group CommonHeaderFieldTypes
+      group RFC3262HeaderFieldTypes
+      {
+      // [3262/7.1]
+      type record RSeq {
+          FieldName fieldName(RSEQ_E),
+          integer responseNum
+      }
+
+      // [3262/7.2]
+      type record RAck {
+          FieldName fieldName(RACK_E),
+          integer responseNum,
+          integer seqNumber,
+          charstring method
+      }
+      }//end group RFC3262HeaderFieldTypes
+
+      group RFC3265HeaderFieldTypes
+      {
+      // [3265/7.2]
+      type record AllowEvents {
+          FieldName fieldName(ALLOW_EVENTS_E),
+          EventType_List eventTypes
+      }
+
+      type set of EventType EventType_List;
+      type charstring EventType;
+
+      // [3265/7.2]
+      type record Event {
+          FieldName fieldName(EVENT_E),
+          EventType eventType,
+          SemicolonParam_List eventParams optional
+      }
+
+      // [3265/7.2]
+      type record SubscriptionState {
+          FieldName fieldName(SUBSCRIPTION_STATE_E),
+          SubState subState,
+          SemicolonParam_List substateParams optional
+      }
+
+      type charstring SubState;
+      }//end group RFC3265HeaderFieldTypes
+
+      group RFC3313HeaderFieldTypes
+      {
+      // [3313/5]
+      type record PMediaAuthorization {
+          FieldName fieldName(P_MEDIA_AUTHORIZATION_E),
+          PMediaAuthorization_List pMediaAuthorizations
+      }
+
+      type charstring PMediaAuthValue; //HEXDIG "0"-"9", "A"-"F"
+
+      type record of PMediaAuthValue PMediaAuthorization_List;
+
+      }//end group RFC3265HeaderFieldTypes
+
+      group RFC3323HeaderFieldTypes
+      {
+      // [3323]
+      type record Privacy {
+          FieldName fieldName(PRIVACY_E),
+          PrivacyValue_List privValueList
+      }
+      }//end group RFC3323HeaderFieldTypes
+
+      group RFC3325HeaderFieldTypes
+      {
+      // [3325]
+      type record PAssertedID {
+          FieldName fieldName(P_ASSERTED_ID_E),
+          PAssertedIDValue_List pAssertedIDValueList
+      }
+
+      // [3325]
+      type record PPreferredID {
+          FieldName fieldName(P_PREFERRED_ID_E),
+          PPreferredIDValue_List pPreferredIDValueList
+      }
+    // draft-drage-sipping-service-identification-01 (July 2007)
+    type record PPreferredService {
+      FieldName fieldName (P_PREFERRED_SERVICE_E),
+      charstring serviceId
+    }
+
+      }//end group RFC3325HeaderFieldTypes
+
+      group RFC3326HeaderFieldTypes
+      {
+      //[3326]
+      type record of ReasonValue ReasonValues;
+
+      type record ReasonValue {
+      charstring token,
+      SemicolonParam_List reasonParams optional
+      }
+
+      type record Reason {
+      FieldName fieldName(REASON_E),
+      ReasonValues reasonValues
+      }
+      }//end group RFC3326HeaderFieldTypes
+
+      group RFC3327HeaderFieldTypes
+      {
+      // [3327]
+      type record Path {
+          FieldName fieldName(PATH_E),
+          PathValues pathValues
+      }
+
+      type record of PathValue PathValues;
+
+      type record PathValue {
+          NameAddr nameAddr,
+          SemicolonParam_List rrParam optional
+      }
+      }//end group RFC3515HeaderFieldTypes
+
+      group RFC3329HeaderFieldTypes
+      {
+      // [RFC3329/2.2]
+      type record SecurityMechanism {
+        charstring mechName,
+        SemicolonParam_List mechParams optional
+      }
+
+      type set of SecurityMechanism SecurityMechanism_List;
+
+      type record SecurityClient {
+        FieldName fieldName(SECURITY_CLIENT_E),
+        SecurityMechanism_List securityMech
+      }
+
+      type record SecurityServer {
+        FieldName fieldName(SECURITY_SERVER_E),
+        SecurityMechanism_List securityMech
+      }
+
+      type record SecurityVerify {
+        FieldName fieldName(SECURITY_VERIFY_E),
+        SecurityMechanism_List securityMech
+      }
+      }//end group RFC3329HeaderFieldTypes
+
+      group RFC3455HeaderFieldTypes
+      {
+      type record of NameAddrParam NameAddrParam_List;
+
+      type record NameAddrParam {
+          NameAddr nameAddr,
+          SemicolonParam_List genericParams optional
+      }
+      //[3455/5.1]
+      type record PAssociatedURI {
+        FieldName fieldName(P_ASSOCIATED_URI_E),
+        NameAddrParam_List nameAddrList
+      }
+      //[3455/5.2]
+      type record PCalledPartyID {
+          FieldName fieldName(P_CALLED_PARTY_E),
+          NameAddrParam nameAddParams
+      }
+
+      type record of VnetworkSpec VnetworkSpec_List;
+
+      type record VnetworkSpec {
+        charstring vNetworkSpecToken,
+        SemicolonParam_List genericParams optional
+      }
+
+      //[3455/5.3]
+      type record PVisitedNetworkID {
+        FieldName fieldName(P_VISITED_NETWORK_E),
+        VnetworkSpec_List vNetWorkSpec
+      }
+
+      //[3455/5.4]
+      type record PAccessNetworkInfo {
+        FieldName fieldName(P_ACCESS_NETWORK_INFO_E),
+        charstring accessType,
+        SemicolonParam_List genericParams optional
+      }
+
+      //[3455/5.5]
+      type record PChargingFunctionAddresses {
+        FieldName fieldName(P_CHARGING_FUNCTION_ADDRESSES_E),
+        SemicolonParam_List chargeAddrParams optional
+      }
+
+      //[3455/5.6]
+      type record PChargingVector {
+        FieldName fieldName(P_CHARGING_VECTOR_E),
+        SemicolonParam_List chargeParams optional
+      }
+      }//end group RFC33455HeaderFieldTypes
+
+      group RFC3515HeaderFieldTypes
+      {
+      // [3515]
+      type record ReferTo {
+          FieldName fieldName(REFER_TO_E),
+          NameAddr nameAddr,
+          SemicolonParam_List referToParams optional
+      }
+      }//end group RFC3515HeaderFieldTypes
+
+      group RFC3608HeaderFieldTypes
+      {
+      // [3608]
+      type record ServiceRoute {
+        FieldName fieldName(SERVICE_ROUTE_E),
+        RouteBody_List  routeBody
+      }
+      }//end group RFC33608HeaderFieldTypes
+
+
+      group RFC3841HeaderFieldTypes
+      {
+      // [3841]
+      type record AcceptContact {
+          FieldName fieldName(ACCEPT_CONTACT_E),
+          AcRcValue_List acValues
+      }
+
+      type set of AcRcValue AcRcValue_List;
+
+      type record AcRcValue {
+          charstring wildcard(c_WILDCARD),
+          SemicolonParam_List acRcParams optional
+      }
+      // [RFC 3841]
+      type charstring Directive;
+      type set of Directive Directive_List;
+      type record RequestDisposition {
+        FieldName       fieldName (REQUEST_DISPOSITION_E),
+        Directive_List  directives
+      }
+
+      }// end group RFC3841HeaderFieldTypes
+
+      group RFC3891HeaderFieldTypes
+      {
+      // [3891]
+      type record Replaces
+      {
+        FieldName           fieldName (REPLACES_E),
+        SemicolonParam_List replacesParams
+      }
+      }// end group RFC3891HeaderFieldTypes
+      
+      group RFC3892HeaderFieldTypes
+      {
+      // [3892]
+      type record ReferredBy {
+          FieldName fieldName(REFERRED_BY_E),
+          NameAddr nameAddr,
+          SemicolonParam_List referredbyIdParams optional
+      }
+      }//end group RFC3892HeaderFieldTypes
+
+      group RFC4028HeaderFieldTypes
+      {
+      // [4028]
+      type record MinSE {
+        FieldName fieldName(MIN_SE_E),
+        DeltaSec deltaSec,
+        SemicolonParam_List minSeParam optional
+      }
+      // [4028]
+      type record SessionExpires {
+        FieldName fieldName(SESSION_EXPIRES_E),
+        DeltaSec deltaSec,
+        SemicolonParam_List seParam optional
+      }
+      }//end group RFC4028HeaderFieldTypes
+
+      group RFC4244HeaderFieldTypes
+      {
+      // [4244]
+      type record HistoryInfo {
+          FieldName fieldName(HISTORY_INFO_E),
+          HistoryInfo_List historyInfoList
+      }
+
+      type record of HistoryInfoEntry HistoryInfo_List;
+
+      type record of integer IntegerList;
+
+      type record HistoryInfoEntry {
+          NameAddr nameAddr,
+          IntegerList hiIndex optional,
+          SemicolonParam_List hiExtention optional
+      }
+      }//end group RFC4244HeaderFieldTypes
+
+      group RFC5009PEarlyMediaHeader
+      {
+      // [5009]
+      type record PEarlyMedia {
+          FieldName fieldName(P_EARLY_MEDIA_E),
+          EM_List em_param
+      }
+      type record of charstring EM_List;
+      }//end group RFC5009PEarlyMediaHeader
+
+      //http://tools.ietf.org/html/draft-johnston-sipping-cc-uui-07, expires 16.Aug.2009
+      //Transporting User to User Call Control Information in SIP for ISDN Interworking
+      //type definition of SIP header mechanism
+      group UserToUser_PreliminaryRFCDraft
+      {
+        type record UserToUser{
+            FieldName fieldName (USER_TO_USER_E),
+            charstring  uuiData length(256), /*length limitation due to ISDN, max of allowed 128 hex digits are represented by 256 characters*/
+            GenericParam uuiParam
+        }
+
+      }//end group UserToUser_PreliminaryRFCDraft
+
+      type record PAssertedService {
+          FieldName fieldName(P_ASSERTED_SERVICE_E),
+          PAssertedServiceValue pAssertedServiceValue
+      }
+    type record Geolocation {       // draft-ietf-sipcore-location-conveyance-04 clause 4.1
+      FieldName fieldName(GEOLOCATION_E),
+      SipUrl    addrSpec,
+      charstring  routingAllowed,
+      SemicolonParam_List geolocParam optional
+    }
+
+
+    } // end group HeaderFieldTypes
+    
+    group MessageHeaderTypes
+    {
+      
+      // Message-Header for all SIP requests and responses [20]
+      type set MessageHeader
+      {
+        Accept              accept optional,
+        AcceptContact       acceptContact optional,
+        AcceptEncoding      acceptEncoding optional,
+        AcceptLanguage      acceptLanguage optional,
+        AlertInfo           alertInfo optional,
+        Allow               allow optional,
+        AllowEvents         allowEvents optional, // 3265/7.2
+        AuthenticationInfo  authenticationInfo optional, // only in responses
+        Authorization       authorization optional, // only in requests
+        CallId              callId optional, // optional only in Invalid test cases mandatory otherwise
+        CallInfo            callInfo optional,
+        Contact             contact optional, // optional in response and all requests except INVITE where mandatory
+        ContentDisposition  contentDisposition optional,
+        ContentEncoding     contentEncoding optional,
+        ContentLanguage     contentLanguage optional,
+        ContentLength       contentLength optional, // optional in responses and all requests except ACK where mandatory
+        ContentType         contentType optional,
+        CSeq                cSeq optional, // optional only in Invalid test cases mandatory otherwise
+        Date                date optional,
+        ErrorInfo           errorInfo optional, // only in responses
+        Event               event optional, // 3265/7.2
+        Expires             expires optional,
+        From                fromField,
+        Geolocation         geolocation optional, //   http://tools.ietf.org/html/draft-ietf-sipcore-location-conveyance-04
+        HistoryInfo         historyInfo optional, // 4244
+        InReplyTo           inReplyTo optional, // only in requests
+        MaxForwards         maxForwards optional, // mandatory in requests not required in responses!
+        MimeVersion         mimeVersion optional,
+        MinExpires          minExpires optional, // only in responses
+        MinSE               minSE optional, // 4028
+        Organization        organization optional,
+        PAccessNetworkInfo  pAccessNetworkInfo optional, // 3455
+        PAssertedID         pAssertedID optional, // 3325
+        PAssertedService    pAssertedService optional,
+        PAssociatedURI      pAssociatedURI optional, // 3455
+        Path                path optional, // 3327
+        PCalledPartyID      pCalledPartyID optional, // 3455
+        PChargingFunctionAddresses pChargingFunctionAddresses optional, // 3455
+        PChargingVector     pChargingVector optional, // 3455
+        PEarlyMedia         pEarlyMedia optional, // 5009
+        PMediaAuthorization pMediaAuthorization optional, // 3313
+        PPreferredID        pPreferredID optional, // 3325
+        PPreferredService pPreferredService optional, // draft-drage-sipping-service-identification-01 (July 2007)
+        Priority            priority optional,  // only in requests
+        Privacy             privacy optional, // 3323
+        ProxyAuthenticate   proxyAuthenticate optional, // only in responses
+        ProxyAuthorization  proxyAuthorization optional, // only in requests
+        ProxyRequire        proxyRequire optional, // only in requests
+        PVisitedNetworkID   pVisitedNetworkID optional, // 3455
+        RAck                rAck optional, // 3262/7.1
+        RSeq                rSeq optional, // 3262/7.1
+        Reason              reason optional, // 3326
+        RecordRoute         recordRoute optional,
+        RequestDisposition  requestDisposition optional, // 3841
+        ReferredBy          referredBy optional, // 3892 - REFER method
+        ReferTo             referTo optional, // 3515 - REFER method
+        Replaces            replaces optional, // 3891
+        ReplyTo             replyTo optional, // optional in responses and INVITE requests
+        Require             require optional,
+        RetryAfter          retryAfter optional, // only in responses
+        Route               route optional, // only in requests
+        SecurityClient      securityClient optional, // 3329
+        SecurityServer      securityServer optional, // 3329
+        SecurityVerify      securityVerify optional, // 3329
+        Server              server optional, // only in responses
+        ServiceRoute        serviceRoute optional, // 3608
+        SessionExpires      sessionExpires optional, // 4028
+        Subject             subject optional, // only in requests
+        SubscriptionState   subscriptionState optional, // 3265/7.2
+        Supported           supported optional,
+        Timestamp           timestamp optional,
+        To                  toField,
+        Unsupported         unsupported optional, // only in responses
+        UserToUser          userToUser optional,
+        UserAgent           userAgent optional,
+        Via                 via,
+        Warning             warning optional, // only in responses
+        WwwAuthenticate     wwwAuthenticate optional, // only in responses
+        UndefinedHeader_List    undefinedHeader_List optional
+      }
+      
+    } // end group MessageHeaderTypes
+    
+    group StartLineTypes
+    {
+      // Request-Line [7.1]
+      type record RequestLine
+      {
+        Method          method,
+        SipUrl          requestUri,
+        charstring      sipVersion
+      }
+      
+      // Status-Line [7.2]
+      type record StatusLine
+      {
+        charstring      sipVersion,
+        integer         statusCode,
+        charstring      reasonPhrase
+      }
+      
+    } // end group StartLineTypes
+    
+    
+    group otherTypes{
+    
+    type record SipUserProfile
+    {
+        /** @desc   integer for the userprofile identifier
+         */
+        integer     id,
+
+        /** @desc   integer for Port number to exchange SIP messages
+        */
+        integer     currPort,
+
+        /** @desc   charstring for IP address to exchange SIP messages
+        */
+        charstring  currIpaddr,
+
+        /** @desc   integer for Port number to exchange SIP messages
+        */
+        integer     contactPort,
+
+        /** @desc   charstring for IP address to exchange SIP messages
+        */
+        charstring  contactIpaddr,
+
+        /** @desc   charstring for IP address used by the TS to exchange media streams
+        */
+        charstring  bearerIpaddr,
+
+        /** @desc   charstring for identity of the tester local domain
+        */
+        charstring  homeDomain,
+
+        /** @desc   charstring for identity of the tester local user
+        */
+        charstring  publUsername,
+
+        /** @desc   charstring for RFC 2617 3.2.1 qop options:
+        * Quoted string of one or more tokens indicating the "quality of protection" values supported by the server. The
+        * value "auth" indicates authentication; the value "auth-int" indicates authentication with integrity protection.
+        */
+        charstring qop,
+
+        /** @desc   charstring for RFC 2617 3.2.2 username for authentication
+        * The name of user in the specified realm
+        */
+        charstring privUsername,
+
+        /** @desc   charstring for RFC 2617 3.2.2.2 passwd: A known shared secret, the password of user of the specified username
+        */
+        charstring passwd,
+
+        /** @desc   charstring for registrar domain for authentication and request line
+        */
+        charstring registrarDomain
+
+    }
+    
+    
+    } // end group otherTypes
+    
+  }// end group Subtypes
+  
+
+
+  group MSGtypes{
+    
+    group RequestTypes
+    {
+      // [7.1]
+
+    /**
+    *
+    * @desc generic type of a SIP request message
+    * @member statusLine contains a method name, a Request-URI, and the protocol version
+    * @member msgHeader include all possible header fields that are allowed to be present according to RFCs and other standards
+    * @member messageBody depends on the request method, includes e.g. SDP message.
+    * @member payload  contains the whole message as it has been received in its text format
+    */
+      type record Request
+      {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload     optional
+      } with { encode "SIPCodec"}
+      
+      // Note: the introduction of the following  specific types is to enable better means for logging
+      //       on the other side the generic type is useful for functions dealing with multiple SIP message types
+      
+      type record REGISTER_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+      type record INVITE_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+      type record OPTIONS_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+      type record BYE_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+      type record CANCEL_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+      type record ACK_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec" }
+
+      // [3262/7.1]
+      type record PRACK_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec" }
+
+      // [3265/7.1]
+      type record NOTIFY_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec" }
+
+      // [3265/7.1]
+      type record SUBSCRIBE_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+      // [3903/11.1]
+      type record PUBLISH_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec" }
+
+      //    [3311/7]
+      type record UPDATE_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec" }
+
+      //
+      type record REFER_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+      //
+      type record MESSAGE_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec" }
+
+      //
+      type record INFO_Request {
+        RequestLine     requestLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload optional
+      } with { encode "SIPCodec"}
+
+
+    }  //with { encode "SIPCodec" }// end group RequestTypes
+    
+    group ResponseTypes
+    {
+      // [7.2]
+
+    /**
+    *
+    * @desc generic type of a SIP response message
+    * @member statusLine consists of the protocol version followed by a numeric Status-Code and its associated textual phrase
+    * @member msgHeader include all possible header fields that are allowed to be present according to RFCs and other standards
+    * @member messageBody depends on the response method, includes e.g. SDP message.
+    * @member payload  contains the whole message as it has been received in its text format
+    */
+      type record Response
+      {
+        StatusLine      statusLine,
+        MessageHeader   msgHeader,
+        MessageBody     messageBody optional,
+        Payload         payload     optional
+      }  with { encode "SIPCodec"}
+    } //with { encode "SIPCodec" }// end group ResponseTypes
+    
+    // This MSG type is defined for sending synctactic variations, ans syntactically
+    // erroneous messages, and receving messages failed parsing.
+    group SyntacticTypes
+    {
+      type charstring Raw;
+    } // end group SyntacticTypes
+    
+    // This type is defined for particular SIP message body types like SDP
+
+    group MessageBodyTypes
+    {
+      type union MessageBody{
+      SDP_Message sdpMessageBody,     // if there is only SDP part
+//      XMLMessage xmlMessage,          // if there is XML message (with header and body)
+        XmlBody xmlBody,                // if there is XML body
+        MIME_Message mimeMessageBody,   // if there is SDP and encapsulated ISUP part
+        charstring sipfrag,             // if content-Type is message/sipfrag (cp. NOTIFY, cp TS124147 A.4.3.1.2)
+        charstring textplain,           // if content type is text/plain (for testing long messages)
+//      SimpleMsgSummary simpleMsgSummary, // RFC 3842
+        octetstring smsMessage          // encoded SMS message 3GPP 23.040, 24.011
+      };
+ 
+    } // end group MessageBodyTypes
+
+    group MIMETypes
+    {
+      group SubMIMETypes
+      {
+
+        type union MIME_Encapsulated_Parts {
+        SDP_Message   sdpMessageBody,
+          XmlBody xmlBody                   // if there is XML body
+//          XMLMessage  xmlMessage          // if there is XML message (with header and body)
+        }
+
+        type record MIME_Encapsulated_Part {
+          charstring                content_type,
+          charstring                content_disposition optional,
+          MIME_Encapsulated_Parts   mime_encapsulated_part
+        }
+      }//end group SubMIMETypes
+
+      group MessageTypes {
+ 
+        type record MIME_Message {
+          charstring boundary, // len:
+          MimeEncapsulatedList mimeEncapsulatedList
+        }
+
+        type record of MIME_Encapsulated_Part MimeEncapsulatedList;
+
+      } // group MessageTypes
+    } // group MIMETypes
+    
+  }// end group MSGTypes
+}// end group Types
+
+} // end module LibSip_TypesAndValues

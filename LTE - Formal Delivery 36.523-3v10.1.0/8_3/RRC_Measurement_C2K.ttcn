@@ -1,0 +1,284 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 16:47:24 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7266 $
+/******************************************************************************/
+
+module RRC_Measurement_C2K {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonIratDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CapabilityFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_Measurement_Specific_Templates all;
+  import from EUTRA_Measurement_Templates all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_Timing all;
+  import from RRC_Measurement_Functions all;
+
+  function f_TC_8_3_2_7_EUTRA () runs on EUTRA_PTC
+  { /* Measurement configuration control and reporting / Inter-RAT measurements / Event B2 / Measurement of HRPD cells */
+    const integer tsc_T0_T2_RS_EPRE_Cell1 := -60;
+    const integer tsc_T1_RS_EPRE_Cell1 := -80;
+    
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    
+    var IRAT_CoOrd_SysInfo_Type v_CDMA2000SysInfo;
+    var CDMA2000_Type  v_CDMA2000_Type_Cell15 ;
+    
+    var PhysCellIdCDMA2000  v_PNOffset_Cell15 ;
+    var ARFCN_ValueCDMA2000 v_Arfcn_CDMA2000_Cell15 ;
+    
+    var BandclassCDMA2000 v_BandClass_CDMA2000_Cell15;
+    var SearchWindowSize_Type v_SearchWindowSize_Cell15 := 15;
+    //@sic R5112614 sic@
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1 ;
+    
+    var float v_TimerValue_1;
+    
+    //Initialize testcase
+    f_EUTRA_Init ( c6 );
+    
+    v_TimerValue_1 := f_EUTRA_SetTimerToleranceMax ( eutra_Cell1, nonProtocolTimer,  10.0 );
+     //@sic R5112614 sic@
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1);
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam(v_Frequency_IE_Cell1.DL_ChBandwidth, v_Frequency_IE_Cell1.UL_ChBandwidth);
+    
+    //Set EPRE for T0
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, tsc_T0_T2_RS_EPRE_Cell1 );
+    
+    //Create and configure Cell1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    // Get Cell Parameters for CDMA2000 cell
+    
+    v_CDMA2000SysInfo := f_IRAT_WaitForCoOrd_SysInfo ( CDMA2000 );
+    // Initialise locol parameters for
+    v_CDMA2000_Type_Cell15 :=  f_ConvertFromBoolToCDMA2000_Type(v_CDMA2000SysInfo.Cdma2000[0].IsHRPD);
+    v_PNOffset_Cell15 := v_CDMA2000SysInfo.Cdma2000[0].PNOffset;
+    v_Arfcn_CDMA2000_Cell15 := v_CDMA2000SysInfo.Cdma2000[0].Arfcn;
+    v_BandClass_CDMA2000_Cell15 := f_ConvertFromIntegerToBandClass(v_CDMA2000SysInfo.Cdma2000[0].BandClass);
+    //v_SearchWindowSize_Cell15 := v_CDMA2000SysInfo.Cdma2000[0].SearchWindowSize;
+    
+    // First Cor-ordination message to power up HRPD Cells;
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    // set cell power as per T0
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_T0_T2_RS_EPRE_Cell1 );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 1-2" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message to setup inter RAT measurement on Cell 1.
+    //The UE transmits an RRCConnectionReconfigurationComplete message to confirm the setup of inter RAT measurement on Cell 1.
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,cs_RRCConnectionReconfiguration_IratMeasB2_C2K ( v_RRC_TI,
+                                                                                      v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq, //@sic R5112614 sic@
+                                                                                     v_ChBandDependency_Cell1.AllowedMeasBandwidth, //@sic R5112614 sic@
+                                                                                      v_CDMA2000_Type_Cell15,
+                                                                                      v_Arfcn_CDMA2000_Cell15,
+                                                                                      v_BandClass_CDMA2000_Cell15,
+                                                                                      v_SearchWindowSize_Cell15,
+                                                                                      tsc_IdMeasObject_f14,
+                                                                                      v_PNOffset_Cell15));
+    
+    //@siclog "Step 3" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 during the next 10s?
+    f_NoMeasurementReport ( eutra_Cell1, v_TimerValue_1, cr_MeasurementReport_CheckAny);
+    
+    //@siclog "Step 4" siclog@
+    //The SS changes Cell 1 and Cell 16 parameters according to the row "T1" in table 8.3.2.7.3.2-1.
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_T1_RS_EPRE_Cell1 );
+    
+    //@siclog "Step 5" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 for Cell 15
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,
+                                        cr_MeasurementReport_CDMA2000_1Entry ( v_PNOffset_Cell15,omit ) ) );//@sic R5-110734 sic@
+    f_EUTRA_PreliminaryPass ( __FILE__, __LINE__, "Step 5" );
+    
+    //@siclog "Step 7" siclog@
+    //The SS changes Cell 1 and Cell 15 parameters according to the row "T2" in table 8.3.2.7.3.2-1.
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_T0_T2_RS_EPRE_Cell1 );
+    
+    //Activate the default to receive measurement reports for Cell 15
+    //( Step 7 )
+    // v_DefaultRef := activate ( a_EUTRA_AddDefault_PeriodicalMeasurmentReport ( eutra_Cell1,
+    //                                                                           cr_MeasurementReport_CheckAny ) );
+    
+    //@siclog "Step 8" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 during the next 10s?
+    f_NoMeasurementReport ( eutra_Cell1, v_TimerValue_1, cr_MeasurementReport_CheckAny);
+    
+    //Step 7: Wait and ignore MeasurementReport messages for 5 s to allow change of power levels for Cells 1 and Cell 24.
+    // t_Wait.start ( v_TimerValue_2 );
+    // t_Wait.timeout;
+    // deactivate ( v_DefaultRef );
+    
+    //@siclog "Step 9-13 void" siclog@
+    
+    
+    //@siclog "Step 14" siclog@
+    //Check: Does the test result of CALL generic procedure indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 1?
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+    
+    //End TestBody
+    //------------------------------------------------
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //tell the CDMA2000 component that the test is over
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED );
+    
+  }; //end of testcase 8.3.2.7_end
+
+  function f_TC_8_3_2_9_EUTRA () runs on EUTRA_PTC
+  { /* Measurement configuration control and reporting / Inter-RAT measurements / Event B2 / Measurement of 1xRTT cells */
+    var integer v_T0_T2_T4_RS_EPRE_Cell1 := -60;
+    var integer v_T1_T3_RS_EPRE_Cell1 := -80;
+    
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    
+    var IRAT_CoOrd_SysInfo_Type v_CDMA2000SysInfo;
+    var CDMA2000_Type v_CDMA2000_Type_Cell19;
+    var PhysCellIdCDMA2000  v_PNOffset_Cell19;
+    var ARFCN_ValueCDMA2000 v_Arfcn_CDMA2000_Cell19;
+    var BandclassCDMA2000 v_BandClass_CDMA2000_Cell19;
+    var SearchWindowSize_Type v_SearchWindowSize_Cell19 := 15;
+    //@sic R5112614 sic@
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1 ;
+    
+    var float v_TimerValue_1;
+    
+    //Initialize testcase
+    f_EUTRA_Init ( c6 );
+    
+    v_TimerValue_1 := f_EUTRA_SetTimerToleranceMax ( eutra_Cell1, nonProtocolTimer,  10.0 );
+    //@sic R5112614 sic@
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1);
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam(v_Frequency_IE_Cell1.DL_ChBandwidth, v_Frequency_IE_Cell1.UL_ChBandwidth);
+    
+    
+    //Set EPRE for T0
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, v_T0_T2_T4_RS_EPRE_Cell1 );
+    
+    //Create and configure Cell1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    // Get Cell Parameters for CDMA2000 cell
+    v_CDMA2000SysInfo := f_IRAT_WaitForCoOrd_SysInfo ( CDMA2000 );
+    
+    // Initialise locol parameters for
+    v_CDMA2000_Type_Cell19 :=  f_ConvertFromBoolToCDMA2000_Type(v_CDMA2000SysInfo.Cdma2000[0].IsHRPD);
+    v_PNOffset_Cell19 := v_CDMA2000SysInfo.Cdma2000[0].PNOffset;
+    v_Arfcn_CDMA2000_Cell19 := v_CDMA2000SysInfo.Cdma2000[0].Arfcn;
+    v_BandClass_CDMA2000_Cell19 := f_ConvertFromIntegerToBandClass(v_CDMA2000SysInfo.Cdma2000[0].BandClass);
+    //v_SearchWindowSize_Cell19 := v_CDMA2000SysInfo.Cdma2000[0].SearchWindowSize;
+    
+    // First Cor-ordination message to power up HRPD Cells;
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 1-2" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message to setup inter RAT measurement on Cell 1.
+    //The UE transmits an RRCConnectionReconfigurationComplete message to confirm the setup of inter RAT measurement on Cell 1.
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1, cs_RRCConnectionReconfiguration_IratMeasB2_C2K ( v_RRC_TI,
+                                                                                                                  v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq, //@sic R5112614 sic@
+                                                                                                                  v_ChBandDependency_Cell1.AllowedMeasBandwidth, //@sic R5112614 sic@
+                                                                                                                  v_CDMA2000_Type_Cell19,
+                                                                                                                  v_Arfcn_CDMA2000_Cell19,
+                                                                                                                  v_BandClass_CDMA2000_Cell19,
+                                                                                                                  v_SearchWindowSize_Cell19,
+                                                                                                                  tsc_IdMeasObject_f17,
+                                                                                                                  v_PNOffset_Cell19));
+    
+    //@siclog "Step 3" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 during the next 10s?
+    f_NoMeasurementReport ( eutra_Cell1, v_TimerValue_1, cr_MeasurementReport_CheckAny);
+    
+    //@siclog "Step 4" siclog@
+    //The SS changes Cell 1 and Cell 19 parameters according to the row "T1" in table 8.3.2.9.3.2-1.
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T1_T3_RS_EPRE_Cell1 );
+    
+    //@siclog "Step 5" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 for Cell 19 and not Cell 20?
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,
+                                        cr_MeasurementReport_CDMA2000_1Entry ( v_PNOffset_Cell19 ,*) ) );//@sic R5-110734 sic@
+    f_EUTRA_PreliminaryPass ( __FILE__, __LINE__, "Step 5" );
+    
+    //@siclog "Step 7" siclog@
+    //The SS changes Cell 1 and Cell 19 parameters according to the row "T2" in table 8.3.2.9.3.2-1.
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T0_T2_T4_RS_EPRE_Cell1 );
+    
+    //@siclog "Step 8" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 during the next 10s?
+    f_NoMeasurementReport ( eutra_Cell1, v_TimerValue_1, cr_MeasurementReport_CheckAny);
+    
+    //@siclog "Step 9" siclog@
+    //The SS changes Cell 1 and Cell 19 parameters according to the row "T3" in table 8.3.2.9.3.2-1.
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T1_T3_RS_EPRE_Cell1 );
+    
+    //@siclog "Step 10" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 for Cell 19 and not Cell 20?
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,
+                                        cr_MeasurementReport_CDMA2000_1Entry ( v_PNOffset_Cell19,* ) ) );//@sic R5-110734 sic@
+    f_EUTRA_PreliminaryPass ( __FILE__, __LINE__, "Step 10" );
+    
+    //@siclog "Step 12" siclog@
+    //The SS changes Cell 1 and Cell 19 parameters according to the row "T4" in table 8.3.2.9.3.2-1.
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T0_T2_T4_RS_EPRE_Cell1 );
+    
+    //@siclog "Step 13" siclog@
+    //Check: Does the UE transmit a MeasurementReport message to report the event B2 during the next 10s?
+    f_NoMeasurementReport ( eutra_Cell1, v_TimerValue_1, cr_MeasurementReport_CheckAny);
+    
+    //@siclog "Step 14" siclog@
+    //Check: Does the test result of CALL generic procedure indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 1?
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+    
+    //End TestBody
+    //------------------------------------------------
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //tell the CDMA2000 component that the test is over
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED );
+  }
+
+}

@@ -1,0 +1,84 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-16 18:02:06 +0200 (Mon, 16 Apr 2012) $
+// $Rev: 6494 $
+/******************************************************************************/
+
+module EUTRA_SecurityDefinitionsAndExternalFunctions {
+
+  import from CommonDefs all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_CommonDefs all;
+
+  const integer tsc_DirectionUL := 0;   /* acc. to 33.401 B.1.1 and B.2.1                @status    APPROVED*/
+
+  const integer tsc_DirectionDL := 1;   /* acc. to 33.401 B.1.1 and B.2.1                @status    APPROVED*/
+
+  type integer MAC_Direction_Type (tsc_DirectionDL, tsc_DirectionUL);   /* direction bit for calculation of MAC acc. to 24.301 cl. 9.5    @status    APPROVED*/
+
+  const integer tsc_KDF_HMAC_SHA_256 := 1;      /* @status    APPROVED */
+
+  const integer tsc_KDF_Spare3 := 4;            /* @status    APPROVED */
+
+  type integer KDF_Type ( tsc_KDF_HMAC_SHA_256 .. tsc_KDF_Spare3 );     /* @status    APPROVED */
+
+  function f_NasSecurity_IncrementCOUNT(NasCount_Type p_Count) return NasCount_Type
+  {
+    var integer v_CountValue := oct2int(p_Count);
+    v_CountValue := (v_CountValue + 1) mod (65536 * 256);    // the 8 most significant bits are 0 (24.301 cl. 4.4.3.1)
+    return int2oct(v_CountValue, 4);
+  };
+
+  external function fx_KeyDerivationFunction(KDF_Type  p_KDF,
+                                             B256_Type p_Key,
+                                             octetstring p_String) return B256_Type;
+
+  external function fx_NasIntegrityAlgorithm(octetstring   p_EncodedNasPdu,
+                                             B3_Type       p_IntegrityAlgorithm,
+                                             B128_Key_Type p_KNASint,
+                                             NasCount_Type p_NasCount,
+                                             B5_Type       p_BearerId,    /* @sic R5-101050: BearerId changed to 5 bits sic@ */
+                                             MAC_Direction_Type p_Direction) return MessageAuthenticationCode;    /* @status    APPROVED */
+
+  external function fx_NasCiphering(octetstring p_EncodedNasPdu,
+                                    B3_Type       p_CipheringAlgorithm,
+                                    B128_Key_Type p_KNASenc,
+                                    NasCount_Type p_NasCount,
+                                    B5_Type p_BearerId) return octetstring;                                       /* @sic R5-101050: BearerId changed to 5 bits sic@
+                                                                                                                     @status    APPROVED */
+
+  external function fx_NasDeciphering(octetstring p_CipheredNasMsg,
+                                      B3_Type       p_CipheringAlgorithm,
+                                      B128_Key_Type p_KNASenc,
+                                      NasCount_Type p_NasCount,
+                                      B5_Type p_BearerId) return octetstring;                                     /*  @sic R5-101050: BearerId changed to 5 bits sic@
+                                                                                                                      @status    APPROVED */
+
+  external function fx_AsIntegrityAlgorithm(octetstring   p_EncodedPdcpPdu,
+                                            IntegrityProtAlgorithm_Type p_IntegrityAlgorithm,
+                                            B128_Key_Type p_KRRCint,
+                                            O4_Type       p_PdcpCount,
+                                            B5_Type       p_BearerId,
+                                            MAC_Direction_Type p_Direction) return MessageAuthenticationCode;      /* @sic R5-101050: BearerId changed to 5 bits sic@
+                                                                                                                      see TS 36.323 clause 5.7 */
+
+  external function fx_AsCiphering(octetstring p_EncodedSdu,
+                                   CipheringAlgorithm_Type p_CipheringAlgorithm,
+                                   B128_Key_Type p_Key,
+                                   O4_Type p_PdcpCount,
+                                   B5_Type p_BearerId) return octetstring;                                         /* @sic R5-101050: BearerId changed to 5 bits sic@
+                                                                                                                      see TS 36.323 clause 5.6 */
+
+  external function fx_AsDeciphering(octetstring p_CipheredSdu,
+                                     CipheringAlgorithm_Type p_CipheringAlgorithm,
+                                     B128_Key_Type p_Key,
+                                     O4_Type p_PdcpCount,
+                                     B5_Type p_BearerId) return octetstring;                                       /* @sic R5-101050: BearerId changed to 5 bits sic@
+                                                                                                                      see TS 36.323 clause 5.6 */
+
+}

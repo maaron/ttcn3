@@ -1,0 +1,401 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module EUTRA_DRB_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CommonDefs all;
+
+  const integer tsc_LogicalChannelPriorityLo := 13; /* According to 36.508 cl. 4.8.2.1.4 Table 4.8.2.1.4-1;     @status    APPROVED */
+
+  const integer tsc_LogicalChannelPriorityHi := 6;  /* According to 36.508 cl. 4.8.2.1.4 Table 4.8.2.1.4-1;     @status    APPROVED */
+
+  template (value) PDCP_Config cs_508_PDCP_Config_DRB_UM :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.2.1 Table 4.8.2.1.2.1-1 */
+    /* @status    APPROVED */
+    discardTimer := ms100,
+    rlc_AM := omit,
+    rlc_UM := {
+      pdcp_SN_Size := len12bits
+    },
+    headerCompression := {
+      notUsed := NULL
+    },
+    rn_IntegrityProtection_r10 := omit             /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+  };
+
+  template (value) PDCP_Config cs_508_PDCP_Config_DRB_AM :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.2.2 Table 4.8.2.1.2.2-1 */
+    /* @status    APPROVED */
+    discardTimer := infinity_,
+    rlc_AM := {
+      statusReportRequired := true
+    },
+    rlc_UM := omit,
+    headerCompression := {
+      notUsed := NULL
+    },
+    rn_IntegrityProtection_r10 := omit             /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+  };
+
+  template (value) UL_AM_RLC cs_508_DRB_UL_AM_RLC :=
+  { /*  Default values according to 36.508 cl. 4.8.2.1.3.2 Table 4.8.2.1.3.2-1 */
+    /* @status    APPROVED */
+    t_PollRetransmit := ms80,
+    pollPDU := p128,
+    pollByte := kB125,
+    maxRetxThreshold := t4
+  };
+
+  template (value) DL_AM_RLC cs_508_DRB_DL_AM_RLC :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.3.2 Table 4.8.2.1.3.2-1 */
+    /* @status    APPROVED */
+    t_Reordering := ms80,
+    t_StatusProhibit := ms60
+  };
+
+  template (value) UL_UM_RLC cs_508_DRB_UL_UM_RLC :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.3.1 Table 4.8.2.1.3.1-1 */
+    /* @status    APPROVED */
+    sn_FieldLength := size10
+  };
+
+  template (value) DL_UM_RLC cs_508_DRB_DL_UM_RLC :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.3.1 Table 4.8.2.1.3.1-1 */
+    /* @status    APPROVED */
+    sn_FieldLength := size10,
+    t_Reordering := ms50
+  };
+
+  template (value) DL_UM_RLC cds_RX_UM_RLC_DRB_SN10_tReord55ms modifies cs_508_DRB_DL_UM_RLC :=
+  { /* @status    APPROVED */
+    t_Reordering := ms55
+  };
+
+  template (value) RLC_Config cs_508_RLC_Config_DRB_UM(template (value) UL_UM_RLC p_DRB_UL_UM_RLC := cs_508_DRB_UL_UM_RLC,
+                                                       template (value) DL_UM_RLC p_DRB_DL_UM_RLC := cs_508_DRB_DL_UM_RLC) :=
+                                                       
+  { /* Default values according to 36.508 cl. 4.8.2.1.3.1 Table 4.8.2.1.3.1-1 */
+    /* @status    APPROVED */
+    /* @sic R5s100469 Additional Changes sic@ */
+    um_Bi_Directional := {
+      ul_UM_RLC := p_DRB_UL_UM_RLC,
+      dl_UM_RLC := p_DRB_DL_UM_RLC
+    }
+  };
+
+  template (value) RLC_Config cs_508_RLC_Config_DRB_AM(template (value) UL_AM_RLC p_DRB_UL_AM_RLC := cs_508_DRB_UL_AM_RLC,
+                                                       template (value) DL_AM_RLC p_DRB_DL_AM_RLC := cs_508_DRB_DL_AM_RLC) :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.3.2 Table 4.8.2.1.3.2-1 */
+    /* @status    APPROVED */
+    /* @sic R5s100469 Additional Changes sic@ */
+    am := {
+      ul_AM_RLC := p_DRB_UL_AM_RLC,
+      dl_AM_RLC := p_DRB_DL_AM_RLC
+    }
+  };
+
+  template (value) RLC_Configuration_Type cs_RLC_Configuration_AM(template (value) UL_AM_RLC p_DRB_UL_AM_RLC := cs_508_DRB_UL_AM_RLC,
+                                                                  template (value) DL_AM_RLC p_DRB_DL_AM_RLC := cs_508_DRB_DL_AM_RLC) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100469 Additional Changes sic@ */
+    Rb := {
+      AM := {
+        Tx := cs_UL_AM_RLC_r8(p_DRB_UL_AM_RLC),
+        Rx := cs_DL_AM_RLC_r8(p_DRB_DL_AM_RLC)
+      }
+    },
+    TestMode := {
+      None := true //as this template is not to be used for RLC testing
+    }
+  };
+
+  template (value) RLC_Configuration_Type cs_RLC_Configuration_UM(template (value) UL_UM_RLC p_DRB_UL_UM_RLC := cs_508_DRB_UL_UM_RLC,
+                                                                  template (value) DL_UM_RLC p_DRB_DL_UM_RLC := cs_508_DRB_DL_UM_RLC) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100469 Additional Changes sic@ */
+    Rb := {
+      UM := {
+        Tx := cs_UL_UM_RLC_r8(p_DRB_UL_UM_RLC),
+        Rx := cs_DL_UM_RLC_r8(p_DRB_DL_UM_RLC)
+      }
+    },
+    TestMode := {
+      None := true //as this template is not to be used for RLC testing
+    }
+  };
+
+  template (value) LogicalChannelConfig cs_508_LogicalChannelConfig_DRB_AM :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.4 Table 4.8y.2.1.4-1 (using condition LO) */
+    /* @status    APPROVED */
+    ul_SpecificParameters := {
+      priority := tsc_LogicalChannelPriorityLo,
+      prioritisedBitRate := infinity_,
+      bucketSizeDuration := ms100,
+      logicalChannelGroup := 2
+    },
+    logicalChannelSR_Mask_r9 := omit     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) LogicalChannelConfig cs_508_LogicalChannelConfig_DRB_UM :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.4 Table 4.8.2.1.4-1 (using condition HI) */
+    /* @status    APPROVED */
+    ul_SpecificParameters := {
+      priority := tsc_LogicalChannelPriorityHi,
+      prioritisedBitRate := infinity_,
+      bucketSizeDuration := ms100,
+      logicalChannelGroup := 1
+    },
+    logicalChannelSR_Mask_r9 := omit     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) MAC_Configuration_Type cs_MAC_Configuration(integer p_Priority,
+                                                               PrioritizedBitRate_Type p_PrioritizedBitRate := kBps0) :=
+  { /* @status    APPROVED */
+    LogicalChannel := {
+      Priority := p_Priority,
+      PrioritizedBitRate := p_PrioritizedBitRate  // kBps0 per default
+    },
+    TestMode := {
+      None := true //as this template is not to be used for MAC testing
+    }
+  };
+
+  template (value) MAC_Configuration_Type cs_MAC_Configuration_AM :=
+    /* @status    APPROVED */
+    cs_MAC_Configuration(tsc_LogicalChannelPriorityLo);
+
+  template (value) MAC_Configuration_Type cs_MAC_Configuration_UM :=
+    /* @status    APPROVED */
+    cs_MAC_Configuration(tsc_LogicalChannelPriorityHi);
+
+  template (value) RadioBearer_Type cs_OneDRB_ConfigUM(DRB_Identity p_Drb,
+                                                       template (value) PDCP_Config p_PdcpConfig := cs_508_PDCP_Config_DRB_UM,
+                                                       template (value) RLC_Configuration_Type p_RlcConfig := cs_RLC_Configuration_UM) :=
+  { /* To configure 1 UM DRB in SS. Parameters according to 36.508 cl. 4.8.2.1.7 */
+    /* @sic R5s100076: optional parameters p_PdcpConfig, p_RlcConfig sic@ */
+    /* @status    APPROVED */
+    Id := {
+      Drb := p_Drb
+    },
+    Config := {
+      AddOrReconfigure := {
+        Pdcp := {
+          Config := {
+            Rb := {
+              Drb := cs_PDCP_Config_r8(p_PdcpConfig)
+            },
+            TestMode := {
+              None := true //as this template is not to be used for PDCP testing
+            }
+          }
+        },
+        Rlc := p_RlcConfig,                  // @sic R5s090314: Additional comments sic@
+        LogicalChannelId := p_Drb+2,
+        Mac := cs_MAC_Configuration_UM,      // @sic R5s090314: Additional comments sic@
+        DiscardULData := omit                // @sic RAN5 #55 sidebar meeting sic@
+      }
+    }
+  };
+
+  template (value) RadioBearer_Type cs_OneDRB_ConfigAM(DRB_Identity p_Drb,
+                                                       template (value) PDCP_Config p_PdcpConfig := cs_508_PDCP_Config_DRB_AM,
+                                                       template (value) RLC_Configuration_Type p_RlcConfig := cs_RLC_Configuration_AM,
+                                                       template (value) MAC_Configuration_Type p_MacConfig := cs_MAC_Configuration_AM) :=
+  { /* To configure 1 AM DRB in SS. Parameters according to 36.508 cl. 4.8.2.1.7 */
+    /* @status    APPROVED */
+    /* @sic R5s100469 Additional Changes sic@ */
+    Id := {
+      Drb := p_Drb
+    },
+    Config := {
+      AddOrReconfigure := {
+        Pdcp := {
+          Config := {
+            Rb := {
+              Drb := cs_PDCP_Config_r8(p_PdcpConfig)
+            },
+            TestMode := {
+              None := true //as this template is not to be used for PDCP testing
+            }
+          }
+        },
+        Rlc := p_RlcConfig,                  // @sic R5s090314: Additional comments sic@
+        LogicalChannelId := p_Drb+2,
+        Mac := p_MacConfig,                  // @sic R5s090314: Additional comments sic@
+        DiscardULData := omit                // @sic RAN5 #55 sidebar meeting sic@
+      }
+    }
+  };
+
+  template (value) RadioBearerList_Type cs_DrbConfigList_Def := { cs_OneDRB_ConfigAM(tsc_DRB1) }; /* @status    APPROVED */
+
+  template (value) RadioBearer_Type cs_DRB_Release(DRB_Identity p_Drb) :=
+  { /* To release the configured DRB in SS */
+    /* @status    APPROVED */
+    Id := {
+      Drb := p_Drb
+    },
+    Config := {
+      Release := true
+    }
+  };
+
+  template (value) DRB_ToAddMod cs_508_DRB_ToAddMod_Common(DRB_Identity p_DRB_Id,
+                                                           template (omit) PDCP_Config  p_PDCP_Config,
+                                                           template (omit) RLC_Config   p_RLC_Config,
+                                                           template (omit) LogicalChannelConfig p_LogicalChannelConfig) :=
+  { /* common template which deals with assignment of eps_BearerIdentity and logicalChannelIdentity */
+    /* @status    APPROVED */
+    eps_BearerIdentity := p_DRB_Id+4,
+    drb_Identity := p_DRB_Id,
+    pdcp_Config := p_PDCP_Config,
+    rlc_Config := p_RLC_Config,
+    logicalChannelIdentity := p_DRB_Id+2,
+    logicalChannelConfig := p_LogicalChannelConfig
+  };
+
+  template (value) DRB_ToAddMod cs_508_DRB_ToAddMod_DEFAULT_AM (DRB_Identity p_DRB_Id) :=
+    /* According to 36.508 cl. 4.8.2.1.7 Table 4.8.2.1.7-1 (using condition AM) */
+    /* @status    APPROVED */
+    cs_508_DRB_ToAddMod_Common(p_DRB_Id,
+                               cs_508_PDCP_Config_DRB_AM,
+                               cs_508_RLC_Config_DRB_AM,
+                               cs_508_LogicalChannelConfig_DRB_AM);
+
+  template (value) DRB_ToAddMod cs_508_DRB_ToAddMod_DEFAULT_UM (DRB_Identity p_DRB_Id) :=
+    /* According to 36.508 cl. 4.8.2.1.7 Table 4.8.2.1.7-1 (using condition UM) */
+    /* @status    APPROVED */
+    cs_508_DRB_ToAddMod_Common(p_DRB_Id,
+                               cs_508_PDCP_Config_DRB_UM,
+                               cs_508_RLC_Config_DRB_UM,
+                               cs_508_LogicalChannelConfig_DRB_UM);
+
+  template (value) PDCP_Config cds_PDCP_Config_DRB_AM_NoPDCP_StatusReport
+  modifies cs_508_PDCP_Config_DRB_AM :=
+  { /* Default values according to 36.508 cl. 4.8.2.1.2.2 Table 4.8.2.1.2.2-1 */
+    /* except PDCP status report NOT required */
+    /* @status   APPROVED */
+    rlc_AM := {
+      statusReportRequired := false
+    }
+  };
+
+  template (value) DRB_ToAddMod cs_DRB_ToAddMod_NoPDCP_StatusReport (DRB_Identity p_DRB_Id) :=
+    /* According to 36.508 cl. 4.8.2.1.7 Table 4.8.2.1.7-1 (using condition AM) */
+    /* except PDCP status report NOT required */
+    /* @status    APPROVED */
+    cs_508_DRB_ToAddMod_Common(p_DRB_Id,
+                               cds_PDCP_Config_DRB_AM_NoPDCP_StatusReport,
+                               cs_508_RLC_Config_DRB_AM,
+                               cs_508_LogicalChannelConfig_DRB_AM);
+
+  template (value) DRB_ToAddMod cs_508_DRB_ToAddMod_RECONFIG(DRB_Identity p_DRB_Id,
+                                                             template (value) RLC_Config   p_RLC_Config) :=
+  { /* @status    APPROVED */
+    eps_BearerIdentity := omit,
+    drb_Identity := p_DRB_Id,
+    pdcp_Config := omit,
+    rlc_Config := p_RLC_Config,
+    logicalChannelIdentity := omit,
+    logicalChannelConfig := omit
+  };
+
+  template (value) DRB_ToAddModList cs_508_DRB_ToAddModList_RECONFIG :=
+  { /* Default values according to 36.508 cl. 4.6.3 Table 4.6.3-2A */
+    /* @status    APPROVED */
+    /* @sic R5s110313 sic@ */
+    cs_508_DRB_ToAddMod_RECONFIG(1, cs_508_RLC_Config_DRB_AM_RECONFIG),
+    cs_508_DRB_ToAddMod_RECONFIG(2, cs_508_RLC_Config_DRB_AM_RECONFIG)  // @sic R5-100487 sic@
+  };
+
+  template (value) DRB_ToAddModList cs_508_DRB_ToAddModList_RECONFIG_UM :=
+  { /* @status    APPROVED */
+    cs_508_DRB_ToAddMod_RECONFIG(1, cs_508_RLC_Config_DRB_AM_RECONFIG),
+    cs_508_DRB_ToAddMod_RECONFIG(2, cs_508_RLC_Config_DRB_UM_RECONFIG)
+  };
+
+  template (value) RLC_Config cs_508_RLC_Config_DRB_AM_RECONFIG :=
+  { /* Default values according to 36.508 cl. 4.6.3 Table 4.6.3-19A */
+    /* @status    APPROVED */
+    am := {
+      ul_AM_RLC := {
+        t_PollRetransmit := ms85,
+        pollPDU := p64,
+        pollByte := kB250,
+        maxRetxThreshold := t8
+      },
+      dl_AM_RLC := {
+        t_Reordering := ms85,
+        t_StatusProhibit := ms50
+      }
+    }
+  };
+
+  template (value) RLC_Config cs_508_RLC_Config_DRB_UM_RECONFIG :=
+    /* According to 36.508 cl. 4.6.3 Table 4.6.3-19B */
+    /* @status    APPROVED */
+    cs_508_RLC_Config_DRB_UM(cs_508_DRB_UL_UM_RLC, cds_RX_UM_RLC_DRB_SN10_tReord55ms);
+
+  template (value) HarqProcessAssignment_Type cs_HarqProcessAssignment_Automatic :=
+  { /* @status    APPROVED */
+    Automatic := true
+  };
+
+  template (value) DRB_COMMON_REQ cas_DRB_COMMON_REQ_PDCP_SDU(EUTRA_CellId_Type p_CellId,
+                                                              RadioBearerId_Type p_RB_Id,
+                                                              template (value) TimingInfo_Type p_TimingInfo,
+                                                              template (value) PDCP_SDUList_Type p_PDCP_SDUList,
+                                                              template (value) HarqProcessAssignment_Type p_HarqProcess := cs_HarqProcessAssignment_Automatic,
+                                                              integer p_SubframeOffset := 0) :=
+  { /* Template for DRB Data REQ wih PDCP SDUs */
+    /* @status    APPROVED */
+    Common   := cs_ReqAspCommonPart_RB(p_CellId, p_RB_Id, p_TimingInfo),
+    U_Plane   := {
+      SubframeDataList := {
+        {
+          SubframeOffset := p_SubframeOffset,
+          HarqProcess := p_HarqProcess,
+          PduSduList :=
+          {
+            PdcpSdu := p_PDCP_SDUList
+          }
+        }
+      }
+    },
+    SuppressPdcchForC_RNTI := omit
+  };
+
+  template  DRB_COMMON_IND car_DRB_COMMON_IND_PDCP_SDUList(EUTRA_CellId_Type p_CellId,
+                                                           template (present) RadioBearerId_Type p_RbId,
+                                                           template (present) TimingInfo_Type p_TimingInfo,
+                                                           template  PDCP_SDUList_Type p_PDCP_SDUList) :=
+  { /* common ASP to receive PDUs from DRBs */
+    /* @status    APPROVED */
+    Common   := cr_IndAspCommonPart_RB(p_CellId, p_RbId, p_TimingInfo),
+    U_Plane := {
+      SubframeData   := {
+        //HarqProcessId  := ?,
+        PduSduList   :=
+        {
+          PdcpSdu := p_PDCP_SDUList
+        },
+        NoOfTTIs   := ?
+        // @sic R5w100222 slide 4 - RedundancyVersion removed sic@
+      }
+    }
+  };
+
+}

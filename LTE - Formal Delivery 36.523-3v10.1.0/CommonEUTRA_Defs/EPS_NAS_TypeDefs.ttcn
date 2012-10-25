@@ -1,0 +1,1104 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-28 17:09:24 +0200 (Tue, 28 Aug 2012) $
+// $Rev: 7175 $
+/******************************************************************************/
+
+module EPS_NAS_TypeDefs {
+
+import from CommonDefs all;
+import from NAS_CommonTypeDefs all;
+
+//****************************************************************************
+// NAS PROTOCOL DEFINITIONS: IEs
+//----------------------------------------------------------------------------
+// General Info Elements (24.301 cl. 9)
+//----------------------------------------------------------------------------
+
+type B4_Type        SecurityHeaderType;                       /* 24.301 cl. 9.3.1 */
+type HalfOctet_Type EPS_BearerIdentity;                       /* 24.301 cl. 9.3.2 */
+type Octet_Type     ProcedureTransactionIdentifier;           /* 24.301 cl. 9.4 */
+type O4_Type        MessageAuthenticationCode;                /* 24.301 cl. 9.5 */
+type Octet_Type     NAS_SequenceNumber;                       /* 24.301 cl. 9.6 */
+
+type O4_Type        NasCount_Type;
+
+// Note: This IE is not needed when SECURITY PROTECTED NAS MESSAGE is
+// handled by the NAS emulation An alternative approach would be to
+// implement NAS_Message as a union of all NAS messages except
+// SECURITY PROTECTED NAS MESSAGE and SERVICE REQUEST - but this would
+// have impact on codec implementation and may reduce readability */
+type octetstring    NAS_Message;                              /* 24.301 cl. 9.7 */
+
+type O2_Type     EPS_MmeGi;
+type O1_Type     EPS_Mmec;
+type O4_Type     EPS_M_Tmsi;
+type O5_Type     EPS_S_Tmsi;
+
+type B2_Type EPS_PartialTaiListType;
+type B3_Type NAS_KsiValue;
+type B4_Type EPS_ServiceTypeValue;
+type B3_Type PdnTypeValue;
+type B3_Type EPS_UpdateTypeValue;
+
+type O2_Type NAS_Tac;
+
+//----------------------------------------------------------------------------
+// Common Info Elements (24.301 cl. 9.9.2)
+//----------------------------------------------------------------------------
+
+type record PDN_Address {                                     /* 24.301 cl. 9.9.4.9 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel                   optional, /* present in case of LV or TLV; omit in case of V */
+  B5_Type                     spare,
+  B3_Type                     typeValue,
+  octetstring                 adressInfo length(4..12)
+};
+
+
+type record TrackingAreaId {                                  /* 24.301 cl. 9.9.3.32 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  NAS_PlmnId                  plmnId,                         /* MCC  + MNC 3 digits each */
+  NAS_Tac                     tac                             /* TAC */
+};
+
+type record length (1..16) of NAS_Tac NAS_TacList;
+
+type record PartialTai {
+  NAS_PlmnId                  plmnId,                         /* MCC  + MNC 3 digits each */
+  NAS_Tac                     tac
+};
+
+type record Type0Element {  // @sic R5s100184 sic@
+  NAS_PlmnId                  plmnId,                         /* MCC  + MNC 3 digits each */
+  NAS_TacList                 tacList
+};
+
+type record Type1Element {  // @sic R5s100184 sic@
+  PartialTai                  partialTac
+};
+
+type record length (1..16) of PartialTai PlmnAndTacs;
+
+type record Type2Element {  // @sic R5s100184 sic@
+  PlmnAndTacs    plmnAndTacs
+};
+
+type record length (1..16) of Type0Element Type0List;
+type record length (1..16) of Type1Element Type1List;
+type record length (1..16) of Type2Element Type2List;
+
+type union PartialTaiType {
+  Type0List   type0List,
+  Type1List   type1List,
+  Type2List   type2List
+};
+
+type record ListOfPartialTaiList {
+  B1_Type                  spareBit,
+  EPS_PartialTaiListType   typeOfList,
+  B5_Type                  numberOfElements,
+  PartialTaiType           partialTaiList  // @sic R5s100184 sic@
+};
+
+type record TrackingAreaIdList {                              /* 24.301 cl. 9.9.3.33 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  record length (1..16) of ListOfPartialTaiList  listOfPartialTais
+};
+
+//****************************************************************************
+// NAS PROTOCOL DEFINITIONS: PDUs
+//----------------------------------------------------------------------------
+// EPS mobility management messages (24.301 cl. 8.2)
+//----------------------------------------------------------------------------
+
+type record ATTACH_ACCEPT {                                   /* 24.301 cl. 8.2.1
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  EPS_AttachResult                    epsAttachResult,                        /* cl. 9.9.3.10  M V 1/2 */
+  GPRS_Timer                          t3412,                                  /* cl. 9.9.3.16 M V 1   */
+  TrackingAreaIdList                  taiList,                                /* cl. 9.9.3.33 M LV 7-97 */
+  ESM_MessageContainer                esmMessage,                             /* cl. 9.9.3.15 M LV-E 5-n @sic R5s110176 Baseline Moving sic@ */
+  MobileIdentity                      guti                          optional, /* cl. 9.9.3.12 O TLV 13   IEI=0x50 */
+  LocAreaId                           lai                           optional, /* cl. 9.9.2.2  O TV 6     IEI=0x13 */
+  MobileIdentity                      msIdentity                    optional, /* cl. 9.9.2.3  O TLV 7-10 IEI=0x23 */
+  EMM_Cause                           emmCause                      optional, /* cl. 9.9.3.9  O TV 2     IEI=0x53 */
+  GPRS_Timer                          t3402                         optional, /* cl. 9.9.3.16 O TV 2     IEI=0x17 */
+  GPRS_Timer                          t3423                         optional, /* cl. 9.9.3.16 O TV 2     IEI=0x59 */
+  PLMN_List                           equivalentPlmns               optional,  /* cl. 9.9.2.8 O TLV 5-47 IEI=0x4a */
+  EmergNumList                        emergencyNumberList           optional,  /* cl. 9.9.3.37 O TLV 5-50 IEI=0x34 */
+  EPS_NetworkFeatureSupport           epsNetworkFeatureSupport      optional,  /* cl.9.9.3.12A O TLV 3   IEI=0x64 @sic R5s100135 sic@ */
+  AdditionalUpdateResult              addUpdateResult               optional,  /* cl.9.9.3.0A O TV  1 IEI=0xF @sic R5s100135 sic@ */
+  GPRS_Timer3                         t3412ExtdValue                optional   /* cl. 9.9.3.16B O TLV 3     IEI=0x5E @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record ATTACH_COMPLETE {                                 /* 24.301 cl. 8.2.2
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_MessageContainer                esmMessage                              /* cl. 9.9.3.15 M LV-E 5-n @sic R5s110176 Baseline Moving sic@ */
+};
+
+type record ATTACH_REJECT {                                   /* 24.301 cl. 8.2.3
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EMM_Cause                           emmCause,                               /* cl. 9.9.3.9  M V 1   */
+  ESM_MessageContainer                esmMessage                optional,     /* cl. 9.9.3.15 M TLV-E 6-n IEI=0x78 @sic R5s110176 Baseline Moving sic@ */
+  GPRS_Timer2                         t3346                     optional,     /* cl. 9.9.3.16A O TLV 3     IEI=0x5F @sic R5s120178 Baseline Moving sic@*/
+  GPRS_Timer2                         t3402                     optional      /* cl. 9.9.3.16A O TLV 3     IEI=0x16 @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record ATTACH_REQUEST {                                  /* 24.301 cl. 8.2.4
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  NAS_KeySetIdentifier                nasKeySetId,                            /* cl. 9.9.3.21 M V 1/2 */
+  EPS_AttachType                      epsAttachType,                          /* cl. 9.9.3.11  M V 1/2 */
+  MobileIdentity                      epsMobileIdentity,                      /* cl. 9.9.3.12 M LV 5-12 @sic R5s110176 Baseline Moving sic@ */
+  UE_NetworkCap                       ueNetworkCapability,                    /* cl. 9.9.3.34 M LV 3-14  */
+  ESM_MessageContainer                esmMessage,                             /* cl. 9.9.3.15 M LV-E 5-n */
+  PTMSI_Signature                     oldPtmsiSignature             optional, /* cl 10.5.5.8 of 24.008 O TV 4 IEI=Ox19*/
+  MobileIdentity                      additionalGuti                optional, /* cl 9.9.3.12 O TLV 13 IEI=Ox50*/
+  TrackingAreaId                      lastVisitedRegisteredTai      optional, /* cl. 9.9.3.32 O TV 6 IEI=0x52 */
+  DRXparameter                        drxParameter                  optional, /* cl. 9.9.3.8  O TV 3 IEI=Ox5c */
+  MS_NetworkCap                       msNetworkCapability           optional, /* cl. 9.9.3.20 O TLV 4-10 IEI=Ox31 */
+  LocAreaId                           oldLai                        optional, /* cl. 9.9.2.2  O TV 6 IEI=0x13 */
+  TMSI_Status                         tmsiStatus                    optional, /* cl. 9.9.2.31 O TV 1 IEI=0x9- */
+  MS_Clsmk2                           msClassmark2                  optional, /* cl. 9.9.2.4  O TLV 5 IEI=0x11 */
+  MS_Clsmk3                           msClassmark3                  optional, /* cl. 9.9.2.5  O TLV 2-34 IEI=0x20 */
+  CodecList                           supportedCodecList            optional, /* cl. 9.9.2.10  O TLV 5-n IEI=0x40 */
+  AdditionalUpdateType                addUpdateType                 optional,  /* cl.9.9.3.0B O TV 1    IEI=0xF @sic R5s100135 sic@ */
+  VoiceDomainPref                     voiceDomainPref               optional,  /* cl.9.9.3.44 O TLV 3   IEI=0x5D @sic R5s110176 Baseline Moving sic@ */
+  DeviceProperties                    deviceProperties              optional,  /* cl. 9.9.2.0A O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+  GUTI_Type                           oldGUTI_Type                  optional,  /* cl. 9.9.3.45 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+  MS_NetworkFeatureSupport            msNetworkFeatureSupport       optional   /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record AUTHENTICATION_FAILURE {                          /* 24.301 cl. 8.2.5
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EMM_Cause                           emmCause,                               /* cl. 9.9.3.9  M V 1   */
+  AuthenticationFailureParameter      authenticationFailureParameter optional /* cl. 9.9.3.1  O TLV 16 IEI=0x30 */
+};
+
+type record AUTHENTICATION_REJECT {                           /* 24.301 cl. 8.2.6
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType                             /* cl. 9.8      M V 1   */
+};
+
+type record AUTHENTICATION_REQUEST {                          /* 24.301 cl. 8.2.7
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  NAS_KeySetIdentifier                asmeNasKeySetId,                        /* cl. 9.9.3.21 M V 1/2 */
+  RAND                                rand,                                   /* cl. 9.9.3.3  M V 16  */
+  AUTN                                autn                                    /* cl. 9.9.3.2  M LV 17 */
+};
+
+type record AUTHENTICATION_RESPONSE {                         /* 24.301 cl. 8.2.8
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  AuthenticationResponseParameter     authenticationResponseParameter         /* cl. 9.9.3.4  M LV 5-17 */
+};
+
+type record CS_SERVICE_NOTIFICATION {                         /*  24.301 cl. 8.2.9
+                                                                  Significance:  dual
+                                                                  Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  PagingIdentity                      pagingIdentity,                         /* cl. 9.9.3.25A M V 1  @sic R5s100135 sic@ */
+  CLI                                 cli                   optional,         /* cl. 9.9.3.38 O TLV 3-14 IEI=0x60 */
+  SsCode                              ssCode                optional,         /* cl. 9.9.3.39 O TV 2 IEI=0x61 */
+  LcsIndicator                        lcsIndicator          optional,         /* cl. 9.9.3.40 O TV 2  IEI=0x62 */
+  LcsClientIdentity                   lcsClientIdentity     optional          /* cl. 9.9.3.41 O TLV 3-257 IEI=0x63 */
+};
+
+type record DETACH_ACCEPT {                                   /* 24.301 cl. 8.2.10.1/2 (both directions)
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType                             /* cl. 9.8      M V 1   */
+};
+
+type record DETACH_REQUEST_MO {                               /* 24.301 cl. 8.2.11.1 (UE originating detach)
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  NAS_KeySetIdentifier                asmeNasKeySetId,                        /* cl. 9.9.3.21  M V 1/2 */
+  DetachType                          detachType,                             /* cl. 9.9.3.7  M V 1/2 */
+  MobileIdentity                      epsMobileIdentity                       /* cl. 9.9.3.12 M LV 5-12 @sic R5s110176 Baseline Moving sic@ */
+};
+
+type record DETACH_REQUEST_MT {                               /* 24.301 cl. 8.2.11.2 (UE terminated detach)
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  DetachType                          detachType,                             /* cl. 9.9.3.7  M V 1/2 */
+  EMM_Cause                           emmCause                      optional  /* cl. 9.9.3.9  O TV 2 IEI=0x53 */
+};
+
+type record DL_NAS_TRANSPORT {                                 /* 24.301 cl. 8.2.12
+                                                                 Significance:  local
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  NAS_MessageContainer                nasMessage                              /* cl. 9.9.3.22 M LV 3-252 */
+};
+
+type record EMM_INFORMATION {                                 /* 24.301 cl. 8.2.13
+                                                                 Significance:  local
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  NetworkName                         fullNetworkName               optional, /* cl. 9.9.3.24 O TLV 3-? IEI=0x43 */
+  NetworkName                         shortNetworkName              optional, /* cl. 9.9.3.24 O TLV 3-? IEI=0x45 */
+  TimeZone                            localTimeZone                 optional, /* cl. 9.9.3.29 O TV 2    IEI=0x46 */
+  TimeZoneAndTime                     localTimeZoneAndTime          optional, /* cl. 9.9.3.30 O TV 8    IEI=0x47 */
+  DaylightSavingTime                  daylightSavingTime            optional  /* cl. 9.9.3.6  O TLV 3   IEI=0x49 */
+};
+
+type record EMM_STATUS {                                      /* 24.301 cl. 8.2.14
+                                                                 Significance:  local
+                                                                 Direction:     both */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EMM_Cause                           emmCause                                /* cl. 9.9.3.9  M V 1   */
+};
+
+type record EXT_SERVICE_REQUEST {                       /* 24.301 cl. 8.2.15
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  NAS_KeySetIdentifier                nasKeySetId,                            /* cl. 9.9.3.21 M V 1/2 */
+  EPS_ServiceType                     serviceType,                            /* cl. 9.9.3.27 M V 1/2 */
+  MobileIdentity                      mTMSI,                                  /* cl. 9.9.2.3  M LV 6  */
+  CSFBResponse                        csfbResponse                  optional,  /* cl. 9.9.3.5  C TV 1 IEI=0xB- */
+  EPS_BearerContextStatus             epsBearerContextStatus        optional,  /* cl. 9.9.2.1  O TLV 4    IEI=0x57 @sic R5s110176 Baseline Moving sic@ */
+  DeviceProperties                    deviceProperties              optional   /* cl. 9.9.2.0A O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record GUTI_REALLOCATION_COMMAND {                       /* 24.301 cl. 8.2.16
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  MobileIdentity                      guti,                                   /* cl. 9.9.3.12 M LV 12 */
+  TrackingAreaIdList                  taiList                       optional  /* cl. 9.9.3.33 O TLV 8-98 IEI=0x54 */
+};
+
+type record GUTI_REALLOCATION_COMPLETE {                      /* 24.301 cl. 8.2.17
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType                             /* cl. 9.8      M V 1   */
+};
+
+type record IDENTITY_REQUEST {                                /* 24.301 cl. 8.2.18
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  IdentityType                        identityType2                           /* cl. 9.9.3.17 M V 1/2 */
+};
+
+type record IDENTITY_RESPONSE {                               /* 24.301 cl. 8.2.19
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  MobileIdentity                      mobileIdentity                          /* cl. 9.9.2.3  M LV 4-10 */
+};
+
+type record SECURITY_MODE_COMMAND {                           /* 24.301 cl. 8.2.20
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1     M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2       M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8       M V 1   */
+  NAS_SecurityAlgorithms              nasSecurityAlgorithms,                  /* cl. 9.9.3.23  M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  NAS_KeySetIdentifier                asmeNasKeySetId,                        /* cl. 9.9.3.21  M V 1/2 */
+  UE_SecurityCapability               replayedSecurityCapability,             /* cl. 9.9.3.36  M LV 3-6 */
+  IMEISV_Request                      imeisvRequest                 optional, /* cl. 9.9.3.18  O TV 1 IEI=0xC- */
+  Nonce                               replayedNonceUe               optional, /* cl. 9.9.3.25  O TV 5 IEI=0x55 */
+  Nonce                               nonceMme                      optional  /* cl. 9.9.3.25  O TV 5 IEI=0x56 */
+};
+
+type record SECURITY_MODE_COMPLETE {                          /* 24.301 cl. 8.2.21
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  MobileIdentity                      imeisv                        optional  /* cl. 9.9.2.3  O TLV 11 IEI=0x23 */
+};
+
+type record SECURITY_MODE_REJECT {                            /* 24.301 cl. 8.2.22
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EMM_Cause                           emmCause                                /* cl. 9.9.3.9  M V 1   */
+};
+
+type record SECURITY_PROTECTED_NAS_MESSAGE {                  /* 24.301 cl. 8.2.23
+                                                                 Significance:  dual
+                                                                 Direction:     both */
+  /* Note: it is FFS whether this PDU is realy used in TTCN */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageAuthenticationCode           messageAuthenticationCode,              /* cl. 9.5      M V 4   */
+  NAS_SequenceNumber                  sequenceNumber,                         /* cl. 9.6      M V 1   */
+  NAS_Message                         nasMessage                              /* cl. 9.7      M V 1-n */
+};
+
+type record SERVICE_REJECT {                                  /* 24.301 cl. 8.2.24
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EMM_Cause                           emmCause,                               /* cl. 9.9.3.9  M V 1   */
+  GPRS_Timer                          t3442                         optional,/* cl. 9.9.3.16 C TV 2     IEI=0x5b */
+  GPRS_Timer2                         t3346                         optional /* cl. 9.9.3.16A O TLV 3   IEI=0x5F @sic R5s120178 Baseline Moving sic@ */
+};
+
+type record SERVICE_REQUEST {                                 /* 24.301 cl. 8.2.25
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  KSIandSN                            ksiAndSN,                               /* cl. 9.9.3.19 M V 1   */
+  ShortMAC                            shortMAC                                /* cl. 9.9.3.28 M V 2   */
+};
+
+type record TRACKING_AREA_UPDATE_ACCEPT {                     /* 24.301 cl. 8.2.26
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  EPS_UpdateResult                    epsUpdateResult,                        /* cl. 9.9.3.13 M V 1/2 */
+  GPRS_Timer                          t3412                         optional, /* cl. 9.9.3.16 O TV 2     IEI=0x5a */
+  MobileIdentity                      guti                          optional, /* cl. 9.9.3.12 O TLV 13   IEI=0x50 */
+  TrackingAreaIdList                  taiList                       optional, /* cl. 9.9.3.33 O TLV 8-98 IEI=0x54 */
+  EPS_BearerContextStatus             epsBearerContextStatus        optional, /* cl. 9.9.2.1  O TLV 4    IEI=0x57 */
+  LocAreaId                           lai                           optional, /* cl. 9.9.2.2  O TV 6     IEI=0x13 */
+  MobileIdentity                      msIdentity                    optional, /* cl. 9.9.2.3  O TLV 7-10 IEI=0x23 */
+  EMM_Cause                           emmCause                      optional, /* cl. 9.9.3.9  O TV 2     IEI=0x53 */
+  GPRS_Timer                          t3402                         optional, /* cl. 9.9.3.16 O TV 2     IEI=0x17 */
+  GPRS_Timer                          t3423                         optional, /* cl. 9.9.3.16 O TV 2     IEI=0x59 */
+  PLMN_List                           equivalentPlmns               optional, /* cl. 9.9.2.8  O TLV 5-47 IEI=0x4a */
+  NAS_KeySetIdentifier                asmeNasKeySetId               optional, /* cl. 9.9.3.21 O TV 1     IEI=0x8-*/
+  EmergNumList                        emergencyNumberList           optional,  /* cl. 9.9.3.37 O TLV 5-50 IEI=0x34 */
+  EPS_NetworkFeatureSupport           epsNetworkFeatureSupport      optional,  /* cl.9.9.3.12A O TLV 3   IEI=0x64 @sic R5s100135 sic@ */
+  AdditionalUpdateResult              addUpdateResult               optional,  /* cl.9.9.3.0A O TV    IEI=0xF @sic R5s100135 sic@ */
+  GPRS_Timer3                         t3412ExtdValue                optional   /* cl. 9.9.3.16B O TLV 3     IEI=0x5E @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record TRACKING_AREA_UPDATE_COMPLETE {                   /* 24.301 cl. 8.2.27
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType                             /* cl. 9.8      M V 1   */
+};
+
+type record TRACKING_AREA_UPDATE_REJECT {                     /* 24.301 cl. 8.2.28
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EMM_Cause                           emmCause,                               /* cl. 9.9.3.9  M V 1   */
+  GPRS_Timer2                         t3346                        optional   /* cl. 9.9.3.16A O TLV 3 IEI=0x5F @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record TRACKING_AREA_UPDATE_REQUEST {                    /* 24.301 cl. 8.2.29
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1     M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2       M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8       M V 1   */
+  NAS_KeySetIdentifier                asmeNasKeySetId,                        /* cl. 9.9.3.21  M V 1/2 */
+  EPS_UpdateType                      epsUpdateType,                          /* cl. 9.9.3.14  M V 1/2 */
+  MobileIdentity                      oldGuti,                                /* cl. 9.9.3.12  M LV 12 */
+  NAS_KeySetIdentifier                nonCurrentNativeNasKeySetId   optional, /* cl. 9.9.3.21  O TV 1     IEI=0xB- */
+  CiphKeySeqNum                       gprsCipheringKeySeqNum        optional, /* cl. 9.9.3.4a  O TV 1     IEI=0x8- @sic R5s100135 sic@ */
+  PTMSI_Signature                     oldPtmsiSignature             optional, /* cl. 9.9.3.26  O TV 4     IEI=0x19 */
+  MobileIdentity                      additionalGuti                optional, /* cl. 9.9.3.12  O TLV 13   IEI=0x50 */
+  Nonce                               nonce                         optional, /* cl. 9.9.3.25  O TV 5     IEI=0x55 */
+  UE_NetworkCap                       ueNetworkCapability           optional, /* cl. 9.9.3.34  O TLV 4-10 IEI=0x58 */
+  TrackingAreaId                      lastVisitedRegisteredTai      optional, /* cl. 9.9.3.32  O TV 6     IEI=0x52 */
+  DRXparameter                        drxParameter                  optional, /* cl. 9.9.3.8   O TV 3     IEI=Ox5c */
+  UERadioCapInfoUpdateNeeded          ueRadioCapNeeded              optional, /* cl. 9.9.3.35  O TV 1     IEI=OxA- */
+  EPS_BearerContextStatus             epsBearerContextStatus        optional, /* cl. 9.9.2.1   O TLV 4    IEI=0x57 */
+  MS_NetworkCap                       msNetworkCapability           optional, /* cl. 9.9.3.20  O TLV 4-10 IEI=0x31 */
+  LocAreaId                           oldLai                        optional, /* cl. 9.9.2.2   O TV 6     IEI=0x13 */
+  TMSI_Status                         tmsiStatus                    optional, /* cl. 9.9.2.31  O TV 1     IEI=0x9- */
+  MS_Clsmk2                           msClassmark2                  optional, /* cl. 9.9.2.4   O TLV 5    IEI=0x11 */
+  MS_Clsmk3                           msClassmark3                  optional, /* cl. 9.9.2.5   O TLV 2-34 IEI=0x20 */
+  CodecList                           supportedCodecList            optional,  /* cl. 9.9.2.10   O TLV 5-n  IEI=0x40 */
+  AdditionalUpdateType                addUpdateType                 optional,  /* cl.9.9.3.0B O TV    IEI=0xF @sic R5s100135 sic@ */
+  VoiceDomainPref                     voiceDomainPref               optional,  /* cl.9.9.3.44 O TLV 3   IEI=0x5D @sic R5s110176 Baseline Moving sic@ */
+  GUTI_Type                           oldGUTI_Type                  optional,  /* cl. 9.9.3.45 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+  DeviceProperties                    deviceProperties              optional,  /* cl. 9.9.2.0A O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+  MS_NetworkFeatureSupport            msNetworkFeatureSupport       optional   /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record UL_NAS_TRANSPORT {                                 /* 24.301 cl. 8.2.30
+                                                                 Significance:  local
+                                                                 Direction:     UE to network */
+  SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  NAS_MessageContainer                nasMessage                              /* cl. 9.9.3.22 M LV 3-252 */
+};
+
+type record DL_GENERIC_NAS_TRANSPORT{                          /* 24.301 cl. 8.2.31
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE @sic R5s110176 Baseline Moving sic@ */
+SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+GenericMessageContainerType         genericMessageContainerType,            /* cl. 9.9.3.42 M V 1   */
+GenericMessageContainer             genericMessageContainer,                /* cl. 9.9.3.43 M LV-E 3-n */
+AdditionalInformation               additionalInformation   optional        /* cl. 9.9.2.0  O TLV 3-n IEI=65 */
+};
+
+type record UL_GENERIC_NAS_TRANSPORT{                          /* 24.301 cl. 8.2.32
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network  @sic R5s110176 Baseline Moving sic@ */
+SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+GenericMessageContainerType         genericMessageContainerType,            /* cl. 9.9.3.42 M V 1   */
+GenericMessageContainer             genericMessageContainer,                /* cl. 9.9.3.43 M LV-E 3-n */
+AdditionalInformation               additionalInformation   optional        /* cl. 9.9.2.0  O TLV 3-n IEI=65 */
+};
+
+//----------------------------------------------------------------------------
+// EPS session management messages (24.301 cl. 8.3)
+//----------------------------------------------------------------------------
+
+type record ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT {    /* 24.301 cl. 8.3.1
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions optional   /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27*/
+};
+
+type record ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REJECT {    /* 24.301 cl. 8.3.2
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.4  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253  IEI=0x27 */
+};
+
+type record ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST {   /* 24.301 cl. 8.3.3
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  LinkedEpsBearerIdentity             linkedEpsBearerId,                      /* cl. 9.9.4.6  M V 1/2 */
+  EPS_QualityOfService                epsQos,                                 /* cl. 9.9.4.3  M LV 2-10 */
+  TrafficFlowTemplate                 tft,                                    /* cl. 9.9.4.16 M LV 2-256 */
+  TransactionIdentifier               transactionIdentifier         optional, /* cl. 9.9.4.17 O TLV 3-4   IEI=0x5d */
+  QualityOfService                    negotiatedQos                 optional, /* cl. 9.9.4.12 O TLV 14-18 IEI=0x30 */
+  LLC_SAPI                            negotiatedLlcSapi             optional, /* cl. 9.9.4.7  O TV 2      IEI=0x32 */
+  RadioPriority                       radioPriority                 optional, /* cl. 9.9.4.13 O TV 1      IEI=0x8- */
+  PacketFlowIdentifier                packetFlowIdentifier          optional, /* cl. 9.9.4.8  O TLV 3     IEI=0x34 */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+type record ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT {      /* 24.301 cl. 8.3.4
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11  O TLV 3-253 IEI=0x27 */
+};
+
+type record ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REJECT {      /* 24.301 cl. 8.3.5
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.4  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+type record ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST {     /* 24.301 cl. 8.3.6
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EPS_QualityOfService                epsQos,                                 /* cl. 9.9.4.3  M LV 2-10 */
+  AccessPointName                     accessPointName,                        /* cl. 9.9.4.1  M LV 2-101 */
+  PDN_Address                         pdnAdress,                              /* cl. 9.9.4.9  M LV 6-14   */
+  TransactionIdentifier               transactionIdentifier         optional, /* cl. 9.9.4.17 O TLV 3-4   IEI=0x5d */
+  QualityOfService                    negotiatedQos                 optional, /* cl. 9.9.4.12 O TLV 14-18 IEI=0x30 */
+  LLC_SAPI                            negotiatedLlcSapi             optional, /* cl. 9.9.4.7  O TV 2      IEI=0x32 */
+  RadioPriority                       radioPriority                 optional, /* cl. 9.9.4.13 O TV 1      IEI=0x8- */
+  PacketFlowIdentifier                packetFlowIdentifier          optional, /* cl. 9.9.4.8  O TLV 3     IEI=0x34 */
+  APN_AMBR                            apnAggMaxBitRate              optional, /* cl. 9.9.4.2  O TLV 4-8   IEI=0x5e */
+  ESM_Cause                           esmCause                      optional, /* cl. 9.9.4.4  O TV 2      IEI=0x58 */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional, /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+  ConnectivityType                    connectivityType              optional  /* cl. 9.9.2.0A O TV 1 IEI=0xB- @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record BEARER_RESOURCE_ALLOCATION_REJECT {               /* 24.301 cl. 8.3.7
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.4  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional, /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+  GPRS_Timer3                         t3396                         optional   /* cl. 9.9.3.16B O TLV 3   IEI=0x37 @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record BEARER_RESOURCE_ALLOCATION_REQUEST {              /* 24.301 cl. 8.3.8
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  LinkedEpsBearerIdentity             linkedEpsBearerId,                      /* cl. 9.9.4.6  M V 1/2 */
+  TrafficFlowTemplate                 trafficFlowAgg,                         /* cl. 9.9.4.15 M LV 2-256 */
+  EPS_QualityOfService                requiredTrafficFlowQoS,                 /* cl. 9.9.4.3  M LV 2-10 */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional, /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+  DeviceProperties                    deviceProperties              optional  /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record BEARER_RESOURCE_MODIFICATION_REJECT {               /* 24.301 cl. 8.3.9
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.4  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional, /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+  GPRS_Timer3                         t3396                         optional   /* cl. 9.9.3.16B O TLV 3   IEI=0x37 @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record BEARER_RESOURCE_MODIFICATION_REQUEST {              /* 24.301 cl. 8.3.10
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  LinkedEpsBearerIdentity             epsBearerIdentityforPacketFilter,       /* cl. 9.9.4.6  M V 1/2 */
+  TrafficFlowTemplate                 trafficFlowAgg,                         /* cl. 9.9.4.15 M LV 2-256 */
+  EPS_QualityOfService                requiredTrafficFlowQoS        optional, /* cl. 9.9.4.3  O TLV 3-11  IEI=0x5b   @sic R5s100692 sic@ */
+  ESM_Cause                           esmCause                      optional, /* cl. 9.9.4.4  O TV 2      IEI=0x58 */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional, /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+  DeviceProperties                    deviceProperties              optional  /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT {            /* 24.301 cl. 8.3.11
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+type record DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST {           /* 24.301 cl. 8.3.12
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.4  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.8  O TLV 3-253 IEI=0x27 */
+};
+
+type record ESM_INFORMATION_REQUEST {                         /* 24.301 cl. 8.3.13
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType                             /* cl. 9.8      M V 1   */
+};
+
+type record ESM_INFORMATION_RESPONSE {                        /* 24.301 cl. 8.3.14
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  AccessPointName                     accessPointName               optional, /* cl. 9.9.4.1  O TLV 3-102 IEI=0x28 */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+type record ESM_STATUS {                                      /* 24.301 cl. 8.3.15
+                                                                 Significance:  dual
+                                                                 Direction:     both */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause                                /* cl. 9.9.4.4  M V 1   */
+};
+
+type record MODIFY_EPS_BEARER_CONTEXT_ACCEPT {                /* 24.301 cl. 8.3.16
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+type record MODIFY_EPS_BEARER_CONTEXT_REJECT {                /* 24.301 cl. 8.3.17
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.4  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+type record MODIFY_EPS_BEARER_CONTEXT_REQUEST {               /* 24.301 cl. 8.3.18
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  EPS_QualityOfService                newEPSQos                     optional, /* cl. 9.9.4.3  O TLV 3-11  IEI=0x5b */
+  TrafficFlowTemplate                 tft                           optional, /* cl. 9.9.4.16 O TLV 3-257 IEI=0x36 */
+  QualityOfService                    newQos                        optional, /* cl. 9.9.4.12 O TLV 14-18 IEI=0x30 */
+  LLC_SAPI                            negotiatedLlcSapi             optional, /* cl. 9.9.4.7  O TV 2      IEI=0x32 */
+  RadioPriority                       radioPriority                 optional, /* cl. 9.9.4.13 O TV 1      IEI=0x8- */
+  PacketFlowIdentifier                packetFlowIdentifier          optional, /* cl. 9.9.4.5  O TLV 3     IEI=0x34 */
+  APN_AMBR                            apnAggMaxBitRate              optional, /* cl. 9.9.4.2  O TLV 4-8   IEI=0x5e */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+
+type record NOTIFICATION {                                   /* 24.301 cl. 8.3.18A
+                                                                 Significance:  local
+                                                                 Direction:     network to UE @sic R5s110176 Baseline Moving sic@ */
+
+  
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  NotificationIndicator               notificationIndicator                  /*  cl. 9.9.4.7A M LV 2  */
+};
+
+
+type record PDN_CONNECTIVITY_REJECT {                         /* 24.301 cl. 8.3.19
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.4  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional,  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+  GPRS_Timer3                         t3396                         optional   /* cl. 9.9.3.16B O TLV 3   IEI=0x37 @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record PDN_CONNECTIVITY_REQUEST {                        /* 24.301 cl. 8.3.20
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  PDN_Type                            pdnType,                                /* cl. 9.9.4.10 M V 1/2 */
+  Request_Type                        requestType,                            /* cl. 9.9.4.14 M V 1/2 */
+  ESM_InfoTransferFlag                esmInfoTransferFlag           optional, /* cl. 9.9.4.5  O TV 1      IEI=0xD- */
+  AccessPointName                     accessPointName               optional, /* cl. 9.9.4.1  O TLV 3-102 IEI=0x28 */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional, /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+  DeviceProperties                    deviceProperties              optional  /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+};
+
+type record PDN_DISCONNECT_REJECT {                           /* 24.301 cl. 8.3.21
+                                                                 Significance:  dual
+                                                                 Direction:     network to UE */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  ESM_Cause                           esmCause,                               /* cl. 9.9.4.2  M V 1   */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+type record PDN_DISCONNECT_REQUEST {                          /* 24.301 cl. 8.3.22
+                                                                 Significance:  dual
+                                                                 Direction:     UE to network */
+  EPS_BearerIdentity                  epsBearerId,                            /* cl. 9.3.2    M V 1/2 */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  ProcedureTransactionIdentifier      procedureTransactionIdentifier,         /* cl. 9.4      M V 1   */
+  MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+  LinkedEpsBearerIdentity             linkedEpsBearerId,                      /* cl. 9.9.4.6  M V 1/2 */
+  ProtocolConfigOptions               protocolConfigurationOptions  optional  /* cl. 9.9.4.11 O TLV 3-253 IEI=0x27 */
+};
+
+//----------------------------------------------------------------------------
+// Common Info Elements (24.301 cl. 9.9.2)
+//----------------------------------------------------------------------------
+
+type record AdditionalInformation{                            /* 24.301 cl. 9.9.2.0     @sic R5s110176 Baseline Moving sic@ */
+ IEI8_Type                   iei,
+ Type4Length_Type            iel,
+ octetstring                 additionalInfo
+};
+type record EPS_BearerContextStatus {                         /* 24.301 cl. 9.9.2.1 */
+  IEI8_Type                   iei                   optional, /* present in case of TV or TLV; omit in case of V */
+  Type4Length_Type            iel                   optional, /* present in case of LV or TLV; omit in case of V */
+  B3_Type                     ebi5_7,                         /* EBI(5)- EBI(7) */
+  B5_Type                     spare,                          /* EBI(0)- EBI(4) are spare and shall be coded as zero*/
+  B8_Type                     ebi8_15                         /* EBI(8)- EBI(15)*/
+};
+
+type record NAS_SecurityParametersfromEUTRA {                         /* 24.301 cl. 9.9.2.6 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B4_Type                     spare,                         /* 8-5 are spare and shall be coded as zero */
+  B4_Type                     dl_nasCountValue               /* contains the 4 least significant bits of the binary representation of the downlink NAS COUNT value applicable when
+                                                                this information element is sent*/
+};
+
+type record NAS_SecurityParameterstoEUTRA {                         /* 24.301 cl. 9.9.2.7 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  O4_Type                     noncevalue,                     /*NonceMME value */
+  B1_Type                     spare1,                         /*  are spare and shall be coded as zero */
+  B3_Type                     cipherAlgorithmType,            /* type of ciphering algorithm in the NAS security algorithms information element   */
+  B1_Type                     spare2,                         /*  are spare and shall be coded as zero */
+  B3_Type                     integrityAlgorithmType,         /* as the type of integrity protection algorithm  */
+  B4_Type                     spare3,                         /*  are spare and shall be coded as zero*/
+  B1_Type                     tsc,                            /*  type of security context flag (TSC) */
+  B3_Type                     naskeysetid                     /*  Nas key set identifier*/
+  };
+
+
+//----------------------------------------------------------------------------
+// EPS Mobility Management (EMM) information elements (24.301 cl. 9.9.3)
+//----------------------------------------------------------------------------
+
+type record AuthenticationResponseParameter {                 /* 24.301 cl. 9.9.3.4 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel                   optional, /* present in case of LV or TLV; omit in case of V */
+  B32_128_Type                res                             /* 4..16 octets */
+};
+
+type record CSFBResponse {                                    // 24.301 cl. 9.9.3.5
+  IEI4_Type                   iei,                            // currently only used as TV
+  B1_Type                     spare,
+  B3_Type                     csfbValue                       //0 = CS fallback rejected, 1 = accepted by UE
+};
+
+type record EMM_Cause {                                       /* 24.301 cl. 9.9.3.9 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  NAS_CauseValue_Type         causeValue
+};
+
+type record EPS_AttachResult {                                /* 24.301 cl. 9.9.3.10 */
+  // IEI is always skipped
+  B1_Type                     spare,
+  NAS_AttDetValue_Type        resultValue
+};
+
+type record EPS_AttachType {                                  /* 24.301 cl. 9.9.3.11 */
+  // IEI is always skipped
+  B1_Type                     spare,
+  NAS_AttDetValue_Type        typeValue
+};
+
+type record EPS_NetworkFeatureSupport {                       /* 24.301 cl 9.9.3.12A @sic R5s100135 sic@ */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  Type4Length_Type            iel                   optional, /* present in case of LV or TLV; omit in case of V */
+  B2_Type                     spareBits,                      /* @sic R5s110176 Baseline Moving sic@ */
+  B1_Type                     esrps,                          /* @sic R5s120178 Baseline Moving sic@ */
+  B2_Type                     csLCS,                          /* @sic R5s110176, R5s120178 Baseline Moving sic@ */
+  B1_Type                     epcLCS,                         /* @sic R5s110176 Baseline Moving sic@ */
+  B1_Type                     emcBS,                          /* @sic R5s110176, R5s120178 Baseline Moving sic@ */
+  B1_Type                     imsVoPS
+};
+
+type record PagingIdentity {                                  /* 24.301 cl. 9.9.93.25A @sic R5s100135 sic@ */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B7_Type                     spareBits,
+  B1_Type                     pagingId
+};
+
+type record AdditionalUpdateResult {                          /* 24.301 cl. 9.9.3.0A @sic R5s100135 sic@ */
+  IEI4_Type                   iei,                            // currently only used as TV
+  B2_Type                     spare2,
+  B2_Type                     addUpdateResultValue
+};
+
+type record AdditionalUpdateType {                          /* 24.301 cl. 9.9.3.0B @sic R5s100135 sic@ */
+  IEI4_Type                   iei,                            // currently only used as TV
+  B3_Type                     spare3,
+  B1_Type                     addUpdateTypeValue
+};
+
+type record EPS_UpdateResult {                                /* 24.301 cl. 9.9.3.13 */
+  // IEI is always skipped
+  B1_Type                     spare,
+  NAS_AttDetValue_Type        resultValue
+};
+
+type record EPS_UpdateType {                                  /* 24.301 cl. 9.9.3.14 */
+  // IEI is always skipped
+  B1_Type                     activeFlag,
+  NAS_AttDetValue_Type        typeValue
+};
+
+type record ESM_MessageContainer {                            /* 24.301 cl. 9.9.3.15 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type6Length_Type            iel,
+  octetstring                 esmPdu                          /* ESM PDU without NAS security header;
+                                                                 type is FFS */
+};
+
+type record KSIandSN {                                        /* 24.301 cl. 9.9.3.19 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B3_Type                     ksi,
+  B5_Type                     sn
+};
+
+type record NAS_KeySetIdentifier {                            /* 24.301 cl. 9.9.3.21 */
+  IEI4_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B1_Type                     tsc,                            // Type of security context: 0 = cached, 1 = mapped
+  NAS_KsiValue                nasKeySetId
+};
+
+type record NAS_MessageContainer {                            // 24.301 cl. 9.9.3.22
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  octetstring                 smsmessage length(2..251)       /* can contain an SMS message (i.e. CP-DATA, CP-ACK or CP-ERROR)
+                                                                 as defined in subclause 7.2 in 3GPP TS 24.011 */
+};
+
+type record NAS_SecurityAlgorithms {                          /* 24.301 cl. 9.9.3.23 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B1_Type                     spare1,
+  B3_Type                     cipheringType,                  /* Type of ciphering algorithm */
+  B1_Type                     spare2,
+  B3_Type                     integrityType                   /* Type of integrity protection algorithm */
+};
+
+type record Nonce {                                           /* 24.301 cl. 9.9.3.25 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  O4_Type                     nonceValue
+};
+
+type record EPS_ServiceType {                                     // 24.301 cl. 9.9.3.27
+  IEI4_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  EPS_ServiceTypeValue        serviceValue
+};
+
+type record ShortMAC {                                        /* 24.301 cl. 9.9.3.28 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B16_Type                    macValue
+};
+
+type record UERadioCapInfoUpdateNeeded {                      // 24.301 cl. 9.9.3.35
+  IEI4_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B3_Type                     spare,
+  B1_Type                     urcUpdate
+};
+
+type record UE_SecurityCapability {                           /* 24.301 cl. 9.9.3.36 */
+  Type4Length_Type            iel,                            // @sic R5s10035 iei never used, so removed sic@
+  O1_Type                     eeaCap,                         // @sic R5s100135 sic@
+  O1_Type                     eiaCap,                         // @sic R5s100135 sic@
+  O1_Type                     ueaCap                optional, // @sic R5s100135 sic@
+  O1_Type                     uiaCap                optional, // @sic R5s100135 sic@
+  O1_Type                     geaCap                optional  // @sic R5s100135 sic@
+};
+
+type record CLI {                           /* 24.301 cl. 9.9.3.38 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  octetstring                 cliValue length(1..12)      /* The coding of the CLI value part is the same as for octets 3 to
+                                                            14 of the Calling party BCD number information element defined
+                                                            in subclause 10.5.4.9 of 3GPP TS 24.008 */
+};
+
+type record SsCode {                           /* 24.301 cl. 9.9.3.39 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  O1_Type                     ssCodeValue      /*The coding of the SS Code value is given in subclause 17.7.5 of 3GPP TS 29.002 */
+};
+
+type record LcsIndicator {                           /* 24.301 cl. 9.9.3.40 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  O1_Type                     lcsIndicator
+};
+
+type record LcsClientIdentity {                           /* 24.301 cl. 9.9.3.41 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  octetstring                 lcsClientIdentityValue length(1..255)      /* The coding of the value part of the LCS client
+                                                                            identity is given in subclause 17.7.13 of 3GPP TS 29.002  */
+};
+
+type B8_Type GenericMessageContainerType;   /* 24.301 cl. 9.9.3.42 M V 1  @sic R5s110176 Baseline Moving sic@ */
+
+type record GenericMessageContainer{        /* 24.301 cl. 9.9.3.43 M LV-E 3-n @sic R5s110176 Baseline Moving sic@*/
+  IEI8_Type                   iei optional,
+  Type6Length_Type            iel,
+  octetstring                 genericMsgContainerValue
+};
+
+type record GUTI_Type{        /* 24.301 cl. 9.9.3.45 @sic R5s110178 Baseline Moving sic@*/
+  IEI4_Type                   iei,
+  B3_Type                     spare,
+  B1_Type                     gutiType
+};
+
+//----------------------------------------------------------------------------
+// EPS Session Management (ESM) information elements (24.301 cl. 9.9.4)
+//----------------------------------------------------------------------------
+
+type record APN_AMBR {                                        // 24.301 cl. 9.9.4.2
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel                   optional, /* present in case of LV or TLV; omit in case of V */
+  B8_Type                     downlink,
+  B8_Type                     uplink,
+  B8_Type                     downlinkExt           optional,
+  B8_Type                     uplinkExt             optional,
+  B8_Type                     downlinkExt2          optional,
+  B8_Type                     uplinkExt2            optional
+};
+
+type record EPS_QualityOfService {                             /* 24.301 cl. 9.9.4.3 */
+  IEI8_Type                   iei                    optional,
+  Type4Length_Type            iel,
+  B8_Type                     qci,
+  B8_Type                     maxBitRateUl           optional,
+  B8_Type                     maxBitRateDl           optional,
+  B8_Type                     guaranteedBitRateUl    optional,
+  B8_Type                     guaranteedBitRateDl    optional,
+  B8_Type                     maxBitRateUlExt        optional,
+  B8_Type                     maxBitRateDlExt        optional,
+  B8_Type                     guaranteedBitRateUlExt optional,
+  B8_Type                     guaranteedBitRateDlExt optional
+};
+
+type record ESM_Cause {                                       /* 24.301 cl. 9.9.4.4 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  NAS_CauseValue_Type         causeValue
+};
+
+type record ESM_InfoTransferFlag {                           /* 24.301 cl. 9.9.4.5 */
+  IEI4_Type                   iei                   optional,
+  B3_Type                     spare,
+  B1_Type                     eitValue
+};
+
+type record LinkedEpsBearerIdentity {                        /* 24.301 cl. 9.9.4.6 */
+  // IEI is always skipped
+  B4_Type                     idValue
+};
+
+type record NotificationIndicator{                  /* 24.301 cl. 9.9.4.7A @sic R5s110176 Baseline Moving sic@ */
+  IEI8_Type            iei  optional,
+  Type4Length_Type     iel,
+  B8_Type              notificationInd
+};
+
+type record PDN_Type {                                        /* 24.301 cl. 9.9.4.10 */
+  // IEI is always skipped
+  B1_Type                     spare,
+  PdnTypeValue                typeValue
+};
+
+type record TransactionIdentifier {                           /* 24.301 cl. 9.9.4.17 */
+  IEI8_Type                   iei                   optional,
+  Type4Length_Type            iel,
+  B1_Type                     tiFlag,
+  B3_Type                     tiValue,
+  B4_Type                     spare,
+  B1_Type                     ext                   optional, // @sic R5s110176 sic@
+  B7_Type                     tiValue_2             optional  //  @sic R5s110176 sic@
+};
+
+
+} with { encode "NAS Types"}

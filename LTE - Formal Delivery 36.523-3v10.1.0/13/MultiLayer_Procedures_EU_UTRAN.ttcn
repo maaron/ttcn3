@@ -1,0 +1,668 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module MultiLayer_Procedures_EU_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from CommonIratDefs all;
+  import from EUTRA_CapabilityFunctions all;
+  import from NAS_24008Templates all;
+  import from Parameters all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CapabilityFunctions all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_RAB_Functions all;
+  import from UTRAN_RRC_RAB_Templates all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TTCN_ASP_Templates all;
+  import from UTRAN_TypeDefs all;
+
+  const B3_Type tsc_PagingResponse := '010'B;    /* Service type as per 24.008 Table 10.5.153a
+                                                    @status    APPROVED */
+
+  template U_RLC_AM_IND car_RLC_Test_Data_Ind ( UTRAN_CellId_Type  p_CellId,
+                                                integer            p_RB_Id,
+                                                bitstring          p_Data ) :=
+  { /* @status    APPROVED */
+    testData := {
+      cellId := enum2int(p_CellId),
+      rB_Id := p_RB_Id,
+      data := {
+        data := p_Data
+      }
+    }
+  };
+
+  template (value) U_RLC_AM_REQ cas_RLC_Test_Data_Req ( UTRAN_CellId_Type          p_CellId,
+                                                        integer                    p_RB_Id,
+                                                        bitstring                  p_Data ) :=
+  { /* @status    APPROVED */
+    testData := {
+      cellId := enum2int(p_CellId),
+      rB_Id := p_RB_Id,
+      data := {
+        data := p_Data
+      }
+    }
+  };
+
+  function f_TC_13_1_2_UTRAN() runs on UTRAN_PTC
+  {
+    var integer v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD;
+    var UTRAN_CellInfo_Type_TDD v_CellInfoTDD;
+    var U_RNTI v_U_RNTI;
+    var octetstring v_PLMN;
+    var octetstring v_LAC;
+    var octetstring v_RAC;
+    v_T0_CPICH_Cell5 := -70;
+    v_T0_PCCPCH_Cell5 := -72;       //@sic R5-120663 sic@
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //cell 5 is in NMO 1. NMO1 is by default set in f_UTRAN_CellInfo_Init_FDD or f_UTRAN_CellInfo_Init_TDD
+    
+    //Get cell specific information
+    v_LAC := f_UTRAN_CellInfo_GetLAC(utran_Cell5);
+    v_RAC := f_UTRAN_CellInfo_GetRAC(utran_Cell5);
+    v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell5));
+    v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI (utran_Cell5);
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    if( v_FDD_TDD_Mode == UTRAN_FDD ) {
+      v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific (utran_Cell5);
+    }
+    else {//TDD
+      v_CellInfoTDD := f_UTRAN_CellInfo_GetTDDSpecific (utran_Cell5);
+    }
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+    
+    f_UTRAN_TestBody_Set (true);
+    
+    //Wait for E-UTRA to complete Step 1 to Step 5,
+    //then receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //@siclog "Step 9" siclog@
+    U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                      tsc_RB0,
+                                      cr_108_RRC_ConnReq_r8(originatingConversationalCall))) -> value v_RLC_TR_DATA_IND;
+    f_UTRAN_CheckReleaseIndicator ( utran_Cell5, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+
+    //@siclog "Step 10 - 11" siclog@
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq ( utran_Cell5, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity );
+    //Perform 36.508 cl. 6.4.3.7.2 - CS fallback to UTRAN with redirection / MO call (PS bearers not established)
+    f_UTRAN_CS_Fallback_WithRedirection_WithoutRRCConnEst(utran_Cell5, false);
+    
+    f_UTRAN_TestBody_Set (false);
+    
+    //Notify EUTRA after completing test body
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_UTRAN_Postamble (utran_Cell5, U5_CSCALL);
+  }
+
+  function f_TC_13_1_3_UTRAN() runs on UTRAN_PTC
+  {
+    var integer v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5;
+    var octetstring v_IPv4IPv6_IcmpEchoReply := f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());      /* @sic R5s120470 sic@ */
+    var bitstring v_IpPacket_Bitstring := oct2bit(v_IPv4IPv6_IcmpEchoReply);
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    v_T0_CPICH_Cell5 := -70;
+    v_T0_PCCPCH_Cell5 := -72; //@sic R5-120664 sic@
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+  
+    //Set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+
+    f_UTRAN_TestBody_Set ( false );
+    
+    //Wait for E-UTRA to complete Step 1 to Step 5
+    //then receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //@siclog "Step 6" siclog@
+    U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                 tsc_RB0,
+                                 cr_108_RRC_ConnReq_r8((registration, terminatingConversationalCall)))) -> value v_RLC_TR_DATA_IND;
+    f_UTRAN_CheckReleaseIndicator ( utran_Cell5, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+    //@siclog "Step 6A1- 6A2" siclog@
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq ( utran_Cell5, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity );
+    
+    //@siclog "Step 7 - 11 Void" siclog@
+    
+    //@siclog "Step 12-20" siclog@
+    //Perform 36.508 cl. 6.4.3.7.3 - CS fallback to UTRAN with redirection / MT call (PS bearer established)
+    f_UTRAN_CS_Fallback_WithRedirection_WithoutRRCConnEst(utran_Cell5, true, true);
+
+    //@siclog "Step 21" siclog@
+    //Check: Does the UE loop back the IP packet on the RAB associated with the PDP context?
+    interleave {
+      [] U_AM.receive(car_RLC_Test_Data_Ind(utran_CellDedicated, tsc_RB20, v_IpPacket_Bitstring)) {
+        f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.1.3 Parallel behaviour in Table 13.1.3.3.2-3 step 21");
+      }
+      [] U_AM.receive (car_RLC_Data_Ind (utran_CellDedicated, tsc_RB2, cr_108_RB_SetUpCmpl (tsc_RRC_TI)))  //@sic R5s110210 sic@
+        {
+        }
+    }
+    
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.1.3 Parallel behaviour in Table 13.1.3.3.2-3 step 21");
+    
+    //Notify EUTRA after completing test body
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_UTRAN_TestBody_Set (false);
+    
+    //Perform Switch/Power off and release UTRAN cell 5
+    f_UTRAN_Postamble (utran_Cell5, U5_CSCALL, -,  cs_TI_MT);
+  }
+
+  function f_TC_13_1_4_UTRAN() runs on UTRAN_PTC
+  {
+    var integer v_T0_CPICH_Cell5 := -70;
+    var integer v_T0_PCCPCH_Cell5 := -72;
+        
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Send UTRAN cell info to EUTRA PTC
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    f_UTRAN_Pre_Preamble (utran_Cell5, NotSpecified); // @sic R5s110776 sic@
+    
+    //Configure a dedicated channel in the UTRAN FDD with configuration according to 34.108 cl. 6.10.2.4.1.26
+    f_SS_Config_64kPS_DCH4_RAB (utran_Cell5);  // @sic R5s120070 sic@
+    
+    //Wait for preamble and then set appropiate cell power level
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+    
+    f_UTRAN_TestBody_Set (true);
+    
+    //Receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+        
+    //Configure ciphering in SS before HO
+    f_UTRAN_ConfigureCipheringBeforeHO (utran_Cell5);
+    
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);  // Tell LTE to transmit HO cmd now
+    
+    //@siclog "Step 7-19" siclog@
+    //Perfrom 36.508 cl. 6.4.3.7.5 - CS fallback to UTRAN with Handover / MT call
+    f_UTRAN_CS_Fallback_WithHandover(utran_Cell5);
+    //FFS - Function could be enhanced with pass verdict(s)
+    
+    f_UTRAN_TestBody_Set(false);
+    
+    //Notify EUTRA after completing test body
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_UTRAN_Postamble (utran_Cell5, U5_CSCALL, -,  cs_TI_MT ); //@sic R5s120070 sic@
+  }
+
+  function f_TC_13_1_5_UTRAN() runs on UTRAN_PTC
+  {
+    var integer v_T0_CPICH_Cell5 := -65;
+    var integer v_T0_PCCPCH_Cell5 := -67;
+    var octetstring v_IPv4IPv6_IcmpEchoReply := f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());      /* @sic R5s120470 sic@ */
+    var bitstring v_IpPacket_Bitstring := oct2bit(v_IPv4IPv6_IcmpEchoReply);
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+
+    //Send relevant UTRAN cell info to EUTRA PTC
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+
+    f_UTRAN_Pre_Preamble (utran_Cell5, NotSpecified); // @sic R5s110776 sic@
+
+    //Configure a dedicated channel in the UTRAN FDD with configuration according to 34.108 cl. 6.10.2.4.1.26
+    f_SS_Config_64kPS_DCH4_RAB (utran_Cell5);
+    
+    //Wait for preamble and then set appropiate cell power level
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+
+    f_UTRAN_TestBody_Set(true);
+    
+    //Receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //Configure ciphering in SS before HO
+    f_UTRAN_ConfigureCipheringBeforeHO (utran_Cell5);
+
+    //Notify E-UTRA completion of Ciphering config
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 6-13" siclog@
+    //Perfrom 36.508 cl. 6.4.3.7.6 - CS fallback to UTRAN with Handover / MO call
+    f_UTRAN_CS_Fallback_WithHandover(utran_Cell5, false);
+
+    //@siclog "Step 14" siclog@
+    //Send one IP packet to UE
+    U_AM.send(cas_RLC_Test_Data_Req (utran_CellDedicated,
+                                     tsc_RB20,
+                                     v_IpPacket_Bitstring));
+    //@siclog "Step 15" siclog@
+    //Receive the looped back IP packet
+    U_AM.receive(car_RLC_Test_Data_Ind (utran_CellDedicated,
+                                        tsc_RB20,
+                                        v_IpPacket_Bitstring));
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.1.3 Step 15");
+
+    f_UTRAN_TestBody_Set(false);
+
+    //Notify E-UTRA after configuring the E-UTRA cell
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    //Switch/Power off UE and release cell
+    f_UTRAN_Postamble (utran_Cell5, U5_CSCALL);
+  }
+
+  function f_TC_13_1_15_UTRAN() runs on UTRAN_PTC
+  {
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    var U_RNTI v_U_RNTI;
+    var template (value) SysInfoType3 v_SIB3;
+    
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    
+    //Update SIB3 of cell 5 according to Table 13.1.15.3.3-1
+    if (v_FDD_TDD_Mode == UTRAN_FDD) {
+      v_SIB3 := cds_SIB3_Barred(f_UTRAN_GetCellIndentity(utran_Cell5),
+                                cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_4_ModeSpecificInfo_FDD, 21),
+                                cs_CellAccessRestriction_Common(cs_CellNotBarred,
+                                                                notReserved,
+                                                                notReserved,
+                                                                cs_AllAccessClassesBarred_AllBarred),
+                                cs_DSACRestriction_PPAC_ParametersForPLMNOfMIB);
+    }
+    else {//TDD
+      v_SIB3 := cds_SIB3_Barred(f_UTRAN_GetCellIndentity(utran_Cell5),
+                                cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_ModeSpecificInfo_TDD, 30),
+                                cs_CellAccessRestriction_Common(cs_CellNotBarred,
+                                                                notReserved,
+                                                                notReserved,
+                                                                cs_AllAccessClassesBarred_AllBarred),
+                                cs_DSACRestriction_PPAC_ParametersForPLMNOfMIB);
+    }
+    f_UTRAN_SysInfo_SetSIB3(utran_Cell5, v_SIB3);
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, -70, -72);  //@sic R5-120665 sic@
+    
+    f_UTRAN_TestBody_Set (true);
+    
+    v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI (utran_Cell5);
+    
+    //Receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //@siclog "Step 10-28" siclog@
+    //Perform 36.508 cl. 6.4.3.7.1 - CS fallback to UTRAN with redirection / MT call (PS bearers not established)
+    f_UTRAN_CS_Fallback_WithRedirection(utran_Cell5);
+    
+    //Notify E-UTRA after configuring the E-UTRA cell
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_UTRAN_TestBody_Set (false);
+    
+    //Postamble
+    f_UTRAN_Postamble (utran_Cell5, U5_CSCALL, -,  cs_TI_MT); //@sic R5s120086 sic@
+  }
+
+  function f_TC_13_1_16_UTRAN() runs on UTRAN_PTC
+  {
+    var integer v_T0_CPICH_Cell5 := -70;
+    var integer v_T0_PCCPCH_Cell5 := -72;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+
+    //Send relevant UTRAN cell info to EUTRA PTC
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+
+    f_UTRAN_Pre_Preamble (utran_Cell5, NotSpecified); // @sic R5s110776 sic@
+
+    //Configure a dedicated channel in the UTRAN FDD with configuration according to 34.108 cl. 6.10.2.4.1.26
+    f_SS_Config_64kPS_DCH4_RAB (utran_Cell5); //@sic R5s120111 sic@
+    
+    //Wait for preamble and then set appropiate cell power level
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+
+    f_UTRAN_TestBody_Set(true);
+    
+    //Receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //Configure ciphering in SS before HO
+    f_UTRAN_ConfigureCipheringBeforeHO (utran_Cell5);
+
+    //Notify E-UTRA ready to send Mobility from EUTRA
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 6-13" siclog@
+    //Perfrom 36.508 cl. 6.4.3.7.7 - CS fallback to UTRAN with Handover / emergency call
+    f_UTRAN_CS_Fallback_WithHandover(utran_Cell5, false, true);
+    
+    //Notify E-UTRA end of test body
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_TestBody_Set(false);
+    
+    //Switch/Power off UE and release cell
+    f_UTRAN_Postamble (utran_Cell5, U5_CSCALL);
+  }
+
+  function f_TC_13_4_2_1_UTRAN() runs on UTRAN_PTC
+  {
+    //@sic R5s120113 sic@
+    var integer v_T0_CPICH_Cell5;
+    var integer v_T1_CPICH_Cell5;
+    var integer v_T0_PCCPCH_Cell5;
+    var integer v_T1_PCCPCH_Cell5;
+    var octetstring v_IPv4IPv6_IcmpEchoReply := f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());      /* @sic R5s120470 sic@ */
+    var bitstring v_IpPacket_Bitstring := oct2bit(v_IPv4IPv6_IcmpEchoReply);
+    //@sic R5s120645 sic@
+    v_T0_CPICH_Cell5 := -82;//-23 //@sic R5-121768 sic@
+    v_T1_CPICH_Cell5 := -72; //-12
+
+    v_T0_PCCPCH_Cell5 := -82;     // TDD: To be clarified in prose, currently -82.5 specified which cannot be simulated [integer required]
+    v_T1_PCCPCH_Cell5 := -72;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    //@sic R5s120312 sic@
+    //Send the cell info to the EUTRA component, and inform completion of Pre-preamble
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    f_UTRAN_Pre_Preamble (utran_Cell5, NotSpecified); // @sic R5s110776 sic@
+
+    //Configure a dedicated channel in the UTRAN cell with configuration according to 34.108 cl. 6.10.2.4.1.26
+    f_SS_Config_64kPS_RAB (utran_Cell5);
+
+    
+
+    //Set cell power levels according to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+
+        
+    f_UTRAN_TestBody_Set (true);
+    
+    //@siclog "Step 5" siclog@
+    //Set Cell parameters according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5);
+    
+    //Receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //Configure ciphering in SS before HO
+    f_UTRAN_ConfigureCipheringBeforeHO (utran_Cell5);
+    
+    //Notify E-UTRA ready to send Mobility from EUTRA
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 8-13" siclog@
+    //Receive HANDOVER TO UTRAN COMPLETE message and perform RAU
+    f_UTRAN_PS_Handover(utran_Cell5);
+    
+    //@siclog "Step 14 siclog@
+    //Send one IP packet to UE
+    U_AM.send(cas_RLC_Test_Data_Req (utran_CellDedicated,
+                                     tsc_RB20,
+                                     v_IpPacket_Bitstring));
+    //@siclog "Step 15" siclog@
+    //Receive the looped back IP packet
+    U_AM.receive(car_RLC_Test_Data_Ind (utran_CellDedicated,
+                                        tsc_RB20,
+                                        v_IpPacket_Bitstring));
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.4.2.1 Step 15");
+    
+    //Test case ends
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_TestBody_Set (true);
+    
+    //Perform Switch/Power off and release cell 5
+    f_UTRAN_Postamble (utran_Cell5, U2_CONNECTED);
+  }
+
+  function f_TC_13_3_2_1_UTRAN ( ) runs on UTRAN_PTC
+  { /* Inter-system connection re-establishment / E-UTRAN to UTRAN / Further data are to be transferred */
+    
+    var octetstring v_IPv4IPv6_IcmpEchoReply := f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());      /* @sic R5s120470 sic@ */
+    var bitstring v_IpPacket_Bitstring := oct2bit(v_IPv4IPv6_IcmpEchoReply);
+    var U_RLC_AM_IND v_U_RLC_AM_IND;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo ;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+
+    //Create and configure Cell 5 (cell started switched on but with max attenuation)
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Receive Authentication parameters and transfer of control to UTRA
+    //@siclog "Step 2" siclog@
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_TestBody_Set(true);
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationServingCell);
+    //@siclog "Step 3" siclog@
+    //The UE reselects Cell5 and camps on Cell5.
+    f_UTRAN_IdleMode_RAU (utran_Cell5, cell_Dch);
+    //@siclog "Step 3" siclog@
+    //@siclog "Step 4-16" siclog@
+    f_UTRAN_RRC_ConnEst (utran_Cell5);
+    f_UTRAN_GMM_ServReq (ps_domain);
+    f_UTRAN_RRC_Security (utran_Cell5, false, ps_domain);
+    f_UTRAN_RB_SetUp_PS_RAB (utran_Cell5, cell_DCH_64kPS_RAB_SRB, false); // don't wait for RB Setup Cmpl
+    
+    // RBSetupComplete and the IP packet can come in any order
+    //Receive the looped back IP packet
+    interleave {
+      [] U_AM.receive(car_RLC_Test_Data_Ind (utran_CellDedicated,
+                                             tsc_RB20,
+                                             v_IpPacket_Bitstring))
+        {
+          f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.4.2.1 Step 17");
+        }
+      [] U_AM.receive (car_RLC_Data_Ind (utran_CellDedicated, //@sic R5s110210 sic@
+                                         tsc_RB2,
+                                         cr_108_RB_SetUpCmpl (tsc_RRC_TI))) -> value v_U_RLC_AM_IND
+      {
+        v_SecurityInfo := f_UTRAN_Security_Get();
+        v_SecurityInfo.start_PS := v_U_RLC_AM_IND.data.aM_message.uL_DCCH_Message.message_.radioBearerSetupComplete.start_Value;
+        f_UTRAN_Security_Set(v_SecurityInfo);
+      }
+    }
+    
+    //Test case ends
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_TestBody_Set (false);
+    
+    //Perform Switch/Power off and release cell 5
+    f_UTRAN_Postamble (utran_Cell5, U2_CONNECTED);
+
+  } // end of f_TC_13_3_2_1_UTRA
+
+  function f_TC_13_4_2_4_UTRAN ( ) runs on UTRAN_PTC
+  { /* Inter-system mobility / Service based redirection from UTRA to E-UTRA */
+    var InitialUE_Identity v_InitialUE_Id;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode ;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var integer v_T1_CPICH_Cell5 := -70;
+    var integer v_T1_PCCPCH_Cell5 := -72;
+    var EUTRA_MeasurementBandwidth v_EUTRA_MeasurementBandwidth := f_UTRAN_ConvertIntegerToEUTRA_MeasurementBandwidth(f_ConvertDL_BandwidthPIXITToInteger());
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Get Cell Parameters for EUTRA cell
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Create and configure Cell 5 (cell started switched on but with max attenuation)
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    //Update SIB19 of cell 5 according to Table 6.3.8.3.3-7
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell5,
+                              cs_SIB19_UtraAndOneEutraEntry (cs_Utra_PriorityInfoList_Prio (4),
+                                                             cs_Eutra_FreqAndPriList_OneEntry_Def (v_EUTRASysInfo.Eutra[0].Arfcn, v_EUTRA_MeasurementBandwidth)));
+    //Receive Authentication parameters and transfer of control to UTRA
+    // Make UE camp on UTRA cell
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_SetCellPower (utran_Cell5, v_T1_CPICH_Cell5,v_T1_PCCPCH_Cell5);//@sic R5s120646 sic@
+    //The UE reselects Cell5 and camps on Cell5.
+    f_UTRAN_IdleMode_RAU (utran_Cell5, cell_Dch);
+    //UE is now in GMM-Registered and pdp-active State on Cell 5
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    
+    f_UTRAN_TestBody_Set(true);
+    //@siclog "Step 1" siclog@
+    //Page the UE
+    f_UTRAN_Page (utran_Cell5, terminatingHighPrioritySignalling, oct2bit(px_PTMSI_Def));
+    //@siclog "Step 2" siclog@
+    alt {
+      [v_FDD_TDD_Mode == UTRAN_FDD] U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                                                 tsc_RB0,
+                                                                 cdr_RRC_ConnReqWith_v860ext(terminatingHighPrioritySignalling, cr_RRCConnReq_v860ext(true, ?), cr_RRCConnReq_v690ext_PSDomain))) -> value v_RLC_TR_DATA_IND
+        {
+          v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+        }
+      [v_FDD_TDD_Mode == UTRAN_TDD] U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                                                 tsc_RB0,
+                                                                 cdr_RRC_ConnReqWith_v860ext(terminatingHighPrioritySignalling, cr_RRCConnReq_v860ext(?, true), cr_RRCConnReq_v690ext_PSDomain))) -> value v_RLC_TR_DATA_IND
+        {
+          v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+        }
+    }
+    //@siclog "Step 3-4" siclog@
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq ( utran_Cell5, v_InitialUE_Id );
+    //@siclog "Step 5" siclog@
+    f_UTRAN_GMM_ServReq(ps_domain, tsc_PagingResponse );
+    v_SecurityInfo := f_UTRAN_Security_Get();
+    // Send Authentication parameters to EUTRA and also trigger further steps in EUTRA
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA, omit);
+    U_UM.send (cas_RRC_ConnRelDCCH (utran_CellDedicated, //@sic R5s120092 sic@
+                                    tsc_RB1,
+                                    cs_108_RRC_ConnRelDCCH_r4(v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                              tsc_RRC_TI,
+                                                              1,
+                                                              directedsignallingconnectionre_establishment,
+                                                              cs_RRCConnectionRelease_NonCriticalExtensions_EutraReDirection({cs_EUTRA_TargetFreqInfo(v_EUTRASysInfo.Eutra[0].Arfcn)}))));
+    
+    //@siclog "Step 6" siclog@
+    //Receive RRC Connection Release Complete
+    U_UM.receive(car_RRC_ConnRelCmplUM(utran_CellDedicated, //@sic R5s120092 sic@
+                                       tsc_RB1,
+                                       cr_108_RRC_ConnRelCmpl(tsc_RRC_TI)));
+    //@siclog "Step 7" siclog@
+    //Receive RRC Connection Release Complete
+    U_UM.receive(car_RRC_ConnRelCmplUM(utran_CellDedicated, //@sic R5s120092 sic@
+                                       tsc_RB1,
+                                       cr_108_RRC_ConnRelCmpl(tsc_RRC_TI)));
+    //Wait till end of test case
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_TestBody_Set (false);
+    
+    //Release UTRA cell
+    f_UTRAN_ReleaseCell (utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+
+  } // end of f_TC_13_4_2_4_UTRA
+
+}

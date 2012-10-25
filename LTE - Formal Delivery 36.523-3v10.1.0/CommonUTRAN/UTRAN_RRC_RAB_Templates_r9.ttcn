@@ -1,0 +1,446 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 16:20:27 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7265 $
+/******************************************************************************/
+
+module UTRAN_RRC_RAB_Templates_r9 {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_RRC_CommonTemplates all;
+  import from UTRAN_RRC_RAB_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_RRC_Templates_r9 all;
+
+  template (value) HSDSCH_Info_r9 cs_HSDSCH_Info_r9(template (value) HARQ_Info_r7         p_HARQ_Info,
+                                                    template (value) AddOrReconfMAC_dFlow p_AddOrReconfMAC_dFlow) :=
+  { /* @status    APPROVED */
+    harqInfo := p_HARQ_Info,
+    dl_MAC_HeaderType := {
+      mac_hs := p_AddOrReconfMAC_dFlow
+    }
+  };
+
+  template (value) HS_SCCH_Info_r9 cs_HS_SCCH_Info_r9_FDD :=
+  { /* @status    APPROVED */
+    modeSpecificInfo := {
+      fdd := {
+        hS_SCCHChannelisationCodeInfo := {
+          tsc_HS_SCCH_ChC7
+        },
+        dl_ScramblingCode := omit
+      }
+    }
+  };
+
+  template (value) DL_HSPDSCH_Information_r9 cs_DL_HSPDSCH_Information_r9_FDD(template (value) HS_SCCH_Info_r9              p_HS_SCCH_Info,
+                                                                              template (value) Measurement_Feedback_Info_r7 p_Measurement_Feedback_Info) :=
+  { /* @status    APPROVED */
+    hs_scch_Info := p_HS_SCCH_Info,
+    measurement_feedback_Info := p_Measurement_Feedback_Info,
+    modeSpecificInfo := {
+      fdd := {
+        dl_64QAM_Configured := omit,
+        hs_DSCH_TBSizeTable := omit
+      }
+    }
+  };
+
+  template (value) DL_AddReconfTransChInformation_r9 cs_DL_AddReconfTransChHSDSCHInfo_HSDPA_r9(template (value) HSDSCH_Info_r9 p_HSDSCH_Info) :=
+  { /* @status    APPROVED */
+    dl_TransportChannelType := {
+      hsdsch := NULL
+    },
+    tfs_SignallingMode := {
+      hsdsch := p_HSDSCH_Info
+    },
+    dch_QualityTarget := omit
+  };
+
+  template (value) DL_AddReconfTransChInfoList_r9 cs_DL_AddReconfTransChInfoListTM_12_2k_r9 :=
+  { /* @status    APPROVED */
+    cs_DL_AddReconfTransChInfoExplicit_r9(tsc_DL_DCH1, cs_DCH_81_TFS_DL_UE, omit),
+    cs_DL_AddReconfTransChInfo_WithoutQuality_r9(tsc_DL_DCH2, tsc_UL_DCH2),
+    cs_DL_AddReconfTransChInfo_WithoutQuality_r9(tsc_DL_DCH3, tsc_UL_DCH3),
+    cs_DL_AddReconfTransChInfo_r9(tsc_DL_DCH5, tsc_UL_DCH5)
+  };
+
+  template (value) DL_AddReconfTransChInformation_r9 cs_DL_AddReconfTransChInfo_WithoutQuality_r9(TransportChannelIdentity p_DlTrChId,
+                                                                                                  TransportChannelIdentity p_UlTrChId) :=
+    /* @status    APPROVED */
+    cs_DL_AddReconfTransChInfo_r9(p_DlTrChId, p_UlTrChId, omit);
+
+  template (value) DL_AddReconfTransChInfoList_r9 cs_DL_AddReconfTransChInfoListDCH_PS_64k_r9 :=
+  { /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Added or Reconfigured DL TrCH information */
+    /* @status    APPROVED */
+    cs_DL_AddReconfTransChInfo_r9(tsc_DL_DCH1, tsc_UL_DCH1),
+    cs_DL_AddReconfTransChInfo_r9(tsc_DL_DCH5, tsc_UL_DCH5)
+  };
+
+  template (value) DL_AddReconfTransChInfoList_r9 cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSDPA_r9(template (value) HARQ_Info_r7 p_HARQ_Info) :=
+  { /* @status    APPROVED */
+    cs_DL_AddReconfTransChInfo_r9(tsc_DL_DCH5, tsc_UL_DCH5),
+    cs_DL_AddReconfTransChInfoExplicit_r9(tsc_DL_DCH1, cds_DCH_336_TFS_0_UE),
+    cs_DL_AddReconfTransChHSDSCHInfo_HSDPA_r9 (cs_HSDSCH_Info_r9 (p_HARQ_Info, cs_AddOrReconfMAC_dFlow (cs_MAC_hs_AddReconfQueue)))
+  };
+
+  template (value) DL_AddReconfTransChInfoList_r9 cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSDPA_r9_FDD := cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSDPA_r9(cs_HARQ_Info_FDD);  /* @status    APPROVED */
+
+  template (value) DL_AddReconfTransChInfoList_r9 cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSDPA_r9_TDD := cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSDPA_r9(cs_HARQ_Info_TDD);  /* @status    APPROVED */
+
+  template (value) DL_DCCH_Message cs_RadioBearerSetup_r9(IntegrityCheckInfo p_Integrityinfo,
+                                                          template (value) RadioBearerSetup_r9_IEs p_RadioBearerSetup) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := p_Integrityinfo,
+    message_ := {
+      radioBearerSetup := {
+        later_than_r3 := {
+          rrc_TransactionIdentifier := tsc_RRC_TI,
+          criticalExtensions := {
+            criticalExtensions := {
+              criticalExtensions := {
+                criticalExtensions := {
+                  criticalExtensions := {
+                    criticalExtensions := {
+                      r9 := {
+                        radioBearerSetup_r9 := p_RadioBearerSetup,
+                        radioBearerSetup_r9_add_ext := omit,
+                        v950NonCriticalExtensions := omit
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) RadioBearerSetup_r9_IEs cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    integrityProtectionModeInfo := omit,
+    cipheringModeInfo := omit,
+    sr_vcc_Info := omit,
+    activationTime := omit,
+    new_U_RNTI := omit,
+    new_C_RNTI := omit,
+    new_DSCH_RNTI := omit,
+    new_H_RNTI := omit,
+    newPrimary_E_RNTI := omit,
+    newSecondary_E_RNTI := omit,
+    rrc_StateIndicator := cell_DCH,
+    utran_DRX_CycleLengthCoeff := omit,
+    ura_Identity := omit,
+    supportForChangeOfUE_Capability := omit,
+    cn_InformationInfo := omit,
+    srb_InformationSetupList := omit,
+    rab_InformationSetupList := omit,
+    rab_InformationReconfigList := omit,
+    rb_InformationReconfigList := omit,
+    rb_InformationAffectedList := omit,
+    dl_CounterSynchronisationInfo := omit,
+    pdcp_ROHC_TargetMode := omit,
+    ul_CommonTransChInfo := omit,
+    ul_deletedTransChInfoList := omit,
+    ul_AddReconfTransChInfoList := omit,
+    dl_CommonTransChInfo := omit,
+    dl_DeletedTransChInfoList := omit,
+    dl_AddReconfTransChInfoList := omit,
+    frequencyInfo := omit,
+    multi_frequencyInfo := omit,
+    dtx_drx_TimingInfo := omit,
+    dtx_drx_Info := omit,
+    hs_scch_LessInfo := omit,
+    mimoParameters := omit,
+    maxAllowedUL_TX_Power := omit,
+    ul_DPCH_Info := omit,
+    ul_EDCH_Information := omit,
+    ul_SecondaryCellInfoFDD := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := omit,
+    dl_InformationPerRL_List := omit,
+    dl_SecondaryCellInfoFDD := omit,
+    controlChannelDRXInfo_TDD128 := omit,
+    sps_Information_TDD128 := omit,
+    mbms_PL_ServiceRestrictInfo := omit,
+    cellDCHMeasOccasionInfo_TDD128 := omit
+  };
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_FACH_PS_TDD(C_RNTI p_C_RNTI,
+                                                                                   bitstring p_RAB_Id)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    new_C_RNTI := p_C_RNTI,
+    new_H_RNTI := omit,
+    rrc_StateIndicator := cell_FACH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoFACH_PS(p_RAB_Id, cs_RLC_InfoAM_Def)
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_TDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_TDD(cs_TFCS_Cmpl0_1_2_3_4_5_6_7_8_9_Rx),
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCH_PS_64k_r9
+  };
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_HS_FromDCH_UL_64k_FDD(ActivationTime        p_Activetime,
+                                                                                             bitstring             p_RAB_Id,
+                                                                                             UL_ScramblingCode     p_UL_ScramblingCode,
+                                                                                             PrimaryScramblingCode p_PrimScramblingCode)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime := p_Activetime,
+    new_H_RNTI := tsc_H_RNTI,
+    rrc_StateIndicator := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupDCH_PS_HSDPA (p_RAB_Id, cs_RLC_InfoAM_HSDPA)
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_FDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_FDD(cs_TFCS_Cmpl0_1_Rx),
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSDPA_r9_FDD,
+    maxAllowedUL_TX_Power := tsc_MaxAllowPwr,
+    ul_DPCH_Info := cds_UL_DPCH_InfoACK_HSDPA_FDD (tsc_UL_DPDCH_SF_64k_PS, pl0_96, p_UL_ScramblingCode),
+    dl_HSPDSCH_Information := cs_DL_HSPDSCH_Information_r9_FDD (cs_HS_SCCH_Info_r9_FDD, cs_Measurement_Feedback_Info),
+    dl_CommonInformation := cs_DL_CommonInformationRB_SetUp_FDD (tsc_DL_DPCH1_SFP_SRB_3_4k, flexible),
+    dl_InformationPerRL_List := cds_DL_InfoPerRL_HSDPA_r8_FDD (p_PrimScramblingCode, tsc_Sfc256_C0, tsc_DL_DPCH1_2ndScrC)
+  };
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_HS_FromDCH_UL_64k_TDD(ActivationTime   p_Activetime,
+                                                                                             bitstring        p_RAB_Id,
+                                                                                             CellParametersID p_CellParametersID)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime := p_Activetime,
+    new_H_RNTI := tsc_H_RNTI,
+    rrc_StateIndicator := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupDCH_PS_HSDPA (p_RAB_Id, cs_RLC_InfoAM_HSDPA)//FFS - Check values
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_TDD,//FFS - Check values
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,//FFs - check values
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_TDD(cs_TFCS_Cmpl0_1_Rx),//FFS - check values
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSDPA_r9_TDD,//FFS - check values
+    maxAllowedUL_TX_Power := tsc_MaxAllowPwr,
+    ul_DPCH_Info := cs_UL_DPCH_64k_PS_TDD,
+    dl_HSPDSCH_Information := cs_DL_HSPDSCH_Information_TDD (cs_HS_SCCH_Info_TDD, cs_HS_PDSCH_Midamble_Configuration_TDD128),
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r8_TDD (p_CellParametersID, cs_DL_DPCH_InfoPerRL_SRB_TDD)
+  };
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUpHS_FromDCH_UL_64k_r9_FDD(IntegrityCheckInfo     p_Integrityinfo,
+                                                                           ActivationTime         p_Activetime,
+                                                                           bitstring              p_RAB_Id,
+                                                                           UL_ScramblingCode      p_UL_ScramblingCode,
+                                                                           PrimaryScramblingCode  p_PrimScramblingCode) :=
+  /* ASN.1 PDU Constraint Defined in TS 34.108 clause 9. But uses 64 K uplink */
+  /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_HS_FromDCH_UL_64k_FDD (p_Activetime, p_RAB_Id, p_UL_ScramblingCode, p_PrimScramblingCode));
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_64k_PS_FDD(ActivationTime         p_Activetime,
+                                                                                  bitstring              p_RAB_Id,
+                                                                                  UL_ScramblingCode      p_UL_ScramblingCode,
+                                                                                  PrimaryScramblingCode  p_PrimScramblingCode)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime := p_Activetime,
+    rrc_StateIndicator := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupDCH_PS_64k (p_RAB_Id, cs_RLC_InfoAM_Def)
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_FDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_FDD (cs_TFCS_Cmpl0_1_2_3_4_5_6_7_8_9_Rx),
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCH_PS_64k_r9,
+    maxAllowedUL_TX_Power := tsc_MaxAllowPwr,
+    ul_DPCH_Info := cs_UL_DPCH_Info_FDD (tsc_UL_DPDCH_SF_64k_PS, pl0_96, p_UL_ScramblingCode),
+    dl_CommonInformation := cs_DL_CommonInformationRB_SetUp_FDD (tsc_DL_DPCH1_SFP_64k_PS, flexible),
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r8_FDD (p_PrimScramblingCode, tsc_DL_DPCH1_ChC_64k_PS, tsc_DL_DPCH1_2ndScrC)
+  };
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_64k_PS_TDD (ActivationTime      p_Activetime,
+                                                                                   bitstring           p_RAB_Id,
+                                                                                   CellParametersID    p_CellParametersID)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime := p_Activetime,
+    rrc_StateIndicator := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupDCH_PS_64k (p_RAB_Id, cs_RLC_InfoAM_Def)
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_TDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_TDD (cs_TFCS_Cmpl0_1_2_3_4_5_6_7_8_9_Rx),
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCH_PS_64k_r9,
+    maxAllowedUL_TX_Power := tsc_MaxAllowPwr,
+    ul_DPCH_Info := cs_UL_DPCH_64k_PS_TDD,
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r8_TDD (p_CellParametersID, cs_DL_DPCH_InfoPerRL_r7_64k_PS_TDD)
+  };
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUp64k_PS_r9_FDD(IntegrityCheckInfo        p_Integrityinfo,
+                                                                ActivationTime            p_Activetime,
+                                                                bitstring                 p_RAB_Id,
+                                                                UL_ScramblingCode         p_UL_ScramblingCode,
+                                                                PrimaryScramblingCode     p_PrimScramblingCode) :=
+  /* ASN.1 PDU Constraint. Defined in TS 34.108 clause 9 */
+  /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_64k_PS_FDD(p_Activetime, p_RAB_Id, p_UL_ScramblingCode, p_PrimScramblingCode));
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_Speech_FDD (ActivationTime         p_Activetime,
+                                                                                   bitstring              p_RAB_Id,
+                                                                                   UL_ScramblingCode      p_UL_ScramblingCode,
+                                                                                   PrimaryScramblingCode  p_PrimScramblingCode)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime              := p_Activetime,
+    rrc_StateIndicator          := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupTM_12_2k(useT314, p_RAB_Id)
+    },
+    ul_CommonTransChInfo        := cs_UL_CommTrChInfoTM_12_2k_FDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListTM_12_2k,
+    dl_CommonTransChInfo        := cs_DL_CommonTransChInfoSameAsUL_r4_FDD,
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListTM_12_2k_r9,
+    maxAllowedUL_TX_Power       := tsc_MaxAllowPwr,
+    ul_DPCH_Info                := cs_UL_DPCH_Info_FDD (tsc_UL_DPDCH_SF_Speech, pl0_84, p_UL_ScramblingCode),
+    dl_CommonInformation        := cs_DL_CommonInformationRB_SetUpSpeech (tsc_DL_DPCH1_SFP_Speech),
+    dl_InformationPerRL_List    := cs_DL_InformationPerRL_r8_FDD (p_PrimScramblingCode, tsc_DL_DPCH1_ChC_Speech, tsc_DL_DPCH1_2ndScrC)
+  };
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_Speech_TDD(ActivationTime   p_Activetime,
+                                                                                  bitstring        p_RAB_Id,
+                                                                                  CellParametersID p_CellParametersID)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime              := p_Activetime,
+    rrc_StateIndicator          := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupTM_12_2k (useT314, p_RAB_Id)
+    },
+    ul_CommonTransChInfo        := cs_UL_CommTrChInfoTM_12_2k_TDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListTM_12_2k,
+    dl_CommonTransChInfo        := cs_DL_CommonTransChInfoSameAsUL_r4_TDD,
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListTM_12_2k_r9,
+    maxAllowedUL_TX_Power       := tsc_MaxAllowPwr,
+    ul_DPCH_Info                := cs_UL_DPCH_Speech_TDD,
+    dl_CommonInformation        := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List    := cs_DL_InformationPerRL_r8_TDD (p_CellParametersID, cs_DL_DPCH_InfoPerRL_Speech_TDD)
+  };
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUpSpeech_r9_FDD(IntegrityCheckInfo p_Integrityinfo,
+                                                                ActivationTime p_Activetime,
+                                                                bitstring p_RAB_Id,
+                                                                PrimaryScramblingCode p_PrimScramblingCode,
+                                                                UL_ScramblingCode p_UL_ScramblingCode) :=
+  /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_Speech_FDD(p_Activetime, p_RAB_Id, p_UL_ScramblingCode, p_PrimScramblingCode));
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_PSandConvSpeech_FDD(ActivationTime p_Activetime,
+                                                                                           bitstring p_RAB_Id,
+                                                                                           PrimaryScramblingCode p_PrimScramblingCode,
+                                                                                           UL_ScramblingCode p_UL_ScramblingCode)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime := p_Activetime,
+    rrc_StateIndicator := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupTM_12_2k (useT314, p_RAB_Id)
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfo_TM3_AM1_0To119_FDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListTM_12_2k,
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_FDD(cs_TFCS_Cmpl0_To119_Rx),
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListTM_12_2k_r9,
+    maxAllowedUL_TX_Power := tsc_MaxAllowPwr,
+    ul_DPCH_Info := cs_UL_DPCH_Info_FDD (tsc_UL_DPDCH_SF_64k_PS, pl0_76, p_UL_ScramblingCode),
+    dl_CommonInformation := cs_DL_CommonInformationRB_SetUp_FDD (tsc_DL_DPCH1_SFP_64k_PS, flexible),
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r8_FDD (p_PrimScramblingCode, tsc_DL_DPCH1_ChC_64k_PS, tsc_DL_DPCH1_2ndScrC)
+  };
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUpPSandConvSpeech_r9_FDD(IntegrityCheckInfo p_Integrityinfo,
+                                                                         ActivationTime p_Activetime,
+                                                                         bitstring p_RAB_Id,
+                                                                         PrimaryScramblingCode p_PrimScramblingCode,
+                                                                         UL_ScramblingCode p_UL_ScramblingCode) :=
+  /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_PSandConvSpeech_FDD(p_Activetime, p_RAB_Id, p_PrimScramblingCode, p_UL_ScramblingCode));
+
+  template (value) RadioBearerSetup_r9_IEs cds_RadioBearerSetup_r9_IEs_PSandConvSpeech_TDD(ActivationTime p_Activetime,
+                                                                                           bitstring p_RAB_Id,
+                                                                                           CellParametersID p_CellParametersID)
+    modifies cs_RadioBearerSetup_r9_IEs_Omit :=
+  { /* @status    APPROVED */
+    activationTime              := p_Activetime,
+    rrc_StateIndicator          := cell_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupTM_12_2k (useT314, p_RAB_Id)
+    },
+    ul_CommonTransChInfo        := cs_UL_CommTrChInfo_TM3_AM1_0To119_TDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListTM_12_2k,
+    dl_CommonTransChInfo        := cs_DL_CommonTransChInfoDCH_TDD(cs_TFCS_Cmpl0_To119_Rx),
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListTM_12_2k_r9,
+    maxAllowedUL_TX_Power       := tsc_MaxAllowPwr,
+    ul_DPCH_Info                := cs_UL_DPCH_Speech_TDD,
+    dl_CommonInformation        := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List    := cs_DL_InformationPerRL_r8_TDD (p_CellParametersID, cs_DL_DPCH_InfoPerRL_r7_64k_PS_TDD)
+  };
+
+  template (value) DL_AddReconfTransChInformation_r9 cs_DL_AddReconfTransChInfoExplicit_r9(integer p_TransportChannelId,
+                                                                                           template (value) DedicatedTransChTFS p_DedicatedTransChTFS,
+                                                                                           template (omit) QualityTarget p_QualityTarget := cs_QualityTarget) :=
+  { /* @status    APPROVED */
+    dl_TransportChannelType := {
+      dch := p_TransportChannelId
+    },
+    tfs_SignallingMode := {
+      explicit_config := {
+        dedicatedTransChTFS := p_DedicatedTransChTFS
+      }
+    },
+    dch_QualityTarget := p_QualityTarget
+  };
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUpHS_FromDCH_UL_64k_TDD(IntegrityCheckInfo p_Integrityinfo,
+                                                                        ActivationTime     p_Activetime,
+                                                                        bitstring          p_RAB_Id,
+                                                                        CellParametersID   p_CellParametersID) :=
+    /* PDU Constraint Defined in TS 34.108 clause 9. But uses 64 K uplink */
+    /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_HS_FromDCH_UL_64k_TDD (p_Activetime, p_RAB_Id, p_CellParametersID));
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUp64k_PS_TDD(IntegrityCheckInfo p_Integrityinfo,
+                                                             ActivationTime     p_Activetime,
+                                                             bitstring          p_RAB_Id,
+                                                             CellParametersID   p_CellParametersID) :=
+    /* ASN.1 PDU Constraint. Defined in TS 34.108 clause 9. */
+    /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_64k_PS_TDD(p_Activetime, p_RAB_Id, p_CellParametersID));
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUpSpeech_TDD(IntegrityCheckInfo p_Integrityinfo,
+                                                             ActivationTime p_Activetime,
+                                                             bitstring p_RAB_Id,
+                                                             CellParametersID p_CellParametersID) :=
+    /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_Speech_TDD(p_Activetime, p_RAB_Id, p_CellParametersID));
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUpPSandConvSpeech_TDD ( IntegrityCheckInfo    p_Integrityinfo,
+                                                                        ActivationTime        p_Activetime,
+                                                                        bitstring             p_RAB_Id,
+                                                                        CellParametersID      p_CellParametersID) :=
+    /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_PSandConvSpeech_TDD(p_Activetime, p_RAB_Id, p_CellParametersID));
+
+  template (value) DL_DCCH_Message cs_108_RB_SetUpFACH_PS_TDD (IntegrityCheckInfo p_Integrityinfo,
+                                                               C_RNTI             p_C_RNTI,
+                                                               bitstring          p_RAB_Id) :=
+    /* @status    APPROVED */
+    cs_RadioBearerSetup_r9(p_Integrityinfo, cds_RadioBearerSetup_r9_IEs_FACH_PS_TDD(p_C_RNTI, p_RAB_Id));
+
+}

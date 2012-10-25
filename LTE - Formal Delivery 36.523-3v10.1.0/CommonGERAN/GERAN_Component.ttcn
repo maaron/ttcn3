@@ -1,0 +1,251 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-30 16:30:58 +0200 (Thu, 30 Aug 2012) $
+// $Rev: 7202 $
+/******************************************************************************/
+
+module GERAN_Component {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_AuthenticationCommon all;
+  import from NAS_CommonTypeDefs all;
+  import from UpperTesterDefs all;
+
+  const integer tsc_GERAN_NumberOfCells := 3;   /* @status    APPROVED */
+
+  type record GERAN_CellInfo_Type {             /* @status    APPROVED */
+    GERAN_CommonCellInfo_Type  info,
+    GERAN_CellInfo_Freq_Type   freq,
+    GERAN_SystemInformation_Type sysInfo
+  };
+
+  type record length (tsc_GERAN_NumberOfCells) of GERAN_CellInfo_Type GERAN_CellArray_Type;   /* @status    APPROVED */
+
+  type record GERAN_CellInfo_Freq_Type {        /* @status    APPROVED */
+    B10_Type            bCCH_Freq,              // BCCH/CCCH carrier frequency (ARFCN) for current cell. None hopping
+    B10_Type            gPRSCh_Freq optional,   // ARFCN of the GPRS channel, if none hopping
+    B10_Type            tch_Freq,               // ARFCN of the TCH, if it needs to be configured
+    CellChDescr         cellAllocation,         // cell allocation, 3GPP TS 44.018 clause 10.5.2.1b  with IEI omitted
+    NeighCellDescr      neighBCCHFreqList,      // neighbour cell BCCH/CCCH ARFCN's, 3GPP TS 44.018 clause 10.5.2.22 with IEI omitted.
+    CoOrd_GERANNeighCell_Type arfcnList,              // List of the 8 neighbour cells to send to LTE
+    NeighCellDescr      extNeighBCCHFreqList  optional,  // extended neighbour cell BCCH/CCCH ARFCN's in SI2bis, 3GPP TS 44.018 clause 10.5.2.22 with IEI omitted.
+    B1_Type             bandIndicator           // ARFCN band. 0= DCS1800 band; 1= PCS1900 band.
+  };
+
+  type record GERAN_SystemInformation_Type {    /* @status    APPROVED */
+    SYSTEMINFORMATIONTYPE1  si1,
+    SYSTEMINFORMATIONTYPE2  si2,
+    SYSTEMINFORMATIONTYPE2bis  si2bis optional,
+    SYSTEMINFORMATIONTYPE2quater  si2quater_1,
+    SYSTEMINFORMATIONTYPE2quater  si2quater_2  optional, // only need 2nd instance if UTRAN present too
+    SYSTEMINFORMATIONTYPE2quater  si2quater_3  optional, // only need 3rd instance if UTRAN present too @sic R5s120021 sic@
+    SYSTEMINFORMATIONTYPE2quater  si2quater_4  optional, // only need 4th instance if UTRAN present too @sic R5s120129 sic@
+    SYSTEMINFORMATIONTYPE3  si3,
+    SYSTEMINFORMATIONTYPE4  si4,
+    SYSTEMINFORMATIONTYPE5  si5,
+    SYSTEMINFORMATIONTYPE5bis  si5bis optional,  // @sic R5s120615 sic@
+    SYSTEMINFORMATIONTYPE6  si6,
+    SYSTEMINFORMATIONTYPE13  si13,
+    SYSTEMINFORMATIONTYPE15  si15 optional //Only for 710 and 810
+  };
+
+  type record GERAN_CommonCellInfo_Type {       /* @status    APPROVED */
+    B5_Type              gamma optional,
+    integer              downlinkPowerLevel,    // Downlink transmission power level in dB?Vemf(). Default = 63
+    O2_Type              cellIdentity,          // cell identity, 3GPP TS 24.008 clause 10.5.1.1. Default = '0001'O
+    hexstring            mcc length (3),        // mobile country code, 3 digits. 3GPP TS 24.008 clause 10.5.1.3. Default = 001 (decimal)
+    hexstring            mnc length (3),        // mobile network code, 2 BCD digits. 3GPP TS 24.008 clause 10.5.1.3. Default = 01 (decimal)
+    octetstring          plmn length (3),       // plmn
+    O2_Type              lac,                   // location area code. 3GPP TS 24.008 clause 10.5.1.3. Default = '0001'O
+    O1_Type              rac,                   // routing area code. Default = '05'O
+    B2_Type              nmo,                   // network mode of operation. Default = '00'B
+    B3_Type              ncc,                   // PLMN colour code,  3GPP TS 23.003 clause 4.3.2. Default = '001'B
+    B3_Type              bcc,                   // BS colour code, 3GPP TS 23.003 clause 4.3.2. Default = '101'B
+    B2_Type              dTX,                   // Uplink discontinuous transmission indecation, 3GPP TS 44.018 clause 10.5.2.3. Dfault = MS must not use
+    B1_Type              dtx8,                  // Uplink discontinuous transmission indecation, 3GPP TS 44.018 clause 10.5.2.3a.
+    B2_Type              dtx65,                 // Uplink discontinuous transmission indecation, 3GPP TS 44.018 clause 10.5.2.3a.
+    DRXparameter         splitPGcycle,          // 3GPP TS 24.008 clause 10.5.5.6.
+    O1_Type              timingAdvance,         // timing advance value, 3GPP TS 44.018 clause 10.5.2.40
+    B3_Type              tSC,                   // training sequence code for dedicated channels. TSC of broadcast channel and common channel shall be equal to BCC.
+    ControlChDescr       controlChDesr,         // Control channel description 44.018, clause 10.5.2.11
+    RACHControlParam     rachCtrlParams,        // RACH control Parameters 44.018 clause 10.5.2.29
+    CellSelParam         cellSelParams,         // Cell Selection Parameters 44.018 clause 10.5.2.4
+    B4_Type              radioLinkTimeout,      // RADIO-LINK-TIMEOUT, 3GPP TS 44.018 clause 10.5.2.3. Default = 8
+    O1_Type              nccPermitted,          // NCC permitted. 3GPP TS 44.018 clause 10.5.2.27
+    B1_Type              dN_Ind,                // dynamic ARFCN mapping indecator. 3GPP TS 44.018 clause 10.5.2.3
+    TLLI                 tlli,
+    TLLI                 oldTlli
+    // B1_Type              pwrc,                  // power control indication, default ='0' PWRC is not set.
+    // CellConfiguration cellConfiguration    // current configuration of the cell, used to control the behaviour of postamble
+  };
+
+  type record GERAN_SecurityInfo_Type {         /* @status    APPROVED */
+    Common_AuthenticationParams_Type authPS,
+    Common_AuthenticationParams_Type authCS,
+    B64_Type             cipherKey,             // cipher key
+    CipherModeSetting    cipherMode,            // ciphering algorithm and cipher starting flag, 3GPP TS 44.018 clause 10.5.2.9
+    GPRS_CipherAlg       gprsCipherAlg,
+    boolean              CSinOtherRAT           // set to true if UE has done LAU or combined RAU
+  };
+
+  type record GERAN_MsgReceivedInDefault_Type {                       /* @status    APPROVED */
+    EstablishIndType locationUpdatingRequest  optional,
+    LLCUnitDataIndType routingAreaUpdateRequest optional
+  };
+
+  type enumerated GERAN_Default_Enum_Type {StandardDefault};            /* refers to common default alt_GERAN_Standard_Default;  @status    APPROVED */
+
+  type record GERAN_Ctrl_Type {                 /* @status    APPROVED */
+    default                     Default,        /* default behaviour being activated on GERAN */
+    boolean                     TestBody        /* true:  => fail may be assigend
+                                                   false: => inconc is assigned instead of fail */
+  };
+
+  type record GERAN_Global_Type {               /* @status    APPROVED */
+    GERAN_Ctrl_Type             Ctrl,
+    GERAN_SecurityInfo_Type     Security,
+    GERAN_CellArray_Type        CellArray,
+    GERAN_MsgReceivedInDefault_Type   MsgInDefault
+  };
+
+  type component GERAN_PTC {                    /* @status    APPROVED */
+    var  GERAN_Global_Type vc_GERAN_Global;
+    
+    port UT_PTC_MTC_PORT        UT;
+    port IRAT_CO_ORD_PORT       EUTRA;
+    port IRAT_CO_ORD_PORT       UTRAN;
+    port GERAN_CL1_PORT         G_CL1;
+    port GERAN_CLLC_PORT        G_CLLC;
+    port GERAN_CRLC_PORT        G_CRLC;
+    port GERAN_L2_PORT          G_L2;
+    port GERAN_LLC_PORT         G_LLC;
+    port GERAN_RLC_PORT         G_RLC;
+  };
+
+  type component GERAN_SYSTEM {                                 /* @status    APPROVED */
+    port GERAN_CL1_PORT         S_G_CL1;
+    port GERAN_CLLC_PORT        S_G_CLLC;
+    port GERAN_CRLC_PORT        S_G_CRLC;
+    port GERAN_L2_PORT          S_G_L2;
+    port GERAN_LLC_PORT         S_G_LLC;
+    port GERAN_RLC_PORT         S_G_RLC;
+  };
+
+  function f_GERAN_PTC_Map(GERAN_PTC p_Geran)
+  {
+    map(p_Geran:G_CL1,   system:S_G_CL1);
+    map(p_Geran:G_CLLC,  system:S_G_CLLC);
+    map(p_Geran:G_CRLC,  system:S_G_CRLC);
+    map(p_Geran:G_L2,    system:S_G_L2);
+    map(p_Geran:G_LLC,   system:S_G_LLC);
+    map(p_Geran:G_RLC,   system:S_G_RLC);
+  }
+
+  template G_CPHY_CONFIG_CNF car_G_CPHY_CONFIG_CNF_Any := ?;             /* @status    APPROVED */
+
+  template G_RLC_CONFIG_CNF car_G_RLC_CONFIG_CNF_Any := ?;               /* @status    APPROVED */
+
+  template G_LLC_CONFIG_CNF car_G_LLC_CONFIG_CNF_Any := ?;               /* @status    APPROVED */
+
+  template G_L2_DATAMESSAGE_IND car_G_L2_DATAMESSAGE_IND_Any := ?;       /* @status    APPROVED */
+
+  template G_LLC_DATAMESSAGE_IND car_G_LLC_DATAMESSAGE_IND_Any := ?;     /* @status    APPROVED */
+
+  template G_RLC_DATAMESSAGE_IND car_G_RLC_DATAMESSAGE_IND_Any := ?;     /* @status    APPROVED */
+
+  altstep a_GERAN_StandardDefault() runs on GERAN_PTC
+  { // @sic R5s110431 sic@
+    // @sic R5s120050 sic@
+    [] G_CL1.receive (car_G_CPHY_CONFIG_CNF_Any) {
+      repeat;                                         /* @sic R5s120050 MCC160 implementation sic@ */
+    }
+    [] G_CLLC.receive (car_G_LLC_CONFIG_CNF_Any) {
+      repeat;                                         /* @sic R5s120050 MCC160 implementation sic@ */
+    }
+    [] G_CRLC.receive (car_G_RLC_CONFIG_CNF_Any) {
+      repeat;                                         /* @sic R5s120050 MCC160 implementation sic@ */
+    }
+    [] G_L2.receive (car_G_L2_Release_IND_Any) {      // @sic R5s120498 sic@
+      repeat;
+    }
+    [] G_L2.receive (car_G_L2_DATAMESSAGE_IND_Any) {
+      all timer.stop;
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at the G_L2 port");
+    }
+    [] G_LLC.receive (car_G_LLC_DATAMESSAGE_IND_Any) {
+      all timer.stop;
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at the G_LLC port");
+    }
+    [] G_RLC.receive (car_G_RLC_DATAMESSAGE_IND_Any) {
+      all timer.stop;
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at the G_RLC port");
+    }
+    [] UT.receive {
+      all timer.stop;
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at the UT port");
+    }
+    [] any timer.timeout {
+      all timer.stop;
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected timeout");
+    }
+  }
+
+  function f_GERAN_TestBody_Set(boolean p_TestBodyFlag) runs on GERAN_PTC {
+    vc_GERAN_Global.Ctrl.TestBody := p_TestBodyFlag;
+  }
+
+  function fl_GERAN_TestBody_Check() runs on GERAN_PTC return boolean {
+    return vc_GERAN_Global.Ctrl.TestBody;
+  }
+
+  function f_GERAN_SetVerdictInconc(charstring p_FileName,
+                                    LineNo_Type p_LineNo,
+                                    charstring p_Msg)
+  {
+    f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    self.kill;    // => test case will be terminated immediately
+  }
+
+  function f_GERAN_SetVerdictFailOrInconc(charstring p_FileName,
+                                          LineNo_Type p_LineNo,
+                                          charstring p_Msg) runs on GERAN_PTC {
+    if (fl_GERAN_TestBody_Check()) {
+      f_SetVerdict(fail, p_FileName, p_LineNo, p_Msg);
+    } else {
+      f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    }
+    self.kill; // => test case will terminate immediately
+  }
+
+  function f_GERAN_PreliminaryPass(charstring p_FileName,
+                                   LineNo_Type p_LineNo,
+                                   charstring p_Msg) runs on GERAN_PTC {
+    if (fl_GERAN_TestBody_Check()) {
+      f_SetVerdict(pass,p_FileName, p_LineNo, p_Msg);
+    }
+  }
+
+  function f_GERAN_ActivateDefault(GERAN_Default_Enum_Type p_Default) runs on GERAN_PTC
+  {
+    deactivate(vc_GERAN_Global.Ctrl.Default);
+    
+    select (p_Default) {
+      case (StandardDefault) {
+        vc_GERAN_Global.Ctrl.Default := activate(a_GERAN_StandardDefault());
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "unknown default behaviour");
+      }
+    }
+  }
+
+}

@@ -1,0 +1,1529 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:12:45 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7294 $
+/******************************************************************************/
+
+module EPS_NAS_Templates {
+
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_TypeDefs all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+
+  template (value) NAS_SecurityProtectionInfoDL_Type cs_NAS_SecurityProtectionInfo(SecurityHeaderType p_Status,
+                                                                                   boolean p_ForceMacError := false) :=
+  { /* @status    APPROVED */
+    Status := p_Status,
+    ForceMacError := p_ForceMacError     // @sic R5s100358 additional changes sic@
+  };
+
+  template NAS_SecurityProtectionInfoUL_Type cr_NAS_SecurityProtectionInfo(template (present) SecurityHeaderType p_ExpectedStatus) :=
+  { /* @status    APPROVED */
+    Status := p_ExpectedStatus,
+    NasCount := ?
+  };
+
+  template (value) NAS_MSG_Request_Type cs_NAS_Request(SecurityHeaderType p_SecurityStatus,
+                                                       template (value) NAS_DL_Message_Type p_Msg) :=
+  { /* @status    APPROVED */
+    SecurityProtection := cs_NAS_SecurityProtectionInfo(p_SecurityStatus),
+    Pdu := {
+      Msg := p_Msg,
+      PiggybackedPduList := omit
+    }
+  };
+
+  template NAS_MSG_Indication_Type cr_NAS_Indication(template (present) SecurityHeaderType p_ExpectedSecurityStatus,
+                                                     template (present) NAS_UL_Message_Type p_Msg) :=
+  { /* @status    APPROVED */
+    SecurityProtection := cr_NAS_SecurityProtectionInfo(p_ExpectedSecurityStatus),
+    Pdu := {
+      Msg := p_Msg,
+      PiggybackedPduList := omit
+    }
+  };
+
+  template (value) NAS_MSG_Request_Type cs_NAS_RequestWithPiggybacking(SecurityHeaderType p_SecurityStatus,
+                                                                       template (value) NAS_DL_Message_Type p_EmmMsg,
+                                                                       template (value) NAS_DL_Message_Type p_EsmMsg) :=
+  { /* @status    APPROVED */
+    SecurityProtection := cs_NAS_SecurityProtectionInfo(p_SecurityStatus),
+  Pdu := {
+      Msg := p_EmmMsg,
+      PiggybackedPduList := {
+        {
+          Msg := p_EsmMsg,
+          PiggybackedPduList := omit
+        }
+      }
+    }
+  };
+
+  template NAS_MSG_Indication_Type cr_NAS_IndicationWithPiggybacking(template (present) SecurityHeaderType p_ExpectedSecurityStatus,
+                                                                     template (present) NAS_UL_Message_Type p_EmmMsg,
+                                                                     template (present) NAS_UL_Message_Type p_EsmMsg) :=
+  { /* @status    APPROVED */
+    SecurityProtection := cr_NAS_SecurityProtectionInfo(p_ExpectedSecurityStatus),
+    Pdu := {
+      Msg := p_EmmMsg,
+      PiggybackedPduList := {
+        {
+          Msg := p_EsmMsg,
+          PiggybackedPduList := omit
+        }
+      }
+    }
+  };
+
+  template (value) AdditionalUpdateResult cs_AdditionalUpdateResult(B2_Type p_AddUpdateResultValue) :=
+  { /* 24.301 cl. 9.9.3.0A */
+    /* @status    APPROVED */
+    /* @sic R5s120156 Additional Changes sic@ */
+    iei       := 'F'H,                            // currently only used as TV
+    spare2    := tsc_Spare2,
+    addUpdateResultValue := p_AddUpdateResultValue
+  };
+
+  template (value) AdditionalUpdateResult cs_AdditionalUpdateResult_SMSOnly := cs_AdditionalUpdateResult('10'B);   /* @status    APPROVED */
+
+  template (value) AdditionalUpdateResult cs_AdditionalUpdateResult_CSFallbackNotPreferred := cs_AdditionalUpdateResult('01'B);   /* @status    APPROVED */
+
+  template AdditionalUpdateType cr_AdditionalUpdateTypeAny :=
+  { /* 24.301 cl. 9.9.3.0B */
+    /* @status    APPROVED */
+    /* @sic R5s100135 sic@ */
+    iei       := 'F'H,                            // currently only used as TV
+    spare3    := tsc_Spare3,
+    addUpdateTypeValue := ?
+  };
+
+  template AuthenticationResponseParameter cr_AuthenticationResponseParameter_lv(template (present) B32_128_Type p_ExpectedRES) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    iel := ?,        /* RES has length of 32..128 bits i.e. 4..16 octets */
+    res := p_ExpectedRES
+  };
+
+  template LinkedEpsBearerIdentity cr_LinkedId (B4_Type p_Id) :=
+  { /* @status    APPROVED */
+    idValue := p_Id
+  };
+
+  template (value) LinkedEpsBearerIdentity cs_LinkedId (B4_Type p_Id) :=
+  { /* @status    APPROVED */
+    idValue := p_Id
+  };
+
+  template (value) NAS_SecurityAlgorithms cs_NAS_SecurityAlgorithms(B3_Type p_CipheringType,
+                                                                    B3_Type p_IntegrityType) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    spare1 := tsc_Spare1,
+    cipheringType := p_CipheringType,
+    spare2 := tsc_Spare1,
+    integrityType := p_IntegrityType
+  };
+
+  template (value) NAS_KeySetIdentifier cs_NAS_KeySetIdentifier_lv(NAS_KsiValue p_NasKeySetId,
+                                                                   B1_Type p_Tsc) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    tsc := p_Tsc,
+    nasKeySetId := p_NasKeySetId
+  };
+
+  template NAS_KeySetIdentifier cr_NAS_KeySetIdentifier(template (present) NAS_KsiValue p_KsiValue,
+                                                        template (present) B1_Type p_Tsc) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    tsc := p_Tsc,
+    nasKeySetId := p_KsiValue
+  };
+
+  template NAS_KeySetIdentifier cdr_NAS_KeySetIdentifier_tlv(template (present) NAS_KsiValue p_KsiValue,
+                                                             template (present) B1_Type p_Tsc)
+    modifies cr_NAS_KeySetIdentifier :=
+  { /* @status    APPROVED */
+    iei := 'B'H
+  };
+
+  template CSFBResponse cr_CSFBResponse (B3_Type p_Csfb) :=                                     // 24.301 cl. 9.9.3.5
+  { /* @status    APPROVED */
+    iei       := 'B'H,                       // currently only used as TV
+    spare     := '0'B,
+    csfbValue := p_Csfb                      // 0 = CS fallback rejected, 1 = accepted by UE
+  };
+
+  template EMM_Cause cr_EMM_Cause_v(template (present) B8_Type p_CauseValue := ?) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    causeValue := p_CauseValue
+  };
+
+  template (value) EMM_Cause cs_EMM_Cause_v(B8_Type p_CauseValue) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    causeValue := p_CauseValue
+  };
+
+  template (value) EMM_Cause cs_EMM_Cause_tv(B8_Type p_CauseValue) :=
+  { /* @status    APPROVED */
+    iei := '53'O,
+    causeValue := p_CauseValue
+  };
+
+  template (value) ESM_Cause cs_ESM_Cause_v(B8_Type p_CauseValue) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    causeValue := p_CauseValue
+  };
+
+  template (value) ESM_Cause cs_ESM_Cause_tv(B8_Type p_CauseValue) :=
+  { /* @status    APPROVED */
+    iei := '58'O,
+    causeValue := p_CauseValue
+  };
+
+  template ESM_Cause cr_ESM_Cause_v(template (present) NAS_CauseValue_Type p_CauseValue) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    causeValue := p_CauseValue
+  };
+
+  template ESM_Cause cr_ESM_Cause_tv(template (present) NAS_CauseValue_Type p_CauseValue) :=
+  { /* @status    APPROVED */
+    iei := '58'O,
+    causeValue := p_CauseValue
+  };
+
+  template (value) ESM_MessageContainer cs_Dummy_ESM_Message :=
+  { /* This is just a dummy to use in the EMM message as the NAS Emulator encodes the ESM message;
+       @status    APPROVED */
+    iei := omit,
+    iel := '0000'O,
+    esmPdu := ''O
+  };
+
+  template ESM_MessageContainer cr_ESM_MessageContainer :=
+  { /* @status    APPROVED */
+    iei := omit, // IE is mandatory in all MO messages
+    iel := ?,
+    esmPdu := ?
+  };
+
+  template ESM_InfoTransferFlag cr_ESMInfoTransferFlag_Any :=
+  { /* 24.301 cl. 9.9.4.5; */
+    /* @status    APPROVED */
+    iei  := 'D'H,
+    spare    := tsc_Spare3,
+    eitValue := ?
+  };
+
+  template GUTI_Type cr_GUTI_Type_Any :=
+  { /* 24.301 cl. 9.9.3.45 @sic R5s110178 Baseline Moving sic@ */
+    /* @status    APPROVED */
+    iei      := 'E'H,
+    spare    := tsc_Spare3,
+    gutiType := ?
+  };
+
+  template EPS_AttachType cr_EPS_AttachType(template (present) NAS_AttDetValue_Type p_ResultValue) :=
+  { /* @status    APPROVED */
+    spare     := tsc_Spare1,
+    typeValue := p_ResultValue
+  };
+
+  template (value) EPS_AttachResult cs_EPS_AttachResult(NAS_AttDetValue_Type p_ResultValue) :=
+  { /* @status    APPROVED */
+    spare       := tsc_Spare1,
+    resultValue := p_ResultValue
+  };
+
+  template (value) EPS_NetworkFeatureSupport cs_EPS_NwkFtSup_IMSVoice :=
+  { /* @status    APPROVED */
+    iei           := '64'O, /* present in case of TV; omit in case of V */
+    iel           := '01'O, /* present in case of LV or TLV; omit in case of V */
+    spareBits     := tsc_Spare2,                    // @sic R5s110176 Baseline Moving sic@
+    esrps         := '0'B,                          // @sic R5s120178 Baseline Moving sic@
+    csLCS         := '00'B,                         // @sic R5s110176, R5s120178 Baseline Moving sic@
+    epcLCS        := '0'B,                          // @sic R5s110176 Baseline Moving sic@
+    emcBS         := '0'B,                         // @sic R5s110176, R5s120178 Baseline Moving; R5-112289: '00'B -> '01'B sic@
+    imsVoPS       := '1'B
+  };
+
+  template (value) EPS_NetworkFeatureSupport cs_EPS_NwkFtSup_IMSVoiceNotSupport :=
+  { /* @status    APPROVED */
+    iei           := '64'O, /* present in case of TV; omit in case of V */
+    iel           := '01'O, /* present in case of LV or TLV; omit in case of V */
+    spareBits     := tsc_Spare2,                    // @sic R5s110176 Baseline Moving sic@
+    esrps         := '0'B,                          // @sic R5s120178 Baseline Moving sic@
+    csLCS         := '00'B,                         // @sic R5s110176, R5s120178 Baseline Moving sic@
+    epcLCS        := '0'B,                          // @sic R5s110176 Baseline Moving sic@
+    emcBS         := '0'B,                          // @sic R5s110176, R5s120178 Baseline Moving sic@
+    imsVoPS       := '0'B
+  };
+
+  template (value) EPS_NetworkFeatureSupport cs_EPS_NwkFtSup_IMSVoice_EMCBS :=
+  { /* @status    APPROVED */
+    iei           := '64'O, /* present in case of TV; omit in case of V */
+    iel           := '01'O, /* present in case of LV or TLV; omit in case of V */
+    spareBits     := tsc_Spare2,                    // @sic R5s110176 Baseline Moving sic@
+    esrps         := '0'B,                          // @sic R5s120178 Baseline Moving sic@
+    csLCS         := '00'B,                         // @sic R5s110176, R5s120178 Baseline Moving sic@
+    epcLCS        := '0'B,                          // @sic R5s110176 Baseline Moving sic@
+    emcBS         := '1'B,                         // @sic R5s110176 Baseline Moving; R5-112289: '00'B -> '01'B sic@
+    imsVoPS       := '1'B
+  };
+
+  template EPS_UpdateType cr_EPS_UpdateType(template (present) B1_Type p_ActiveFlag,
+                                            template (present) EPS_UpdateTypeValue p_EpsUpdateType) :=
+  { /* @status    APPROVED */
+    activeFlag := p_ActiveFlag,
+    typeValue  := p_EpsUpdateType
+  };
+
+  template (value) EPS_UpdateResult cs_EPS_UpdateResult(NAS_AttDetValue_Type p_UpdateValue) :=
+  { /* @status    APPROVED */
+    spare       := '0'B,
+    resultValue := p_UpdateValue
+  };
+
+  template Request_Type cr_EPS_PdnRequestType(template (present) B3_Type p_TypeValue) :=
+  { /* @status    APPROVED */
+    spare     := tsc_Spare1,
+    typeValue := p_TypeValue
+  };
+
+  template EPS_BearerContextStatus cr_EPS_BearerContextStatus_Any :=
+  { /* 24.301 cl. 9.9.2.1 */
+    /* @status    APPROVED */
+    iei := ?, /* present in case of TV or TLV; omit in case of V */
+    iel := ?, /* present in case of LV or TLV; omit in case of V */
+    ebi5_7 := ?, /* EBI(5)- EBI(7) */
+    spare := tsc_Spare5, /* EBI(0)- EBI(4) are spare and shall be coded as zero*/
+    ebi8_15 := ? /* EBI(8)- EBI(15)*/
+  };
+
+  template EPS_BearerContextStatus cr_508_EPS_BearerContextStatusTAUReq(template (present) B3_Type p_EBI5_7 := '001'B) :=
+  { /* See 36.508 clause Table 4.7.2-27 */
+    /* @status    APPROVED */
+    iei := '57'O,
+    iel := '02'O,
+    ebi5_7 := p_EBI5_7, /* EBI(5)- EBI(7) */
+    spare := tsc_Spare5, /* EBI(0)- EBI(4) are spare and shall be coded as zero*/
+    ebi8_15 := '00000000'B
+  };
+
+  template (value) PagingIdentity cs_PagingIdentity ( B1_Type p_PagingId ) :=
+  { /* @status    APPROVED */
+    iei       := omit,
+    spareBits := '0000000'B,
+    pagingId  := p_PagingId
+  };
+
+  template PDN_Type cr_PDN_Type(template (present) PdnTypeValue p_TypeValue) :=
+  { /* @status    APPROVED */
+    spare      := tsc_Spare1,
+    typeValue  := p_TypeValue
+  };
+
+  template TrackingAreaId cr_TAI_Any :=
+  { /* 24.301 cl. 9.9.3.32;
+       @status    APPROVED */
+    iei := '52'O,
+    plmnId := ?,                        /* MCC  + MNC 3 digits each */
+    tac := ?                            /* TAC */
+  };
+
+  template TrackingAreaId cr_TAI (NAS_PlmnId p_PlmnId,  // O3_Type
+                                  NAS_Tac    p_Tac) :=  // O2_Type
+  { /* @status    APPROVED */
+    iei := '52'O,
+    plmnId := p_PlmnId,
+    tac := p_Tac
+  };
+
+  template (value) PartialTaiType cs_NonConsecutivePartialTaiList (NAS_PlmnId  p_PlmnId,
+                                                                   NAS_TacList p_TacList):=
+  { /* @status    APPROVED */
+    type0List := {
+      {
+        plmnId  := p_PlmnId,
+        tacList := p_TacList
+      }
+    }
+  };
+
+  template (value) ListOfPartialTaiList cs_ListNonConsecutivePartialTaiList (NAS_PlmnId  p_PlmnId,
+                                                                             NAS_TacList p_TacList):=
+  { /* @status    APPROVED */
+    spareBit         := tsc_Spare1,
+    typeOfList       := tsc_NonConsecutiveTacs,
+    numberOfElements := int2bit(lengthof(p_TacList) - 1, 5),
+    partialTaiList   := cs_NonConsecutivePartialTaiList (p_PlmnId, p_TacList)
+  };
+
+  template (value) TrackingAreaIdList cs_TAIListNonConsecutive_lv (NAS_PlmnId  p_PlmnId,
+                                                                   NAS_TacList p_TacList) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    iel := int2oct(4 + 2 * lengthof(p_TacList), 1),
+    listOfPartialTais := {cs_ListNonConsecutivePartialTaiList (p_PlmnId, p_TacList) }
+  };
+
+  template (value) TrackingAreaIdList cds_TAIListNonConsecutive_tlv (NAS_PlmnId  p_PlmnId,
+                                                                     NAS_TacList p_TacList)
+    modifies cs_TAIListNonConsecutive_lv  :=
+  { /* @status    APPROVED */
+    iei := '54'O // TS 24.301 clause 8.2.26
+  };
+
+  template (value) TrackingAreaIdList cs_TrackingAreaIdListDef_lv := cs_TAIListNonConsecutive_lv (tsc_PLMN1, {tsc_TAC1});    /* @status    APPROVED */
+
+  template (value) TrackingAreaIdList cs_TrackingAreaIdListDef_tlv := cds_TAIListNonConsecutive_tlv (tsc_PLMN1, {tsc_TAC1}); /* @status    APPROVED */
+
+  template TrafficFlowTemplate cr_Tft (B3_Type p_Code) :=
+  { /* 24.301 cl. 9.9.4.13 -> 24.008 cl. 10.5.6.12 */
+    /* @status    APPROVED */
+    iei := omit, /* present in case of TLV; omit in case of LV */
+    iel := ?,
+    tftOperationCode := p_Code,
+    eBit := ?,
+    noOfPktFilter := complement ('0000'B), // value must be greater than 0 and <= 16 (only 4 bits)
+    packetFilterList := ?,
+    parameterList := *
+  };
+
+  template (value) TrafficFlowTemplate cs_TrafficFlowTemplate(integer p_IeLength,
+                                                              template (value) TrafficFlowTemplate.packetFilterList p_PacketFilterList):=
+  { /* @status    APPROVED */
+    iei   := omit,
+    iel   := int2oct(p_IeLength, 1),
+    tftOperationCode := '001'B,  // Create new TFT
+    eBit  := '0'B, // Parameter list not included
+    noOfPktFilter := int2bit(lengthof(p_PacketFilterList), 4),
+    packetFilterList := p_PacketFilterList,
+    parameterList := omit
+  };
+
+  template (value) EPS_QualityOfService cs_508_EPS_QoS_Dedicated_1 :=
+  { /* according to table 6.6.2.1 in 36.508
+       @status    APPROVED */
+    iei := omit,
+    iel := '09'O,
+    qci                    := '00000001'B,        // @sic R5-112698 sic@
+    maxBitRateUl           := '01101000'B,                //384 kbps
+    maxBitRateDl           := '01101000'B,                //384 kbps
+    guaranteedBitRateUl    := '01001000'B,                //128 kbps
+    guaranteedBitRateDl    := '01001000'B,                //128 kbps
+    maxBitRateUlExt        := '00000000'B,
+    maxBitRateDlExt        := '00000000'B,
+    guaranteedBitRateUlExt := '00000000'B,
+    guaranteedBitRateDlExt := '00000000'B
+  };
+
+  template (value) EPS_QualityOfService cds_508_EPS_QoS_Dedicated_1_tlv
+  modifies cs_508_EPS_QoS_Dedicated_1 :=
+  { /* according to table 6.6.2.1 in 36.508, including iei */
+    /* @status    APPROVED */
+    /* @sic R5s100295 sic@ */
+    iei     := '5B'O
+  };
+
+  template (value) EPS_QualityOfService cds_EPS_QoS_Dedi_nonGBR_QCI
+  modifies cs_508_EPS_QoS_Dedicated_1 :=
+  { /* @status    APPROVED */
+    qci     := '00000101'B // Different from the value in cs_508_EPS_QoS_Dedicated_1
+  };
+
+  template (value) EPS_QualityOfService cds_EPS_QoS_Dedi_nonGBR_QCI_tlv  // @sic R5-115537 sic@
+  modifies cs_508_EPS_QoS_Dedicated_1 :=
+  { /* @status    APPROVED */
+    iei     := '5B'O,
+    qci     := '00000101'B // Different from the value in cs_508_EPS_QoS_Dedicated_1
+  };
+
+  template EPS_QualityOfService cr_EPS_QoS_Any_lv :=
+  { /* 24.301 cl. 9.9.4.3 */
+    /* @status    APPROVED */
+    iei := omit,
+    iel := ?,
+    qci                    := ?,
+    maxBitRateUl           := *,
+    maxBitRateDl           := *,
+    guaranteedBitRateUl    := *,
+    guaranteedBitRateDl    := *,
+    maxBitRateUlExt        := *,
+    maxBitRateDlExt        := *,
+    guaranteedBitRateUlExt := *,
+    guaranteedBitRateDlExt := *
+  };
+
+  template EPS_QualityOfService cdr_EPS_QoS_Any_tlv
+  modifies cr_EPS_QoS_Any_lv :=
+  { /* @status    APPROVED */
+    iei := '5B'O
+  };
+
+  template NAS_UL_Message_Type cr_508_ATTACH_REQUEST(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                     template AdditionalUpdateType p_AdditionalUpdateType) :=
+  { /* 24.301 cl. 8.2.4
+       @status    APPROVED */
+    aTTACH_REQUEST := {
+      securityHeaderType       := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator    := tsc_PD_EMM,
+      messageType              := tsc_MT_AttachRequest,
+      nasKeySetId              := cr_NAS_KeySetIdentifier(?, ?),
+      epsAttachType            := cr_EPS_AttachType(p_AttachTypeValue),
+      epsMobileIdentity        := cr_MobileIdAny (omit),  // @sic R5s110176 Baseline Moving sic@
+      ueNetworkCapability      := cr_UENetworkCap_Any (omit),
+      esmMessage               := cr_ESM_MessageContainer,
+      oldPtmsiSignature        := cr_PTMSI_SignatureAny ifpresent,
+      additionalGuti           := cr_MobileIdAny ('50'O) ifpresent,
+      lastVisitedRegisteredTai := cr_TAI_Any ifpresent,
+      drxParameter             := cr_DRXparameter_Any ('5C'O) ifpresent,
+      msNetworkCapability      := cr_MS_NetworkCap_Any ifpresent,
+      oldLai                   := cr_LAI_Any ifpresent,
+      tmsiStatus               := cr_TMSI_Status ifpresent,
+      msClassmark2             := cr_MS_Clsmk2_Any_tlv ifpresent,  // @sic R5s100662 sic@
+      msClassmark3             := cr_MSCLSMK3_Any ifpresent,
+      supportedCodecList       := cr_CodecListAny ifpresent,
+      addUpdateType            := p_AdditionalUpdateType,       /* @sic R5-103681 sic@ */
+      voiceDomainPref          := cr_VoiceDomainPref_Any ifpresent, //@sic R5s110176 Baseline Moving sic@
+      deviceProperties         := cr_DeviceProperties_Any('D'H) ifpresent,  /* cl. 9.9.2.0A O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+      oldGUTI_Type             := cr_GUTI_Type_Any ifpresent,  /* cl. 9.9.3.45 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+      msNetworkFeatureSupport  := cr_MS_NetworkFeatureSupport_Any('C'H) ifpresent  /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                                   template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                   template (present) MobileIdentity p_MobileId,
+                                                                   template TMSI_Status p_TmsiStatus := cr_TMSI_Status ifpresent,  // @sic R5s110242 sic@
+                                                                   template LocAreaId p_OldLAI := cr_LAI_Any ifpresent) // @sic R5s110242 sic@
+    modifies cr_508_ATTACH_REQUEST :=
+  { /* 24.301 cl. 8.2.4 */
+    /* @status    APPROVED */
+    aTTACH_REQUEST := {
+      nasKeySetId              := cr_NAS_KeySetIdentifier(tsc_NasKsi_NoKey, ?),
+      epsMobileIdentity        := p_MobileId,  // @sic R5s110176 Baseline Moving sic@
+      lastVisitedRegisteredTai := omit,
+      oldLai                   := p_OldLAI,  // @sic R5s110230 sic@
+      tmsiStatus               := p_TmsiStatus
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_ATTACH_REQUEST_WithIMSI(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                           template AdditionalUpdateType p_AdditionalUpdateType,
+                                                           template (present) MobileIdentity p_MobileId)
+    modifies cr_508_ATTACH_REQUEST :=
+  { /* 24.301 cl. 8.2.4 */
+    /* @status    APPROVED */
+    aTTACH_REQUEST := {
+      epsMobileIdentity        := p_MobileId
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_AUTHENTICATION_REQUEST(NAS_KsiValue p_AsmeKeySetId,
+                                                                 B128_Type p_RAND,
+                                                                 B128_Type p_AUTN) :=
+  { /* 24.301 cl. 8.2.7 */
+    /* @status    APPROVED */
+    aUTHENTICATION_REQUEST := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_AuthenticationRequest,
+      spareHalfOctet        := tsc_SpareHalfOctet,
+      asmeNasKeySetId       := cs_NAS_KeySetIdentifier_lv(p_AsmeKeySetId, tsc_NasKsi_NativeSecurityContext),
+      rand                  := cs_RAND_v(p_RAND),
+      autn                  := cs_AUTN_lv(p_AUTN)
+    }
+  };
+
+  template NAS_UL_Message_Type cr_AUTHENTICATION_RESPONSE :=
+  { /* @status    APPROVED */
+    aUTHENTICATION_RESPONSE := {
+      securityHeaderType              := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator           := tsc_PD_EMM,
+      messageType                     := tsc_MT_AuthenticationResponse,
+      authenticationResponseParameter := cr_AuthenticationResponseParameter_lv(?)  // accept any RES in the first place
+    }
+  };
+
+  template NAS_UL_Message_Type cr_AUTHENTICATION_FAIL_Any :=
+  { /* @status    APPROVED */
+    aUTHENTICATION_FAILURE := {
+      securityHeaderType       := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator    := tsc_PD_EMM,
+      messageType              := tsc_MT_AuthenticationFailure,
+      emmCause                 := ?,          /* cl. 9.9.3.7  M V 1   */
+      authenticationFailureParameter := omit
+    }
+  };
+
+  template EMM_Cause cr_EMM_Cause_AuthFail_Mac := cs_EMM_Cause_v('00010100'B); /* @status    APPROVED */
+
+  template EMM_Cause cr_EMM_Cause_AuthFail_SQN := cs_EMM_Cause_v('00010101'B); /* @status    APPROVED */
+
+  template NAS_UL_Message_Type cdr_AUTHENTICATION_FAIL_synch modifies cr_AUTHENTICATION_FAIL_Any :=
+  { /* @status    APPROVED */
+    aUTHENTICATION_FAILURE := {
+      emmCause                 := cr_EMM_Cause_AuthFail_SQN,          /* cl. 9.9.3.7  M V 1   */
+      authenticationFailureParameter :=  cr_AuthFailParam_Any
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_AUTHENTICATION_FAIL_mac modifies cr_AUTHENTICATION_FAIL_Any :=
+  { /* @status    APPROVED */
+    aUTHENTICATION_FAILURE := {
+      emmCause                 := cr_EMM_Cause_AuthFail_Mac           /* cl. 9.9.3.7  M V 1   */
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_SECURITY_MODE_COMMAND(B3_Type p_CipheringType,
+                                                                    B3_Type p_IntegrityType,
+                                                                    NAS_KsiValue p_AsmeKeySetId,
+                                                                    UE_SecurityCapability p_SecurityCap) :=
+  { /* @status    APPROVED */
+    sECURITY_MODE_COMMAND := {
+      securityHeaderType         := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator      := tsc_PD_EMM,
+      messageType                := tsc_MT_SecurityModeCommand,
+      nasSecurityAlgorithms      := cs_NAS_SecurityAlgorithms(p_CipheringType, p_IntegrityType),
+      spareHalfOctet             := tsc_SpareHalfOctet,
+      asmeNasKeySetId            := cs_NAS_KeySetIdentifier_lv(p_AsmeKeySetId, tsc_NasKsi_NativeSecurityContext),
+      replayedSecurityCapability := p_SecurityCap,  // @sic R5s100135 sic@
+      imeisvRequest              := omit,
+      replayedNonceUe            := omit,
+      nonceMme                   := omit
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_SECURITY_MODE_COMPLETE :=
+  { /* @status    APPROVED */
+    sECURITY_MODE_COMPLETE := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_SecurityModeComplete,
+      imeisv                := omit
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_ATTACH_ACCEPT(NAS_AttDetValue_Type p_EpsAttachResultValue,
+                                                            template (value) TrackingAreaIdList p_TaiList,
+                                                            template (omit) MobileIdentity p_Guti,
+                                                            template (omit) LocAreaId p_Lai,
+                                                            template (omit) MobileIdentity p_MSId,
+                                                            template (omit) EMM_Cause p_Cause,
+                                                            template (omit) AdditionalUpdateResult p_AdditionalUpdateResult,
+                                                            template (value) GPRS_Timer p_T3412 := cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                                            template (omit) GPRS_Timer p_T3402 := omit, // @sic R5-115720 sic@
+                                                            template (omit) GPRS_Timer3 p_T3412Extd := omit) :=   // @sic R5s120178 Basleine Moving sic@
+  /* @status    APPROVED */
+  /* @sic R5s100780 sic@ */
+    cs_ATTACH_ACCEPT_Common (p_EpsAttachResultValue,
+                             p_T3412,
+                             p_TaiList,
+                             p_Guti,
+                             p_Lai,
+                             p_MSId,
+                             p_Cause,
+                             p_T3402,
+                             omit,
+                             omit,
+                             omit,
+                             cs_EPS_NwkFtSup_IMSVoice,  // @sic R5-103674 sic@
+                             p_AdditionalUpdateResult,     // @sic R5-103681 sic@
+                             p_T3412Extd); // @sic R5s120178 Baseline Moving sic@
+
+  template (value) NAS_DL_Message_Type cs_ATTACH_ACCEPT_Common(NAS_AttDetValue_Type p_EpsAttachResultValue,
+                                                               template (value) GPRS_Timer p_T3412,
+                                                               template (value) TrackingAreaIdList p_TaiList,
+                                                               template (omit) MobileIdentity p_Guti,
+                                                               template (omit) LocAreaId p_Lai,
+                                                               template (omit) MobileIdentity p_MSId,
+                                                               template (omit) EMM_Cause p_Cause,
+                                                               template (omit) GPRS_Timer p_T3402,
+                                                               template (omit) GPRS_Timer p_T3423,
+                                                               template (omit) PLMN_List p_EquivalentPlmnList,
+                                                               template (omit) EmergNumList p_EmergNumList,
+                                                               template (omit) EPS_NetworkFeatureSupport p_NtwkFeatSupport,
+                                                               template (omit) AdditionalUpdateResult p_AdditionalUpdateResult,
+                                                               template (omit) GPRS_Timer3 p_T3412Extd) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100780 sic@ */
+    aTTACH_ACCEPT := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_AttachAccept,
+      spareHalfOctet        := tsc_SpareHalfOctet,
+      epsAttachResult       := cs_EPS_AttachResult(p_EpsAttachResultValue),
+      t3412                 := p_T3412,
+      taiList               := p_TaiList,
+      esmMessage            := cs_Dummy_ESM_Message,
+      guti                  := p_Guti,
+      lai                   := p_Lai,
+      msIdentity            := p_MSId,
+      emmCause              := p_Cause,
+      t3402                 := p_T3402,
+      t3423                 := p_T3423,
+      equivalentPlmns       := p_EquivalentPlmnList,
+      emergencyNumberList   := p_EmergNumList,
+      epsNetworkFeatureSupport := p_NtwkFeatSupport,  // @sic R5-103674 sic@
+      addUpdateResult       := p_AdditionalUpdateResult,      // @sic R5-103681 sic@
+      t3412ExtdValue        := p_T3412Extd   /* cl. 9.9.3.16B O TLV 3     IEI=0x5E @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_ATTACH_COMPLETE :=
+  { /* @status    APPROVED */
+    aTTACH_COMPLETE := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_AttachComplete,
+      esmMessage            := cr_ESM_MessageContainer
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_DETACH_REQUEST_MT(template (value) DetachType p_DetachType,
+                                                                template (omit) EMM_Cause p_Cause) :=
+  { /* @status    APPROVED */
+    dETACH_REQUEST_MT := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_DetachRequest,
+      spareHalfOctet        := tsc_SpareHalfOctet,
+      detachType            := p_DetachType,
+      emmCause              := p_Cause
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_DETACH_ACCEPT :=
+  { /* @status    APPROVED */
+    dETACH_ACCEPT := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_DetachAccept
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_DETACH_ACCEPT :=
+  { /* @status    APPROVED */
+    dETACH_ACCEPT := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_DetachAccept
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_DETACH_REQUEST_MO (template (present) NAS_KeySetIdentifier p_NasKeySetId,
+                                                         template (present) MobileIdentity p_MobileId,
+                                                         template (present) DetachType p_DetachType) :=  // @sic R5-103675 sic@
+  { /* @status    APPROVED */
+    dETACH_REQUEST_MO := {
+      securityHeaderType := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType := tsc_MT_DetachRequest,
+      asmeNasKeySetId := p_NasKeySetId,
+      detachType := p_DetachType,
+      epsMobileIdentity := p_MobileId  // @sic R5s110176 Baseline Moving sic@
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_IDENTITY_REQUEST(NAS_IdType p_IdType) :=
+  { /* @status    APPROVED */
+    iDENTITY_REQUEST :={
+      securityHeaderType                := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator             := tsc_PD_EMM,
+      messageType                       := tsc_MT_IdentityRequest,
+      spareHalfOctet                    := tsc_SpareHalfOctet,
+      identityType2                     := cs_IdentityType(p_IdType)
+    }
+  };
+
+  template NAS_UL_Message_Type cr_IDENTITY_RESPONSE(template (present) MobileIdentity p_MobileId) :=
+  { /* @status    APPROVED */
+    iDENTITY_RESPONSE :={
+      securityHeaderType                := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator             := tsc_PD_EMM,
+      messageType                       := tsc_MT_IdentityResponse,
+      mobileIdentity                    := p_MobileId
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_Service_Notification :=
+  { /* @status    APPROVED */
+    cS_SERVICE_NOTIFICATION := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_CSServiceNotification,
+      pagingIdentity        := cs_PagingIdentity('1'B),
+      cli                   := omit,
+      ssCode                := omit,
+      lcsIndicator          := omit,
+      lcsClientIdentity     := omit
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_SERVICE_REQUEST(template (present) NAS_KsiValue p_AsmeKeySetId) :=
+  { /* @status    APPROVED */
+    sERVICE_REQUEST := {
+      securityHeaderType    := tsc_SHT_ServiceRequest,
+      protocolDiscriminator := tsc_PD_EMM,
+      ksiAndSN := {
+        iei := omit,
+        ksi := p_AsmeKeySetId,
+        sn := ? //This is checked in the NAS Emulator
+      },
+      shortMAC := {
+        iei := omit,
+        macValue := ? //This is checked in the NAS Emulator
+      }
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_SERVICE_REJECT(NAS_CauseValue_Type p_CauseValue,
+                                                             template (omit) GPRS_Timer p_T3442 := omit,
+                                                             template (omit) GPRS_Timer2 p_T3346 := omit) :=
+  { /* @status    APPROVED */
+    sERVICE_REJECT := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_ServiceReject,
+      emmCause              := cs_EMM_Cause_v(p_CauseValue),
+      t3442                 := p_T3442,
+      t3346                 := p_T3346 /* cl. 9.9.3.16A O TLV 3   IEI=0x5F @sic R5s120178 Baseline Moving sic@ */
+    }
+  };
+
+  template NAS_UL_Message_Type cr_EXT_SERVICE_REQUEST_MO(NAS_KsiValue p_KsiValue,
+                                                         EPS_M_Tmsi p_MTmsi) :=
+   /* @status    APPROVED */
+    cr_EXT_SERVICE_REQUEST_Common (p_KsiValue,
+                                   tsc_EST_CsFallback_MO,
+                                   p_MTmsi,
+                                   omit);
+
+  template NAS_UL_Message_Type cr_508_EXT_SERVICE_REQUEST(NAS_KsiValue p_KsiValue,
+                                                          EPS_M_Tmsi p_MTmsi) :=
+   /* @status    APPROVED */
+    cr_EXT_SERVICE_REQUEST_Common (p_KsiValue,
+                                   tsc_EST_CsFallback_MT,
+                                   p_MTmsi,
+                                   cr_CSFBResponse('001'B));
+
+  template NAS_UL_Message_Type cr_EXT_SERVICE_REQUEST_Common (NAS_KsiValue p_KsiValue,
+                                                              EPS_ServiceTypeValue p_ServiceType,
+                                                              EPS_M_Tmsi p_MTmsi,
+                                                              template (omit) CSFBResponse p_CSFBResponse) := // @sic R5-106574 sic@
+  { /* @status    APPROVED */
+    eXT_SERVICE_REQUEST := {
+      securityHeaderType        := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator     := tsc_PD_EMM,
+      messageType               := tsc_MT_ExtServiceRequest,
+      nasKeySetId               := cr_NAS_KeySetIdentifier(p_KsiValue,
+                                                           tsc_NasKsi_NativeSecurityContext),
+      serviceType               := { omit, p_ServiceType },
+      mTMSI                     := cr_MobileIdTMSI_lv(p_MTmsi),
+      csfbResponse              := p_CSFBResponse,
+      epsBearerContextStatus    := cr_EPS_BearerContextStatus_Any ifpresent, //@sic R5s110176 Baseline Moving sic@
+      deviceProperties          := cr_DeviceProperties_Any ('D'H) ifpresent   /* cl. 9.9.2.0A O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_TAU_Accept_Common ( NAS_AttDetValue_Type p_UpdateValue,
+                                                              template (omit) MobileIdentity p_Guti,
+                                                              template (omit) TrackingAreaIdList p_TaiList,
+                                                              template (omit) EPS_BearerContextStatus p_EPSCtxtStatus, // @sic R5s100608 sic@
+                                                              template (omit) LocAreaId p_LAI,
+                                                              template (omit) MobileIdentity p_MS_Id,
+                                                              template (omit) AdditionalUpdateResult p_AdditionalUpdateResult,
+                                                              template (omit) EMM_Cause p_EmmCause := omit,
+                                                              template (omit) GPRS_Timer p_T3402 := omit,
+                                                              template (omit) PLMN_List p_EPLMNlist := omit,
+                                                              template (omit) EPS_NetworkFeatureSupport p_NwkFeatSup := cs_EPS_NwkFtSup_IMSVoice,
+                                                              template (value) GPRS_Timer p_T3412 := cs_GprsTimer_tv('5A'O, tsc_GprsTimerUnit_deact, '00000'B),
+                                                              template (omit) EmergNumList p_EmgNumList := omit,  // @sic R5s120178 Baseline Moving sic@
+                                                              template (omit) GPRS_Timer3 p_T3412Extd := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5s110168 ch 2.2 additional MCC160 comments sic@ */
+    tRACKING_AREA_UPDATE_ACCEPT := {
+      securityHeaderType     := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator  := tsc_PD_EMM,
+      messageType            := tsc_MT_TauAccept,
+      spareHalfOctet         := tsc_SpareHalfOctet,
+      epsUpdateResult        := cs_EPS_UpdateResult(p_UpdateValue),
+      t3412                  := p_T3412,   // @sic R5-101147 sic@  @sic R5-115720 sic@
+      guti                   := p_Guti,
+      taiList                := p_TaiList,
+      epsBearerContextStatus := p_EPSCtxtStatus,
+      lai                    := p_LAI,
+      msIdentity             := p_MS_Id,
+      emmCause               := p_EmmCause,
+      t3402                  := p_T3402,
+      t3423                  := omit,
+      equivalentPlmns        := p_EPLMNlist,
+      asmeNasKeySetId        := omit,
+      emergencyNumberList    := p_EmgNumList,
+      epsNetworkFeatureSupport := p_NwkFeatSup,  // @sic R5-110771 sic@
+      addUpdateResult        := p_AdditionalUpdateResult,      // @sic R5-103681 sic@
+      t3412ExtdValue         := p_T3412Extd   /* cl. 9.9.3.16B O TLV 3     IEI=0x5E @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_TAU_Accept ( NAS_AttDetValue_Type p_UpdateValue,
+                                                           template (omit) MobileIdentity p_Guti,
+                                                           template (omit) TrackingAreaIdList p_TaiList,
+                                                           template (omit) EPS_BearerContextStatus p_EPSCtxtStatus, // @sic R5s100608 sic@
+                                                           template (omit) LocAreaId p_LAI,
+                                                           template (omit) MobileIdentity p_MS_Id,
+                                                           template (omit) AdditionalUpdateResult p_AdditionalUpdateResult ) :=
+  /* @status    APPROVED */
+  /* @sic R5s100707 additional MCC160 comments sic@ */
+    cs_TAU_Accept_Common ( p_UpdateValue,
+                           p_Guti,
+                           p_TaiList,
+                           p_EPSCtxtStatus,
+                           p_LAI,
+                           p_MS_Id,
+                           p_AdditionalUpdateResult);
+
+  template (value) NAS_DL_Message_Type cs_TAU_Accept_EPLMN ( NAS_AttDetValue_Type p_UpdateValue,
+                                                             template (value) MobileIdentity p_Guti,
+                                                             template (omit) TrackingAreaIdList p_TaiList,
+                                                             template (omit) EPS_BearerContextStatus p_EPSCtxtStatus, // @sic R5s100755 sic@
+                                                             template (omit) LocAreaId p_LAI,
+                                                             template (omit) MobileIdentity p_MS_Id,
+                                                             template (omit) AdditionalUpdateResult p_AdditionalUpdateResult,
+                                                             template (omit) PLMN_List p_EPLMNlist ) :=
+  /* default TAU accept message with Equivalent PLMN list assignment */
+  /* @status    APPROVED */
+  /* @sic R5s100707 additional MCC160 comments sic@ */
+    cs_TAU_Accept_Common ( p_UpdateValue,
+                           p_Guti,
+                           p_TaiList,
+                           p_EPSCtxtStatus,
+                           p_LAI,
+                           p_MS_Id,
+                           p_AdditionalUpdateResult,
+                           -,
+                           -,
+                           p_EPLMNlist);
+
+  template (value) NAS_DL_Message_Type cs_TAU_Accept_EMM_Cause ( NAS_AttDetValue_Type p_UpdateValue,
+                                                                 template (omit) MobileIdentity p_Guti, //@sic R5s110143 value changed to omit sic@
+                                                                 template (omit) TrackingAreaIdList p_TaiList,
+                                                                 template (omit) EPS_BearerContextStatus p_EPSCtxtStatus,
+                                                                 template (omit) LocAreaId p_LAI,
+                                                                 template (omit) MobileIdentity p_MS_Id,
+                                                                 template (omit) AdditionalUpdateResult p_AdditionalUpdateResult,
+                                                                 template (omit) EMM_Cause p_EmmCause,
+                                                                 template (omit) GPRS_Timer p_T3402 := omit) :=
+  /* @status    APPROVED */
+  /* @sic R5s100707 additional MCC160 comments sic@ */
+  /* @sic R5s110168 ch 2.2 additional MCC160 comments sic@ */
+    cs_TAU_Accept_Common ( p_UpdateValue,
+                           p_Guti,
+                           p_TaiList,
+                           p_EPSCtxtStatus,
+                           p_LAI,
+                           p_MS_Id,
+                           p_AdditionalUpdateResult,
+                           p_EmmCause,
+                           p_T3402);
+
+  template NAS_UL_Message_Type cr_508_TAU_Complete :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_COMPLETE := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_TauComplete
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_TAU_Request(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                  NAS_KsiValue p_KsiValue,
+                                                  template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                  template AdditionalUpdateType p_AdditionalUpdateType) :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      securityHeaderType         := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator      := tsc_PD_EMM,
+      messageType                := tsc_MT_TauRequest,
+      asmeNasKeySetId            := cr_NAS_KeySetIdentifier (p_KsiValue, tsc_NasKsi_NativeSecurityContext),
+      epsUpdateType              := cr_EPS_UpdateType(tsc_EpsUpdate_NotActive, p_EpsUpdate_TypeValue),
+      oldGuti                    := cr_MobileIdAny(omit),
+      nonCurrentNativeNasKeySetId  := omit,   /* @sic R5s100135 sic@ */
+      gprsCipheringKeySeqNum     := *,        /* @sic R5s100135 sic@ */
+      oldPtmsiSignature          := omit,
+      additionalGuti             := omit,
+      nonce                      := omit,
+      ueNetworkCapability        := cr_UENetworkCap_Any ('58'O) ifpresent,
+      lastVisitedRegisteredTai   := cr_TAI_Any ifpresent,
+      drxParameter               := p_DRXparameter, // @sic R5s100660, R5s120210 sic@
+      ueRadioCapNeeded           := cr_UeRadioCap ifpresent, // @sic R5-112120 sic@
+      epsBearerContextStatus     := cr_508_EPS_BearerContextStatusTAUReq(('000'B, '001'B))  ifpresent,
+      msNetworkCapability        := cr_MS_NetworkCap_Any ifpresent,
+      oldLai                     := cr_LAI_Any ifpresent,
+      tmsiStatus                 := cr_TMSI_Status ifpresent,
+      msClassmark2               := cr_MS_Clsmk2_Any_tlv ifpresent,  // @sic R5s100662 sic@
+      msClassmark3               := cr_MSCLSMK3_Any ifpresent,
+      supportedCodecList         := cr_CodecListAny ifpresent,
+      addUpdateType              := p_AdditionalUpdateType,         /* @sic R5-103681 sic@ */
+      voiceDomainPref            := cr_VoiceDomainPref_Any ifpresent, /* @sic R5s110176 Baseline Moving sic@ */
+      oldGUTI_Type               := cr_GUTI_Type_Any ifpresent,  /* cl. 9.9.3.45 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+      deviceProperties           := cr_DeviceProperties_Any('D'H) ifpresent,  /* cl. 9.9.2.0A O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+      msNetworkFeatureSupport    := cr_MS_NetworkFeatureSupport_Any ('C'H) ifpresent   /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template NAS_UL_Message_Type cr_TAU_RequestIdleMobilityDiffRAT (EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                                   template (present) NAS_KsiValue p_KsiValue,
+                                                                   template (present) EPS_BearerContextStatus p_EPS_BearerContextStatus,
+                                                                   template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                   template (present) B1_Type p_SecurityContextTSC := tsc_NasKsi_MappedSecurityContext) :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      securityHeaderType         := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator      := tsc_PD_EMM,
+      messageType                := tsc_MT_TauRequest,
+      asmeNasKeySetId            := cr_NAS_KeySetIdentifier (p_KsiValue, p_SecurityContextTSC),
+      epsUpdateType              := cr_EPS_UpdateType(?, p_EpsUpdate_TypeValue), // @sic R5-110746 sic@
+      oldGuti                    := cr_MobileIdAny(omit),
+      nonCurrentNativeNasKeySetId  := omit,   /* @sic R5s100135 sic@ */
+      gprsCipheringKeySeqNum     := cr_CiphKeySeqNum('8'H, ?) ifpresent,  /* @sic R5-110746 sic@ */
+      oldPtmsiSignature          := cr_PTMSI_SignatureAny ifpresent,
+      additionalGuti             := cr_MobileIdAny ('50'O) ifpresent,
+      nonce                      := cr_NonceUE_Any, //This IE is included if the UE performs an A/Gb mode or Iu mode to S1 mode inter-system change in idle mode.
+      ueNetworkCapability        := cr_UENetworkCap_Any ('58'O) ifpresent,
+      lastVisitedRegisteredTai   := cr_TAI_Any ifpresent,
+      drxParameter               := cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s100660 sic@
+      ueRadioCapNeeded           := cr_UeRadioCap ifpresent, // @sic R5-110746 sic@
+      epsBearerContextStatus     := p_EPS_BearerContextStatus ifpresent, // @sic R5-110746 sic@
+      msNetworkCapability        := cr_MS_NetworkCap_Any ifpresent,
+      oldLai                     := cr_LAI_Any ifpresent,
+      tmsiStatus                 := cr_TMSI_Status ifpresent,
+      msClassmark2               := cr_MS_Clsmk2_Any_tlv ifpresent,  // @sic R5s100662 sic@
+      msClassmark3               := cr_MSCLSMK3_Any ifpresent,
+      supportedCodecList         := cr_CodecListAny ifpresent,
+      addUpdateType              := p_AdditionalUpdateType,         /* @sic R5-103681 sic@ */
+      voiceDomainPref            := cr_VoiceDomainPref_Any ifpresent, /* @sic R5s110176 Baseline Moving sic@ */
+      oldGUTI_Type               := cr_GUTI_Type_Any ifpresent,  /* cl. 9.9.3.45 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+      deviceProperties           := cr_DeviceProperties_Any('D'H) ifpresent,  /* cl. 9.9.2.0A O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+      msNetworkFeatureSupport    := cr_MS_NetworkFeatureSupport_Any ('C'H) ifpresent   /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_TRACKING_AREA_UPDATE_REJECT (B8_Type p_EmmCause) :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REJECT := {
+      securityHeaderType        := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator     := tsc_PD_EMM,
+      messageType               := tsc_MT_TauReject,
+      emmCause                  := cs_EMM_Cause_v(p_EmmCause),
+      t3346                     := omit  // @sic R5s120178 Baseline Moving sic@
+    }
+  };
+
+  template Nonce cr_NonceUE_Any :=
+  { /* 24.301 cl. 9.9.3.25 */
+    /* @status    APPROVED */
+    iei       := '55'O            , /* present in case of TV; omit in case of V */
+    nonceValue := ?
+  };
+
+  template UERadioCapInfoUpdateNeeded cr_UeRadioCap :=
+  { /* @status    APPROVED */
+    iei := 'A'H,
+    spare := '000'B,
+    urcUpdate := '1'B
+  };
+
+  template NAS_UL_Message_Type cr_PDN_CONNECTIVITY_REQUEST_Common(EPS_BearerIdentity p_BearerId,
+                                                                  template (present) ProcedureTransactionIdentifier p_TI,
+                                                                  template (present) PdnTypeValue p_PDNTypeValue,
+                                                                  template (present) B3_Type p_RequestTypeValue,
+                                                                  template ESM_InfoTransferFlag p_Flag,
+                                                                  template AccessPointName p_APN,
+                                                                  template ProtocolConfigOptions p_PCO,
+                                                                  template DeviceProperties p_DeviceProperties := cr_DeviceProperties_Any ('C'H) ifpresent) :=
+  { /* @status    APPROVED */
+    pDN_CONNECTIVITY_REQUEST := {
+      epsBearerId                    := p_BearerId,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_TI,
+      messageType                    := tsc_MT_PdnConnectivityRequest,
+      pdnType                        := cr_PDN_Type(p_PDNTypeValue),
+      requestType                    := cr_EPS_PdnRequestType(p_RequestTypeValue), // TP: initial attach
+      esmInfoTransferFlag            := p_Flag,
+      accessPointName                := p_APN,
+      protocolConfigurationOptions   := p_PCO,
+      deviceProperties               := p_DeviceProperties  // @sic R5s120178 Baseline Moving sic@
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_PDN_CONNECTIVITY_REQUEST(template (present) B3_Type p_RequestTypeValue,
+                                                               template (present) PdnTypeValue p_PDNTypeValue) :=
+  /* @status    APPROVED */
+    cr_PDN_CONNECTIVITY_REQUEST_Common ('0'H,
+                                        ?,
+                                        p_PDNTypeValue,
+                                        p_RequestTypeValue,
+                                        cr_ESMInfoTransferFlag_Any ifpresent,
+                                        omit, // @sic R5-112598 sic@
+                                        cr_ProtocolConfigOptionsAny ifpresent);
+
+  template (value) NAS_DL_Message_Type cs_508_ActivateDefEpsBearerContextRequest(EPS_BearerIdentity p_EpsBearerId,
+                                                                                 template (value) ProcedureTransactionIdentifier p_ProcTi,
+                                                                                 template (value) AccessPointName p_APN,
+                                                                                 template (omit) PDN_Address p_Address,
+                                                                                 template (omit) ESM_Cause p_Cause := omit,
+                                                                                 template (omit) ProtocolConfigOptions p_PCO) :=
+  /* @status    APPROVED */
+    cs_508_ActivateDefEpsBearerContextRequestAll (p_EpsBearerId,
+                                                  p_ProcTi,
+                                                  f_Get_508_EPSQoS(), // @sic R5-115537 sic@
+                                                  p_APN,
+                                                  p_Address,
+                                                  f_Get_508_EPSBearerTI (p_EpsBearerId), // @sic R5-113662, R5s110593 sic@
+                                                  f_Get_508_NegotiatedQualityOfService (DEF_1), // @sic R5-1100746 sic@
+                                                  f_Get_508_NegotiatedLLCSAPI (DEF_1), // @sic R5-1100746 sic@
+                                                  f_Get_508_RadioPriority (DEF_1), // @sic R5-1100746 sic@
+                                                  f_Get_508_PFI(), //  // @sic R5-115618 sic@
+                                                  omit,
+                                                  p_Cause, // @sic R5-104703 sic@
+                                                  p_PCO);
+
+  template (value) NAS_DL_Message_Type cs_508_ActivateDefEpsBearerContextRequestAll(EPS_BearerIdentity p_EpsBearerId,
+                                                                                    template (value) ProcedureTransactionIdentifier p_ProcTi,
+                                                                                    template (value) EPS_QualityOfService p_EPS_Qos,
+                                                                                    template (value) AccessPointName p_APN,
+                                                                                    template (omit) PDN_Address p_Address,
+                                                                                    template (omit) TransactionIdentifier p_TI,
+                                                                                    template (omit) QualityOfService  p_NegQos,
+                                                                                    template (omit) LLC_SAPI p_LlcSapi,
+                                                                                    template (omit) RadioPriority p_RadioPriority,
+                                                                                    template (omit) PacketFlowIdentifier p_PFI,
+                                                                                    template (omit) APN_AMBR p_ApnAggMaxBitRate,
+                                                                                    template (omit) ESM_Cause p_Cause,
+                                                                                    template (omit) ProtocolConfigOptions p_PCO) :=
+  { /* @status    APPROVED */
+    aCTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST := {
+      epsBearerId                       := p_EpsBearerId,
+      protocolDiscriminator             := tsc_PD_ESM,
+      procedureTransactionIdentifier    := p_ProcTi,
+      messageType                       := tsc_MT_ActivateDefaultEpsBearerContextRequest,
+      epsQos                            := p_EPS_Qos,
+      accessPointName                   := p_APN,
+      pdnAdress                         := p_Address,
+      transactionIdentifier             := p_TI,
+      negotiatedQos                     := p_NegQos,
+      negotiatedLlcSapi                 := p_LlcSapi,
+      radioPriority                     := p_RadioPriority,
+      packetFlowIdentifier              := p_PFI,
+      apnAggMaxBitRate                  := p_ApnAggMaxBitRate,
+      esmCause                          := p_Cause,
+      protocolConfigurationOptions      := p_PCO,
+      connectivityType                  := omit // @sic R5s120178 Baseline Moving sic@
+    }
+  };
+
+  template NAS_UL_Message_Type cr_ActivateDefEpsBearerContextAccept_Common (EPS_BearerIdentity p_EpsBearerId,
+                                                                            template (value) ProcedureTransactionIdentifier p_ProcTi) :=
+  { /* @status    APPROVED */
+    aCTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT := {
+      epsBearerId                       := p_EpsBearerId,
+      protocolDiscriminator             := tsc_PD_ESM,
+      procedureTransactionIdentifier    := p_ProcTi,
+      messageType                       := tsc_MT_ActivateDefaultEpsBearerContextAccept,
+      protocolConfigurationOptions      := cr_ProtocolConfigOptionsAny ifpresent
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_ActivateDefEpsBearerContextAccept (EPS_BearerIdentity p_EpsBearerId) :=
+  /* @status    APPROVED */
+    cr_ActivateDefEpsBearerContextAccept_Common (p_EpsBearerId,
+                                                 '00'O); // No procedure TI assigned
+
+  template (value) NAS_DL_Message_Type cs_508_ActDedicatedEPSBearerCxtReq (EPS_BearerIdentity p_Id,
+                                                                           template (value) ProcedureTransactionIdentifier p_ProcTi,    // octet
+                                                                           template (value) LinkedEpsBearerIdentity p_LinkedId,         // 1/2 octet
+                                                                           template (value) EPS_QualityOfService p_QoS,
+                                                                           template (value) TrafficFlowTemplate p_Tft) :=
+  /* @status    APPROVED  @sic R5-096464 sic@ */
+    cs_508_ActDedicatedEPSBearerCxtReqAll (p_Id,
+                                           p_ProcTi, // octet
+                                           p_LinkedId, //  1/2 octet
+                                           p_QoS,
+                                           p_Tft,
+                                           f_Get_508_EPSBearerTI (p_Id), // @sic R5-113662 sic@
+                                           omit, /* cl. 9.9.4.12 O TLV 14-18 IEI=0x30 */
+                                           omit, /* cl. 9.9.4.7  O TV 2      IEI=0x32 */
+                                           omit, /* cl. 9.9.4.13 O TV 1      IEI=0x8- */
+                                           f_Get_508_PFI(), //  // @sic R5-115618 sic@
+                                           omit);
+
+  template (value) NAS_DL_Message_Type cs_ActDedEPSBearerCxtReq_QoS (EPS_BearerIdentity p_EpsBearerId,
+                                                                     template (value) EPS_QualityOfService p_QoS,
+                                                                     template (value) TrafficFlowTemplate p_Tft) :=
+  /* @status    APPROVED @sic R5-096464 sic@ */
+    cs_508_ActDedicatedEPSBearerCxtReq(p_EpsBearerId,
+                                       '00'O,
+                                       cs_LinkedId(hex2bit(tsc_EpsDefaultBearerId)),  // Default Bearer Id as used in Idleupdated
+                                       p_QoS,
+                                       p_Tft);
+
+  template (value) NAS_DL_Message_Type cs_508_ActDedicatedEPSBearerCxtReqAll (EPS_BearerIdentity p_Id,
+                                                                              template (value) ProcedureTransactionIdentifier p_ProcTi, // octet
+                                                                              template (value) LinkedEpsBearerIdentity p_LinkedId, //  1/2 octet
+                                                                              template (value) EPS_QualityOfService p_QoS,
+                                                                              template (value) TrafficFlowTemplate p_Tft,
+                                                                              template (omit) TransactionIdentifier p_TI,
+                                                                              template (omit) QualityOfService  p_NegQos, /* cl. 9.9.4.12 O TLV 14-18 IEI=0x30 */
+                                                                              template (omit) LLC_SAPI p_LlcSapi, /* cl. 9.9.4.7  O TV 2      IEI=0x32 */
+                                                                              template (omit) RadioPriority p_RadioPriority, /* cl. 9.9.4.13 O TV 1      IEI=0x8- */
+                                                                              template (omit) PacketFlowIdentifier p_PFI,
+                                                                              template (omit) ProtocolConfigOptions p_PCO) :=
+  { /* This version should be used when specifying UTRAN/GERAN parameters too */
+    /* @status    APPROVED */
+    aCTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST := {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_ActivateDedicatedEpsBearerContextRequest,
+      spareHalfOctet                 := tsc_SpareHalfOctet,
+      linkedEpsBearerId              := p_LinkedId,
+      epsQos                         := p_QoS,
+      tft                            := p_Tft,
+      transactionIdentifier          := p_TI,
+      negotiatedQos                  := p_NegQos,
+      negotiatedLlcSapi              := p_LlcSapi,
+      radioPriority                  := p_RadioPriority,
+      packetFlowIdentifier           := p_PFI,
+      protocolConfigurationOptions   := p_PCO
+    }
+  };
+
+  template NAS_UL_Message_Type cr_ActDedicatedEPSBearerCxtAccept_Common (template (present) EPS_BearerIdentity p_Id,
+                                                                         template (present) ProcedureTransactionIdentifier p_ProcTi) :=
+  { /* @status    APPROVED */
+    aCTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT := {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_ActivateDedicatedEpsBearerContextAccept,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_ActDedicatedEPSBearerCxtAccept (template (present) EPS_BearerIdentity p_Id) :=
+  /* @status    APPROVED */
+    cr_ActDedicatedEPSBearerCxtAccept_Common (p_Id, '00'O); // No procedure TI assigned
+
+  template NAS_UL_Message_Type cr_508_BearerResourceModReq(template (present) ProcedureTransactionIdentifier p_ProcTi,
+                                                           EPS_BearerIdentity p_LinkedEpsBearerId,
+                                                           template ESM_Cause p_Cause) :=
+  { /* @status    APPROVED */
+    bEARER_RESOURCE_MODIFICATION_REQUEST := {
+      epsBearerId                    := '0'H,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_BearerResourceModificationRequest,
+      spareHalfOctet                 := tsc_SpareHalfOctet,
+      epsBearerIdentityforPacketFilter := cr_LinkedId(hex2bit(p_LinkedEpsBearerId)),   // of the associated dedicated bearer
+      trafficFlowAgg                 := cr_Tft('100'B),  // Replace packet filters from existing TFT
+      requiredTrafficFlowQoS         := cdr_EPS_QoS_Any_tlv ifpresent, // @sic R5s100692 sic@ @sic R5s110682 sic@
+      esmCause                       := p_Cause,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent,
+      deviceProperties               := cr_DeviceProperties_Any('C'H) ifpresent  /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_BearerResourceModReq(template (present) ProcedureTransactionIdentifier p_ProcTi,
+                                                        EPS_BearerIdentity p_LinkedEpsBearerId,
+                                                        template ESM_Cause p_Cause,
+                                                        template TrafficFlowTemplate p_Tft)
+    modifies cr_508_BearerResourceModReq :=
+  { /* @status    APPROVED */
+    bEARER_RESOURCE_MODIFICATION_REQUEST := {
+      trafficFlowAgg                 := p_Tft
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_DeactivateEPSBearerCxtReq (EPS_BearerIdentity p_Id,
+                                                                         ProcedureTransactionIdentifier p_ProcTi,
+                                                                         template (value) ESM_Cause p_EsmCause) :=
+  { /* @status    APPROVED */
+    dEACTIVATE_EPS_BEARER_CONTEXT_REQUEST := {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_DeactivateEpsBearerContextRequest,
+      esmCause                       := p_EsmCause,
+      protocolConfigurationOptions   := omit
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_DeactivateEPSBearerCxtAccept (EPS_BearerIdentity p_Id) :=
+  { /* @status    APPROVED */
+    dEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT := {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := '00'O,
+      messageType                    := tsc_MT_DeactivateEpsBearerContextAccept,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent      /* @sic R5-120572 sic@ */
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_Esm_Information_Request(template (value) ProcedureTransactionIdentifier p_ProcTi) :=
+  { /* @status    APPROVED */
+    eSM_INFORMATION_REQUEST := {
+      epsBearerId := bit2hex ( '0000'B ),
+      protocolDiscriminator := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,//The value indicated in PDN CONNECTIVITY REQUEST message.
+      messageType := tsc_MT_EsmInformationRequest
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_Esm_Information_Response(template (present) ProcedureTransactionIdentifier p_ProcTi) :=
+  { /* @status    APPROVED */
+    eSM_INFORMATION_RESPONSE := {
+      epsBearerId := bit2hex('0000'B),
+      protocolDiscriminator := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType := tsc_MT_EsmInformationResponse,
+      accessPointName := cr_AccessPointName_Any ifpresent,
+      protocolConfigurationOptions := cr_ProtocolConfigOptionsAny ifpresent
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_ModifyEPSBearerCxtAccept(EPS_BearerIdentity p_EpsBearerId) :=
+  { /* @status    APPROVED */
+    mODIFY_EPS_BEARER_CONTEXT_ACCEPT := {
+      epsBearerId   := p_EpsBearerId,
+      protocolDiscriminator := tsc_PD_ESM,
+      procedureTransactionIdentifier := '00'O,
+      messageType := tsc_MT_ModifyEpsBearerContextAccept,
+      protocolConfigurationOptions  := cr_ProtocolConfigOptionsAny ifpresent      /* @sic R5-120572 sic@ */
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_ModifyEPSBearerCxtReject (EPS_BearerIdentity p_Id,
+                                                                template ESM_Cause p_EsmCause,
+                                                                ProcedureTransactionIdentifier p_ProcTi := '00'O) :=
+  { /* @status    APPROVED */
+    // @sic R5s100464 sic@
+    mODIFY_EPS_BEARER_CONTEXT_REJECT := {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_ModifyEpsBearerContextReject,
+      esmCause                       := p_EsmCause,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_ModifyEPSBearerCxtReq(EPS_BearerIdentity p_EpsBearerId,
+                                                                    ProcedureTransactionIdentifier p_ProcTi,
+                                                                    template (omit) EPS_QualityOfService p_NewEPSQos,
+                                                                    template (omit) TrafficFlowTemplate p_Tft) :=
+  /* @sic R5-103625 sic@ */
+  /* @status    APPROVED */
+    cs_ModifyEPSBearerCxtReq_AllParams (p_EpsBearerId,
+                                        p_ProcTi,
+                                        p_NewEPSQos,
+                                        p_Tft,
+                                        omit,
+                                        omit,
+                                        omit,
+                                        f_Get_508_PFI(), //  // @sic R5-115618 sic@
+                                        omit,
+                                        omit);
+
+  template (value) NAS_DL_Message_Type cs_ModifyEPSBearerCxtReq_AllParams(EPS_BearerIdentity p_EpsBearerId,
+                                                                          ProcedureTransactionIdentifier p_ProcTi,
+                                                                          template (omit) EPS_QualityOfService p_NewEPSQos,
+                                                                          template (omit) TrafficFlowTemplate p_Tft,
+                                                                          template (omit) QualityOfService p_NewQos,
+                                                                          template (omit) LLC_SAPI p_LlcSapi,
+                                                                          template (omit) RadioPriority p_RadioPriority,
+                                                                          template (omit) PacketFlowIdentifier p_PFI,
+                                                                          template (omit) APN_AMBR p_APN_AMBR,
+                                                                          template (omit) ProtocolConfigOptions p_PCO) :=
+  { /* @sic R5-103625 sic@ */
+    /* @status    APPROVED */
+    mODIFY_EPS_BEARER_CONTEXT_REQUEST := {
+      epsBearerId   := p_EpsBearerId,
+      protocolDiscriminator := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType := tsc_MT_ModifyEpsBearerContextRequest,
+      newEPSQos :=  p_NewEPSQos,
+      tft := p_Tft,
+      newQos :=  p_NewQos,
+      negotiatedLlcSapi:= p_LlcSapi,
+      radioPriority  := p_RadioPriority,
+      packetFlowIdentifier := p_PFI,
+      apnAggMaxBitRate := p_APN_AMBR,
+      protocolConfigurationOptions := p_PCO
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_BearerResourceAllocReq(template (present) ProcedureTransactionIdentifier p_ProcTi,
+                                                             EPS_BearerIdentity p_LinkedEpsBearerId) :=
+  { /* @status    APPROVED */
+    bEARER_RESOURCE_ALLOCATION_REQUEST := {
+      epsBearerId                    := '0'H,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_BearerResourceAllocationRequest,
+      spareHalfOctet                 := tsc_SpareHalfOctet,
+      linkedEpsBearerId              := cr_LinkedId(hex2bit(p_LinkedEpsBearerId)),   // of the associated dedicated bearer
+      trafficFlowAgg                 := cr_Tft ('001'B),  // Create new TFT
+      requiredTrafficFlowQoS         := cr_EPS_QoS_Any_lv,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent,
+      deviceProperties               := cr_DeviceProperties_Any('C'H) ifpresent  /* cl. 9.9.2.0A O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_TAU_Request_OldGuti(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                       NAS_KsiValue p_KsiValue,
+                                                       template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                       template AdditionalUpdateType p_AdditionalUpdateType,
+                                                       template (present) MobileIdentity p_OldGuti,
+                                                       template (present) TrackingAreaId p_LastTai)
+    modifies cr_508_TAU_Request :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      oldGuti := p_OldGuti,
+      lastVisitedRegisteredTai := p_LastTai
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_TAU_Request_OldAddGutiTAI(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                             NAS_KsiValue p_KsiValue,
+                                                             template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                             template AdditionalUpdateType p_AdditionalUpdateType,
+                                                             template (present) MobileIdentity p_OldGuti,
+                                                             template TrackingAreaId p_TAI,
+                                                             template MobileIdentity p_AdditionalGuti,  // @sic R5s120482 sic@
+                                                             template PTMSI_Signature p_Sig := omit,
+                                                             template Nonce p_Nonce := omit)
+    modifies cr_508_TAU_Request :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      asmeNasKeySetId            := cr_NAS_KeySetIdentifier (p_KsiValue, tsc_NasKsi_NativeSecurityContext),
+      oldGuti                    := p_OldGuti,
+      oldPtmsiSignature          := p_Sig,
+      additionalGuti             := p_AdditionalGuti,
+      nonce                      := p_Nonce,
+      lastVisitedRegisteredTai   := p_TAI
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_EMMInformation ( template (omit) NetworkName p_FullName,
+                                                               template (omit) NetworkName p_ShortName,
+                                                               template (omit) TimeZone p_LocalTimeZone,
+                                                               template (omit) TimeZoneAndTime p_LocalTimeZongAndTime,
+                                                               template (omit) DaylightSavingTime p_DaylightSavingTime):=
+  { /* 24.301 cl. 8.2.13    */
+    /* @status    APPROVED */
+    eMM_INFORMATION := {
+      securityHeaderType := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator  :=  tsc_PD_EMM,
+      messageType            :=  tsc_MT_EmmInfo,
+      fullNetworkName        :=  p_FullName,
+      shortNetworkName       :=  p_ShortName,
+      localTimeZone          :=  p_LocalTimeZone,
+      localTimeZoneAndTime   :=  p_LocalTimeZongAndTime,
+      daylightSavingTime     :=  p_DaylightSavingTime
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_EMMStatus (template EMM_Cause p_EmmCause):=
+  { /* 24.301 cl. 8.2.14    */
+    /* @status    APPROVED */
+    eMM_STATUS := {
+      securityHeaderType     :=  tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator  :=  tsc_PD_EMM,
+      messageType            :=  tsc_MT_EmmStatus,
+      emmCause               :=  p_EmmCause
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_GUTI_REALLOCATION_COMMAND( template (value) MobileIdentity p_Guti,
+                                                                         template (omit) TrackingAreaIdList p_TaiList ) :=
+  { /* 24.301 cl. 8.2.16 */
+    /* @status    APPROVED */
+    gUTI_REALLOCATION_COMMAND := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_GutiReallocCommand,
+      guti                  := p_Guti,
+      taiList               := p_TaiList
+    }
+  };
+
+  template NAS_UL_Message_Type cr_508_GUTI_REALLOCATION_COMPLETE :=
+  { /* 24.301 cl. 8.2.17 */
+    /* @status    APPROVED */
+    gUTI_REALLOCATION_COMPLETE := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_GutiReallocComplete
+    }
+  };
+
+  template (value) DaylightSavingTime cs_DaylightSavingTime_tlv (B2_Type p_DaylightSavingTime) :=
+  { /* 24.301 cl. 9.9.3.6; */
+    /* @status    APPROVED */
+    iei   := '49'O,
+    iel   := '01'O, // @sic R5s120508 sic@
+    spare := tsc_Spare6,
+    val   := p_DaylightSavingTime
+  };
+
+  template NAS_UL_Message_Type cr_PDNConnReqAdditionalPDN ( template (present) PDN_Type p_PDNType,
+                                                            template AccessPointName p_AccessPointName := cr_AccessPointName_Any,
+                                                            B3_Type p_RequestType := '001'B) := // 'initial request' 24.008 clause 10.5.6.17
+  { /* @desc PDN CONNECTIVITY REQUEST requesting an additional PDN   (used e.g. in test 10.5.1)
+       @sic R5-115673 sic@
+       @status   APPROVED */
+    pDN_CONNECTIVITY_REQUEST := {
+      epsBearerId                    := '0'H,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := ?,
+      messageType                    := tsc_MT_PdnConnectivityRequest,
+      pdnType                        := p_PDNType,
+      requestType                    := cr_EPS_PdnRequestType(p_RequestType), // @sic R5-115673 sic@
+      esmInfoTransferFlag            := omit,
+      accessPointName                := p_AccessPointName,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent,
+      deviceProperties               := cr_DeviceProperties_Any ('C'H) ifpresent // @sic R5s120178 Baseline Moving sic@
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_PdnConnectReject(EPS_BearerIdentity p_Id,
+                                                           ProcedureTransactionIdentifier p_ProcTi,
+                                                           template (value) ESM_Cause p_EsmCause) :=
+  { /* @status    APPROVED */
+    pDN_CONNECTIVITY_REJECT:= {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_PdnConnectivityReject,
+      esmCause                       := p_EsmCause,
+      protocolConfigurationOptions   := omit,
+      t3396                          := omit   /* cl. 9.9.3.16B O TLV 3   IEI=0x37 @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+}

@@ -1,0 +1,136 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:09:14 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7293 $
+/******************************************************************************/
+module Hybrid_Cells {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CSG_Functions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_NASCommonFunctions all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Parameters all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_SysInfo_Templates all;
+  import from NAS_CommonTypeDefs all;
+  import from UpperTesterFunctions all;
+
+  function f_TC_6_4_1_EUTRA ( ) runs on EUTRA_PTC
+    
+  { /* Manual CSG ID selection / Hybrid cell whose CSG ID is not in the Allowed CSG list nor Operators list */
+    var template (value) CellPowerList_Type v_CellPowerList_T1, v_CellPowerList_T2;
+    var CSG_Identity v_CSG_Identity_Cell3 := '000000000000000000000000011'B;
+    var GutiParameters_Type v_GutiParams;
+    var NAS_PlmnId v_PLMN;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell3;
+    var Ul_Bandwidth_Type v_UL_Bandwidth := f_ConvertDL_BandwidthToUL (px_ePrimaryBandChannelBandwidth);
+    var Dl_Bandwidth_Type v_DL_Bandwidth := px_ePrimaryBandChannelBandwidth;
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam (v_DL_Bandwidth, v_UL_Bandwidth);
+    
+    v_CellPowerList_T1 := {
+      cs_CellPower (eutra_Cell1, -97),
+      cs_CellPower (eutra_Cell3, tsc_ServingCellRS_EPRE)
+    };
+    v_CellPowerList_T2 := {
+      cs_CellPower (eutra_Cell1, tsc_ServingCellRS_EPRE),
+      cs_CellPower (eutra_Cell3, tsc_NonSuitableOffCellRS_EPRE)
+    };
+    
+    // Init variables with sysinfo combination 3
+    f_EUTRA_Init(c3);
+    
+    // Set TAC
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell3, tsc_IdleMode_TAC_Cell3);
+ 
+    // Init cell3 with sysinfo combination 13
+    f_EUTRA_ChangeSysinfoCombination( eutra_Cell3, c13 );
+    
+    // Get DL carrier frequency of cell 3
+    v_CarrierFreq_Cell3 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell3);
+    
+    // Set SysInfo for Cell 1
+    f_EUTRA_CellInfo_SetSIB5 (eutra_Cell1, cs_508_SystemInformationBlockType5_Def ( { cs_InterFreqCarrierFreq_CRPri (v_CarrierFreq_Cell3,
+                                                                                                                     v_ChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                     3)}));
+    // Set SysInfo for Cell 3
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Id(eutra_Cell3, v_CSG_Identity_Cell3);
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio (eutra_Cell3, 3);
+    // Set SIB4 for cell 3 according to Table 6.4.1.3.3-5 and according to default message contents defined in 36.508
+    f_EUTRA_CellInfo_SetSIB4 (eutra_Cell3, cs_SIB4_Csg_PhysCellIdRange_StartOnly (4));
+    
+    // Create and configure Cells
+    f_EUTRA_CellConfig_Def(eutra_Cell1);
+    f_EUTRA_CellConfig_Def(eutra_Cell3);
+    
+    // Insert a USIM with the Allowed CSG List empty
+    f_UT_USIM_Insert (UT, "USIM with service n86 and n90 available");
+    // Empty UE CSG list in USIM
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Ind(eutra_Cell3, true);
+    f_EUTRA_EmptyCSG_AllowedList ( eutra_Cell3 );
+    // Broadcast correct CSG indicator and CSG id
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Ind(eutra_Cell3, false);
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Id(eutra_Cell3, v_CSG_Identity_Cell3);
+    f_EUTRA_ModifySysinfoUE_Off ( eutra_Cell3 );
+    
+    // Preamble
+    f_EUTRA_Preamble( eutra_Cell1, STATE2_IDLEUPDATE );
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    // @siclog "Step 1" siclog@
+    // The SS changes Cell 1 and Cell 3 levels according to row "T1" in Table 6.4.1.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_T1);
+    
+    // @siclog "Step 2" siclog@
+    // The UE is made to perform manual CSG ID selection and select Cell 3.
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_Cell3);
+    v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    f_UT_ManualPLMN_CSG ( UT,v_PLMN,v_CSG_Identity_Cell3);
+    
+    // @siclog "Step 3" siclog@
+    // Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.7 indicate that the UE is camped on Cell 3?
+    // NOTE: The UE performs a TAU procedure and the RRC connection is released.
+    f_EUTRA_IdleMode_TAU( eutra_Cell3 );
+    
+    // @siclog "Step 4" siclog@
+    // The SS changes Cell 1 and Cell 3 levels according to row "T2" in Table 6.4.1.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_T2);
+    
+    // @siclog "Step 5" siclog@
+    // The generic test procedure in TS 36.508 subclause 6.4.2.7 is performed on Cell 1.
+    // NOTE: The UE performs a TAU procedure and the RRC connection is released.
+    f_EUTRA_TrackingAreaUpdate (eutra_Cell1);
+    
+    // @siclog "Step 6" siclog@
+    // The SS changes Cell 1 and Cell 3 levels according to row "T1" in Table 6.4.1.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_T1);
+    
+    // @siclog "Step 7" siclog@
+    // Check: Does the UE transmit an RRCConnectionRequest message on Cell 3 within 6 minutes?
+    f_EUTRA_CheckNoAttachOn1Cell (eutra_Cell3, 360.0, "Test Case 6.4.1 Step 7");
+    
+    // @siclog "Step 8" siclog@
+    // Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 1?
+    f_EUTRA_508Check_IdleState ( eutra_Cell1 );
+
+    f_EUTRA_TestBody_Set (false);
+
+    // Postamble
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+
+  } // end of f_TC_6_4_1_EUTRA
+
+}

@@ -1,0 +1,175 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:09:14 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7293 $
+/******************************************************************************/
+module InterRat_CellSelection_EtoU {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_RRCSteps all;
+
+  function f_TC_6_2_2_1_EUTRA ( ) runs on EUTRA_PTC {
+
+    var boolean v_CSInOtherRAT := false; // @sic R5-110746 sic@
+    var Q_Rxlevmin_Type v_Q_Rxlevmin := -55;
+    var CellBarred_Type v_CellBarred := barred;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -60);
+
+    //Set Sys. info for Cell 1 to be used in creation (according to Table 6.2.2.1.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin (eutra_Cell1, v_Q_Rxlevmin);
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble_InterRAT(eutra_Cell1, STATE2_IDLEUPDATE, UTRAN);
+
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 0" siclog@
+    //Wait for 6 s for UE to receive system information.
+    //@sic R5-113677 sic@
+    f_Delay(6.0);
+
+    //@siclog "Step 1" siclog@
+    //Set cell power level according to T1
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPower (eutra_Cell1, -120);
+
+    //@siclog "Step 3" siclog@
+    //Set power level according to T2
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN); //@sic R5s110168 : Auth params have been updated in RAU so these need to be transferred sic@
+    f_EUTRA_SetCellPower (eutra_Cell1, -60);
+
+    //@siclog "Step 4" siclog@
+    //Generic test procedure TS 36.508 table 6.4.2.7A-1 is executed as UE camps on cell 1
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, false, true, omit); //@sic R5-110746, R5-123734 sic@
+
+    //@siclog "Step 5" siclog@
+    //Wait for 6 s for UE to receive system information.
+    //@sic R5-113677 sic@
+    f_Delay(6.0);
+
+    //@siclog "Step 6" siclog@
+    //Set power level according to T3 and update System information
+    f_EUTRA_SendAuthParameters (eutra_Cell1, UTRAN);
+    f_EUTRA_CellInfo_SetSysInfo_CellBarred (eutra_Cell1, v_CellBarred);
+    f_EUTRA_ModifySysinfo (eutra_Cell1);
+    
+    //@siclog "Step 6A" siclog@
+    //Void
+
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells();
+  }
+
+  function f_TC_6_2_2_5_EUTRA ( ) runs on EUTRA_PTC
+  {
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c4 );
+    
+    //Set maximum cell powel level for Cell 1 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -70);
+    
+    //Set TAC according to 36.523-1 Table 6.0.4-2: Tracking Area Code (TAC) for E-UTRAN cells
+    //TAC for Cell 1 is set to 1 in f_EUTRA_Init
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Set cell power level for test
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    f_EUTRA_SetCellPower ( eutra_Cell1, -70 );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //Wait till test case finishes
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //Remove the non-camping cell
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_2_8_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var boolean v_CSInOtherRAT := false;
+    var IRAT_Coordination_MSG v_IRAT_Coordination_MSG;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+    
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell1, -70); //@sic R5s110651 sic@
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Since Authentication parameters were updated in the idle updated procedure...
+    //...receive updated parameters...
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    UTRAN.receive (cmr_IRAT_OctetData) -> value v_IRAT_Coordination_MSG; // @sic R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Set power level to "T1"
+    f_EUTRA_SetCellPower (eutra_Cell1, -70);
+    
+    //@siclog "Step 2" siclog@
+    //Check that UE camps on cell 1 by executing generic test procedure in TS 36.508 Table 6.4.2.7A-2
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, false, false, v_IRAT_Coordination_MSG.OctetData); // @sic R5-123734 sic@
+    
+    //@siclog "Step 2A" siclog@
+    //Wait for [5] s for UE to receive system information.
+    f_Delay(5.0);
+    
+    //@siclog "Step 3" siclog@
+    //Set power level to "T2"
+    f_EUTRA_SendAuthParameters (eutra_Cell1, UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE);
+    
+    //@siclog "Step 5" siclog@
+    //Set power level to "T3"
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, -85);
+    
+    //@siclog "Step 6" siclog@
+    //Check that UE camps on cell 1 by executing generic test procedure in TS 36.508 Table 6.4.2.7A-1
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, true, false, v_IRAT_Coordination_MSG.OctetData); // @sic R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set (false);
+
+    //Tell UTRAN PTC that test case is over
+    f_IRAT_SendCoOrd(UTRAN, cms_IRAT_Trigger); //@sic R5s110651 sic@
+
+    //Postamble
+    f_EUTRA_Postamble(eutra_Cell1, E1_IDLE);
+  }
+
+}

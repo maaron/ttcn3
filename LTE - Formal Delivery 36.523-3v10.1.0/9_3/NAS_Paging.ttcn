@@ -1,0 +1,158 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2012-08-31 18:43:13 +0200 (Fri, 31 Aug 2012) $
+// * $Rev: 7239 $
+// ***************************************************************************
+
+module NAS_Paging {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from NAS_CommonTemplates all;
+
+  group TestcaseImplementations {
+
+  function f_TC_9_3_2_1_EUTRA() runs on EUTRA_PTC
+  {
+    /// @desc Paging procedure
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1); //@sic R5-106627 sic@
+
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def (eutra_CellA);
+
+    // Preamble: The UE is in Registered, Idle Mode (state 2)
+    // ==========================================================================
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_TestBody_Set(true);
+
+    fl_TC_9_3_2_1_Body();
+
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);//@sic R5-103875 sic@
+  } // function f_TC_9_3_2_1_EUTRA
+
+  function fl_TC_9_3_2_1_Body() runs on EUTRA_PTC
+  {
+    // ==========================================================================
+    // initialize component specific data structures
+    // ==========================================================================
+    var NAS_MSG_Indication_Type v_NasInd;
+    // get all data which are required for a GUTI
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    // initialize security parameters
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    // ==========================================================================
+
+
+    //+   SS pages the UE using S-TMSI with CN domain indicator set to 'PS'
+    //@siclog "Step 1" siclog@
+    f_EUTRA_UE_Page(eutra_CellA,
+                    cs_NasPaging_OneRecord(cs_PagingUE_Identity_S_TMSI(v_GutiParams.MME_Code,
+                                                                       v_GutiParams.M_TMSI)));
+
+    //+   Check: Does the UE respond with a SERVICE REQUEST message?
+    //+   Check: Does the UE provide correct S-TMSI in the
+    //+          RRCConnectionRequest? --> SERVICE REQUEST [1,P]
+    //@siclog "Steps 2 - 3" siclog@
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_CellA,                   // @sic R5-120721 change 3 sic@
+                                      cr_EstablishmentCause_mt_Access,
+                                      cr_InitialUE_Identity_S_TMSI(v_GutiParams.MME_Code, v_GutiParams.M_TMSI));
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_CellA);
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_CellA,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                         cr_508_SERVICE_REQUEST(v_SecurityParams.KSIasme)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+
+    // Step 4-7: @sic R5-102180 sic@
+    // Steps 6 to 9 of the generic radio bearer establishment procedure (TS 36.508 5.4.3.3-1) are executed
+    // to successfully complete the service request procedure
+    //@siclog "Steps 4 - 7" siclog@
+    f_EUTRA_ServiceReqPostamble_508Steps6_9 (eutra_CellA, v_NasInd);
+
+  } // function fl_TC_9_3_2_1_Body
+
+  function f_TC_9_3_2_2a_EUTRA() runs on EUTRA_PTC
+  { /* @desc Paging for CS fallback / Connected mode */
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def (eutra_CellA);
+    
+    // Preamble: UE is in state Generic RB established (state 3) on Cell 1
+    f_EUTRA_Preamble (eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def(eutra_CellA);
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_9_3_2_2a_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E1_IDLE); // @sic R5s110631, R5s110632 sic@
+
+  }// function f_TC_9_3_2_2a_EUTRA
+
+  function fl_TC_9_3_2_2a_Body() runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+
+    // The SS sends a CS SERVICE NOTIFICATION message to the UE.
+    //@siclog "Step 1" siclog@
+    SRB.send ( cas_SRB2_NasPdu_REQ( eutra_CellA, // @sic R5s120022 Ch. 2 sic@
+                                    cs_TimingInfo_Now,
+                                    cs_NAS_Request( tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cs_508_Service_Notification ) ) );
+    // The UE accepts CS fallback
+    // Verify that the UE sends EXTENDED SERVICE REQUEST
+    //@siclog "Steps 2 - 3" siclog@
+    SRB.receive (car_SRB2_NasPdu_IND(eutra_CellA,   // @sic R5s110168 change 2.14 sic@
+                                           
+                 cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                   cr_508_EXT_SERVICE_REQUEST(v_SecurityParams.KSIasme,
+                                                              bit2oct(v_GutiParams.M_TMSI)))));
+    
+    // The SS sends a SERVICE REJECT message with T3442 = 60 seconds in order that the UE enters EMM-REGISTERED.NORMAL-SERVICE.
+    //@siclog "Step 4" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA, // @sic R5s120022 Ch. 2 sic@
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered, // @sic R5s120022 Ch. 2 sic@
+                                                cs_508_SERVICE_REJECT(tsc_Cause_CSDomainNotTemporarilyAvailable,
+                                                                      cs_GprsTimer_tv('5B'O, '001'B, '00001'B) )))); // See TS 24.008 clause 10.5.7.4 @sic R5-113811 sic@
+                                                // @sic R5s110040 R5-110742 sic@
+    // The SS releases the RRC connection.
+    //@siclog "Step 5" siclog@ @sic R5-113811 sic@
+    f_EUTRA_RRC_ConnectionRelease ( eutra_CellA );
+
+    // SS waits for 60 seconds (T3442)
+    // EXCEPTION: The behaviour in table 9.3.2.2.3.2a-2 may occur in parallel with step 6.
+    //@siclog "Step 6" siclog@
+    f_EUTRA_TAU_Check ( eutra_CellA );  // @sic R5-113811, R5s110632 sic@
+
+  }// function fl_tc_9_3_2_2a_Body
+
+  } // end of group TestcaseImplementations
+
+}

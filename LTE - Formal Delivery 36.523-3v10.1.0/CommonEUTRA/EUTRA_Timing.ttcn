@@ -1,0 +1,541 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module EUTRA_Timing {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_SRB_Templates all;
+
+  group TimersAndTimerValues {
+
+  type enumerated ProtocolTimer_Type {           /* @status    APPROVED */
+    l2Timer,              /* layer 2 timer */
+    rrcTimer,             /* RRC timer (T3xx) */
+    nasTimer,             /* NAS timer */
+    nasTTCNTimer,         /* NAS TTCN timer */
+    nonProtocolTimer      /* e.g. timer in test case prose not related to protocol timer */
+  };
+
+  function f_Max(float p_Value1,
+                 float p_Value2) return float
+  {
+    var float v_MaxValue;
+    if (p_Value1 > p_Value2) {
+      v_MaxValue := p_Value1;
+    } else {
+      v_MaxValue := p_Value2;
+    }
+    return v_MaxValue;
+  }
+
+  function fl_EUTRA_TimerTolerance(EUTRA_CellId_Type p_CellId,
+                                   ProtocolTimer_Type p_ProtocolTimer,
+                                   float p_Timer) runs on EUTRA_PTC return float
+  { /* calculate timer tolerance acc. to 36.508 cl. 6.7 */
+    /* @sic R5-110803 Change 11 sic@ */
+    var EUTRA_FDD_TDD_Mode_Type v_FDD_TDD := f_EUTRA_CellInfo_GetFDD_TDD(p_CellId);
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo;
+    var TDD_Config v_Tdd_Configuration;
+    var float v_Tolerance;
+    var float v_Rtt_x_5;
+    var integer v_RTT;
+
+    v_Tolerance := p_Timer * 0.1;
+
+    select (p_ProtocolTimer) {
+      case (rrcTimer) {            /* @sic R5-106675 change 2 - timer tolerance for RRC timers sic@ */
+        if (v_FDD_TDD == FDD) {
+          v_Tolerance := f_Max(v_Tolerance, 0.140);
+        } else {
+          v_Tolerance := f_Max(v_Tolerance, 0.155);
+        }
+      }
+      case (l2Timer, nasTimer) {
+        if (v_FDD_TDD == FDD) {
+          v_RTT := 8;
+        } else {
+          v_EUTRA_CellSysInfo := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+          v_Tdd_Configuration := v_EUTRA_CellSysInfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.tdd_Config;
+          
+          select (v_Tdd_Configuration.subframeAssignment) {    /* Maximum RTT acc. to 36.508 Table 6.7-1 */
+            
+            case (sa0) { v_RTT := 10; }
+            case (sa1) { v_RTT := 11; }
+            case (sa2) { v_RTT := 12; }
+            case (sa3) { v_RTT := 15; }
+            case (sa4) { v_RTT := 16; }
+            case (sa5) { FatalError(__FILE__, __LINE__, "RTT not specified yet for subframeAssignment=sa5"); }
+            case (sa6) { v_RTT := 11; }
+            case else  { FatalError(__FILE__, __LINE__, "invalid subframeAssignment"); }
+          }
+        }
+        v_Rtt_x_5 := int2float(v_RTT) * 0.001 * 5.0;  /* RTT * TTI * 5 */
+        v_Tolerance := f_Max(v_Tolerance, v_Rtt_x_5);
+      }
+      case else {  /* non-protocol timers; see 36.523-3 clause 7.8.4 */
+        v_Tolerance := 0.0;   /* no tolerance */
+      }
+    }
+    return v_Tolerance;
+  }
+
+  function f_EUTRA_SetTimerToleranceMin(EUTRA_CellId_Type p_CellId,
+                                        ProtocolTimer_Type p_ProtocolTimer,
+                                        float p_Timer) runs on EUTRA_PTC return float
+  { /* @sic R5-106675 change 2 - timer tolerance for RRC timers sic@ */
+    var float v_Tolerance := fl_EUTRA_TimerTolerance(p_CellId, p_ProtocolTimer, p_Timer);
+    if (p_Timer < v_Tolerance) {
+      return 0.0;
+    }
+    return p_Timer - v_Tolerance;
+  }
+
+  function f_EUTRA_SetTimerToleranceMax(EUTRA_CellId_Type p_CellId,
+                                        ProtocolTimer_Type p_ProtocolTimer,
+                                        float p_Timer) runs on EUTRA_PTC return float
+  { /* @sic R5-106675 change 2 - timer tolerance for RRC timers sic@ */
+    var float v_Tolerance := fl_EUTRA_TimerTolerance(p_CellId, p_ProtocolTimer, p_Timer);
+    return p_Timer + v_Tolerance;
+  }
+
+  function f_EUTRA_SubFrameTimingDuration(SubFrameTiming_Type p_T1,
+                                          SubFrameTiming_Type p_T2) return integer
+  {
+    var integer v_MillisecondsT1;
+    var integer v_MillisecondsT2;
+    var integer v_SubframeNumberT1 := 0;
+    var integer v_SubframeNumberT2 := 0;
+    var integer v_MaxValue := 10240;   // SFN is 0..1023 in steps of 10ms
+    var integer v_Duration;
+
+    if (ischosen(p_T1.Subframe.Number) and
+        ischosen(p_T2.Subframe.Number)) {
+      v_SubframeNumberT1 := p_T1.Subframe.Number;
+      v_SubframeNumberT2 := p_T2.Subframe.Number;
+    }
+    v_MillisecondsT1 := (p_T1.SFN.Number * 10) + v_SubframeNumberT1;
+    v_MillisecondsT2 := (p_T2.SFN.Number * 10) + v_SubframeNumberT2;
+
+    v_Duration := (v_MaxValue + v_MillisecondsT2 - v_MillisecondsT1) mod v_MaxValue;  // calculation considers wrap-around
+
+    return v_Duration;
+  }
+
+  function f_EUTRA_SubFrameTimingDuration_Float(SubFrameTiming_Type p_T1,
+                                                SubFrameTiming_Type p_T2) return float
+  {
+    return int2float(f_EUTRA_SubFrameTimingDuration(p_T1, p_T2)) / 1000.0;
+  }
+
+  function f_EUTRA_SubFrameTimingCheckDuration(EUTRA_CellId_Type p_CellId,
+                                               ProtocolTimer_Type p_ProtocolTimer,
+                                               integer p_Duration,
+                                               integer p_ExpectedDuration) runs on EUTRA_PTC return boolean
+  { /* @sic R5s100535: comparison based on int rather than on float to avoid wrong results due to not exact values sic@ */
+    /* @sic R5-106675 change 2 - timer tolerance for RRC timers sic@ */
+    var float v_ToleranceFloat := fl_EUTRA_TimerTolerance(p_CellId, p_ProtocolTimer, int2float(p_ExpectedDuration)/1000.0);
+    var integer v_ToleranceInt := float2int(v_ToleranceFloat * 1000.0);
+    var integer v_Min := p_ExpectedDuration - v_ToleranceInt;
+    var integer v_Max := p_ExpectedDuration + v_ToleranceInt;
+
+    return ((v_Min <= p_Duration) and (p_Duration <= v_Max));
+  };
+
+  function f_EUTRA_TimingInfoAdd(SubFrameTiming_Type p_TimingInfo,
+                                 UInt_Type p_MilliSeconds)  return SubFrameTiming_Type
+  {
+    var SubFrameTiming_Type v_TimingInfo;
+    var UInt_Type v_SubframeNumber;
+    var UInt_Type v_Subframes;
+
+    if (ischosen(p_TimingInfo.Subframe.Number)) {
+      v_SubframeNumber := p_TimingInfo.Subframe.Number;
+    } else {
+      v_SubframeNumber := tsc_EUTRA_SN4;
+    }
+    v_Subframes := v_SubframeNumber + p_MilliSeconds;
+    v_TimingInfo.Subframe.Number := v_Subframes mod 10;
+    v_TimingInfo.SFN.Number      := (p_TimingInfo.SFN.Number + (v_Subframes / 10)) mod 1024;
+
+    return v_TimingInfo;
+  }
+
+  function f_EUTRA_TimingInfoAdjust(SubFrameTiming_Type p_TimingInfo) return SubFrameTiming_Type
+  { /* @sic R5s110474 sic@ */
+    var SubFrameTiming_Type v_AdjustedTiming;
+    
+    v_AdjustedTiming := p_TimingInfo;
+
+    if (p_TimingInfo.Subframe.Number > tsc_EUTRA_SN4) {
+      v_AdjustedTiming.SFN.Number := (v_AdjustedTiming.SFN.Number + 1) mod 1024;
+    }
+    v_AdjustedTiming.Subframe.Number := tsc_EUTRA_SN4;   // SN4 to serve FDD and TDD
+
+    return v_AdjustedTiming;
+  }
+
+  function f_EUTRA_TimingInfoAdjustAndAdd(SubFrameTiming_Type p_TimingInfo,
+                                            UInt_Type p_MilliSeconds) return SubFrameTiming_Type
+  { /* @sic R5s110474 sic@ */
+    var SubFrameTiming_Type v_Timing;
+
+    // adjust time to be suitable for both FDD and TDD
+    v_Timing := f_EUTRA_TimingInfoAdjust(p_TimingInfo);
+
+    // now add the time => new TimingInfo will be >= old TimingInfo + p_MilliSeconds, and suitable for TDD
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, p_MilliSeconds);  // add time
+
+    return v_Timing;
+  }
+
+  } // end of group TimersAndTimerValues
+
+  group SystemTiming {
+
+  function f_EUTRA_GetCurrentTiming(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return SubFrameTiming_Type
+  {
+    var SYSTEM_CTRL_CNF v_ReceivedCnf;
+    var SubFrameTiming_Type v_Timing;
+
+    SYS.send(cas_EnquireTiming(p_CellId));
+    SYS.receive(car_EnquireTiming(p_CellId)) -> value v_ReceivedCnf;
+    v_Timing := v_ReceivedCnf.Common.TimingInfo.SubFrame;
+
+    return v_Timing;
+  }
+
+  function fl_EUTRA_CalculateDrxOnDuration(SubFrameTiming_Type p_SubFrameTiming,
+                                           UInt_Type p_DrxCycle,
+                                           UInt_Type p_DrxOffset) return SubFrameTiming_Type
+  {
+    var SubFrameTiming_Type v_SubFrameTiming := p_SubFrameTiming;
+    var UInt_Type v_Subframes;
+
+    if ((p_DrxOffset mod 10) != tsc_EUTRA_SN4) { // SN4 to serve FDD and TDD
+      FatalError(__FILE__, __LINE__, "fl_EUTRA_CalculateDrxOnDuration: invalid DRX offset");
+    }
+    v_Subframes := (p_SubFrameTiming.SFN.Number * 10) + p_SubFrameTiming.Subframe.Number;
+    v_Subframes := ((v_Subframes - p_DrxOffset + p_DrxCycle - 1) / p_DrxCycle) * p_DrxCycle + p_DrxOffset; // @sic R5s110219 change 4 sic@
+    v_SubFrameTiming.SFN.Number := (v_Subframes / 10) mod 1024;
+    v_SubFrameTiming.Subframe.Number := v_Subframes mod 10;
+    
+    return v_SubFrameTiming;
+  }
+
+  function f_EUTRA_GetDrxOnDuration(EUTRA_CellId_Type p_CellId,
+                                    SubFrameTiming_Type p_SubFrameTiming,
+                                    template (omit) DRX_Config p_DRX_Config := omit) runs on EUTRA_PTC return SubFrameTiming_Type
+  { /* @sic R5s110219 change 4 sic@ */
+    var DrxCtrl_Type v_DrxCtrl;
+    var DRX_Config.setup.longDRX_CycleStartOffset v_DrxCycleAndOffset;
+    var SubFrameTiming_Type v_SubFrameTiming := p_SubFrameTiming;       // => per default the timing is not changed
+    var template (omit) DRX_Config v_DRX_Config := p_DRX_Config;
+    var UInt_Type v_DrxOffset;
+    var UInt_Type v_DrxCycle;
+
+    if (not isvalue(p_DRX_Config)) {                                    // DRX configuration not given by parameter => get DRX configuration from Cell configuration
+      v_DrxCtrl := f_EUTRA_CellInfo_GetDrxCtrl(p_CellId);
+      if (ischosen(v_DrxCtrl.Config)) {                                 // DRX configuration is stored in Cell configuration
+        if (not ischosen(v_DrxCtrl.Config.R8)) {
+          FatalError(__FILE__, __LINE__, "f_EUTRA_GetDrxOnDuration: unknown release for DRX_Config");
+        }
+        v_DRX_Config := v_DrxCtrl.Config.R8;
+      } else {
+        v_DRX_Config := omit;                                           // DRX configuration is "None"; note: DRX configuration is configured as "None" for DRX_L too
+      }
+    }
+    
+    if (isvalue(v_DRX_Config)) {                                        // => DRX configuration needs to be considered
+      if (ischosen(v_DRX_Config.setup)) {
+        v_DrxCycleAndOffset := valueof(v_DRX_Config.setup.longDRX_CycleStartOffset);
+        if (ischosen(v_DrxCycleAndOffset.sf40)) {                       // DRX_S
+          v_DrxCycle := 40;
+          v_DrxOffset := v_DrxCycleAndOffset.sf40;
+        }
+        else if (ischosen(v_DrxCycleAndOffset.sf1280)) {                // DRX_L
+          v_DrxCycle := 1280;
+          v_DrxOffset := v_DrxCycleAndOffset.sf1280;
+        }
+        else if (ischosen(v_DrxCycleAndOffset.sf2560)) {                // special case for 8.3.3.2   @sic R5s110738 change 3 sic@
+          v_DrxCycle := 2560;
+          v_DrxOffset := v_DrxCycleAndOffset.sf2560;
+        }
+        else {
+          FatalError(__FILE__, __LINE__, "f_EUTRA_GetDrxOnDuration: unknown DRX configuration");
+        }
+        v_SubFrameTiming := fl_EUTRA_CalculateDrxOnDuration(p_SubFrameTiming, v_DrxCycle, v_DrxOffset);  /* @sic R5s110219 sic@ */
+      }
+    }
+    return v_SubFrameTiming;
+  }
+
+  function f_EUTRA_SkipMeasGap(EUTRA_CellId_Type p_CellId,
+                               SubFrameTiming_Type p_SubFrameTiming) runs on EUTRA_PTC return SubFrameTiming_Type
+  { /* calculation of measurment gap acc to 36.331 cl. 5.5.2.9 depending on configuration as defined in 36.133 Table 8.1.2.1-1 */
+    var MeasGapCtrl_Type v_MeasGapCtrl := f_EUTRA_CellInfo_GetMeasGapCtrl(p_CellId);
+    var SubFrameTiming_Type v_SubFrameTiming := p_SubFrameTiming;       // => per default the timing is not changed
+    var MeasGapConfig.setup.gapOffset v_MeasGapOffset;
+    var UInt_Type v_GapSfnPeriod;
+    var UInt_Type v_GapOffset;
+    var UInt_Type v_SfnBase;
+    var UInt_Type v_GapStart;
+    var UInt_Type v_GapEnd;
+    var UInt_Type v_SFN;
+    var UInt_Type v_Subframes;
+
+    if (ischosen(v_MeasGapCtrl.Config.R8.setup)) {
+      v_MeasGapOffset := v_MeasGapCtrl.Config.R8.setup.gapOffset;
+      if (ischosen(v_MeasGapOffset.gp0)) {
+        v_GapSfnPeriod := 4;
+        v_GapOffset := v_MeasGapOffset.gp0;
+      }
+      else if (ischosen(v_MeasGapOffset.gp1)) {
+        v_GapSfnPeriod := 8;
+        v_GapOffset := v_MeasGapOffset.gp1;
+      }
+      else {
+        FatalError(__FILE__, __LINE__, "f_EUTRA_SkipMeasGap: unknown MeasGap configuration");
+      }
+      
+      v_SFN := p_SubFrameTiming.SFN.Number;
+      v_Subframes := (v_SFN * 10) + p_SubFrameTiming.Subframe.Number;
+      v_SfnBase := (v_SFN / v_GapSfnPeriod) * v_GapSfnPeriod;   // SFN rounded down to the next multiple of v_GapSfnPeriod
+      v_GapStart := (v_SfnBase * 10) + v_GapOffset;             // start of the next gap in subframes
+      v_GapEnd := v_GapStart + 6;                               // end of the next gap in subframes (acc. 36.133 Table 8.1.2.1-1 MeasurementGapLength is 6ms for bothe configurations)
+      if ((v_GapStart <= v_Subframes) and (v_Subframes < v_GapEnd)) {
+        v_SFN := (v_SFN + 1) mod 1024;
+        v_SubFrameTiming.SFN.Number := v_SFN;
+      }
+    }
+    return v_SubFrameTiming;
+  }
+
+  function f_EUTRA_GetNextSendOccasion(EUTRA_CellId_Type p_CellId,
+                                         UInt_Type p_MilliSeconds := 100) runs on EUTRA_PTC return SubFrameTiming_Type
+  { /* Notes:
+     * - independent of FDD or TDD the Subframe Number is rese to 0 if necessary, so the the returned timing info is 100 <= timing info < 110 ms in advance
+     * - when connect mode DRX needs to be supported, this can be done within this function
+     * - the same is with measurement gaps */
+    /* @sic R5s090368 sic@ */
+    /* @sic R5s100172 sic@ */
+    /* @sic R5s100224: SF4 to be used as it is valid for both TDD and FDD and different bandwidths sic@ */
+    /* @sic R5-104796: DRX support sic@ */
+    /* @sic R5s110168 change 4.1: DRX handling moved to separate function sic@ */
+    /* @sic R5s110743: handling of measurment gaps sic@ */
+    /* @sic R5-120235: change of measurement gap offsets to avoid overlapping of measurement gaps and DRX on-duration sic@ */
+    var SubFrameTiming_Type v_Timing;
+    var SubFrameTiming_Type v_NextSendOccasion;
+    var boolean v_MeasGapIsConfigured := f_EUTRA_CellInfo_MeasGapIsConfigured(p_CellId);
+    var boolean v_DrxIsConfigured := f_EUTRA_CellInfo_DrxIsConfigured(p_CellId);
+
+    if (p_MilliSeconds < 100) {
+      FatalError(__FILE__, __LINE__, "next send occasion shall be at least 100ms in advance");
+    }
+    
+    v_Timing := f_EUTRA_GetCurrentTiming(p_CellId);
+    v_NextSendOccasion := f_EUTRA_TimingInfoAdd(v_Timing, p_MilliSeconds);
+    v_NextSendOccasion := f_EUTRA_TimingInfoAdjust(v_NextSendOccasion);     // @sic R5s110474 sic@
+    if (v_DrxIsConfigured) {
+      v_NextSendOccasion := f_EUTRA_GetDrxOnDuration(p_CellId, v_NextSendOccasion);
+      if (v_MeasGapIsConfigured) {                        // @sic R5s110743 R5-120235 sic@
+        v_Timing := f_EUTRA_SkipMeasGap(p_CellId, v_NextSendOccasion);
+        if (v_Timing != v_NextSendOccasion) {
+          FatalError(__FILE__, __LINE__, "measurement gap overlaps DRX on-duration");
+        }
+      }
+    }
+    else if (v_MeasGapIsConfigured) {                          // @sic R5s110743 sic@
+      v_NextSendOccasion := f_EUTRA_SkipMeasGap(p_CellId, v_NextSendOccasion);
+    }
+
+    return v_NextSendOccasion;
+  }
+
+  } // end of group SystemTiming
+
+  group RacingConditionHandling {
+
+  type enumerated RacingCond_ExpectedSequence_Type { RrcMsgBeforeSysInd, SysIndBeforeRrcMsg, AnyOrder };  /* @status    APPROVED */
+
+  function f_EUTRA_RacingCond_CheckTwoEvents(SubFrameTiming_Type p_Event1,
+                                             SubFrameTiming_Type p_Event2) return boolean
+  { // @sic R5s100116 Change 11 sic@
+    var integer v_MilliSeconds;
+    var boolean v_Result := true;
+
+    v_MilliSeconds := f_EUTRA_SubFrameTimingDuration(p_Event1, p_Event2);
+    if (v_MilliSeconds > 5120) {
+      /* the wrap-around of the SFN is 10.24 seconds =>
+       * if v_MilliSeconds is too big we assume Event2 has been occured before Event1 */
+      v_Result := false;
+    }
+    return v_Result;
+  }
+
+  function f_EUTRA_RacingCond_CheckSequence(SubFrameTimingList_Type p_TimestampList) return boolean
+  { // @sic R5s100116 Change 11 sic@
+    var integer i;
+    var integer v_NoOfEvents := lengthof(p_TimestampList);
+    var boolean v_Result := true;
+
+    for (i:=0; i < v_NoOfEvents-1; i:=i+1) {
+      if (not f_EUTRA_RacingCond_CheckTwoEvents(p_TimestampList[i], p_TimestampList[i+1])) {
+        v_Result := false;
+        break;
+      }
+    }
+    return v_Result;
+  }
+
+  function fl_EUTRA_RacingCond_CheckSequence(RacingCond_ExpectedSequence_Type p_ExpectedSequence,
+                                             SubFrameTiming_Type p_Timing_SrbInd,
+                                             SubFrameTiming_Type p_Timing_SysInd)
+  { /* @sic R5s100138 Change 1 Note 5 sic@ */
+    var SubFrameTiming_Type v_FirstEvent;
+    var SubFrameTiming_Type v_SecondEvent;
+    
+    select (p_ExpectedSequence) {
+      case (RrcMsgBeforeSysInd) {
+        v_FirstEvent := p_Timing_SrbInd;
+        v_SecondEvent := p_Timing_SysInd;
+      }
+      case (SysIndBeforeRrcMsg) {
+        v_FirstEvent := p_Timing_SysInd;
+        v_SecondEvent := p_Timing_SrbInd;
+      }
+      case (AnyOrder) {
+        return;
+      }
+    }
+    if (not f_EUTRA_RacingCond_CheckTwoEvents(v_FirstEvent, v_SecondEvent)) {
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "SYSTEM_IND and RRC message are in the wrong order");  // @sic R5-101050: Verdict assignment sic@
+    }
+  }
+
+  altstep a_EUTRA_RacingCond_AwaitRrcMessageAndSysInd(RacingCond_ExpectedSequence_Type p_ExpectedSequence,
+                                                      inout template (omit) SRB_COMMON_IND p_SrbIndByRef,
+                                                      inout template (omit) SYSTEM_IND p_SysIndByRef,
+                                                      template (present) SRB_COMMON_IND p_ExpectedSrbInd := car_SRB_IND_Any,
+                                                      template (present) SYSTEM_IND p_ExpectedSysInd := car_SYSTEM_IND_Any) runs on EUTRA_PTC
+  { /* note: since this is an altstep 'interleave' cannot be used */
+    /* note: since the altstep uses repeat to receive the second message the altstep is left and re-entered again
+     *       => local variables are uninitialised; the only way to store information of subsequent messages is by the inout parameters
+     *          (which for that reason have to be "inout"; "out" would not work */
+    /* @sic R5s100138 Change 1 Note 5 sic@ */
+    /* @sic R5s100189 Change 13 sic@ */
+    var SRB_COMMON_IND v_SRB_COMMON_IND;
+    var SYSTEM_IND v_SYSTEM_IND;
+    var SubFrameTiming_Type v_Timing_SysInd;
+    var SubFrameTiming_Type v_Timing_SrbInd;
+
+    [not isvalue(p_SrbIndByRef)] SRB.receive (p_ExpectedSrbInd) -> value v_SRB_COMMON_IND
+      {
+        p_SrbIndByRef := v_SRB_COMMON_IND;
+        if (not isvalue(p_SysIndByRef)) {                               // SYSTEM_IND has not been received yet
+          repeat;                                                       // => wait for SYSTEM_IND
+        } else {
+          v_Timing_SrbInd := valueof(p_SrbIndByRef.Common.TimingInfo.SubFrame);
+          v_Timing_SysInd := valueof(p_SysIndByRef.Common.TimingInfo.SubFrame);  // @sic R5s100189 sic@
+          fl_EUTRA_RacingCond_CheckSequence(p_ExpectedSequence, v_Timing_SrbInd, v_Timing_SysInd);
+        }
+      }
+    [not isvalue(p_SysIndByRef)] SYSIND.receive (p_ExpectedSysInd) -> value v_SYSTEM_IND
+      {
+        p_SysIndByRef := v_SYSTEM_IND;
+        if (not isvalue(p_SrbIndByRef)) {                               // RRC message has not been received yet
+          repeat;                                                       // => wait for RRC PDU
+        } else {
+          v_Timing_SrbInd := valueof(p_SrbIndByRef.Common.TimingInfo.SubFrame);  // @sic R5s100189 sic@
+          v_Timing_SysInd := valueof(p_SysIndByRef.Common.TimingInfo.SubFrame);
+          fl_EUTRA_RacingCond_CheckSequence(p_ExpectedSequence, v_Timing_SrbInd, v_Timing_SysInd);
+        }
+      }
+  }
+
+  function f_EUTRA_RacingCond_AwaitRrcMessageBeforeSysInd(template (present) SRB_COMMON_IND p_ExpectedSrbInd,
+                                                          out template (omit) SRB_COMMON_IND p_SrbIndByRef,
+                                                          out template (omit) SYSTEM_IND p_SysIndByRef) runs on EUTRA_PTC
+  { /* @sic R5s100138 Change 1 Note 5 sic@ */
+    p_SrbIndByRef := omit;
+    p_SysIndByRef := omit;
+
+    alt {
+      [] a_EUTRA_RacingCond_AwaitRrcMessageAndSysInd(RrcMsgBeforeSysInd,
+                                                     p_SrbIndByRef,
+                                                     p_SysIndByRef,
+                                                     p_ExpectedSrbInd);
+    }
+  }
+
+  function f_EUTRA_RacingCond_AwaitSysIndBeforeSrbMsg(template (present) SYSTEM_IND p_ExpectedSysInd,
+                                                      out template (omit) SRB_COMMON_IND p_SrbIndByRef,
+                                                      out template (omit) SYSTEM_IND p_SysIndByRef) runs on EUTRA_PTC
+  {
+    p_SrbIndByRef := omit;
+    p_SysIndByRef := omit;
+
+    alt {
+      [] a_EUTRA_RacingCond_AwaitRrcMessageAndSysInd(SysIndBeforeRrcMsg,
+                                                     p_SrbIndByRef,
+                                                     p_SysIndByRef,
+                                                     -,
+                                                     p_ExpectedSysInd);
+    }
+  }
+
+  function f_EUTRA_RacingCond_MatchSysInd(template (omit) SYSTEM_IND p_ReceivedSysInd,
+                                          template SYSTEM_IND p_ExpectedSysInd) runs on EUTRA_PTC
+  { /* @sic R5s100138 Change 1 Note 5 sic@ */
+    var boolean v_Match;
+    
+    if (not isvalue(p_ReceivedSysInd)) {
+      v_Match := false;
+    } else {
+      if (not match(valueof(p_ReceivedSysInd), p_ExpectedSysInd)) {
+        v_Match := false;
+      } else {
+        v_Match := true;
+      }
+    }
+    if (not v_Match) {
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "SYSTEM_IND does not match");
+    }
+  }
+
+  function f_EUTRA_RacingCond_MatchRrcMsg(template (omit) SRB_COMMON_IND p_ReceivedRrcInd,
+                                          template SRB_COMMON_IND p_ExpectedRrcInd) runs on EUTRA_PTC
+  {
+    var boolean v_Match;
+    
+    if (not isvalue(p_ReceivedRrcInd)) {
+      v_Match := false;
+    } else {
+      if (not match(valueof(p_ReceivedRrcInd), p_ExpectedRrcInd)) {
+        v_Match := false;
+      } else {
+        v_Match := true;
+      }
+    }
+    if (not v_Match) {
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "received RRC message does not match");
+    }
+  }
+
+  } // end of group RacingConditionHandling
+
+}

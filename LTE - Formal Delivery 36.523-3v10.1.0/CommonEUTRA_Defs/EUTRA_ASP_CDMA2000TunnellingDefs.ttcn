@@ -1,0 +1,49 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module EUTRA_ASP_CDMA2000TunnellingDefs {
+  /* ASP definitions for tunnelling of CDMA2000 messages e.g. during CDMA2000 pre-registration */
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:2002" all;
+  type octetstring TunneledInfoCDMA2000;
+  type ULHandoverPreparationTransfer_r8_IEs.meid MEID_Type;
+
+  type record UL_TunneledInfoCDMA2000  {
+      TunneledInfoCDMA2000             Msg,                                      /* OCTET STRING */
+      MEID_Type                       Meid optional                             /* ASN.1 type: BIT STRING (SIZE (56))
+                                                                                 * used to tunnel meid received from UE in ULHandoverPreparationTransfer for 1xRTT,
+                                                                                 * not present other wise*/
+  }
+
+  type record CDMA2000_UL_Container_Type {
+    CDMA2000_Type                       CDMA2000Type,                           /* ASN.1 type: type1XRTT, typeHRPD */
+    UL_TunneledInfoCDMA2000               UL_Msg
+  };
+  
+  type record DL_TunneledInfoCDMA2000  {
+      TunneledInfoCDMA2000             Msg //,                                      /* OCTET STRING */
+      /*RAND_CDMA2000                   Rand optional                              ASN.1 type: BIT STRING (SIZE (32))
+                                                                                 * receive tunneled RAND to be included in CSFBParametersResponseCDMA2000, HandoverFromEUTRAPreparationRequest for 1xRTT
+                                                                                 * ignored other wise*/
+  }
+  type record CDMA2000_DL_Container_Type {
+    CDMA2000_Type                       CDMA2000Type,                           /* ASN.1 type: type1XRTT, typeHRPD */
+    DL_TunneledInfoCDMA2000               DL_Msg                                     /*  OCTET STRING */
+  };
+  type CDMA2000_UL_Container_Type CDMA2000_MSG_REQ;
+  type CDMA2000_DL_Container_Type CDMA2000_MSG_IND;
+
+  type port CDMA2000_TUNNELLING_PORT message {                                  /* EUTRA PTC: Port to deal with tunnelling of CDMA2000 messages */
+    out CDMA2000_MSG_REQ;
+    in  CDMA2000_MSG_IND;
+  };
+
+}

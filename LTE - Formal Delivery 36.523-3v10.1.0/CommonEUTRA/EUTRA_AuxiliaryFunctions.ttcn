@@ -1,0 +1,348 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-07-08 10:16:27 +0200 (Sun, 08 Jul 2012) $
+// $Rev: 6992 $
+/******************************************************************************/
+
+module EUTRA_AuxiliaryFunctions {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_CommonDefs all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+
+  function f_ConvertUL_BandwidthToInteger(Ul_Bandwidth_Type p_UL_BandWidth) return integer
+  {
+    select (p_UL_BandWidth)
+    {
+      case (n6) {
+        return 6;
+      }
+      case (n15) {
+        return 15;
+      }
+      case(n25) {
+        return 25;
+      }
+      case(n50) {
+        return 50;
+      }
+      case(n75) {
+        return 75;
+      }
+      case(n100) {
+        return 100;
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid BandWidth");
+        return 0;// dummy statement to satisfy compiler
+      }
+    }
+  }
+
+  function f_ConvertIntegerToUL_Bandwidth(integer p_UL_BandWidth) return Ul_Bandwidth_Type
+  {
+    var Ul_Bandwidth_Type v_Value;
+    select (p_UL_BandWidth) {
+      case (6)   { v_Value := n6;  }
+      case (15)  { v_Value := n15; }
+      case (25)  { v_Value := n25; }
+      case (50)  { v_Value := n50; }
+      case (75)  { v_Value := n75; }
+      case (100) { v_Value := n100;}
+      case else  { FatalError (__FILE__, __LINE__, "invalid BandWidth"); }
+    }
+    return v_Value;
+  }
+
+  function f_ConvertDL_BandwidthToInteger( Dl_Bandwidth_Type p_DL_BandWidth) return integer
+  {
+    select (p_DL_BandWidth)
+    {
+      case (n6)
+        {
+          return 6;
+        }
+      case (n15)
+        {
+          return 15;
+        }
+      case(n25)
+        {
+          return 25;
+        }
+      case(n50)
+        {
+          return 50;
+        }
+      case(n75)
+        {
+          return 75;
+        }
+      case(n100)
+        {
+          return 100;
+        }
+      case else{
+        FatalError (__FILE__, __LINE__, "invalid BandWidth");
+        return 0;// dummy statement to satisfy compiler
+      }
+    }
+  }
+
+  function  f_ConvertDL_BandwidthToUL ( Dl_Bandwidth_Type p_DL_Bandwidth ) return Ul_Bandwidth_Type
+  {
+    var Ul_Bandwidth_Type v_UL_Bandwidth;
+    select (p_DL_Bandwidth) {
+      case (n6){ v_UL_Bandwidth := n6  }
+      case (n15){ v_UL_Bandwidth := n15  }
+      case (n25){ v_UL_Bandwidth := n25  }
+      case (n50){ v_UL_Bandwidth := n50  }
+      case (n75){ v_UL_Bandwidth := n75  }
+      case (n100){ v_UL_Bandwidth := n100  }
+      case else { FatalError (__FILE__, __LINE__, "invalid value for ChannelBandwidth"); }
+    };
+    return v_UL_Bandwidth;
+  };
+
+  function f_ConvertIntegerToDL_Bandwidth(integer p_DL_BandWidth) return Dl_Bandwidth_Type
+  {
+    var Dl_Bandwidth_Type v_Value;
+    select (p_DL_BandWidth) {
+      case (6)   { v_Value := n6;  }
+      case (15)  { v_Value := n15; }
+      case (25)  { v_Value := n25; }
+      case (50)  { v_Value := n50; }
+      case (75)  { v_Value := n75; }
+      case (100) { v_Value := n100;}
+      case else  { FatalError (__FILE__, __LINE__, "invalid BandWidth"); }
+    }
+    return v_Value;
+  }
+
+  function f_ConvertGERANNeighCell (integer p_Cell25,
+                                    integer p_Cell26) return ExplicitListOfARFCNs
+  { /*  @sic R5-120604, R5s120290 sic@ */
+    var ExplicitListOfARFCNs v_ListOfARFCNs ;
+    
+    v_ListOfARFCNs[0] := p_Cell25;
+    v_ListOfARFCNs[1] := p_Cell26;
+    return v_ListOfARFCNs;
+  };
+
+  function f_ConvertGERAN_Band (B1_Type p_BandIndicator) return BandIndicatorGERAN
+  {
+    var BandIndicatorGERAN v_BandIndicatorGERAN ;
+
+    if (p_BandIndicator == '0'B) {
+      v_BandIndicatorGERAN := dcs1800;
+    } else {
+      v_BandIndicatorGERAN := pcs1900;
+    }
+    
+    return v_BandIndicatorGERAN;
+  };
+
+  function f_GutiParameters2GutiString(GutiParameters_Type p_GutiParams) return octetstring
+  {
+    var NAS_PlmnId v_PlmnId := f_Asn2Nas_PlmnId(p_GutiParams.PLMN_Identity);  // 3 octets
+    var EPS_MmeGi  v_MmeGi  := bit2oct(p_GutiParams.MME_GroupId);             // 2 octets
+    var EPS_Mmec   v_Mmec   := bit2oct(p_GutiParams.MME_Code);                // 1 octets
+    var EPS_M_Tmsi v_Mtmsi  := bit2oct(p_GutiParams.M_TMSI);                  // 4 octets
+    return v_PlmnId & v_MmeGi & v_Mmec & v_Mtmsi;
+  }
+
+  function f_GutiParameters2MobileIdentity(template (omit) IEI8_Type p_IEI,
+                                           GutiParameters_Type p_GutiParams) return template (value) MobileIdentity
+  {
+    var octetstring v_GutiString := f_GutiParameters2GutiString(p_GutiParams);
+    return cs_MobileIdentityGuti(p_IEI, v_GutiString);
+  }
+
+  function f_ConvertImsi2ASN (hexstring p_Hex) return IMSI
+  {
+    var IMSI v_ReturnValue;
+    var integer I;
+    var integer v_Length := lengthof(p_Hex);
+
+    if (v_Length < 6 or v_Length > 21) {
+      FatalError(__FILE__, __LINE__, "invalid length of IMSI");
+    }
+    for (I := 0; I < v_Length; I := I + 1) {
+      v_ReturnValue[I] := hex2int(p_Hex[I]);
+    }
+    return v_ReturnValue;
+  }
+
+  function f_EUTRA_ConvertMCC_Nas2Asn(NAS_Mcc p_MCC) return MCC
+  { // Note: there is a UTRAN variant of this function too
+    return { hex2int(p_MCC[2]), hex2int(p_MCC[1]), hex2int(p_MCC[0]) };
+  }
+
+  function f_Asn2Nas_PlmnId(PLMN_Identity p_PlmnId) return NAS_PlmnId
+  {
+    var hexstring v_MCC := '000'H; // initialised with 3 digits which will be overwritten
+    var hexstring v_MNC := 'FFF'H; // initialised with 3 'F'H => if lengthof(p_PlmnId.mnc) < 3 the remaining digits are 'F'H
+    var MCC_MNC_Digit v_Digit;     // MCC-MNC-Digit ::= INTEGER (0..9)
+    var integer I;
+
+    for (I := 0; (I < lengthof(p_PlmnId.mcc)) and (I < lengthof(v_MCC)); I := I + 1) {
+      /* p_PlmnId.mcc consists of 3 digits; nevertheless to be sure v_MCC is checked as well */
+      v_Digit := p_PlmnId.mcc[I];
+      v_MCC[I] := int2hex(v_Digit, 1);
+    }
+
+    for (I := 0; (I < lengthof(p_PlmnId.mnc)) and (I < lengthof(v_MNC)); I := I + 1) {
+      /* p_PlmnId.mcc consists of 2 or 3 digits; nevertheless to be sure v_MNC is checked as well */
+      v_Digit := p_PlmnId.mnc[I];
+      v_MNC[I] := int2hex(v_Digit, 1);
+    }
+
+    // build PLMN ID representation as used in NAS
+    // TAI/TAI list/MobileIdentity[GUTI]/...
+    return hex2oct(v_MCC[1] & v_MCC[0] &
+                   v_MNC[2] & v_MCC[2] &
+                   v_MNC[1] & v_MNC[0]);
+  }
+
+  function f_CreateNewM_Tmsi(M_TMSI_Type p_M_Tmsi) return M_TMSI_Type
+  {
+    return p_M_Tmsi <@ 1;
+  }
+
+  function f_CreateNewS_Tmsi(S_TMSI p_S_Tmsi) return S_TMSI
+  {
+    var S_TMSI v_S_TMSI := {
+      mmec := int2bit(((bit2int(p_S_Tmsi.mmec) + 1) mod 255), 8),
+      m_TMSI := f_CreateNewM_Tmsi(p_S_Tmsi.m_TMSI)
+    };
+    return v_S_TMSI;
+  }
+
+  function f_CreateGutiParamsWithUpdatedSTmsi(GutiParameters_Type p_GutiParams) return GutiParameters_Type
+  {
+    var GutiParameters_Type v_NewGutiParams := p_GutiParams;
+    var S_TMSI v_S_Tmsi := {
+      mmec := p_GutiParams.MME_Code,
+      m_TMSI := p_GutiParams.M_TMSI
+    };
+
+    v_S_Tmsi := f_CreateNewS_Tmsi(v_S_Tmsi);
+
+    v_NewGutiParams.MME_Code := v_S_Tmsi.mmec;
+    v_NewGutiParams.M_TMSI := v_S_Tmsi.m_TMSI;
+
+    return v_NewGutiParams;
+  }
+
+  function f_CheckPCOforIPallocationViaNas( template (omit) ProtocolConfigOptions p_Pco) return boolean
+  {
+    var ProtocolConfigOptions v_Pco;
+    var integer i;
+
+    if (isvalue(p_Pco)) {
+      v_Pco := valueof (p_Pco);
+      for (i := 0; i < lengthof(v_Pco.pco); i := i + 1 ) {
+        if(v_Pco.pco[i].protocolID == '000B'O) { // TS 24.008 clause 10.5.6.3  // @sic R5s090322 sic@
+         return false;  // @sic R5s090322 sic@
+        }
+      }
+    }
+    return true;  // @sic R5s090322 sic@
+  }
+
+  function f_GetDefPCOforPCSCFAddress( template (omit) ProtocolConfigOptions p_Pco) return template (value) ProtocolConfigOptions
+  {
+    var ProtocolConfigOptions v_Rcvd;
+    var template (value) ProtocolConfigOptions v_Pco := cs_ProtocolConfigOptions_PPP;
+    var octetstring v_Addressv4 := f_Convert_IPv4Addr2OctString(px_IPv4_Address1_NW);  // @sic R5-113734 sic@
+    var octetstring v_Addressv6 := f_Convert_IPv6Addr2OctString(px_IPv6_Address1_NW);  // @sic R5-113734 sic@
+    var integer i, v_Length;
+
+    if (pc_IMS and isvalue(p_Pco)) {
+      v_Rcvd := valueof (p_Pco);
+      for (i := 0; i < lengthof(v_Rcvd.pco); i := i + 1 ) {
+        if(v_Rcvd.pco[i].protocolID == tsc_PCO_Id_PCSCFv4) { // TS 24.008 clause 10.5.6.3
+          v_Length := lengthof(v_Addressv4);
+          v_Pco.iel := int2oct((v_Length + 4), 1); // @sic R5s120134 sic@
+          v_Pco.pco := {cs_PCO_Container_PCSCFv4 (int2oct(v_Length, 1), v_Addressv4)};
+          break;
+        }
+        else if(v_Rcvd.pco[i].protocolID == tsc_PCO_Id_PCSCFv6) { // TS 24.008 clause 10.5.6.3
+          v_Length := lengthof(v_Addressv6);
+          v_Pco.iel := int2oct((v_Length + 4), 1); // @sic R5s120134 sic@
+          v_Pco.pco := {cs_PCO_Container_PCSCFv6 (int2oct(v_Length, 1), v_Addressv6)};
+          break;
+        }
+      }
+    }
+    return v_Pco;
+  }
+
+  function f_CheckEsmInfoTransferFlag(PDN_CONNECTIVITY_REQUEST p_PDN_CONNECTIVITY_REQUEST) return boolean
+  {
+    if (ispresent(p_PDN_CONNECTIVITY_REQUEST.esmInfoTransferFlag)) {
+      if (p_PDN_CONNECTIVITY_REQUEST.esmInfoTransferFlag.eitValue == '1'B) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function f_ConvertFromIntegerToBandClass (integer p_Integer) return BandclassCDMA2000
+  {
+    var BandclassCDMA2000 v_Value;
+    select (p_Integer) {
+      case (0) {
+        v_Value := bc0;
+      } case (1) {
+        v_Value := bc1;
+      } case (2) {
+        v_Value := bc2;
+      } case (3) {
+        v_Value := bc3;
+      } case (4) {
+        v_Value := bc4;
+      } case (5) {
+        v_Value := bc5;
+      } case (6) {
+        v_Value := bc6;
+      } case (7) {
+        v_Value := bc7;
+      } case (8) {
+        v_Value := bc8;
+      } case (9) {
+        v_Value := bc9;
+      } case (10) {
+        v_Value := bc10;
+      } case (11) {
+        v_Value := bc11;
+      } case (12) {
+        v_Value := bc12;
+      } case (13) {
+        v_Value := bc13;
+      } case (14) {
+        v_Value := bc14;
+      } case (15) {
+        v_Value := bc15;
+      } case (16) {
+        v_Value := bc16;
+      } case (17){
+        v_Value := bc17;
+      } case else {
+        FatalError (__FILE__, __LINE__, "wrong Band Class");
+      }
+    }
+    return v_Value;
+  }
+
+}

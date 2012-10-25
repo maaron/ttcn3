@@ -1,0 +1,219 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-13 18:30:50 +0200 (Wed, 13 Jun 2012) $
+// $Rev: 6903 $
+/******************************************************************************/
+
+module EUTRA_NASCommonTemplates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+
+  template (value) PagingUE_Identity cs_PagingUE_Identity_IMSI ( IMSI p_IMSI ) :=
+  { /* @status    APPROVED */
+    imsi := p_IMSI
+  };
+
+  template NAS_UL_Message_Type cdr_ATTACH_REQUEST_AttachType(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                             template AdditionalUpdateType p_AdditionalUpdateType,
+                                                             template (present) MobileIdentity p_MobileId,
+                                                             template TrackingAreaId p_Tai,
+                                                             template LocAreaId p_LAI,
+                                                             template TMSI_Status p_TmsiStatus)
+    modifies cr_508_ATTACH_REQUEST :=
+  { /* @status    APPROVED */
+    aTTACH_REQUEST := {
+      epsAttachType            := cr_EPS_AttachType(p_AttachTypeValue),
+      epsMobileIdentity        := p_MobileId,  // @sic R5s110176 Baseline Moving sic@
+      lastVisitedRegisteredTai := p_Tai,
+      oldLai                   := p_LAI,
+      tmsiStatus               := p_TmsiStatus
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_ATTACH_REQUEST_WithGuti(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                           template AdditionalUpdateType p_AdditionalUpdateType,
+                                                           template (present) NAS_KsiValue p_KsiValue,
+                                                           template (present) MobileIdentity p_MobileId,
+                                                           template TrackingAreaId p_Tai)
+    modifies cr_508_ATTACH_REQUEST :=
+  { /* @status    APPROVED */
+    aTTACH_REQUEST := {
+      nasKeySetId              := cr_NAS_KeySetIdentifier(p_KsiValue, tsc_Spare1),
+      epsAttachType            := cr_EPS_AttachType(p_AttachTypeValue),
+      epsMobileIdentity        := p_MobileId,  // @sic R5s110176 Baseline Moving sic@
+      lastVisitedRegisteredTai := p_Tai
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_ATTACH_REQUEST_WithEPSnativeSecurityCtx(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                                           template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                           template (present) NAS_KsiValue p_KsiValue)
+    modifies cr_508_ATTACH_REQUEST :=
+  { /* @status    APPROVED */
+    aTTACH_REQUEST := {
+      nasKeySetId              := cr_NAS_KeySetIdentifier(p_KsiValue, tsc_NasKsi_NativeSecurityContext),
+      epsAttachType            := cr_EPS_AttachType(p_AttachTypeValue)
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_ATTACH_REQUEST_WithOldMobileIdNoTAI(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                                       template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                       template MobileIdentity p_MobileId)
+    modifies cr_508_ATTACH_REQUEST :=
+  { /* 24.301 cl. 8.2.4 */
+    /* @status    APPROVED */
+    aTTACH_REQUEST := {
+      nasKeySetId              := cr_NAS_KeySetIdentifier(tsc_NasKsi_NoKey, tsc_Spare1),
+      epsMobileIdentity        := p_MobileId,  // @sic R5s110176 Baseline Moving sic@
+      lastVisitedRegisteredTai := omit
+      
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_ATTACH_REQUEST_IMSIonly(template (present) NAS_AttDetValue_Type p_AttachTypeValue,
+                                                           template AdditionalUpdateType p_AdditionalUpdateType)
+    modifies cr_508_ATTACH_REQUEST  :=
+  { /* @status    APPROVED */
+    aTTACH_REQUEST := {
+      epsMobileIdentity   := f_Imsi2MobileIdentity(px_IMSI_Def),  // @sic R5s110176 Baseline Moving sic@
+      lastVisitedRegisteredTai := omit
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_AttachReject (template (value) EMM_Cause p_Cause,
+                                                            template (omit) ESM_MessageContainer p_ESM):=
+  { /* @status    APPROVED */
+    aTTACH_REJECT := {
+      securityHeaderType := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType := tsc_MT_AttachReject,
+      emmCause := p_Cause,
+      esmMessage := p_ESM,
+      t3346    := omit,     /* cl. 9.9.3.16A O TLV 3     IEI=0x5F @sic R5s120178 Baseline Moving sic@*/
+      t3402    := omit      /* cl. 9.9.3.16A O TLV 3     IEI=0x16 @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_AUTHENTICATION_REJECT :=
+  { /* @status    APPROVED */
+    aUTHENTICATION_REJECT := {
+      securityHeaderType          := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator       := tsc_PD_EMM,
+      messageType                 := tsc_MT_AuthenticationReject
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_TAU_RequestOldGutiLaiTmsiStatus(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                                   NAS_KsiValue p_KsiValue,
+                                                                   template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                                   template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                   template (present) MobileIdentity p_OldGuti,
+                                                                   template LocAreaId p_LAI,
+                                                                   template TrackingAreaId p_TAI,
+                                                                   template TMSI_Status p_TmsiStatus)
+    modifies cr_508_TAU_Request :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      epsUpdateType := cr_EPS_UpdateType('0'B, p_EpsUpdate_TypeValue),
+      oldGuti       := p_OldGuti,
+      lastVisitedRegisteredTai   := p_TAI,
+      oldLai                     := p_LAI,
+      tmsiStatus                 := p_TmsiStatus
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_TAU_Request_OldGuti_LAI(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                                          NAS_KsiValue p_KsiValue,
+                                                                          template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                                          template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                          template (present) MobileIdentity p_OldGuti,
+                                                                          template  LocAreaId p_LAI)
+    
+    modifies cr_508_TAU_Request :=
+  {  /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      oldGuti            := p_OldGuti,
+      oldLai             := p_LAI,
+      tmsiStatus         := omit,
+      addUpdateType      := p_AdditionalUpdateType
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_TAU_RequestAnyActiveFlag(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                            NAS_KsiValue p_KsiValue,
+                                                            template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                            template AdditionalUpdateType p_AdditionalUpdateType)
+    modifies cr_508_TAU_Request :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      epsUpdateType          := cr_EPS_UpdateType('?'B, p_EpsUpdate_TypeValue),
+      epsBearerContextStatus := cr_508_EPS_BearerContextStatusTAUReq(('000'B, '001'B)) ifpresent  // @sic R5-113240 sic@
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_TAU_Request_OldGutiPTMSISig(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                               NAS_KsiValue p_KsiValue,
+                                                               template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                               template AdditionalUpdateType p_AdditionalUpdateType,
+                                                               template (present) MobileIdentity p_OldGuti,
+                                                               template PTMSI_Signature p_Sig)
+    modifies cr_508_TAU_Request :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      oldGuti := p_OldGuti,
+      oldPtmsiSignature  := p_Sig
+    }
+  };
+
+  template (value) Nonce cs_Nonce (template (omit) IEI8_Type p_IEI,
+                                   O4_Type p_NonceValue) :=
+  { /* 24.301 cl. 9.9.3.25 */
+    /* @status    APPROVED */
+    iei       := p_IEI, /* present in case of TV; omit in case of V */
+    nonceValue := p_NonceValue
+  };
+
+  template (value) NAS_DL_Message_Type cds_SECURITY_MODE_COMMAND_MappedContext(B3_Type p_CipheringType,
+                                                                               B3_Type p_IntegrityType,
+                                                                               NAS_KsiValue p_AsmeKeySetId,
+                                                                               UE_SecurityCapability p_SecurityCap,
+                                                                               B32_Type p_NonceUE,
+                                                                               B32_Type p_NonceMME ) // @sic R5s100135 sic@
+    modifies cs_508_SECURITY_MODE_COMMAND :=
+  { /* @status    APPROVED */
+    sECURITY_MODE_COMMAND := {
+      asmeNasKeySetId            := cs_NAS_KeySetIdentifier_lv(p_AsmeKeySetId, tsc_NasKsi_MappedSecurityContext),
+      replayedNonceUe            := cs_Nonce ( '55'O, bit2oct (p_NonceUE)),
+      nonceMme                   := cs_Nonce ( '56'O, bit2oct (p_NonceMME))
+    }
+  };
+
+  template NAS_UL_Message_Type cr_PDNDisconnectReq (template (present) LinkedEpsBearerIdentity p_LinkedId):=
+  { /* @desc PDN DISCONNECT REQUEST
+       @status    APPROVED */
+    pDN_DISCONNECT_REQUEST := {
+      epsBearerId                    := '0'H,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := ?,
+      messageType                    := tsc_MT_PdnDisconnectRequest,
+      spareHalfOctet                 := ?,
+      linkedEpsBearerId              := p_LinkedId,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent
+    }
+  };
+
+}

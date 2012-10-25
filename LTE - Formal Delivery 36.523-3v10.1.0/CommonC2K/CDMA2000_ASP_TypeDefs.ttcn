@@ -1,0 +1,940 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module CDMA2000_ASP_TypeDefs {
+  
+  import from CommonDefs all;
+  import from CDMA2000_CommonDefs all;
+  
+  //============================================================================
+  
+  group CDMA2000_Common {    /* Common definitions for CDMA2000 and CDMA2000 ASPs */
+  
+  group CDMA2000_SystemContants {
+  
+  const integer tsc_CDMA2000_MaxNumberOfCells := 8; /* Maximum number of CDMA2000 cells;
+                                                     * in TS 36.508 in, clause 6.3.1.5 and 6.3.1.6 define 4 cells each for HRPD and 1XRTT;
+                                                     * hence total is 8 */
+  
+  } // End of sub-group CDMA2000_SystemContants
+  
+  //----------------------------------------------------------------------------
+  
+  group CDMA2000_Routing {
+  
+  type integer RLP_FlowId_Type (0..30); /* As per S.0024, clause 4.8.2.10 both MaxNumRLPFlowsFwd and MaxNumRLPFlowsRvs need to be in the range of 0x06(6) to 0x1F(31)
+                                         * As per x.s007 clause 10, the PDN ID and Flow ID identify a flow*/
+  type record of RLP_FlowId_Type RLP_FlowIdList_Type;
+  
+  type union CDMA2000_RoutingInfo_Type {
+    Null_Type                   None,
+    RLP_FlowId_Type             RLP_FlowId
+  };
+  
+  } // End of sub-group CDMA2000_Routing
+  
+  //----------------------------------------------------------------------------
+  
+  group CDMA2000_TimingInfo {
+
+  type integer HRPD_FrameNumber_Type;                     /* CDMA system time specified  in units of 16 slots i.e. 26.66 ms. */
+  type integer SubFrameNumber_Type (0..3);              /* A sub-frame is a group of four contiguous slots.
+                                                         * The start of a sub-frame is specified by (T - FrameOffset) mod 4 = 0, where T is the CDMA System Time in slots */
+  
+  type union HRPD_SubFrameInfo_Type {
+    SubFrameNumber_Type         Number,
+    Null_Type                   Any                     /* no specific sub-frame (valid for REQ ASPs only) */
+  };
+  type union HRPD_Frame_Type{
+    HRPD_FrameNumber_Type        Number,
+    Null_Type                   Any                     /* no specific TimeStamp  (valid for REQ ASPs only) */
+  };
+  type integer  RTT1X_FrameNumber_Type;             /* CDMA System Time, in integer multiples of 20 ms */
+  type union RTT1X_Frame_Type{
+    RTT1X_FrameNumber_Type          Number,
+    Null_Type                   Any                     /* no specific TimeStamp  (valid for REQ ASPs only) */
+  };
+
+  type record  HRPD_SubFrameTiming_Type {
+    HRPD_Frame_Type        Frame,
+    HRPD_SubFrameInfo_Type      Subframe
+  };
+
+  type union    CDMA2000_SubFrameTiming_Type {
+    HRPD_SubFrameTiming_Type        HRPD,   /* HRPD Timing */
+     RTT1X_Frame_Type               RTT1X /* RTT1X Timing specified in terms of Frames only*/
+
+}
+
+  type union CDMA2000_TimingInfo_Type {
+    CDMA2000_SubFrameTiming_Type SubFrame,
+    Null_Type                   Now,                    /* to be used in REQ ASPs when there is no 'activation time' */
+    Null_Type                   None                    /* only to be used in SYSTEM_CTRL_CNF but not for EnquireTiming */
+  };
+  
+  } // End of sub-group CDMA2000_Timing_Info
+  
+  //----------------------------------------------------------------------------
+  
+  group CDMA2000_ReqAspCommonPart {
+  
+  type record CDMA2000_ReqAspControlInfo_Type {
+    boolean CnfFlag,            /* true => SS shall send CNF:
+                                 * when the REQ is with no timing information (no activation time), SS shall send the confirmation when the configuration is done, i.e. when the test case may continue.
+                                 * Example:
+                                 * when there is a configuration follow by a send event it shall not be necessary to have a wait timer in between but the CNF triggers the send event or system Command.
+                                 * If there are other triggers e.g. like the UE sending a message, CnfFlag shall be set to false by the test case to avoid racing conditions with the CNF and the signalling message.
+                                 * When there is an activation time SS shall send the CNF after the configuration has been scheduled;
+                                 * that means SS shall not wait until the activation time has been expired.
+                                 */
+    boolean FollowOnFlag        /* false => no further (related) information
+                                 * true: further related information will be sent to SS ; Currently this value is not foreseen to be used.
+                                 */
+  };
+  
+  type record CDMA2000_ReqAspCommonPart_Type {
+    CDMA2000_CellId_Type                CellId,
+    CDMA2000_RoutingInfo_Type           RoutingInfo,
+    CDMA2000_TimingInfo_Type            TimingInfo,
+    CDMA2000_ReqAspControlInfo_Type     ControlInfo
+  };
+  
+  } // End of sub-group CDMA2000_ReqAspCommonPart
+  
+  //----------------------------------------------------------------------------
+  
+  group CDMA2000_IndAspCommonPart {
+  
+  type record CDMA2000_ErrorIndication_Type {
+    integer                     System    /* any other error: may be SS specific error code; this will not be evaluated by TTCN;
+                                           * e.g. an error shall be raised when the UE requests retransmission of an RLC PDU */
+  };
+  
+  type union CDMA2000_IndicationStatus_Type {
+    Null_Type                           Ok,
+    CDMA2000_ErrorIndication_Type       Error
+  };
+  
+  type record CDMA2000_IndAspCommonPart_Type {
+    CDMA2000_CellId_Type                CellId,
+    CDMA2000_RoutingInfo_Type           RoutingInfo,
+    CDMA2000_TimingInfo_Type            TimingInfo,
+    CDMA2000_IndicationStatus_Type      Status
+  };
+  
+  } // End of sub-group CDMA2000_IndAspCommonPart
+  
+  //----------------------------------------------------------------------------
+  
+  group CDMA2000_CnfAspCommonPart {
+  
+  type union CDMA2000_ConfirmationResult_Type {
+    Null_Type                   Success,
+    integer                     Error                   /* may contain SS specific error code; this will not be evaluated by TTCN */
+  };
+  
+  type record CDMA2000_CnfAspCommonPart_Type {
+    CDMA2000_CellId_Type                CellId,
+    CDMA2000_RoutingInfo_Type           RoutingInfo,
+    CDMA2000_TimingInfo_Type            TimingInfo,
+    CDMA2000_ConfirmationResult_Type    Result         /* Similar definition as EUTRA */
+  };
+  
+  } // End of sub-group CDMA2000_CnfAspCommonPart
+  
+  } // End of group CDMA2000_Common
+  
+  //============================================================================
+  
+  group CDMA2000_PowerLevel {
+  
+  type union CDMA2000_Attenuation_Type {                /* attenuation of the reference power */
+    Attenuation_Type            Value,                  /* cell power reference power reduced by the given attenuation (value is in dB) */
+    Null_Type                   Off                     /* for non suitable off cell we specify an explicit "Off" value here */
+  };
+  
+  type record CDMA2000_CellAttenuation_Type {
+    CDMA2000_CellId_Type        CellId,
+    CDMA2000_Attenuation_Type   Attenuation
+  };
+  
+  type record length(1..tsc_CDMA2000_MaxNumberOfCells) of CDMA2000_CellAttenuation_Type CDMA2000_CellAttenuationList_Type;
+  
+  const CDMA2000_Attenuation_Type tsc_CDMA2000_Attenuation_Off := {Off:=true};
+  
+  type CDMA2000_Attenuation_Type CDMA2000_InitialAttenuation_Type (tsc_CDMA2000_Attenuation_Off);  /* Attenuation restricted to 'Off' */
+  
+  type record CDMA2000_AbsoluteCellPower_Type {
+    PowerIoc_Type               PowerIoc,               /* TTCN writer Shall set same vale in all cells; SS shall have only one AWGN channel for all configured cells per frequency
+                                                         * SS shall create a AWGN channel in first cell per frequency and ignore this in later cell creations on the same frequency;
+                                                         * i.e. this channel is created along once for Cell 15 or 16 and one each per 17 and 19
+                                                         * similary for RTT1X once for 19 or 20 and one each per 21 and 22 */
+    PowerIor_Type               PowerIor,               /* Total Transmit power in cell before attenuation */
+    PilotOffset_Type            PilotOffset             /* Default -7 */
+  };
+  
+  
+  type record CDMA2000_InitialCellPower_Type {
+    CDMA2000_AbsoluteCellPower_Type  MaxReferencePower, /* maximum value of cell reference power corresponding to Max Ior/Ioc in power level table;
+                                                         * a cell is initialised with this reference power;
+                                                         * its value is the upper bound of the cell power during the test case */
+    CDMA2000_InitialAttenuation_Type Attenuation        /* initial attenuation Cell is off */
+  };
+  
+  } // end of group CDMA2000_PowerLevel
+  
+  //============================================================================
+  
+  group CDMA2000_Data {      /* Data primitives sent/received at CDMA2000_RLP_FLOW_PORT */
+  
+  type octetstring RLP_SDU_Type;
+  type record of RLP_SDU_Type RLP_SDUList_Type;
+  
+  type union CDMA2000_U_PlaneData_Type {     /* Union structure is provided for future possible enhancements */
+    RLP_SDUList_Type  RLP_Sdu                /* RLP SDU's */
+  };
+  
+  type record RLPFlow_DataPerSubframe_DL_Type {         /* common definition for one or several SDUs to be sent in the subframe given by the subframe offset;
+                                                         * SS shall raise an error indication (using SYSTEM_IND) when that is not possible
+                                                         * NOTE 1:
+                                                         * For RLP the data may be spread over more than one subframe ;
+                                                         * the TTCN implemetation is responsible to calculate appropriate offsets accordingly */
+    integer                     SubframeOffset,         /* subframe offset relative to the absolute timing information given in the common part of the ASP;
+                                                         * NOTE :
+                                                         * if a RLP SDU takes more than one subframe, SubframeOffset specifies the first TTI */
+    CDMA2000_U_PlaneData_Type   SduList                 /* list of PDUs/SDUs to be sent in one subframe */
+  };
+  
+  
+  type record of RLPFlow_DataPerSubframe_DL_Type
+  RLPFlow_DataPerSubframeList_DL_Type;                  /* list of user plane data to be sent in sub-frames given by the SubframeOffset in the single elements of the list;
+                                                         * Timing:
+                                                         * the start time for the whole sequence is given by the timing info of the ASP (common information);
+                                                         * the timing for the respective data pdus is given by the SubframeOffset relative to the common timing info;
+                                                         * design consideration:
+                                                         * repetitions of this sequence are not foreseen
+                                                         * (in which case the subframe offset could not be related to the timing info of the ASP) */
+  
+  type record CDMA2000_U_Plane_Request_Type {           /* NOTE: formal type definition to allow later enhancements;
+                                                         * CDMA2000_U_Plane_Request_Type defines a sequence of subframes in which data shall be sent */
+    RLPFlow_DataPerSubframeList_DL_Type SubframeDataList
+  };
+  
+  } // End of group CDMA2000_Data
+
+  //============================================================================
+  
+  group CDMA2000_CellConfiguration {
+  
+  type record HRPD_CellParameters_Type {                /* Parameters specific to HRPD */
+    SystemType_Type             SystemType,             /* Specifies the sytem type of Channel
+                                                         * As per Table 13.1-1 of C.S0024 0, 1, 2 are defined values and 3 to 255 are reserved
+                                                         */
+    B8_Type                     SubNetMask,             /* 7.11.6.2.2 of C.S0024
+                                                         * Sector Subnet identifier
+                                                         * set this field to the  number of consecutive 1s in the subnet mask of the subnet to which this sector belongs
+                                                         */
+    ColorCode_Type              ColorCode,              /* 7.11.6.2.1 of C.S0024
+                                                         * set to the color code corresponding to this sector part of QuickConfig Over head message
+                                                         */
+    MCC_Type                    CountryCode,            /* 7.11.6.2.2 of C.S0024
+                                                         * three-digit BCD (binary coded decimal) encoded representation of the Mobile Country Code associated with this sector
+                                                         */
+    OpenLoopAdjust_Type         OpenLoopAdjust,         /* 9.4.6.2.6 of C.S0024;
+                                                         * The negative of the nominal power to be used by access terminals in the open loop power estimate, expressed as an unsigned value in units of 1 dB.
+                                                         * The value used by the access terminal is -1 times the value of this field
+                                                         */
+    ReverseRateLimit_Type       ReverseRateLimit,       /* Table 9.9.6.3-2 of C.S0024;
+                                                         * set to the highest data rate that the access terminal is allowed to use on the Reverse Traffic Channel
+                                                         */
+    ReverseLinkMACIndex_Type    MACIndex,               /* C.S0024 clause 12.4.1.3.2.2
+                                                         * Forward channel MAC is derivered from this based on table 12.4.1.3.2.2-1
+                                                         */
+    PacketApplication_Type      PacketApp,              /* Multi Flow Packet Application to be used
+                                                         * Enhanced Multi-Flow Packet Application subtype(0x0009) defined in C.S0087 or
+                                                         * as per C.S0087, clause 2.3 the UE Shalll not propose AEMPA during stream protocol negotiation (0xFFFE) in C.R1001
+                                                         */
+    ControlChannelRate_Type     ControlChannelRate,     /* MAC index to be used for the Control Channel
+                                                         */
+    PDN_Id_Type                PDN_Id,                  /* PDN_ID of the bearer */
+    PDN_Address_Type           PDN_Address,             /* the PDN Address to be provided to the UE in VSNCP ConfigAck */
+    UATI_Type                  UATI                     /* UATI to be Assigned to the UE */
+  };
+  
+  type record RTT1X_CellParameters_Type {               /* Parameters specific to 1XRTT */
+    B12_Type                    Reg_Zone,                 /*  C.S005 clause 3.7.2.3.2.1 and 2.6.5.1.5
+                                                         * Registration Zone of the base station
+                                                         * Reg_Zone, SID and NID shall be unique for each base station
+                                                         */
+    B4_Type                     Base_Class,             /* C.S0005 clause 3.7.2.3.2.1
+                                                         * Base station class.
+                                                         * The base station shall set this field as follows:
+                                                         * For Band Class 1 and 4, the base station shall set this field to '0001'; otherwise, the base station shall set this field to '0000'
+                                                         */
+    /*B1_Type                     Nom_Pwr_Ext,              C.S0005 clause 3.7.2.3.2.2
+                                                         * Extended 1 nominal transmit power.
+                                                         * If the base station is operating in Band Class 0 or Band Class 3, it shall set this field to 0; otherwise, it shall set this field as follows:
+                                                         * If the correction factor to be used by mobile stations in the open loop power estimate is between -24 dB and -9 dB inclusive, the base station shall set this field to 1; otherwise (the correction factor is in the range -8 dB to 7 dB inclusive), the base station shall set this field to 0
+                                                         */
+   
+    B10_Type                    MCC,                    /* 3.7.2.3.2.13 and 2.3.1.1 of C.S0005
+                                                         * encoding is int2bit (100*D1+10*D2+D3 -111,10) with digit 0 being maped to 10
+                                                         * binary  representation of the Mobile Country Code associated with this sector
+                                                         */
+    B7_Type                     IMSI_11_12,             /* 3.7.2.3.2.13 and 2.3.1.2 of C.S0005
+                                                         * encoding is int2bit (10*D2+D3 -11,7) with digit 0 being maped to 10
+                                                         * binary representation of the Mobile Network Code associated with this sector
+                                                         */
+    TMSI_Type                    TMSI ,                  /* the TMSI to be assigned to the MS */
+    ProtRev_Type                 ProtRev,                /* Protocol Revision  */
+    ProtRev_Type                 Min_ProtRev,            /* the minimum protocol revision supported by Base station */
+    EncryptionMode_Type         Sig_EncryptionMode,      /* Encryption mode for Common and dedicated signalling
+                                                          */
+    EncryptionMode_Type         USerInfo_EncryptionMode  /* User information Encryption mode
+                                                          */
+  };
+  
+  type union ModeSpecificCellParams_Type {
+    RTT1X_CellParameters_Type   RTT1X,
+    HRPD_CellParameters_Type    HRPD
+  };
+  
+  type record CDMA2000_CellParameters_Type {
+    CDMA2K_Type                         Type,                   /* Gives if cell is EHRPD or RTT1X */
+    CarrierFreqCDMA2000_Type            CarrierFreq,            /* Contains bandclass (5 bit) and arfcn i.e. 11 bit channel number */
+    PhysCellIdCDMA2000_Type             PhysCellId,             /* PN offset of pilot 0..511 */
+    CellGlobalIdCDMA2000_Type           CellGlobalId,           /* Contains the 128 bit cell ID for HRPD and 47 bit cell ID for 1XRTT */
+    SearchWindowSizeRecord_Type         SearchWindow            /* contains the SearchWindow for Active, Neighbor & Remaining cells */
+  };
+  
+  type record CDMA2000_CellConfigInfo_Type {
+    CDMA2000_CellParameters_Type        CellParameters,         /* Parameters common to HRPD and RTT1X */
+    CDMA2000_InitialCellPower_Type      InitialCellPower,       /* Power level parameters */
+    ModeSpecificCellParams_Type         ModeSpecificCellParams  /* Parameters specific to RTT1X or HRPD */
+  };
+  
+  type union CDMA2000_CellConfigRequest_Type{
+    CDMA2000_CellConfigInfo_Type        AddOrReconfigure,       /* for cell configuration:
+                                                                 * CellId : identifier of the cell to be configured
+                                                                 * RoutingInfo : None
+                                                                 * TimingInfo : Now (for initial configuration and for reconfiguration in general)
+                                                                 * ControlInfo : CnfFlag:=true; FollowOnFlag:=false (in general)
+                                                                 */
+    Null_Type                           Release                 /* to remove a cell completely -
+                                                                 * CellId : identifier of the cell to be released; eutra_Cell_NonSpecific, in case all cells shall be released
+                                                                 * RoutingInfo : None
+                                                                 * TimingInfo : Now
+                                                                 * ControlInfo : CnfFlag:=true; FollowOnFlag:=false (in general)
+                                                                 */
+  };
+  
+  } // end of group CDMA2000_CellConfiguration
+  
+  //============================================================================
+  
+  group CDMA2000_HRPD {
+  
+  group CDMA2000_PDN_Defs {
+  
+  type O3_Type CDMA2000_AttachType;     /* Defined values:
+                                         * 1: Initial Attach to a PDN,
+                                         * 3: Handover attach to a PDN.
+                                         * Rest undefined and not used
+                                         */
+  type O4_Type IPv4_Address_Type;       /* represents the IPv4 address as per 24.301 clause 9.9.4.9 */
+  type O8_Type IPv6_Address_Type;       /* represents the IPv6 interface identifier as per 24.301 clause 9.9.4.9 */
+  type record IPv4v6_Address_Type {
+    IPv4_Address_Type  IPv4,            /* IP v4 address to be allocated */
+    IPv6_Address_Type  IPv6             /* IP v6 interface identifier to be allocated */
+  };
+
+  
+  type union PDN_Address_Type {        /* based on 24.301 cl. 9.9.4.9 */
+    IPv4_Address_Type      IPv4,       /* only IP v4 address to be allocated */
+    IPv6_Address_Type      IPv6,       /* only IP v6 interface identifier to be allocated */
+    IPv4v6_Address_Type    IPv4v6      /* both IP v4 address and IP v6 interface identifier to be allocated */
+  };
+  
+  type B4_Type PDN_Id_Type;            /* indicates the PDN Id associated with the bearer PDN Identifier of the PDN for which the user data is sent.
+                                        * it is the low order 4 bits of, containing the PDN-ID identifies the PDN (i.e. one per default bearer)
+                                        * Reference x.s0057 clause 10.1.5; gives only low order 4 bits, and high order 4 bits are added as all zero's*/
+  type record of PDN_Id_Type PDN_IdList_Type;
+  type B4_Type Flow_Id_Type;            /* the lower 4 bits of the Flow Identifier, as defined in Table 15 of x.s0057
+                                         * identify each reservation that is requested to be added or deleted
+                                         * the complete 8 bit flow Identifier is formed by PDN-ID and Flow-Id */
+  type record of Flow_Id_Type Flow_IdList_Type;
+  
+  } //end of sub-group CDMA2000_PDN_Defs
+  
+  //----------------------------------------------------------------------------
+  
+  group CDMA2000_SubProtocols {
+
+  type record VSNCP_ConfigInd_Type {
+    PDN_Id_Type         PDN_Id         /* PDN_ID associated with the bearer provided by UE in VSNCP configuration request*/
+  };
+  
+/*   type enumerated PDN_DisconectInit_Type {  */
+/*     networkInitiated,                   /\* x.s0057 clause 11.3 *\/ */
+/*     UEInitiated                         /\* x.s0057 clause 11.1.1 *\/ */
+/*   }; */
+  
+  type enumerated LCP_DetachInit_Type {
+    networkInitiated,                   /* x.s0057 clause 11.2 */
+    UEInitiated                         /* x.s0057 clause 11.1.2 */
+  };
+  
+/*   type record VSNCP_TerminateInd_Type { */
+/*     PDN_Id_Type                 PDN_Id,                         /\* PDN_ID associated with the bearer *\/ */
+/*     PDN_DisconectInit_Type      UE_NW_Initiated                 /\* If initiated by UE or Network *\/ */
+/*   }; */
+  
+/*   type record DedicatedBearerEstInd_Type { */
+/*     Null_Type                   VSNP_ConfigCmpl,                /\* VSNP procedured for Dedicated Bearer is completed *\/ */
+/*     Null_Type                   EMPA_ConfigCmpl                 /\* Enhanced Multi flow Packet application ConfigurationRequest message is received */
+/*                                                                  * Enhanced Multi flow Packet application ConfigurationComplete message is received *\/ */
+/*   }; */
+  
+  type record DHCP_Ind_Type {
+    boolean                     RapidCommit                     /* indicates if Rapid Comit option of DHCP is used */
+  };
+  
+  type union UATI104_Type {
+    O13_Type                    Value,
+    Null_Type                   None
+  };
+  
+  type record  UATI_Type {
+    O3_Type                     UATI24,                         /* Represents UATI (0:23), as per clause 6.3.7.2.2 of C.S0024 */
+    UATI104_Type                UATI104                         /* Represents UATI (127:24), as per clause 6.3.7.2.2 of C.S0024 if has to be assigned */
+  };
+
+/*   type record UATI_Ind_Type { */
+/*     UATI_Type                   UATI                            /\* UATI to be Assigned to the UE *\/ */
+/*   }; */
+
+  } // end of group CDMA2000_SubProtocols
+  
+  //----------------------------------------------------------------------------
+
+  group HRPD_Indications {
+  
+  type record  RegAndDefBearerEstInd_Type {
+    Null_Type           UATI_AssignmentCmpl,                    /* UATIAssignment is received
+                                                                 * UATIComplete is received
+                                                                 */
+    Null_Type           InitialChAssignCmpl,                     /* Initial Traffic/Extended Channel/AlternateLink(Pre-registration) Assignment procedure started UE has sent ConnectionRequest/AlternateLinkOpen message
+                                                                 * Traffic/Extended Channel /AlternateLink(Pre-registration)  assignment is completedUE has sent TrafficChannelComplete( Route update protocol)/ AlternateLinkOpenComplete.
+                                                                 * In the registration and Default bearer establishment procedure, UE initiated Channel/Alternate Link can be released and configured, only first assignment is reported.
+                                                                 */
+
+    Null_Type           SCP_ConfigCmpl,                         /* SCP (Session Configuration Protocol )ConfigurationRequest mesage is received
+                                                                 * SCP (Session Configuration Protocol )ConfigurationResponse mesage is transmitted
+                                                                 */
+    Null_Type           Stream_ConfigCmpl,                      /* Stream Protocol Configuration ConfigurationRequest mesage is received
+                                                                 * Stream Protocol Configuration ConfigurationResponse mesage is transmitted
+                                                                 */
+    Null_Type           EMPA_MMPA_ConfigCmpl,                   /* Enhanced Multi flow/Multi flow  Packet application ConfigurationRequest mesage is received
+                                                                 * Enhanced Multi flow/Multi flow  Packet application ConfigurationComplete mesage is received
+                                                                 * EMPA ConfigurationResponse message or MMPA ConfigurationResponse is received corresponding to steps 30A TO 30C of table 4.5.2B.3-2
+                                                                 */
+
+    Null_Type           SessionNegotiationCmpl  optional,       /* SS initiated Session Negotiation has started; Session Negotiation has completed
+                                                                 */
+    Null_Type           DeviceAuthCmpl          optional,       /* Device level authentication has started; Device level authentication has completed
+                                                                 */
+    Null_Type           LocationUpdateCmpl      optional,       /* Location Update started; Location Update completed
+                                                                 */
+    Null_Type           EAP_AKA_Cmpl,                           /* Improved Extensible Authentication protocol for Authentication and Key agreement started RFC 5448
+                                                                 * Message flow in x.s0057 clause 5.2.5.1 Authentication and Key agreement Completed
+                                                                 optionally After entering PPP LCP Open State, PPP Version Capability Indicaiton and/or Max PPP Inactivity Timer negotiation are completed
+                                                                 */
+    Null_Type           VSNCP_ConfigCmpl,                       /* PDN connection establishment started and UE has sent
+                                                                 * PPP Vendor Specific Network Control Protocol  Configuration Request PDN Connection and default bearer establishment is completed
+                                                                 * with possible IPV4 address (optional) and or IPv6 interface ID (Mandatory) provided
+                                                                 * Attach type shall be Handover Attach
+                                                                 */
+    DHCP_Ind_Type       DHCP_ConfigCmpl         optional,       /* UE and SS decided for IPv4 address allocation by DHCP IPv4 address allocation completed by UE and SS
+                                                                 * Completion of IP Address through DHCP
+                                                                 */
+    Null_Type           ICMPv6_ConfigCmpl       optional        /* UE optionally sent IPv6 stateless autoconfiguration Router solitation message and SS has responded with IPv6 Router Advertisement message
+                                                                 */
+  };
+  type record  HRPD_ZoneRegistrationInd_Type {
+    Null_Type           UATI_AssignmentCmpl,                    /* UATIAssignment is received
+                                                                 * UATIComplete is received
+                                                                 */
+       Null_Type           EAP_AKA_Cmpl,                           /* Improved Extensible Authentication protocol for Authentication and Key agreement started RFC 5448
+                                                                 * Message flow in x.s0057 clause 5.2.5.1 Authentication and Key agreement Completed
+                                                                 optionally After entering PPP LCP Open State, PPP Version Capability Indicaiton and/or Max PPP Inactivity Timer negotiation are completed
+                                                                 */
+    Null_Type           VSNCP_ConfigCmpl,                       /* PDN connection establishment started and UE has sent
+                                                                 * PPP Vendor Specific Network Control Protocol  Configuration Request PDN Connection and default bearer establishment is completed
+                                                                 * with possible IPV4 address (optional) and or IPv6 interface ID (Mandatory) provided
+                                                                 * Attach type shall be Handover Attach
+                                                                 */
+    DHCP_Ind_Type       DHCP_ConfigCmpl         optional,        /* UE and SS decided for IPv4 address allocation by DHCP IPv4 address allocation completed by UE and SS
+                                                                 * Completion of IP Address through DHCP
+                                                                 */
+    Null_Type           ICMPv6_ConfigCmpl       optional        /* UE optionally sent ICMPv6 Router solitation message and SS has responded with IPv6 Router Advertisement message
+                                                                 */
+  };
+  
+  type record DedicatedBearerRelInd_Type {
+    Null_Type           VSNP_TerminateCmpl,                     /* Dedicated bearers are deactivated/ released
+                                                                 */
+    Null_Type           SCP_ReleaseCmpl         optional        /* Session Configuration Protocol to relase the reservations exclusively associated with the deleated bearer
+                                                                 * Reservation deletion completed
+                                                                 */
+  };
+  
+  type record DefaultBearerRelDetachInd_Type {
+    Null_Type           VSNCP_TerminateCmpl     optional,       /* To Released configured default bearer and hense associated Dedicated bearer x.s0057 clause 11.3 and 11.1.1
+                                                                 * To indicate the default bearer is released
+                                                                 */
+    Null_Type           LCP_TerminateCmpl                       /* To detach the UE x.s0057 clause 11.2 Detach completed
+                                                                 */
+    
+  };
+
+  type record  MobilityFromEUTRACmpl_Type{
+  };
+  
+  type record  AdditionalDefBearerEstInd_Type {
+    Null_Type           VSNCP_ConfigCmpl,                       /* PDN connection establishment started and UE has sent
+                                                                 * PPP Vendor Specific Network Control Protocol  Configuration Request PDN Connection and default bearer establishment is completed
+                                                                 * with possible IPV4 address (optional) and or IPv6 interface ID (Mandatory) provided
+                                                                 * Attach type shall be Handover Attach(pre-registration) or Initial Attach (if normal registration in HRPD cell)  */
+    DHCP_Ind_Type       DHCP_ConfigCmpl         optional,        /* UE and SS decided for IPv4 address allocation by DHCP IPv4 address allocation completed by UE and SS
+                                                                 * Completion of IP Address through DHCP
+                                                                 */
+    Null_Type           ICMPv6_ConfigCmpl       optional        /* UE optionally sent ICMPv6 Router solitation message and SS has responded with IPv6 Router Advertisement message
+                                                                 */
+  };
+  
+  type union HRPD_SystemIndication_Type {
+    Null_Type                   Error,                           /* Used by SS to indicate any error;
+                                                                  * the Actual Error types reported in ASP common part in CDMA2000_IndicationStatus_Type
+                                                                  */
+    Null_Type                   InitialAccessProbeRcvd,          /* Initial Access probe is received;
+                                                                  */
+    RegAndDefBearerEstInd_Type  RegAndDefBearerEstInd,           /* UE has succesfully performed registration and default bearer esablishment
+                                                                  */
+    Null_Type                   DedicatedBearerEstInd,           /* Vendor specific network protocol (RFC 3772) procedures to re-establish Dedicated bearer as defined in S.0057 clause 5.5.3.1 (BCM is MS/NW)
+                                                                  *   or clause 5.5.4.1.1 (BCM = MS-Only) Bearer Configuration Mode
+                                                                  *   Dedicated bearers are (re) established
+                                                                  */
+    DedicatedBearerRelInd_Type  DedicatedBearerRelInd,           /* To indicate the Dedicated bearer is released */
+    DefaultBearerRelDetachInd_Type DefaultBearerRelDetachInd,    /* To Release configured default bearer and hense associated Dedicated bearer x.s0057 clause 11.3 and 11.1.1
+                                                                  * Dedicated bearers are deactivated/released
+                                                                  * To detach the UE x.s0057 clause 11.2 Detach completed
+                                                                  */
+    Null_Type                   MovedToDormantMode,              /* The channels are released and UE is moved to PPP dormant mode/Air interface Idle.
+                                                                  */
+    Null_Type                    MobilityFromEUTRACmpl,           /* To confirm that Handover from EUTRAN is completed by receiving Traffic Channel Complete
+                                                                  *  and the MessageSequence is same as in Traffic Channel Assignment
+                                                                  */
+    AdditionalDefBearerEstInd_Type   AdditionalDefBearerEstInd,  /* UE has successfully performed additional default bearer establishment (additional PDN)*/
+    HRPD_ZoneRegistrationInd_Type  HRPD_ZoneRegistrationInd      /* Initially pre-registered UE detects change in HRPD Zone ID in SIB and hence updates registration
+                                                                  */
+  };
+  
+  } // End of sub-group HRPD_Indications
+  
+  //----------------------------------------------------------------------------
+  
+  group HRPD_Commands {
+  
+  type enumerated HRPD_UE_InitStateType {       /* HRPD UE states as defined in C.S0057 clause 3.1 */
+    idle_Null,                                  /* In the Inactive/Null State,
+                                                 * 1. there is no physical traffic channel between the UE and the eAN, and no connection exists between the eAN and the ePCF
+                                                 * 2. no PPP link between the UE and the HSGW .
+                                                 * 3. The UE may have a Universal Access Terminal Identifier (UATI) that has been assigned by an eHRPD eAN
+                                                 */
+    dormant,                                    /* In the Dormant State,
+                                                 * 1. no physical traffic channel exists between the UE and the eAN and no connection exists between the eAN and the ePCF.
+                                                 * 2. PPP link between the UE and the HSGW
+                                                 * 3. eHRPD DORMANT state equates to the "idle" state referred to in TS 23.402
+                                                 */
+    active_Connected,                           /* In the Active/Connected State,
+                                                 * 1. a physical traffic channel exists between the UE and the eAN over which data may be sent.
+                                                 *    A connection exists between the eAN and the ePCF, and between the ePCF and the HSGW,
+                                                 * 2. there is a PPP link between the UE and the HSGW
+                                                 */
+    preregister                                 /* The UE is performing pre-register though a different Access network
+                                                 */
+  };
+  
+  type record RegAndDefBearerEst_Type {
+    HRPD_UE_InitStateType               InitState,
+    RLP_FlowId_Type                     RLP_FlowId,             /* Associated RLP Flow ID */
+    CDMA2000_AttachType                 AttachType              /* The Attach Type to be expected in VSNCP procedure */
+  };
+  
+  type record DefaultBearerRelDetach_Type {
+    HRPD_UE_InitStateType               InitState,
+    PDN_Id_Type                         PDN_Id,                 /* PDN_ID  of the bearer */
+    RLP_FlowId_Type                     RLP_FlowId,             /* Associated RLP Folw ID */
+    LCP_DetachInit_Type                 UE_NW_Initiated         /* If initiated by UE or Network */
+  };
+  
+  type record DedicatedBearerEstRel_Type {
+    HRPD_UE_InitStateType               InitState,              /* PPP and Air Interface state of UE when the procedure is being executed */
+    PDN_Id_Type                         AssociatedDefaultBearer,/* the PDN ID of the associated default bearer;
+                                                                 * Gives the APN with which addititonal Dedicated Bearer needs to be established */
+    Flow_IdList_Type                    Flow_Ids,               /* Flow_ID's of the multiple dedicated bearers to be Activated/Deactivated */
+    RLP_FlowIdList_Type                 RLP_FlowIds             /* Associated RLP Folw ID; There is one to one association between elements
+                                                                 * in Flow_IdList_Type and RLP_FlowIdList_Type; ITs a TTCN programing error otherwise */
+  };
+  
+  type record MoveToActiveState_Type {
+    RLP_FlowIdList_Type                 RLP_FlowIds             /* The list of flow ID's for which RLP Multi flows need to be re started; */
+  };
+  type record MobilityFromEUTRA_Type{
+    octetstring                         TrafficChannelAssignment /* provides the octet encoded Traffic Channel Assignment sent to the UE through EUTRAN cell */
+  };
+
+  type record  AdditionalDefBearerEst_Type { /* used for multiple PDN connections */
+    HRPD_UE_InitStateType               InitState,
+    RLP_FlowId_Type                     RLP_FlowId           /* Associated RLP Flow ID */
+  };
+
+  
+  type union HRPD_SystemCommand_Type {
+    Null_Type                           ReportInitialAccesProbe, /* SS is expected to report any possible Access probes received on HRPD Cell;
+                                                                  * will be used in situations where UE is not expected to camp on a HRPD Cell  */
+                                                                /* HRPD system commands that will be used by TTCN to execute certain HRPD procedures on UE */
+    RegAndDefBearerEst_Type             RegAndDefBearerEst,     /* To complete registeration and establish Default bearer;
+                                                                 * Initial UE State is Idle_Null State
+                                                                 * Indications upto VSNCP protocol and possible IP signalling over DHCPv4 and/or ICMPv6 is performed
+                                                                 * At the end of procedure, UE is still in Active/Connected state (not pre-registration);
+                                                                 * SS is expected to send InitialAccessProbeRcvd(only if initial state is not Active and not pre-registration) and RegAndDefBearerEstInd as an indication for succesful completion of procedure
+                                                                 */
+    DedicatedBearerEstRel_Type          DedicatedBearerEst,     /* Dedicated bearers are established/Activated by VSNP/EMPA protocol;
+                                                                 * PDN ID and RLP flow ID pairs are provided for each Dedicated bearer
+                                                                 * At the end of procedure, UE is still in Active/Connected state
+                                                                 * SS is expected to send InitialAccessProbeRcvd (only if initial state is not Active) and DedicatedBearerEstInd as an indication for succesful completion of procedure
+                                                                 */
+    Null_Type                           MoveToDormantState,     /* UE is Active_Connected state and is moved to Dormant state
+                                                                 * SS is expected to send MovedToDormantMode
+                                                                 */
+    RLP_FlowIdList_Type                 MoveToActiveState,      /* UE is initially Dormant state;
+                                                                 * UE is made to Move to Active_Connected State
+                                                                 * List of RLP flow Id's (associated with default + dedicated bearer), need to be established are provided
+                                                                 * SS is expected to send InitialAccessProbeRcvd
+                                                                 */
+    DedicatedBearerEstRel_Type          DedicatedBearerRel,     /* Dedicated bearers are released/De-Activated by VSNP  terminate and SCP release protocol;
+                                                                 * At the end of procedure, UE is still in Active/Connected state (not pre-registration)
+                                                                 * SS is expected to send InitialAccessProbeRcvd (only if initial state is not Active and not pre-registration) and DedicatedBearerRelInd as an indication for succesful completion of procedure
+                                                                 */
+    DefaultBearerRelDetach_Type         DefaultBearerRelDetach,  /* Default bearer is released by VSNCP terminate and SCP release protocol
+                                                                  * UE is made to detach by LCP protocol and Possible Channels are released
+                                                                  * At the end of procedure, UE is in Idle_Null state
+                                                                  * Notes:
+                                                                  * When Detach is network initiated the sequence is
+                                                                  * 1. Default bearer (and hence all associated Dedicated bearers) released by VSNCP termintate
+                                                                  * 2. UE is detached by LCP terminate procedure
+                                                                  * When Detach is UE initiatated, UE may only perform LCP terminate procedure
+                                                                  * SS is expected to send InitialAccessProbeRcvd (only if initial state is not Active) and DefaultBearerRelDetachInd as an indication for succesful completion of procedure
+                                                                  */
+    Null_Type                            MobilityFromEUTRA,       /* Prepare CDMA SS for receiving tunneled HRPD Connection Request and Route Update tunneled in ULHandoverPreparationTransfer
+                                                                   * Respond with GCSNA encapsulated HRPD Silence Parameters and HRPD Open Loop Parameters, HRPD Traffic Channel Assignment to be sent tunneled in MobilityFromEUTRACommand
+                                                                   * Receive Traffic Channel Complete in the HRPD Cell;
+                                                                   * After Receiving Traffic Channel Assignment , HRPD Silence Parameters and HRPD Open Loop Parameters embedded in EUTRA message MobilityFromEUTRACommand, UE has
+                                                                   * Tuned to HRPD Radio and transmitted Traffic Channel Complete in the HRPD Cell
+                                                                   * SS is expected to send MobilityFromEUTRACmpl as an indication for succesful completion of procedure
+                                                                   */
+    
+    AdditionalDefBearerEst_Type       AdditionalDefBearerEst,     /* To establish an additional PDN connection
+                                                                   * Initial UE State is Idle_Null State or procedure performed through pre-registration
+                                                                   * Indications upto VSNCP protocol and possible IP signaling over DHCPv4 and/or ICMPv6 is performed
+                                                                   * At the end of procedure, UE is still in Active/Connected state(not pre-registration);
+                                                                   * SS is expected to send InitialAccessProbeRcvd (only if initial state is not Active and not pre-registration) and AdditionalDefBearerEstInd as an indication for successful completion of procedure
+                                                                   */
+    RegAndDefBearerEst_Type             HRPDZoneRegister     /* To update registeration  by a UE already registered and established Default bearer;
+                                                              * Initial UE State is Idle_Null State
+                                                              * Indications upto VSNCP protocol and possible IP signalling over DHCPv4 and/or ICMPv6 is performed
+                                                              * At the end of procedure, UE is still in Active/Connected state (not pre-registration);
+                                                              * SS is expected to send InitialAccessProbeRcvd(only if initial state is not Active and not pre-registration) and RegAndDefBearerEstInd as an indication for succesful completion of procedure
+                                                              */
+    
+  };
+  
+  } // End of sub-group HRPD_Commands
+  
+  } // End of group CDMA2000_HRPD
+  
+  //============================================================================
+
+  group CDMA2000_RTT1X {
+  type enumerated RTT1X_UE_StateType {          /* RTT1X UE L3 states as defined in C.S0005 clause 2.6 */
+    idle,                                       /* In the Mobile station Idle State,
+                                                 * 1. UE selects and acquires a system
+                                                 * 2. UE is monitoring messages in f-csch.
+                                                 * 3. The UE may have a Universal Access Terminal Identifier (UATI) that has been assigned by an eHRPD eAN
+                                                 */
+    connected,                                  /* In the Mobile station Control on the Traffic Channel State,
+                                                 * 1. Mobile communicates with the base station using f/r-dsch and f/r-dtch
+                                                 * 2. PPP link between the UE and the HSGW
+                                                 * 3. eHRPD DORMANT state equates to the "idle" state referred to in TS 23.402
+                                                 */
+    preregister                                 /* The UE is performing pre-register though a different Access network
+                                                 */
+  };
+  
+  group RTT1X_Indications {     /* RTT1X call flows in RTT1x cell
+                                 * Expected Sequence for Attach (Power Up Attach)
+                                 * 1. Initial AccessProbeRcvd
+                                 * 2. CS_RegistrationStart (Powerup)
+                                 * 3. CS_RegistrationCmpl
+                                 * Expected Sequence for Detach (Power Down Attach)
+                                 * 1. Initial AccessProbeRcvd
+                                 * 2. CS_RegistrationStart (PowerDown)
+                                 * 3. CS_RegistrationCmpl
+                                 * Expected Sequence for CSFB Call Establishment
+                                 * 1. Initial AccessProbeRcvd
+                                 * 2. CS_CallEstStart (Origination/ PageResponse)
+                                 * 3. ChAssignCmpl (Extended Channel Assignment is sent)
+                                 * 4. CS_CallEstCompleted (Acknowledgement Order Sent, Service Connect sent, Service Connect Completion received, Alert Sent/Received and ConnectOrder is received)
+                                 * Expected Sequence for SRVCC call handover
+                                 * 1. HandoffCmpl
+                                 */
+  type enumerated RTT1X_CS_CallType {
+    mo,                 /* Call is UE oringinated */
+    mt,                  /* Call is UE Terminated */
+    mo_Emergency      /* UE originated Emergency Call */
+  };
+  
+  type record CS_CallEstStart_Type {
+    RTT1X_CS_CallType   CallType
+  };
+  
+  type enumerated RTT1XAttachType {
+    powerUpAttach,      /* UE is doing Power up attach it was not previously attached */
+    powerDownAttach     /* UE is doing power down attach; it was previously attached */
+  };
+  
+  type record CS_RegCmplInd_Type {
+    RTT1XAttachType                      CS_RegistrationCmpl    /* CS power up/down registration is completed
+                                                                   UE Sent Registration message and received an L2 Acknowledgement
+                                                                   Optionally SS can perform Authentication and and has sent Registration Accepted order*/
+  };
+  
+  type record CS_Reg_CallCmplInd_Type {
+    RTT1XAttachType                      CS_RegistrationCmpl optional,  /* CS power up/down registration is completed; This is omit if implicit registration is done
+                                                                         * UE Sent Registration message and received an L2 Acknowledgement
+                                                                         * Optionally SS can perform Authentication and and has sent Registration Accepted order
+                                                                         * UE can also do a implicit registration; i.e. reception of Origination/reconnect/CallRecovery/Page message
+                                                                         * by Base station is treated as implicit registration*/
+    RTT1X_CS_CallType                    CS_CallEstStarted,      /* Received Origination message for MO and Page Response for MT */
+    Null_Type                            ChAssignCmpl,           /* (Extended) Channel Assignment procedure started UE has sent ConnectionRequestTraffic
+                                                                  * Extended Channel assignment is completedUE has sent TrafficChannelComplete */
+    Null_Type                            CS_CallEstCompleted     /* SS received Service Connect Completion (Mo) or ConnectOrder(MT) (i.e User Accepted call) */
+  };
+
+  type record CS_CallCmplInd_Type {
+    RTT1X_CS_CallType                    CS_CallEstStarted,      /* Received Origination message for MO and Page Response for MT */
+    Null_Type                            ChAssignCmpl,           /* (Extended) Channel Assignment procedure started UE has sent ConnectionRequestTraffic
+                                                                  * Extended Channel assignment is completedUE has sent TrafficChannelComplete */
+    Null_Type                            CS_CallEstCompleted,     /* SS received Service Connect Completion (Mo) or ConnectOrder (MT) (i.e User Accepted call) */
+    boolean                              IsEmergencyCall /* True indicates the established call is emergency call, false indicates a normal voice has been established */
+  };
+  
+  type record ECSFB_CallCmplInd_Type  {
+    Null_Type                            HandoffCmpl,            /* indicates SS has received HandoffComplete message and the call is established */
+    Null_Type                            CS_CallEstCompleted     /* SS received Service Connect Completion (Mo) or ConnectOrder (MT) (i.e User Accepted call) */
+   };
+
+  
+  type union RTT1X_SystemIndication_Type {
+    Null_Type                            Error,                  /* Used by SS to indicate any error; the Actual Error types reported in ASP common part in CDMA2000_IndicationStatus_Type */
+    Null_Type                            InitialAccessProbeRcvd, /* Initial Access probe is received */
+    CS_RegCmplInd_Type                   CS_RegistrationCmpl,    /* CS power up/down registration is completed
+                                                                  * As registration message, and possible Authentication Registration accepted order are all
+                                                                  * sent received on f/r-csch  UE at end is in Idle state*/
+    CS_Reg_CallCmplInd_Type              CS_Reg_CallCmplInd,     /* CS Registration /implicit registration and Call Indication MO or MT
+                                                                  * UE is in connected state with f/r dtch configured */
+    CS_CallCmplInd_Type                  CS_CallCmplInd,         /* CS Call Indication MO or MT
+                                                                  * UE is in connected state with f/r dtch configured */
+    Null_Type                            HandoffCmpl,            /* needed for SRVCC handover of an IMS voice call on LTE to 1XRTT
+                                                                  * indicates SS has received HandoffComplete message and the call is established */
+    Null_Type                            MovedToIdleState,        /* The channels are released and UE is moved to Idle state.
+                                                                  * CS Call is released by exchange of Release order in both directions C.S0005 figure B3 and B4 */
+    ECSFB_CallCmplInd_Type              ECSFB_CallCmplInd        /* eCSFB Call Indication MO or MT
+                                                                  * UE is in connected state with f/r dtch configured */
+  };
+  
+  } // End of sub-group RTT1X_Indications
+  
+  //----------------------------------------------------------------------------
+  
+  group RTT1X_Commands {
+  
+  type record CS_Registration_Type {
+    RTT1XAttachType                     AttachType,
+    boolean                             IsPreRegistration,       /* Indicates if it is done as pre registration
+                                                                  * Value is ignored if Attach Type is Power down
+                                                                  * (Assumption detach happens only in 1XRTT cell)
+                                                                  */
+    B32_Type                            RAND     optional        /* RAND [From eNB]  to be included in CSFBParametersResponseCDMA2000, HandoverFromEUTRAPreparationRequest
+                                                                    Value not present for power down registration*/
+  };
+  type record MobilityFromEUTRA_1XRTT_Type{
+    octetstring                     HandoverAssignment           /* provides the octet encoded HandoverAssignment sent to the UE through EUTRAN cell */
+  };
+  
+  type union RTT1X_SystemCommand_Type {
+    Null_Type                           ReportInitialAccesProbe, /* SS is expected to report any possible Access probes received on 1XRTT Cell;
+                                                                  * will be used in situations where UE is not expected to camp on a 1XRTT Cell
+                                                                  */
+    CS_Registration_Type                CS_Registration,         /* Power up attach/ power down attach in 1xRTT cell or  Pre registration (Power up attach)
+                                                                  * tunelled through a different RAT
+                                                                  * in case of pre-registration attach, the CDMA SS starts by sending mobilityParameters to be tunneled in CSFBParametersRequestCDMA2000
+                                                                  * SS is expected to send InitialAccessProbeRcvd (only if initial state is not pre-registration)  and CS_RegistrationCmpl as an indication for succesful completion of procedure
+                                                                  */
+    RTT1X_CS_CallType                   CSFB_Call,               /* CSFB/ECSFB_Call by a (pre-)registered UE
+                                                                  * If the call Type is mt, CDMA SS sends 1x RTT GCSNA encapsulated General Page  to be tunneled in DLInformation Transfer
+                                                                  * SS is expected to send InitialAccessProbeRcvd and CS_CallCmplInd or ECSFB_CallCmplInd as an indication for succesful completion of procedure
+                                                                  */
+    RTT1X_CS_CallType                   CS_Reg_CSFB_Call,         /* UE not previously pre-registered hence performs registration (Power up attach) and CSFB call
+                                                                   *  Registration can be implicit registration
+                                                                   * SS is expected to send InitialAccessProbeRcvd  and CS_Reg_CallCmplInd as an indication for succesful completion of procedure
+                                                                   */
+    Null_Type                           MobilityFromEUTRA_1XRTT,   /*  Prepare SS for Mobility from Eutra
+                                                                   * CDMA SS sends mobilityParameters to be tunneled in  HandoverFromEUTRAPreparationRequest
+                                                                   *  Receive tunneled 1xRTT GCSNA Encapsulated Origination message and MEID in ULHandoverPreparationTransfer
+                                                                   *  Respond with GCSNA encapsulated 1xRTT Handoff Direction message to be sent tunneled in MobilityFromEUTRACommand
+                                                                   *  Receive HandoffCmpl in the 1xRTT Cell;
+                                                                   *  SS is expected to send  HandoffCmpl as an indication for succesful completion of procedure
+                                                                   */
+    CS_Registration_Type                CS_OrderedRegistration    /* ordered registration on (already registered) 1xRTT cell or  Pre registration
+                                                                   * Power up attach) through a different RAT. SS triggers the procedure by sending
+                                                                   * Registration Request order (GCSNA encapsulated in case of pre-registration)
+                                                                   * and sends mobilityParameters to be tunneled in CSFBParametersRequestCDMA2000
+                                                                   * SS is expected to send InitialAccessProbeRcvd (only if initial state is not pre-registration) and CS_RegistrationCmpl as an indication for succesful completion of procedure
+                                                                  */
+
+  };
+  
+  } // End of sub-group RTT1X_Commands
+  
+  } // end of group CDMA2000_RTT1X
+  
+  //============================================================================
+  
+  group System_Interface {
+  
+  type union CDMA2000_SystemRequest_Type {
+    CDMA2000_CellConfigRequest_Type     Cell,                   /* configure/release a cell */
+    CDMA2000_CellAttenuationList_Type   CellAttenuationList
+  };
+  
+  type union CDMA2000_SystemConfirm_Type {                      /* confirmations for system configuration; in general to be sent after the configuration has been done */
+    Null_Type                           Cell,                   /* (no further parameters from SS) */
+    Null_Type                           CellAttenuationList     /* (no further parameters from SS)
+                                                                 * NOTE 1: the confirmation shall be sent when all cells have changed power levels
+                                                                 * NOTE 2: for the CellId in the common ASP part the same rules are applied as for the CDMA2000 SYSTEM REQ */
+  };
+  
+  type record CDMA2000_SYSTEM_CTRL_REQ {
+    CDMA2000_ReqAspCommonPart_Type           Common,            /* TimingInfo depends on respective primitive: */
+    CDMA2000_SystemRequest_Type              Request            /* - Cell
+                                                                 *   TimingInfo: 'now' (in general)
+                                                                 * - CellAttenuationList
+                                                                 *   TimingInfo: 'now' (in general, but activation time may be used also)
+                                                                 */
+  };
+  
+  type record CDMA2000_SYSTEM_CTRL_CNF {
+    CDMA2000_CnfAspCommonPart_Type           Common,            /* TimingInfo is ignored by TTCN
+                                                                 * => SS may set TimingInfo to "None"
+                                                                 */
+    CDMA2000_SystemConfirm_Type              Confirm
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  type union CDMA2000_SystemCommand_Type {
+    HRPD_SystemCommand_Type             HRPD,                   /* HRPD Specific System commands */
+    RTT1X_SystemCommand_Type            RTT1X                   /* 1XRTT specific System commands */
+  };
+  
+  type record CDMA2000_SYSTEM_CMD {
+    CDMA2000_ReqAspCommonPart_Type      Common,                 /* Routing info will be none generally;
+                                                                 * TimingInfo is generally now but activation time may be used also for all System commands
+                                                                 * Cnf and Follow on flags are both false
+                                                                 */
+    CDMA2000_SystemCommand_Type         Command                 /* HRPD or 1XRTT System commands
+                                                                 */
+  };
+  
+  type union CDMA2000_SystemIndication_Type {
+    HRPD_SystemIndication_Type          HRPD,
+    RTT1X_SystemIndication_Type         RTT1X
+  };
+  
+  type record CDMA2000_SYSTEM_IND {
+    CDMA2000_IndAspCommonPart_Type      Common,                 /* The SS shall provide TimingInfo (SFN + subframe number) depending on the respective indication: */
+    CDMA2000_SystemIndication_Type      Indication              /* - Error
+                                                                 *   TimingInfo: related to the error (if available)
+                                                                 * - HRPD/RTT1X Procedure completion
+                                                                 *   The timing info corresponding to logical completion of the complete procedure
+                                                                 *   includes completion of all sub protocols
+                                                                 */
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  type record CDMA2000_RLP_FLOW_COMMON_IND {                    /* ASP to receive PDUs from RLP Packet Flows */
+    CDMA2000_IndAspCommonPart_Type      Common,                 /* CellId : identifier of the cell
+                                                                 * RoutingInfo : RLP Flow id
+                                                                 * TimingInfo : time when RLP SDU's has been completely received
+                                                                 */
+    CDMA2000_U_PlaneData_Type           Data
+  };
+  
+  type record CDMA2000_RLP_FLOW_COMMON_REQ {                    /* ASP to send PDUs to RLP Packet flows */
+    CDMA2000_ReqAspCommonPart_Type      Common,                 /* CellId : identifier of the cell
+                                                                 * RoutingInfo : RLP Flow id
+                                                                 * TimingInfo : starting point when to start sending sequence of data PDUs
+                                                                 *   e.g.
+                                                                 *     TimeStampLong_Type = X, subframe number = x;
+                                                                 *     U_Plane.SubframeDataList (i).SubframeOffset := offset_i;
+                                                                 *   => U_Plane.SubframeDataList(i).PduSduList shall be sent out at
+                                                                 *     TimeStampLong_Type = X + ((x + offset_i) / 4);
+                                                                 *     subframe number = (x + offset_i) mod 4
+                                                                 * ControlInfo : CnfFlag:=false; FollowOnFlag:=false
+                                                                 */
+    CDMA2000_U_Plane_Request_Type       U_Plane
+    
+  };
+ 
+  //----------------------------------------------------------------------------
+  
+  type port CDMA2000_SYSTEM_PORT message {                      /* CDMA2000 PTC: Port for system configuration */
+    out CDMA2000_SYSTEM_CTRL_REQ;
+    in  CDMA2000_SYSTEM_CTRL_CNF;
+  };
+  
+  type port CDMA2000_SYSCMD_IND_PORT message {                  /* CDMA2000 PTC: Port for system indications/Commands */
+    out CDMA2000_SYSTEM_CMD;
+    in  CDMA2000_SYSTEM_IND;
+  };
+  
+  type port CDMA2000_RLP_FLOW_PORT message {                    /* CDMA2000 PTC: Port for RLP SDU's to be sent on RLP packet data streams */
+    out CDMA2000_RLP_FLOW_COMMON_REQ;
+    in  CDMA2000_RLP_FLOW_COMMON_IND;
+  };
+  
+  } //end of group System_Interface
+  
+}
+

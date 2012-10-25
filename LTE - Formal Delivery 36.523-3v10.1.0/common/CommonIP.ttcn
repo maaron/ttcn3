@@ -1,0 +1,445 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 00:32:42 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7245 $
+/******************************************************************************/
+
+module CommonIP {
+
+  import from CommonDefs all;
+  import from Parameters all;
+
+  const UInt8_Type tsc_IP_Protocol_ICMP := 1;                     /* @status    APPROVED */
+
+  const UInt8_Type tsc_IP_Protocol_UDP  := 17;                    /* @status    APPROVED */
+
+  const UInt8_Type tsc_ICMP_Type_EchoReply := 0;                  /* @status    APPROVED */
+
+  const UInt8_Type tsc_IP_Protocol_TCP   := 6;                    /* @status    APPROVED */
+
+  const UInt8_Type tsc_IP_Protocol_IPSec := 50;                   /* @status    APPROVED */
+
+  const integer tsc_IMS_PortNumber_5060 := 5060;                  /* @status    APPROVED */
+
+  const octetstring tsc_IP_AnyData := '00112233445566778899AABBCCDDEEFF'O;  /* @status    APPROVED */
+
+  function fl_LoopbackModeB_IPv4IPv6Address(boolean p_UseIPv4,
+                                            charstring p_IPv4Addr,
+                                            charstring p_IPv6Addr) return charstring
+  {
+    if (p_UseIPv4) { return p_IPv4Addr; }
+    else           { return p_IPv6Addr; }
+  }
+
+  function f_LoopbackModeB_IP_Address_UE(boolean p_UseIPv4 := pc_IPv4,
+                                         PDN_Index_Type p_PdnIndex := PDN_1) return charstring
+  {
+    var charstring v_IPAddr := "";
+    select (p_PdnIndex) {
+      case (PDN_1) { v_IPAddr := fl_LoopbackModeB_IPv4IPv6Address(p_UseIPv4, px_IPv4_Address1_UE, px_IPv6_Address1_UE); }
+      case (PDN_2) { v_IPAddr := fl_LoopbackModeB_IPv4IPv6Address(p_UseIPv4, px_IPv4_Address2_UE, px_IPv6_Address2_UE); }
+    }
+    return v_IPAddr;
+  }
+
+  function f_LoopbackModeB_IP_Address_NW(boolean p_UseIPv4 := pc_IPv4,
+                                         PDN_Index_Type p_PdnIndex := PDN_1) return charstring
+  {
+    var charstring v_IPAddr := "";
+    select (p_PdnIndex) {
+      case (PDN_1) { v_IPAddr := fl_LoopbackModeB_IPv4IPv6Address(p_UseIPv4, px_IPv4_Address1_NW, px_IPv6_Address1_NW); }
+      case (PDN_2) { v_IPAddr := fl_LoopbackModeB_IPv4IPv6Address(p_UseIPv4, px_IPv4_Address2_NW, px_IPv6_Address2_NW); }
+    }
+    return v_IPAddr;
+  }
+
+  function f_IpAddressIsIPv4(charstring p_IpAddress) return boolean
+  {
+    var template charstring v_Pattern := pattern "[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+";
+    return match(p_IpAddress, v_Pattern);
+  };
+
+  function f_IpAddressIsIPv6(charstring p_IpAddress) return boolean
+  {
+    var Char1List_Type v_SplitCharList := {":"};
+    var CharStringList_Type v_FieldList := f_StringSplit(p_IpAddress, v_SplitCharList);
+    var integer v_FieldCnt := lengthof(v_FieldList);
+    var charstring v_Field;
+    var charstring v_Pattern;
+    var integer v_FieldLength;
+    var integer i;
+    
+    if ((v_FieldCnt == 1) or (v_FieldCnt > 8)) { return false; }
+    
+    for (i:=0; i<v_FieldCnt; i:=i+1) {
+      v_Field := v_FieldList[i];
+      v_FieldLength := lengthof(v_Field);
+      v_Pattern := "[0-9a-f]#(" & int2str(v_FieldLength) & ")";
+
+      if (v_FieldLength > 4) { return false; }
+      if (not match(v_Field, pattern v_Pattern)) { return false; }
+    }
+    return true;
+  }
+
+  function f_Convert_IPv4Addr2OctString(charstring p_IPv4AddrChar) return O4_Type
+  {
+    var Char1List_Type v_SplitCharList := {"."};
+    var CharStringList_Type v_FieldList := f_StringSplit(p_IPv4AddrChar, v_SplitCharList);
+    var octetstring v_IPv4AddrOct := ''O;
+    var integer v_FieldCnt := lengthof(v_FieldList);
+    var integer v_IntVal;
+    var integer i;
+
+    if (v_FieldCnt != 4) {
+      FatalError(__FILE__, __LINE__, "invalid IP Address");
+    }
+    for (i:=0; i<v_FieldCnt; i:=i+1) {
+      v_IntVal := str2int(v_FieldList[i]);
+      v_IPv4AddrOct := v_IPv4AddrOct & int2oct(v_IntVal, 1);
+    }
+    return v_IPv4AddrOct;
+  }
+
+  function f_Convert_IPv6Addr2OctString(charstring p_IPv6AddrChar) return O16_Type
+  {
+    var Char1List_Type v_SplitCharList := {":"};
+    var CharStringList_Type v_FieldList := f_StringSplit(p_IPv6AddrChar, v_SplitCharList);
+    var octetstring v_IPv6AddrOct := ''O;
+    var integer v_FieldCnt := lengthof(v_FieldList);
+    var boolean v_EmptyBlocksExpanded := false;          /* set to true when "::" has been expanded => subsequent empty fields will just be replaced by '0000' */
+    var charstring v_Field;
+    var integer v_NoOfEmptyBlocks;
+    var integer i;
+    var integer k;
+
+    if (v_FieldCnt > 8) {
+      FatalError(__FILE__, __LINE__, "invalid IP Address");
+    }
+    for (i:=0; i<v_FieldCnt; i:=i+1) {
+      v_Field := v_FieldList[i];
+      select (lengthof(v_Field)) {
+        case (0) { // empty block
+          if (not v_EmptyBlocksExpanded) {                /* e.g. for "2001:0ba0::" we have two empty blocks at the end of the address but only one of them shall be expanded; @sic R5s110645 change 5 sic@ */
+            v_EmptyBlocksExpanded := true;
+            v_NoOfEmptyBlocks := 8 - (v_FieldCnt - 1);    /* "-1" because one empty block is already contained in v_FieldCnt */
+            for (k:=0; k < v_NoOfEmptyBlocks; k:=k+1) {
+              v_IPv6AddrOct := v_IPv6AddrOct & '0000'O;
+            }
+          } else {                                        /* "::" has already been expanded */
+            v_IPv6AddrOct := v_IPv6AddrOct & '0000'O;
+          }
+        }
+        case (1) {
+          v_IPv6AddrOct := v_IPv6AddrOct & str2oct("000" & v_Field);
+        }
+        case (2) {
+          v_IPv6AddrOct := v_IPv6AddrOct & str2oct("00" & v_Field);
+        }
+        case (3) {
+          v_IPv6AddrOct := v_IPv6AddrOct & str2oct("0" & v_Field);
+        }
+        case (4) {
+          v_IPv6AddrOct := v_IPv6AddrOct & str2oct(v_Field);
+
+        }
+        case else {
+          FatalError(__FILE__, __LINE__, "invalid IP Address");
+        }
+      }
+    }
+    return v_IPv6AddrOct;
+  }
+
+  function f_Convert_OctString2IPv6Addr(O16_Type p_IPv6AddrOct) return charstring
+  { /* @sic R5s110603 change 2 sic@ */
+    var charstring v_IPv6Addr := "";
+    var integer v_AddrLength := lengthof(p_IPv6AddrOct);
+    var integer i := 0;
+
+    while (i < v_AddrLength) {
+      v_IPv6Addr := v_IPv6Addr & oct2str(substr(p_IPv6AddrOct, i, 2));
+      i:=i+2;
+      if (i < v_AddrLength) {
+        v_IPv6Addr := v_IPv6Addr & ":";
+      }
+    }
+    return v_IPv6Addr;
+  }
+
+  function f_IpChecksum(octetstring p_OctetString) return O2_Type
+  { /* calculate header checksum; within the given octetstring the header checksum shall be set to '0000'O */
+    var integer i;
+    var octetstring v_Word;
+    var integer v_DataLength := lengthof(p_OctetString);
+    var integer v_Sum := 0;
+
+    if (v_DataLength mod 2 != 0) {
+      p_OctetString := p_OctetString & '00'O;
+    }
+    
+    // accumulate all words of the IP header
+    for (i:=0; i < v_DataLength; i := i+2) {
+      v_Word := p_OctetString[i] & p_OctetString[i+1];
+      v_Sum := v_Sum + oct2int(v_Word);
+    }
+    // deal with the
+    while (v_Sum > tsc_UInt16Max) {
+      v_Sum := (v_Sum mod (tsc_UInt16Max+1)) + (v_Sum / (tsc_UInt16Max+1));
+    }
+    // get complement
+    v_Sum := tsc_UInt16Max - v_Sum;
+    return int2oct(v_Sum, 2);
+  }
+
+  function f_IPv4Packet_Create(O2_Type p_Identification := '6d7d'O, // Identification; random value (can be used to generate different packets
+                               O1_Type p_TOS := '00'O,              // Differentiated services (RFC 2474), Explicit Congestion Notification (ECN, RFC 3168), former TOS (RFC 791)
+                               UInt8_Type p_Protocol,
+                               charstring p_SourceAddr,
+                               charstring p_DestAddr,
+                               octetstring p_IPPayload)
+    return octetstring
+  {
+    var integer v_TotalLength := lengthof(p_IPPayload) + 20;  // 20 bytes IP header
+    var O4_Type v_SourceAddrStr := f_Convert_IPv4Addr2OctString(p_SourceAddr);
+    var O4_Type v_DestAddrStr := f_Convert_IPv4Addr2OctString(p_DestAddr);
+    var octetstring v_OctetString;
+    
+    // IP header
+    v_OctetString := '45'O;            // version and header length
+    v_OctetString := v_OctetString & p_TOS;
+    v_OctetString := v_OctetString & int2oct(v_TotalLength, 2);
+    v_OctetString := v_OctetString & p_Identification;
+    v_OctetString := v_OctetString & '0000'O; // flags (3 bits; typically 0 for UDP) and fragment offset (13 bits; typically 0 for UDP)
+    v_OctetString := v_OctetString & '80'O;   // Time to live (random value)
+    v_OctetString := v_OctetString & int2oct(p_Protocol, 1);
+    v_OctetString := v_OctetString & f_IpChecksum(v_OctetString & '0000'O & v_SourceAddrStr & v_DestAddrStr);
+    v_OctetString := v_OctetString & v_SourceAddrStr;
+    v_OctetString := v_OctetString & v_DestAddrStr;
+    v_OctetString := v_OctetString & p_IPPayload;
+    
+    return v_OctetString;
+  }
+
+  function f_IPv6Packet_Create(O1_Type p_TrafficClass := '00'O,
+                               UInt20_Type p_FlowLabel := 0,
+                               UInt8_Type p_Protocol,
+                               charstring p_SourceAddr,
+                               charstring p_DestAddr,
+                               octetstring p_IPPayload)
+    return octetstring
+  {
+    var hexstring v_Version := '6'H;
+    var hexstring v_TrafficClass := oct2hex (p_TrafficClass);
+    var hexstring v_FlowLabel := int2hex (p_FlowLabel, 5);
+    var O16_Type v_SourceAddrStr := f_Convert_IPv6Addr2OctString(p_SourceAddr);
+    var O16_Type v_DestAddrStr := f_Convert_IPv6Addr2OctString(p_DestAddr);
+    var octetstring v_OctetString;
+    
+    // IP header
+    v_OctetString := hex2oct(v_Version & v_TrafficClass & v_FlowLabel);  // Version, Traffic Class and Flow Label to be revised
+    v_OctetString := v_OctetString & int2oct (lengthof(p_IPPayload), 2); // Payload Length
+    v_OctetString := v_OctetString & int2oct(p_Protocol, 1);   // Next header
+    v_OctetString := v_OctetString & '40'O;   // Hop Limit
+    v_OctetString := v_OctetString & v_SourceAddrStr;
+    v_OctetString := v_OctetString & v_DestAddrStr;
+    v_OctetString := v_OctetString & p_IPPayload;
+    return v_OctetString;
+  }
+
+  function f_IPv4UdpDatagram_Create(charstring p_SourceAddr,
+                                    charstring p_DestAddr,
+                                    UInt16_Type p_SourcePort,
+                                    UInt16_Type p_DestPort,
+                                    octetstring p_UdpPayload)
+    return octetstring
+  { /* @desc create UDP datagram */
+    var integer v_UdpDatagramLength := lengthof(p_UdpPayload) + 8;  // 8 bytes UDP header
+    // Pseudo Header:
+    var O4_Type v_SourceAddrStr := f_Convert_IPv4Addr2OctString(p_SourceAddr);
+    var O4_Type v_DestAddrStr := f_Convert_IPv4Addr2OctString(p_DestAddr);
+    var O2_Type v_LengthStr := int2oct(v_UdpDatagramLength, 2);
+    var O1_Type v_Protocol := '11'O; // UDP
+    var octetstring v_PseudoHeader := v_SourceAddrStr & v_DestAddrStr &'00'O & v_Protocol & v_LengthStr;
+    var O2_Type v_ChecksumDummy := '0000'O;
+    var octetstring v_OctetString := ''O;
+    
+    v_OctetString := v_OctetString & int2oct(p_SourcePort, 2);
+    v_OctetString := v_OctetString & int2oct(p_DestPort, 2);
+    v_OctetString := v_OctetString & v_LengthStr;
+    v_OctetString := v_OctetString & f_IpChecksum(v_PseudoHeader & v_OctetString & v_ChecksumDummy & p_UdpPayload);  /* Note: the UDP checksum can also be '0000'O what means "no chcksum"; but that is not the usual case */
+    v_OctetString := v_OctetString & p_UdpPayload;
+
+    return v_OctetString;
+  }
+
+  function f_IPv6UdpDatagram_Create(charstring p_SourceAddr,
+                                    charstring p_DestAddr,
+                                    UInt16_Type p_SourcePort,
+                                    UInt16_Type p_DestPort,
+                                    octetstring p_UdpPayload)
+    return octetstring
+  {
+    var integer v_UdpDatagramLength := lengthof(p_UdpPayload) + 8;  // 8 bytes UDP header
+    var O16_Type v_SourceAddrStr := f_Convert_IPv6Addr2OctString(p_SourceAddr);
+    var O16_Type v_DestAddrStr := f_Convert_IPv6Addr2OctString(p_DestAddr);
+    var O4_Type v_LengthStr := int2oct(v_UdpDatagramLength, 4); // RFC 2460 clause 8.1
+    var octetstring v_PseudoHeader;
+    var octetstring v_OctetString;
+    
+    // Prepare the pseudo header, see RFC 2460 and illustration in Wikipedia
+    v_PseudoHeader := v_SourceAddrStr & v_DestAddrStr & v_LengthStr;
+    v_PseudoHeader := v_PseudoHeader & v_LengthStr; // UDP length
+    v_PseudoHeader := v_PseudoHeader & '000000'O & '11'O; // Zeros and Next header (= Protocol)
+    v_PseudoHeader := v_PseudoHeader & int2oct(p_SourcePort, 2) & int2oct(p_DestPort, 2) &  int2oct(v_UdpDatagramLength, 2) & '0000'O;
+    v_PseudoHeader := v_PseudoHeader & p_UdpPayload;
+    
+    // Now set the UDP packet
+    v_OctetString := int2oct(p_SourcePort, 2);
+    v_OctetString := v_OctetString & int2oct(p_DestPort, 2);
+    v_OctetString := v_OctetString & int2oct(v_UdpDatagramLength, 2);
+    v_OctetString := v_OctetString & f_IpChecksum(v_PseudoHeader);
+    v_OctetString := v_OctetString & p_UdpPayload;
+    
+    return v_OctetString;
+  }
+
+  function f_IPv4TcpDatagram_Create(charstring p_SourceAddr,
+                                    charstring p_DestAddr,
+                                    UInt16_Type p_SourcePort,
+                                    UInt16_Type p_DestPort,
+                                    octetstring p_TcpPayload)
+    return octetstring
+  {
+    var integer v_TcpDatagramLength := lengthof(p_TcpPayload) + 20;  // 20 bytes TCP header
+    // Pseudo Header:
+    var O4_Type v_SourceAddrStr := f_Convert_IPv4Addr2OctString(p_SourceAddr);
+    var O4_Type v_DestAddrStr := f_Convert_IPv4Addr2OctString(p_DestAddr);
+    var O2_Type v_LengthStr := int2oct(v_TcpDatagramLength, 2);
+    var O1_Type v_Protocol := int2oct(tsc_IP_Protocol_TCP, 1);
+    var octetstring v_PseudoHeader := v_SourceAddrStr & v_DestAddrStr &'00'O & v_Protocol & v_LengthStr;
+    var O2_Type v_ChecksumDummy := '0000'O;
+    var octetstring v_UrgPointer := '0000'O;
+    var octetstring v_OctetString := ''O;
+    
+    v_OctetString := v_OctetString & int2oct(p_SourcePort, 2);
+    v_OctetString := v_OctetString & int2oct(p_DestPort, 2);
+    v_OctetString := v_OctetString & int2oct(0, 4);   // Sequence Number
+    v_OctetString := v_OctetString & int2oct(0, 4);   // Acknowledgment Number
+    v_OctetString := v_OctetString & '5011'O;         // 4bits HeaderLen/6bits Reserved/URG/ACK/PSH/RST/SYN/FIN
+    v_OctetString := v_OctetString & int2oct(256, 4); // How to set the windows size?
+    v_OctetString := v_OctetString & f_IpChecksum(v_PseudoHeader & v_OctetString & v_ChecksumDummy & v_UrgPointer & p_TcpPayload);  /* Note: the TCP checksum can also be '0000'O what means "no chcksum"; but that is not the usual case */
+    v_OctetString := v_OctetString & v_UrgPointer;
+    v_OctetString := v_OctetString & p_TcpPayload;
+
+    return v_OctetString;
+  }
+
+  function f_IPv6TcpDatagram_Create(charstring p_SourceAddr,
+                                    charstring p_DestAddr,
+                                    UInt16_Type p_SourcePort,
+                                    UInt16_Type p_DestPort,
+                                    octetstring p_TcpPayload)
+    return octetstring
+  { /* @sic R5s110645 change 4: IPv6 address instead of IPv4 sic@ */
+    var integer v_TcpDatagramLength := lengthof(p_TcpPayload) + 20;  // 20 bytes TCP header
+    // Pseudo Header:
+    var O16_Type v_SourceAddrStr := f_Convert_IPv6Addr2OctString(p_SourceAddr);
+    var O16_Type v_DestAddrStr := f_Convert_IPv6Addr2OctString(p_DestAddr);
+    var O4_Type v_LengthStr := int2oct(v_TcpDatagramLength, 4); //  2460 clause 8.1
+    var O1_Type v_Protocol := int2oct(tsc_IP_Protocol_TCP, 1);
+    var octetstring v_PseudoHeader;
+    var O2_Type v_ChecksumDummy := '0000'O;
+    var octetstring v_UrgPointer := '0000'O;
+    var octetstring v_OctetString := ''O;
+    
+    // Prepare the pseudo header, see RFC 2460 and illustration in Wikipedia
+    v_PseudoHeader := v_SourceAddrStr & v_DestAddrStr & v_LengthStr;
+    v_PseudoHeader := v_PseudoHeader & '000000'O & v_Protocol; // Zeros and Next header (= Protocol)
+    
+    v_OctetString := v_OctetString & int2oct(p_SourcePort, 2);
+    v_OctetString := v_OctetString & int2oct(p_DestPort, 2);
+    v_OctetString := v_OctetString & int2oct(0, 4);   // Sequence Number
+    v_OctetString := v_OctetString & int2oct(0, 4);   // Acknowledgment Number
+    v_OctetString := v_OctetString & '5011'O;         // 4bits HeaderLen/6bits Reserved/URG/ACK/PSH/RST/SYN/FIN
+    v_OctetString := v_OctetString & int2oct(256, 4); // How to set the windows size?
+    v_OctetString := v_OctetString & f_IpChecksum(v_PseudoHeader & v_OctetString & v_ChecksumDummy & v_UrgPointer & p_TcpPayload);  /* Note: the TCP checksum can also be '0000'O what means "no chcksum"; but that is not the usual case */
+    v_OctetString := v_OctetString & v_UrgPointer;
+    v_OctetString := v_OctetString & p_TcpPayload;
+
+    return v_OctetString;
+  }
+
+  function fl_IcmpDatagram_Create(UInt8_Type p_IcmpType,
+                                  O2_Type p_SequenceNumber,
+                                  octetstring p_Data)
+    return octetstring
+  { /* @desc create ICMP datagram */
+    var O2_Type v_ChecksumDummy := '0000'O;
+    var O2_Type v_Id := '0001'O;
+    var octetstring v_OctetString := ''O;
+    
+    v_OctetString := v_OctetString & int2oct(p_IcmpType, 1);   // Type
+    v_OctetString := v_OctetString & '00'O;                    // Code
+    v_OctetString := v_OctetString & f_IpChecksum(v_OctetString & v_ChecksumDummy & v_Id & p_Data);
+    v_OctetString := v_OctetString & v_Id;
+    v_OctetString := v_OctetString & p_SequenceNumber;
+    v_OctetString := v_OctetString & p_Data;
+    
+    return v_OctetString;
+  }
+
+  function f_IcmpEchoReply(integer p_SequenceNumber) return octetstring
+  {
+    var O2_Type v_IcmpSequenceNumber := int2oct(p_SequenceNumber, 2);
+    var octetstring v_IcmpPayload := ''O;
+    var integer i;
+
+    for (i:=0; i<p_SequenceNumber; i:=i+1) {
+      v_IcmpPayload := v_IcmpPayload & tsc_IP_AnyData;
+    }
+    return fl_IcmpDatagram_Create(tsc_ICMP_Type_EchoReply, v_IcmpSequenceNumber, v_IcmpPayload);
+  }
+
+  function f_IPv4IPv6_IcmpEchoReply(charstring p_SourceAddr,
+                                    charstring p_DestAddr := "",
+                                    integer p_SequenceNumber := 1) return octetstring
+  {
+    var charstring v_DestAddr:= p_DestAddr;
+    var octetstring v_Payload := f_IcmpEchoReply(p_SequenceNumber);
+    var UInt8_Type v_Protocol := tsc_IP_Protocol_ICMP;
+    var octetstring v_IpPacket;
+    
+    if (v_DestAddr == "") { v_DestAddr := p_SourceAddr; }
+
+    if (f_IpAddressIsIPv4(p_SourceAddr)) {
+      v_IpPacket := f_IPv4Packet_Create('10'O & int2oct(p_SequenceNumber, 1), -, v_Protocol, p_SourceAddr, p_DestAddr,  v_Payload);
+    } else {
+      v_IpPacket := f_IPv6Packet_Create(-, -, v_Protocol, p_SourceAddr, v_DestAddr, v_Payload);
+    }
+    return v_IpPacket;
+  }
+
+  function f_IPv4IPv6_AnyUdpPacket(charstring p_SourceAddr,
+                                   charstring p_DestAddr,
+                                   UInt16_Type p_SourcePort,
+                                   UInt16_Type p_DestPort) return octetstring
+  {
+    var UInt8_Type v_Protocol := tsc_IP_Protocol_UDP;
+    var octetstring v_Payload := tsc_IP_AnyData;
+    var octetstring v_IpPacket;
+
+    if (f_IpAddressIsIPv4(p_SourceAddr)) {
+      v_IpPacket := f_IPv4Packet_Create(-, -, v_Protocol, p_SourceAddr, p_DestAddr, f_IPv4UdpDatagram_Create(p_SourceAddr, p_DestAddr, p_SourcePort, p_DestPort, v_Payload));
+    } else {
+      v_IpPacket := f_IPv6Packet_Create(-, -, v_Protocol, p_SourceAddr, p_DestAddr, f_IPv6UdpDatagram_Create(p_SourceAddr, p_DestAddr, p_SourcePort, p_DestPort, v_Payload));
+    }
+    return v_IpPacket;
+  }
+
+}

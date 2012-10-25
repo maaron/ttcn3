@@ -1,0 +1,259 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:06:15 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7298 $
+/******************************************************************************/
+module EUTRA_CSG_Functions {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_NASCommonTemplates all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from UpperTesterFunctions all;
+
+  function f_EUTRA_Manual_CSG_Selection(EUTRA_CellId_Type p_CellId_CSG,
+                                        CSG_Identity p_CSG_Identity,
+                                        EUTRA_ATTACH_Type p_ForcedAttach := NORMAL)   // @sic R5s120480: adding p_ForcedAttach sic@
+    runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(p_CellId_CSG);
+    var CSG_Identity v_CSG_Identity := p_CSG_Identity;
+
+    // Add CSG in the CSG whitelist in USIM
+    f_EUTRA_SetCellPower(p_CellId_CSG, tsc_ServingCellRS_EPRE);
+    // Switch on UE
+    f_EUTRA_SwitchOnUEandStartIP(p_CellId_CSG);
+    // Trigger UE to select CSG of cell 2
+    
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(p_CellId_CSG);
+    f_UT_ManualPLMN_CSG(UT, f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity), v_CSG_Identity);
+    // Now continue with the procedure
+    f_EUTRA_IdleUpdated(p_CellId_CSG, PREAMBLE, STATE2_IDLEUPDATE, p_ForcedAttach);
+    //Switch/power off UE
+    f_EUTRA_UE_Detach_SwitchOffUe(p_CellId_CSG, RRC_IDLE, tsc_RRC_TI_Def, p_ForcedAttach, omit);
+    // Now the CSG whitelist includes CSG ID of cell p_CellId_CSG
+  } // f_EUTRA_Manual_CSG_Selection
+
+  function f_EUTRA_BringUSIMtoInital_CSG(EUTRA_CellId_Type p_CSG_Cell,
+                                         EUTRA_CellId_Type p_OtherCell,
+                                         EUTRA_ATTACH_Type p_ForcedAttach := NORMAL,   // @sic R5s120480: adding p_ForcedAttach sic@
+                                         boolean p_TAU_Reject_Received := false)   // @sic R5s120617: adding p_TAU_Reject_Received sic@
+    runs on EUTRA_PTC
+  {
+    var EPS_UpdateTypeValue v_UpdateType := f_GetEPSTAUType(p_ForcedAttach);    // @sic R5s120617 sic@
+    var template (value) CellPowerList_Type v_CellPowerList1 := {
+      cs_CellPower (p_CSG_Cell, tsc_NonSuitableCellRS_EPRE),
+      cs_CellPower (p_OtherCell, tsc_ServingCellRS_EPRE)
+    };
+    var template (value) CellPowerList_Type v_CellPowerList2 := {
+      cs_CellPower (p_OtherCell, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower (p_CSG_Cell, tsc_ServingCellRS_EPRE)
+    };
+    
+    // Change power level so that UE reselect cell 1
+    f_EUTRA_SetCellPowerList (v_CellPowerList1);
+
+    // NOTE: the UE performs a TAU and the RRC connection is released.
+    // @sic R5s120617 sic@
+    if (p_TAU_Reject_Received and v_UpdateType == tsc_EpsUpdate_Combined_TaLaUpdate) {
+      // Acc to 24.301 and section 5.5.3.3.5 after receiption of TAU reject with caus #25;
+      // UE shall indicate the Update type IE "combined TA/LA updating with IMSI attach" when performing the tracking area updating procedure.
+      f_EUTRA_TrackingAreaUpdate (p_OtherCell,-,p_ForcedAttach, ?, tsc_EpsUpdate_Combined_IMSIAttach);
+    }  else {
+      f_EUTRA_TrackingAreaUpdate (p_OtherCell,-,p_ForcedAttach);
+    }
+
+    // Change power level so that UE reselect the CSG cell
+    f_EUTRA_SetCellPowerList (v_CellPowerList2);
+    // reject the TAU with the cause: Not authorized for this CSG
+    f_EUTRA_TrackingAreaUpdateRejectCSG(p_CSG_Cell, -, p_ForcedAttach);
+  }
+
+  function f_EUTRA_EmptyCSG_AllowedList(EUTRA_CellId_Type p_CSG_CellId,
+                                        EUTRA_ATTACH_Type p_ForcedAttach := NORMAL)  // @sic R5s120480: adding p_ForcedAttach sic@
+    runs on EUTRA_PTC
+  {
+    var integer i:=0;
+    var GutiParameters_Type v_GutiParams:= f_EUTRA_CellInfo_GetGuti(p_CSG_CellId);
+    var NAS_PlmnId v_PLMN:= f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    var CSG_Identity v_CSG_Identity;
+    
+    timer t_ResponseTimer := 5.0;
+    
+    // Set CSG cell to serving cell
+    f_EUTRA_SetCellPowerList ({cs_CellPower (p_CSG_CellId, tsc_ServingCellRS_EPRE)});
+    
+    // Repeat for CSG = 1 to 4
+    for (i:=1; i<5; i:=i+1) {
+      // Broadcast CSG Identity in Sysinfo
+      v_CSG_Identity := int2bit (i, 27);
+      f_EUTRA_CellInfo_SetSysInfo_Csg_Ind(p_CSG_CellId, true);      // @sic R5s120326 sic@
+      f_EUTRA_CellInfo_SetSysInfo_Csg_Id(p_CSG_CellId, v_CSG_Identity);
+      f_EUTRA_ModifySysinfoUE_Off(p_CSG_CellId);
+      
+      // Switch on UE
+      f_EUTRA_SwitchOnUEandStartIP(p_CSG_CellId);
+      
+      // Wait 5s
+      t_ResponseTimer.start;
+      if (f_EUTRA_RRC_ConnectionRequest_Common(p_CSG_CellId, t_ResponseTimer)) {
+        f_EUTRA_AttachRejectCSG_WithoutRRCConnReq (p_CSG_CellId, p_ForcedAttach);
+      }
+      else {  // time out
+        // Manual select the CSG identity
+        f_UT_ManualPLMN_CSG(UT, v_PLMN, v_CSG_Identity);
+        
+        // Attach is rejected with CSG not allowed cause
+        f_EUTRA_AttachRejectCSG (p_CSG_CellId, p_ForcedAttach);
+      }
+      
+      // And then just need to switch UE off
+      f_UT_SwitchOffUE (UT, false, CNF_REQUIRED);
+    }
+    
+    // Power off CSG cell
+    f_EUTRA_SetCellPowerList ({cs_CellPower (p_CSG_CellId, tsc_NonSuitableOffCellRS_EPRE)});
+  }
+
+  function f_EUTRA_AttachRejectCSG (EUTRA_CellId_Type p_CellId,
+                                    EUTRA_ATTACH_Type p_ForcedAttach := NORMAL)  // @sic R5s120480: adding p_ForcedAttach sic@
+    runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_AttDetValue_Type v_AttachType;
+    var PdnTypeValue v_PDNValue;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var EUTRA_SecurityParams_Type v_AuthParams := f_EUTRA_Security_Get();
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (p_ForcedAttach);
+    
+    v_AttachType := f_GetEAttachType(p_ForcedAttach);
+    
+    v_PDNValue := f_GetPdnType();
+    
+    // RRC Connection Establishment, with Attach Request and PDN Connectivity
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(p_CellId,
+                                                v_RRC_TI,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking((tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected),
+                                                                                  cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  v_PDNValue)));
+    
+    // Set UE network capabilities as sent by the UE to be used later in the test case(see TS 24.301 clause 5.4.3.3)
+    v_AuthParams.NAS_SecurityCap := f_EUTRA_FillNAS_SecurityCapability(v_NasInd.Pdu.Msg.aTTACH_REQUEST);
+    f_EUTRA_Security_Set(v_AuthParams);
+    
+    // Now send Attach Reject, to get UE to delete GUTI
+    SRB.send(cas_SRB1_NasPdu_REQ(p_CellId,
+                                      cs_TimingInfo_Now,
+                                      cs_NAS_Request(tsc_SHT_NoSecurityProtection,
+                                                       cs_508_AttachReject(cs_EMM_Cause_v(tsc_Cause_NotAuthorizedCSG),
+                                                                             omit))));
+    
+    f_EUTRA_RRC_ConnectionRelease(p_CellId);
+  }
+
+  function f_EUTRA_AttachRejectCSG_WithoutRRCConnReq(EUTRA_CellId_Type p_CellId,
+                                                     EUTRA_ATTACH_Type p_ForcedAttach := NORMAL)  // @sic R5s120480: adding p_ForcedAttach sic@
+    runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_AttDetValue_Type v_AttachType;
+    var PdnTypeValue v_PDNValue;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var EUTRA_SecurityParams_Type v_AuthParams := f_EUTRA_Security_Get();
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (p_ForcedAttach);
+
+    v_AttachType := f_GetEAttachType(p_ForcedAttach);
+
+    v_PDNValue := f_GetPdnType();
+
+    // send RRC Connection Setup on SRB0 (CCCH) and switch on UL grant assignments:
+    f_EUTRA_RRC_ConnectionSetup_Def (p_CellId);
+
+    // receive RRC Connection Setup Complete with piggy-backed NAS message on SRB1 (DCCH):
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(p_CellId,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(v_RRC_TI, ?),
+                                                       cr_NAS_IndicationWithPiggybacking((tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected),   // @sic R5s120224 sic@
+                                                                                         cr_508_ATTACH_REQUEST(v_AttachType,
+                                                                                                               v_AdditionalUpdateType),
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNValue)));
+    
+    // Set UE network capabilities as sent by the UE to be used later in the test case(see TS 24.301 clause 5.4.3.3)
+    v_AuthParams.NAS_SecurityCap := f_EUTRA_FillNAS_SecurityCapability(v_NasInd.Pdu.Msg.aTTACH_REQUEST);
+    f_EUTRA_Security_Set(v_AuthParams);
+    
+    // Now send Attach Reject, to get UE to delete GUTI
+    SRB.send(cas_SRB1_NasPdu_REQ(p_CellId,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_NoSecurityProtection,
+                                                cs_508_AttachReject(cs_EMM_Cause_v(tsc_Cause_NotAuthorizedCSG),
+                                                                    omit))));
+    
+    f_EUTRA_RRC_ConnectionRelease(p_CellId);
+  }
+
+  function f_EUTRA_TrackingAreaUpdateRejectCSG(EUTRA_CellId_Type p_CellId,
+                                               RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                               EUTRA_ATTACH_Type p_ForcedAttach := NORMAL,  // @sic R5s120480: adding p_ForcedAttach sic@
+                                               template (present) EstablishmentCause p_EstablishmentCause := ?) runs on EUTRA_PTC
+  {
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_KsiValue v_KsiValue := f_EUTRA_SecurityKSIasme_Get();
+    var B3_Type v_EpsUpdate_TypeValue := f_GetEPSTAUType(p_ForcedAttach);  // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType_Expected := f_GetAdditionalUpdateType (p_ForcedAttach);
+    
+    /* The TAU Request shall be integrity-protected, but not confidentiality-protected.
+       UE uses the cached security context algorithms to protect the TAU Request message.
+       ( reuse of keys allocated during attach procedure )
+       ( 33.401 cl. 9.1.2 Idle mode procedures in E-UTRAN ) */
+    /* Check that TRACKING AREA UPDATE REQUEST message is present and conforms
+       with default message ( 36.508 Table 4.7.2-27: TRACKING AREA UPDATE REQUEST ) */
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(p_CellId,
+                                               p_RRC_TI,
+                                               p_EstablishmentCause,   // @sic R5s100539 sic@
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_TAU_Request (v_EpsUpdate_TypeValue,
+                                                                                     v_KsiValue,
+                                                                                     cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                                     v_AdditionalUpdateType_Expected))); // @sic R5-103681 sic@
+    
+    //+   The SS transmits a TRACKING AREA UPDATE REJECT message with EMM cause = "Not authorized for this CSG"
+    SRB.send(cas_SRB1_NasPdu_REQ( p_CellId,     // @sic R5s120102 sic@
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_NoSecurityProtection, // @sic R5s120585 sic@
+                                                 cs_508_TRACKING_AREA_UPDATE_REJECT(tsc_Cause_NotAuthorizedCSG))));
+    
+    f_EUTRA_RRC_ConnectionRelease(p_CellId, p_RRC_TI);
+  }
+
+  function f_EUTRA_SetSIB4_CSG_Def(EUTRA_CellId_Type p_CSG_Cell) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellInfo_SetSIB4(p_CSG_Cell,
+                             cs_SIB4_AllParameters(omit, omit, cs_PhysCellIdRange(f_EUTRA_CellInfo_GetPhyCellId(p_CSG_Cell), omit)));
+  }
+
+}

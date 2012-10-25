@@ -1,0 +1,464 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 00:32:42 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7245 $
+/******************************************************************************/
+
+module CommonIratDefs {
+
+  import from CommonDefs all;
+  import from NAS_AuthenticationCommon all;
+  import from Parameters all;
+
+  type union IRAT_Coordination_MSG { /* @status    APPROVED */
+    IRAT_CoOrd_SysInfo_Type  SysInfo,
+    IRAT_CoOrd_Auth_Type     Authentication,
+    Null_Type                TriggerEvent,
+    Null_Type                Confirmation,
+    octetstring              OctetData
+  };
+
+  type union IRAT_CoOrd_SysInfo_Type { /* @status    APPROVED */
+    CoOrd_GERANSysInfo_List_Type Geran,
+    CoOrd_UTRANSysInfo_List_Type Utran,
+    CoOrd_EUTRASysInfo_List_Type Eutra,
+    CoOrd_CDMA2000SysInfo_List_Type   Cdma2000,
+    Null_Type noParams
+  };
+
+  type record IRAT_CoOrd_Auth_Type {            /* @status    APPROVED */
+    Common_AuthenticationParams_Type AuthPS,
+    Common_AuthenticationParams_Type AuthCS optional,
+    CoOrd_GUTIParam_Type GutiParams  optional,
+    boolean CSinOtherRAT,  // Set to true if either LAU or Combined RAU was done in UTRAN or GERAN cell;  @sic R5-110746 sic@
+    B20_Type StartPS optional, // Used to pass startPS value from E to U after UE capability, before a Handover @sic R5-120764 sic@
+    B20_Type StartCS optional // Used to pass startPS value from E to U after UE capability, before a Handover @sic R5-120764 sic@
+  };
+
+  type record CoOrd_GUTIParam_Type {            /* @status    APPROVED */
+    B16_Type  MME_GroupId,
+    B8_Type   MME_Code,
+    B32_Type  M_TMSI
+  };
+
+  type record of CoOrd_GERANSysInfo_Type  CoOrd_GERANSysInfo_List_Type;         /* @status    APPROVED */
+
+  type record CoOrd_GERANSysInfo_Type {         /* @status    APPROVED */
+    integer Arfcn,
+//    CoOrd_GERANNeighCell_Type NeighCells, @sic R5-120604 sic@
+    B3_Type Ncc,
+    B3_Type Bcc,
+    O2_Type Cell_Identity,
+    B1_Type BandIndicator, // This can't be an ASN.1 type because it's sent to EUTRA too
+    O3_Type PLMN,          // the PLMN of the cell, defined in octets
+    B16_Type LAC,
+    B8_Type  RAC,
+    integer GPRSArfcn,
+    integer TCHArfcn optional
+
+  };
+
+  type record of integer CoOrd_GERANNeighCell_Type;  /* the ARFCN of the cells, defined as an integer;
+                                                        @status    APPROVED */
+
+  type record of CoOrd_UTRANSysInfo_Type  CoOrd_UTRANSysInfo_List_Type;         /* @status    APPROVED */
+
+  type union CoOrd_UTRANSysInfo_Type {          /* @status    APPROVED */
+    CoOrd_UTRANSysInfoFDD_Type FDD,
+    CoOrd_UTRANSysInfoTDD_Type TDD
+  }
+
+  type record CoOrd_UTRANSysInfoTDD_Type {      /* @status    APPROVED */
+    integer Freq, // the ARFCN of a cell
+    integer CellParametersID,
+    B1_Type Tstd,
+    B1_Type Diversity,
+    O3_Type PLMN,          // the PLMN of the cell, defined in octets
+    B28_Type CellIdentity,   // the identity of the cell (as transmitted in SIB3) use fl_UTRAN_GetCellIndentity
+    B16_Type LAC,
+    B8_Type  RAC
+  }
+
+  type record CoOrd_UTRANSysInfoFDD_Type {      /* @status    APPROVED */
+    integer  Freq,                              // the ARFCN of a cell, defined as an integer
+    integer  ScramblingCode,                    // the primary scrambling code of a cell, defined as an integer
+    integer  UplinkScrambingCode,               // the uplink scrambling code of a cell, defined as an integer;  @sic R5-110771 sic@
+    O3_Type  PLMN,                              // the PLMN of the cell, defined in octets
+    B28_Type CellIdentity,                      // the identity of the cell (as transmitted in SIB3)
+    B16_Type LAC,
+    B8_Type  RAC
+  };
+
+  type record of CoOrd_CDMA2000SysInfo_Type CoOrd_CDMA2000SysInfo_List_Type;      /* @status    APPROVED */
+
+  type record CoOrd_CDMA2000SysInfo_Type {           /* @status    APPROVED */
+      boolean          IsHRPD,
+      integer          Arfcn,
+      integer          BandClass,
+      integer          PNOffset,
+      integer          ColorCode_HRPD,    //Color code, to be used as PreRegistrationZoneIdHRPD
+      B128_Type        SectorID_HRPD,
+      B16_Type         BaseId,
+      B16_Type         NID,
+      B15_Type         SID,
+      B12_Type         RegZone_1XRTT
+  };
+
+  type record of CoOrd_EUTRASysInfo_Type  CoOrd_EUTRASysInfo_List_Type;         /* @status    APPROVED */
+
+  type record CoOrd_EUTRASysInfo_Type {         /* @status    APPROVED */
+    integer Arfcn,
+    integer DL_Bandwidth,                        // @sic R5s100871 Need to pass this through the co-ord msg sic@
+    EUTRA_HOInfo_Type  HO optional                     // extended for HO test cases
+  };
+
+  type record EUTRA_HOInfo_Type {              /* @status    APPROVED */
+    integer UL_Bandwidth,
+    integer PhysCellId,
+    integer RootSequenceIndex
+  };
+
+  type record of IRAT_CoOrd_SysInfo_Type IRAT_CoOrd_SysInfo_List_Type;    /* used as return type for f_IRAT_InitialCoOrd_2Ports
+                                                                             @status    APPROVED */
+
+  type port IRAT_CO_ORD_PORT message {          /* @status    APPROVED */
+    out IRAT_Coordination_MSG;
+    in  IRAT_Coordination_MSG;
+  };
+
+  group IRAT_Templates {
+
+  template (value) IRAT_Coordination_MSG cms_IRAT_SysInfo(template (value) IRAT_CoOrd_SysInfo_Type p_SysInfo) :=
+  { /* @status    APPROVED */
+    SysInfo := p_SysInfo
+  };
+
+  template IRAT_Coordination_MSG cmr_IRAT_SysInfo :=
+  { /* @status    APPROVED */
+    SysInfo := ?
+  };
+
+  template (value) IRAT_Coordination_MSG cms_IRAT_Trigger :=
+  { /* @status    APPROVED */
+    TriggerEvent := true
+  };
+
+  template IRAT_Coordination_MSG cmr_IRAT_Trigger :=
+  { /* @status    APPROVED */
+    TriggerEvent := true
+  };
+
+  template (value) IRAT_Coordination_MSG cms_IRAT_OctetData (octetstring p_Data) :=
+  { /* @status    APPROVED */
+    OctetData := p_Data
+  };
+
+  template IRAT_Coordination_MSG cmr_IRAT_OctetData :=
+  { /* @status    APPROVED */
+    OctetData := ?
+  };
+
+  template (value) IRAT_Coordination_MSG cms_IRAT_AuthInfo (template (value) Common_AuthenticationParams_Type p_PS,
+                                                            template (omit) Common_AuthenticationParams_Type p_CS,
+                                                            template (omit) CoOrd_GUTIParam_Type p_GUTIParams,
+                                                            boolean p_Combined := false,
+                                                            template (omit) B20_Type p_StartPS := omit,
+                                                            template (omit) B20_Type p_StartCS := omit) :=
+  { /* @status    APPROVED */
+    Authentication := {
+      AuthPS  := p_PS,
+      AuthCS  := p_CS,
+      GutiParams := p_GUTIParams,
+      CSinOtherRAT := p_Combined,
+      StartPS := p_StartPS, // @sic R5-120764 sic@
+      StartCS := p_StartCS // @sic R5-120764 sic@
+    }
+  };
+
+  template IRAT_Coordination_MSG cmr_IRAT_AuthInfo :=
+  { /* @status    APPROVED */
+    Authentication := ?
+  };
+
+  template (value) CoOrd_GUTIParam_Type cs_IRAT_GUTIStuff (B16_Type p_MME_GroupId,
+                                                           B8_Type p_MME_Code,
+                                                           B32_Type p_M_TMSI) :=
+  { /* @status    APPROVED */
+    MME_GroupId := p_MME_GroupId,
+    MME_Code    := p_MME_Code,
+    M_TMSI      := p_M_TMSI
+  };
+
+  template (value) CoOrd_UTRANSysInfoFDD_Type cs_CoOrdUTRANSysInfo_FDD (integer p_Freq,
+                                                                        integer p_Code,
+                                                                        integer p_UlScramb,
+                                                                        O3_Type p_PLMN,
+                                                                        B28_Type p_CellIdentity,
+                                                                        B16_Type p_LAC,
+                                                                        B8_Type p_RAC) :=
+  { /* @status    APPROVED */
+    Freq := p_Freq,
+    ScramblingCode := p_Code,
+    UplinkScrambingCode := p_UlScramb,
+    PLMN := p_PLMN,          // the PLMN of the cell, defined in octets
+    CellIdentity := p_CellIdentity,
+    LAC := p_LAC,
+    RAC := p_RAC
+  };
+
+  template (value) CoOrd_UTRANSysInfoTDD_Type cs_CoOrdUTRANSysInfo_TDD (integer p_Freq,
+                                                                        integer p_CellParametersID,
+                                                                        B1_Type p_Tstd,
+                                                                        B1_Type p_Diversity,
+                                                                        O3_Type p_PLMN,
+                                                                        B28_Type p_CellIdentity,
+                                                                        B16_Type p_LAC,
+                                                                        B8_Type p_RAC) :=
+  { /* @status    APPROVED */
+    Freq         := p_Freq,
+    CellParametersID := p_CellParametersID,
+    Tstd         := p_Tstd,
+    Diversity    := p_Diversity,
+    PLMN         := p_PLMN,          // the PLMN of the cell, defined in octets
+    CellIdentity := p_CellIdentity,
+    LAC := p_LAC,
+    RAC := p_RAC
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdUTRAN_SysInfo(template (value) CoOrd_UTRANSysInfo_Type p_Cell5,
+                                                                 template (value) CoOrd_UTRANSysInfo_Type p_Cell7,
+                                                                 template (value) CoOrd_UTRANSysInfo_Type p_Cell8,
+                                                                 template (value) CoOrd_UTRANSysInfo_Type p_Cell9) :=
+  { /* UTRAN sys info to be sent from UTRAN-PTC to EUTRA-PTC */
+    /* @status    APPROVED */
+    Utran := {
+      p_Cell5,
+      p_Cell7,
+      p_Cell8,
+      p_Cell9
+    }
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdC2K_NoParams :=
+  { /* no parameters to be sent from EUTRAN-PTC to C2K-PTC */
+    /* @status    APPROVED */
+    noParams := true
+  };
+
+  template (value) CoOrd_GERANSysInfo_Type cs_CoOrdGERANSysInfo(integer p_Arfcn,
+  //                                                              CoOrd_GERANNeighCell_Type p_Neigh,
+                                                                B3_Type p_Ncc,
+                                                                B3_Type p_Bcc,
+                                                                O2_Type p_CellId,
+                                                                B1_Type p_BandInd,
+                                                                O3_Type p_PLMN,
+                                                                B16_Type p_LAC,
+                                                                B8_Type p_RAC,
+                                                                integer p_GPRSArfcn,
+                                                                template (omit) integer p_TCHArfcn := omit) :=
+  { /* @status    APPROVED */
+    Arfcn :=  p_Arfcn,
+//    NeighCells := p_Neigh, @sic R5-120604 sic@
+    Ncc := p_Ncc,
+    Bcc := p_Bcc,
+    Cell_Identity := p_CellId,
+    BandIndicator := p_BandInd,
+    PLMN := p_PLMN,
+    LAC := p_LAC,
+    RAC := p_RAC,
+    GPRSArfcn := p_GPRSArfcn,
+    TCHArfcn := p_TCHArfcn
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdGERAN_SysInfo (template (value) CoOrd_GERANSysInfo_Type p_Cell24,
+                                                                  template (value) CoOrd_GERANSysInfo_Type p_Cell25,
+                                                                  template (value) CoOrd_GERANSysInfo_Type p_Cell26) :=
+  { /* @status    APPROVED */
+    Geran := {
+      p_Cell24,
+      p_Cell25,
+      p_Cell26
+    }
+  };
+
+  template (value) CoOrd_CDMA2000SysInfo_Type cs_CoOrdCDMA2000_SysInfoSingleCell (boolean p_IsHRPD,
+                                                                                  integer p_ARFCN,
+                                                                                  integer p_BandClass,
+                                                                                  integer p_PNOffset,
+                                                                                  integer p_ColorCode_HRPD,
+                                                                                  B128_Type p_SectorID_HRPD,
+                                                                                  B16_Type  p_BaseId,
+                                                                                  B16_Type  p_NID,
+                                                                                  B15_Type  p_SID,
+                                                                                  B12_Type  p_RegZone_1XRTT) :=
+  { /* @status    APPROVED */
+    IsHRPD    := p_IsHRPD,
+    Arfcn     := p_ARFCN,
+    BandClass := p_BandClass,
+    PNOffset  := p_PNOffset,
+    ColorCode_HRPD := p_ColorCode_HRPD,
+    SectorID_HRPD := p_SectorID_HRPD,
+    BaseId := p_BaseId,
+    NID := p_NID,
+    SID := p_SID,
+    RegZone_1XRTT := p_RegZone_1XRTT
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdCDMA2000_SysInfoOneCell (template (value) CoOrd_CDMA2000SysInfo_Type p_Cell) :=
+  { /* @status    APPROVED */
+    Cdma2000 := {p_Cell}
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdCDMA2000_SysInfo (template (value) CoOrd_CDMA2000SysInfo_Type p_Cell15,
+                                                                     template (value) CoOrd_CDMA2000SysInfo_Type p_Cell16,
+                                                                     template (value) CoOrd_CDMA2000SysInfo_Type p_Cell17,
+                                                                     template (value) CoOrd_CDMA2000SysInfo_Type p_Cell18) :=
+  { /* @status    APPROVED */
+    Cdma2000 := {
+      p_Cell15,
+      p_Cell16,
+      p_Cell17,
+      p_Cell18
+    }
+  };
+
+  template (value) EUTRA_HOInfo_Type cs_EUTRA_HOInfo (integer p_ULBW,
+                                                      integer p_PhysCellId,
+                                                      integer p_RootSequenceIndex) :=
+  { /* @status    APPROVED */
+    UL_Bandwidth := p_ULBW,
+    PhysCellId   := p_PhysCellId,
+    RootSequenceIndex := p_RootSequenceIndex
+  };
+
+  template (value) CoOrd_EUTRASysInfo_Type cs_CoOrdEUTRASysInfo(integer p_Arfcn,
+                                                                integer p_DLBW,
+                                                                template (omit) EUTRA_HOInfo_Type p_HOInfo := omit) :=
+  { /* @status    APPROVED */
+    Arfcn :=  p_Arfcn,
+    DL_Bandwidth := p_DLBW,
+    HO    := p_HOInfo
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdEUTRA_SysInfo (template (value) CoOrd_EUTRASysInfo_List_Type p_CoOrd_EUTRASysInfo_List) :=
+  { /* @status    APPROVED */
+    Eutra :=  p_CoOrd_EUTRASysInfo_List
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdEUTRA_SysInfoSingleCell ( template (value) CoOrd_EUTRASysInfo_Type p_Cell) :=
+  { /* EUTRA sys info to be sent from EUTRA-PTC to other PTCs */
+    /* @status    APPROVED */
+    Eutra := { p_Cell }
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdUTRAN_SysInfoSingleCell ( template (value) CoOrd_UTRANSysInfo_Type p_Cell ) :=
+  { // UTRAN sys info to be sent from UTRAN-PTC to EUTRA-PTC
+    /* @status    APPROVED */
+    Utran := { p_Cell }
+  };
+
+  template (value) IRAT_CoOrd_SysInfo_Type cs_CoOrdGERAN_SysInfoSingleCell ( template (value) CoOrd_GERANSysInfo_Type p_Cell ) :=
+  { // GERAN sys info to be sent from GERAN-PTC to EUTRA-PTC
+    /* @status    APPROVED */
+    Geran := { p_Cell }
+  };
+
+  } // end of group IRAT_Templates
+
+  altstep a_IRAT_Default(IRAT_CO_ORD_PORT p_Port)
+  {
+    [] p_Port.receive {
+      FatalError(__FILE__, __LINE__, "unexpected coordination message");
+    }
+  }
+
+  function f_IRAT_SendCoOrd(IRAT_CO_ORD_PORT p_Port,
+                            template (value) IRAT_Coordination_MSG p_Msg)
+  {
+    p_Port.send (p_Msg);
+  }
+
+  function f_IRAT_WaitForCoOrd_SysInfo (IRAT_CO_ORD_PORT p_Port) return IRAT_CoOrd_SysInfo_Type
+  {
+    var IRAT_Coordination_MSG v_ReceivedMsg;
+    var IRAT_CoOrd_SysInfo_Type v_SysInfoRx;
+
+    alt {
+      [] p_Port.receive(cmr_IRAT_SysInfo) -> value v_ReceivedMsg {
+        v_SysInfoRx := v_ReceivedMsg.SysInfo;
+      }
+      [] a_IRAT_Default(p_Port) {}       /* @sic R5s120178 BASELINE MOVING 2012 (additional changes) sic@ */
+    }
+    return v_SysInfoRx;
+  }
+
+  altstep a_IRAT_WaitForCoOrd_Trigger (IRAT_CO_ORD_PORT p_Port)
+  {
+    [] p_Port.receive(cmr_IRAT_Trigger) {}
+    [] a_IRAT_Default(p_Port) {}       /* @sic R5s120178 BASELINE MOVING 2012 (additional changes) sic@ */
+  }
+
+  function f_IRAT_WaitForCoOrd_Trigger (IRAT_CO_ORD_PORT p_Port)
+  {
+    alt {
+      [] a_IRAT_WaitForCoOrd_Trigger(p_Port) {}       /* @sic C2K TUNNELLING sic@ */
+    }
+  }
+
+  function f_IRAT_WaitForCoOrd_AuthParams(IRAT_CO_ORD_PORT p_Port) return IRAT_CoOrd_Auth_Type
+  {
+    var IRAT_Coordination_MSG v_RxdMsg;
+    
+    alt {
+      [] p_Port.receive (cmr_IRAT_AuthInfo) -> value v_RxdMsg {}
+      [] a_IRAT_Default(p_Port) {}       /* @sic R5s120178 BASELINE MOVING 2012 (additional changes) sic@ */
+    }
+    return v_RxdMsg.Authentication;
+  }
+
+  function f_IRAT_InitialCoOrd(IRAT_CO_ORD_PORT p_Port,
+                               template (value) IRAT_CoOrd_SysInfo_Type p_SysInfoTx) return IRAT_CoOrd_SysInfo_Type
+  {
+    var IRAT_CoOrd_SysInfo_Type v_SysInfoRx;
+
+    p_Port.send(cms_IRAT_SysInfo(p_SysInfoTx));
+    v_SysInfoRx := f_IRAT_WaitForCoOrd_SysInfo (p_Port);
+
+    return v_SysInfoRx;
+  }
+
+  function f_IRAT_InitialCoOrd_2Ports(IRAT_CO_ORD_PORT p_Port1,
+                                      IRAT_CO_ORD_PORT p_Port2,
+                                      template (value) IRAT_CoOrd_SysInfo_Type p_SysInfoTx) return IRAT_CoOrd_SysInfo_List_Type
+  {
+    var IRAT_CoOrd_SysInfo_List_Type v_SysInfoRxList;
+
+    p_Port1.send(cms_IRAT_SysInfo(p_SysInfoTx));
+    p_Port2.send(cms_IRAT_SysInfo(p_SysInfoTx));
+    v_SysInfoRxList[0] := f_IRAT_WaitForCoOrd_SysInfo (p_Port1);
+    v_SysInfoRxList[1] := f_IRAT_WaitForCoOrd_SysInfo (p_Port2);  /* Note: that works since the coordination ports are not handled by the default behaviour
+                                                                   *       i.e. there is a blocking receive for port1 and if the response for port2
+                                                                   *       is faster it remains in port2's input queue */
+    return v_SysInfoRxList;
+  }
+
+  function f_IRAT_Send_EUTRA_SysInfoToOtherPort(IRAT_CO_ORD_PORT p_Irat_Coord_Port,
+                                                integer p_Arfcn,
+                                                integer p_DLBW,
+                                                template (omit) EUTRA_HOInfo_Type p_EUTRA_HOInfo := omit)
+  {
+    var template (value) CoOrd_EUTRASysInfo_Type v_Cell := cs_CoOrdEUTRASysInfo(p_Arfcn, p_DLBW, p_EUTRA_HOInfo);
+    f_IRAT_SendCoOrd(p_Irat_Coord_Port, cms_IRAT_SysInfo(cs_CoOrdEUTRA_SysInfoSingleCell(v_Cell)));
+  }
+
+  function f_IRAT_GetUTRAN_FDD_TDD_Mode () return UTRAN_FDD_TDD_Type
+  {
+    return px_UTRAN_ModeUnderTest;
+  }
+
+}

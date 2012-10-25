@@ -1,0 +1,277 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-31 14:58:23 +0200 (Fri, 31 Aug 2012) $
+// $Rev: 7229 $
+/******************************************************************************/
+
+module RRC_Measurement_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonIratDefs all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+
+  function f_TC_8_3_2_3_UTRAN() runs on UTRAN_PTC
+  { // Measurement configuration control and reporting / inter RAT measurements: event B2 (measurement of UTRAN cells)
+    //Prose specifies decimal values, this must be changed TBD!!!
+    var integer v_T0_CPICH_Cell7 := -84;
+    var integer v_T1_CPICH_Cell7 := -72;
+    var integer v_T2_CPICH_Cell7 := -84;
+    
+    //Initialise test case
+    f_UTRAN_Init( EUTRA_UTRAN );
+    
+    f_UTRAN_Send_IR_SysInfoToEUTRA ( utran_Cell7 );
+    
+    //Create UTRAN cell and broadcast System Infomation
+    f_UTRAN_SS_CreateCellFACH( utran_Cell7 );
+    f_UTRAN_SendDefSysInfo( utran_Cell7 );
+    
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell7, v_T0_CPICH_Cell7, v_T0_CPICH_Cell7 );
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 4" siclog@
+    //Trigger: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell7, v_T1_CPICH_Cell7, v_T1_CPICH_Cell7 ); //@sic R5s100751 sic@
+
+    //@siclog "Step 6" siclog@
+    //Trigger: Change cell power according to T2
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell7, v_T2_CPICH_Cell7, v_T2_CPICH_Cell7 ); //@sic R5s100751 sic@
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    
+    //End TestBody
+    //------------------------------------------------
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell( utran_Cell7, f_UTRAN_CellInfo_GetConfigType (utran_Cell7) ); // @sic R5s110176 sic@
+    
+  } //end of testcase 8.3.2.3
+
+  function f_TC_8_3_2_4_UTRAN() runs on UTRAN_PTC
+  { // Measurement configuration control and reporting / Inter-RAT measurements / Periodic reporting / Measurement of UTRAN cells
+    var integer v_T0_CPICH_Cell5 := -85;
+    var integer v_T0_CPICH_Cell7 := tsc_AttenuationCellOFF;
+    
+    var integer v_T1_CPICH_Cell5 := -85;
+    var integer v_T1_CPICH_Cell7 := -85;
+    
+    var integer v_T2_CPICH_Cell5 := tsc_AttenuationCellOFF;
+    var integer v_T2_CPICH_Cell7 := -85;
+    
+    //Initialise test case
+    f_UTRAN_Init( EUTRA_UTRAN );
+    
+    f_UTRAN_Send_IR_SysInfoToEUTRA( utran_Cell5 );
+    f_UTRAN_Send_IR_SysInfoToEUTRA( utran_Cell7 );
+    
+    //Create UTRAN cell and broadcast System Infomation
+    f_UTRAN_SS_CreateCellFACH( utran_Cell5 );
+    f_UTRAN_SendDefSysInfo( utran_Cell5 );
+    f_UTRAN_SS_CreateCellFACH( utran_Cell7 );
+    f_UTRAN_SendDefSysInfo( utran_Cell7 );
+    
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T0_CPICH_Cell5, v_T0_CPICH_Cell5 );
+    f_UTRAN_SetCellPower( utran_Cell7, v_T0_CPICH_Cell7, v_T0_CPICH_Cell7 );
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 4" siclog@
+    //Trigger: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T1_CPICH_Cell5, v_T1_CPICH_Cell5 );
+    f_UTRAN_SetCellPower( utran_Cell7, v_T1_CPICH_Cell7, v_T1_CPICH_Cell7 );
+    
+    //@siclog "Step 7" siclog@
+    //Trigger: Change cell power according to T2
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T2_CPICH_Cell5, v_T2_CPICH_Cell5 );
+    f_UTRAN_SetCellPower( utran_Cell7, v_T2_CPICH_Cell7, v_T2_CPICH_Cell7 );
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    
+    //End TestBody
+    //------------------------------------------------
+    f_UTRAN_TestBody_Set( false );
+    
+    f_UTRAN_ReleaseCell( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    f_UTRAN_ReleaseCell( utran_Cell7, f_UTRAN_CellInfo_GetConfigType (utran_Cell7) ); // @sic R5s110176 sic@
+    
+  } //end of testcase 8.3.2.4
+
+  function f_TC_8_3_2_5_UTRAN() runs on UTRAN_PTC
+  { /* Measurement configuration control and reporting / Inter-RAT measurements / Periodic reporting / Measurements of E-UTRAN, UTRAN and GERAN cells */
+    
+    var integer v_T0_CPICH_Cell5 := tsc_AttenuationCellOFF;
+    var integer v_T1_CPICH_Cell5 := -85; //@sic R5s120552 Change 2 sic@
+    var integer v_T2_CPICH_Cell5 := tsc_AttenuationCellOFF;
+    var integer v_T3_CPICH_Cell5 := -85; //@sic R5s120552 Change 2 sic@
+    
+    //Initialise test case
+    f_UTRAN_Init( EUTRA_UTRAN );
+    
+    f_UTRAN_Send_IR_SysInfoToEUTRA( utran_Cell5 );
+    
+    //Create UTRAN cell and broadcast System Infomation
+    f_UTRAN_SS_CreateCellFACH( utran_Cell5 );
+    f_UTRAN_SendDefSysInfo( utran_Cell5 );
+    
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T0_CPICH_Cell5, v_T0_CPICH_Cell5 );
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 3" siclog@
+    //Trigger: The SS power "On" Cell 5 according to the row "T1" in table 8.3.2.5.3.2-1.
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T1_CPICH_Cell5, v_T1_CPICH_Cell5 );
+    
+    //@siclog "Step 6" siclog@
+    //Trigger: The SS power "Off" Cell 5 and power "On" Cell 24 according to the row "T2" in table 8.3.2.5.3.2-1.
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T2_CPICH_Cell5, v_T2_CPICH_Cell5 );
+    
+    //@siclog "Step 9" siclog@
+    //Trigger: The SS power "On" for Cell 5 according to the row "T3" in table 8.3.2.5.3.2-1.
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T3_CPICH_Cell5, v_T3_CPICH_Cell5 );
+    
+    //Trigger: Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    
+    //End TestBody
+    //------------------------------------------------
+    
+    f_UTRAN_TestBody_Set( false );
+    f_UTRAN_ReleaseCell( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } //end of testcase 8.3.2.5
+
+  function f_TC_8_3_2_6_UTRAN() runs on UTRAN_PTC
+  { // Measurement configuration control and reporting / inter RAT measurements: Simultaneous A2 and two B2 (measurements of E-UTRAN, UTRAN and GERAN cells)
+    
+    var integer v_T0_CPICH_Cell5 := -80;
+    var integer v_T1_CPICH_Cell5 := -60;
+    
+    //Initialise test case
+    f_UTRAN_Init( EUTRA_UTRAN_GERAN ); // @sic R5s110724 sic@
+    
+    f_UTRAN_Send_IR_SysInfoToEUTRA( utran_Cell5 );
+    
+    //Create UTRAN cell and broadcast System Infomation
+    f_UTRAN_SS_CreateCellFACH( utran_Cell5 );
+    f_UTRAN_SendDefSysInfo( utran_Cell5 );
+    
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T0_CPICH_Cell5, v_T0_CPICH_Cell5 );
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 4" siclog@
+    //Trigger: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T1_CPICH_Cell5, v_T1_CPICH_Cell5 );
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    
+    //End TestBody
+    //------------------------------------------------
+    
+    f_UTRAN_TestBody_Set( false );
+    f_UTRAN_ReleaseCell( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } //end of testcase 8.3.2.6
+
+  function f_TC_8_3_3_2_UTRAN() runs on UTRAN_PTC
+  { // Measurement configuration control and reporting / SON / ANR: CGI reporting of UTRAN cell
+    var integer v_T0_CPICH_Cell5 := tsc_AttenuationCellOFF;
+    var integer v_T0_PCCPCH_Cell5 := tsc_AttenuationCellOFF;
+
+    var integer v_T1_CPICH_Cell5 := -75;
+    var integer v_T1_PCCPCH_Cell5 := -78;
+    
+    var PLMN_Identity v_PLMN3; //@sic R5s110598 sic@
+    var PLMN_IdentityWithOptionalMCC_r6 v_PLMN2; //@sic R5s110598 sic@
+        
+    var template (value) MasterInformationBlock v_MIB_MultiplePlmnList; //@sic R5s110598 sic@
+            
+    v_PLMN3 := {mcc := {0,0,1}, mnc := {0,3}};//@sic R5s110598 sic@ //PLMN3 according to 36.523-1 Table 8.3.3.2.3.3-1B
+    v_PLMN2 := {mcc := {0,0,1}, mnc := {0,2}};//@sic R5s110598 sic@ //PLMN2 according to 36.523-1 Table 8.3.3.2.3.3-1B
+
+    
+    //Initialise test case
+    f_UTRAN_Init( EUTRA_UTRAN );
+    
+    f_UTRAN_CellInfo_SetPLMNIdentity (utran_Cell5, v_PLMN3); //@sic R5s110598 sic@
+        
+    v_MIB_MultiplePlmnList := cds_MIB_MultiplePlmnList (v_PLMN3, {v_PLMN2}); //@sic R5s110598 sic@
+    f_UTRAN_SysInfo_SetMIB (utran_Cell5, v_MIB_MultiplePlmnList); //@sic R5s110598 sic@
+        
+    
+    f_UTRAN_Send_IR_SysInfoToEUTRA( utran_Cell5 );
+        
+    //Create UTRAN cell and broadcast System Infomation
+    f_UTRAN_SS_CreateCellFACH( utran_Cell5 );
+    f_UTRAN_SendDefSysInfo( utran_Cell5 );
+        
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5 );
+        
+    f_UTRAN_TestBody_Set( true );
+
+     
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 3" siclog@
+    //Trigger: The SS changes Cell 5 power level according to the row "T1" in table 8.3.3.2.3.2-1.
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    f_UTRAN_SetCellPower( utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5 );
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger( EUTRA );
+    
+    //End TestBody
+    //------------------------------------------------
+    
+    f_UTRAN_TestBody_Set( false );
+    f_UTRAN_ReleaseCell( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+    
+  } //end of testcase 8.3.3.2
+
+}

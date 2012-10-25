@@ -1,0 +1,401 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-02-01 13:53:16 +0100 (Wed, 01 Feb 2012) $
+// $Rev: 6155 $
+/******************************************************************************/
+
+module SMS_TypeDefs {
+
+import from CommonDefs all;
+import from NAS_CommonTypeDefs all;
+
+group SMS_Declarations {
+
+/* SMS Constant Declarations */
+const ProtocolDiscriminator tsc_PD_SMS := '1001'B;                            /* 24.007 cl. 11.2.3.1.1 */
+
+const MessageType tsc_MT_CP_DATA                             := '00000001'B;  /* CP_DATA */
+const MessageType tsc_MT_CP_ACK                              := '00000100'B;  /* CP_ACK */
+const MessageType tsc_MT_CP_ERROR                            := '00010000'B;  /* CP_ERROR */
+
+const RP_MessageTypeIndicator_Type tsc_MT_RP_DATA_ul              := '000'B;  /* RP_DATA_ul */
+const RP_MessageTypeIndicator_Type tsc_MT_RP_DATA_dl              := '001'B;  /* RP_DATA_dl */
+const RP_MessageTypeIndicator_Type tsc_MT_RP_ACK_ul               := '010'B;  /* RP_ACK_ul */
+const RP_MessageTypeIndicator_Type tsc_MT_RP_ACK_dl               := '011'B;  /* RP_ACK_dl */
+const RP_MessageTypeIndicator_Type tsc_MT_RP_ERROR_ul             := '100'B;  /* RP_ERROR_ul */
+const RP_MessageTypeIndicator_Type tsc_MT_RP_ERROR_dl             := '101'B;  /* RP_ERROR_dl */
+const RP_MessageTypeIndicator_Type tsc_MT_RP_SMMA                 := '110'B;  /* RP_SMMA */
+
+const TP_MessageTypeIndicator_Type tsc_MT_SMS_DELIVER             := '00'B;  /* SMS DELIVER */
+const TP_MessageTypeIndicator_Type tsc_MT_SMS_DELIVER_REPORT      := '00'B;  /* SMS DELIVER REPORT */
+const TP_MessageTypeIndicator_Type tsc_MT_SMS_STATUS_REPORT       := '10'B;  /* SMS STATUS REPORT */
+const TP_MessageTypeIndicator_Type tsc_MT_SMS_COMMAND             := '10'B;  /* SMS COMMAND */
+const TP_MessageTypeIndicator_Type tsc_MT_SMS_SUBMIT              := '01'B;  /* SMS SUBMIT, SMS SUBMIT REPORT */
+const TP_MessageTypeIndicator_Type tsc_MT_SMS_SUBMIT_REPORT       := '01'B;  /* SMS SUBMIT, SMS SUBMIT REPORT */
+
+const B7_Type tsc_IEI_RP_UserData       := '1000001'B; /* 24.011 cl. 8.2.5.3 */
+const B1_Type tsc_Sparebit              := '0'B;       /* 24.011 cl. 8.2.5.3 */
+
+const charstring tsc_Fox := "The quick brown fox jumps over the lazy dog's back. Kaufen Sie Ihrer Frau vier bequeme Pelze. - 0123456789 - THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG'S BACK.";
+  const charstring tsc_Fox_PDU := "06812222222222"
+                                & "11000A9174097538740000A7a054741914afa7c76b9058febebb41e6371ea4aeb7e173d0db5e9683"
+                                & "e8e832881dd6e741e4f7f9340789c3e3b50bb40cd7cd6537689a2e83926879590e32cac375903d5d"
+                                & "9683c4e578bddc2e83a065b6beec02b540b0986c46abd96eb81ca805a2228ba06835395c8284d2e7"
+                                & "d509323eb12065b5099d829ed6a21444451641cca0360b223e8fa72948181c2e5d";
+
+/* Non-SMS Type Declarations */
+
+type record TransactionIdentifier_Type {                                      /* 24.007 cl. 11.2.3.1.3 */
+  B1_Type                             tI_Flag,                                /* A message has a TI flag set to "0" when it belongs to
+                                                                                 transaction initiated by its sender, and to "1" otherwise. */
+  B3_Type                             tI_Value                                /* Values 0 to 6 allowed, value 7 has a special meaning */
+};
+
+type record TypeOfNumberingPlan {                                             /* 24.008 cl. 10.5.4.7, 10.5.4.9, 10.5.4.13 */
+  B1_Type                             extBit,                                 /* Extension Bit */
+  B3_Type                             typeOfNumber,                           /* Type Of Number */
+  B4_Type                             numberingPlanId                         /* Numbering Plan Identification */
+};
+
+/* End Non-SMS Type Declarations */
+
+/* SM-CP Type Declarations */
+
+type record CP_UserData_Type {                                                /* 24.011 cl. 8.1.4.1 */
+  B1_Type                             spare optional,                         /* 0, present in case of TLV; omit in case of LV   */
+  B7_Type                             iei optional,                           /* 0000001, present in case of TLV; omit in case of LV   */
+  O1_Type                             iel,                                    /*   */
+  RP_PDU_Type                         rP_PDU                                  /* <= 248 octets */
+};
+
+type record CP_Cause_Type {                                                   /* 24.011 cl. 8.1.4.2 */
+  B1_Type                             spare1 optional,                        /* 0, present in case of TV; omit in case of V   */
+  B7_Type                             iei optional,                           /* 0000001, present in case of TV; omit in case of V   */
+  B1_Type                             spare2,                                 /* 0   */
+  B7_Type                             causeValue                              /* Table 8.2/3GPP TS 24.011  */
+};
+
+/* End SM-CP Type Declarations */
+
+/* SM-CP PDU Declarations */
+
+type record CP_DATA_Type {            /* 24.011 cl. 7.2.1
+                                         Direction:     both */
+  TransactionIdentifier_Type          transactionIdentifier,                  /* 24.007 cl. 11.2.3.1.3      M V 1/2   */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* 24.007 cl. 11.2.3.1.1      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 8.1.3    M V 1   */
+  CP_UserData_Type                    cP_UserData                             /* cl. 8.1.4.1  M LV <= 249 octets */
+};
+
+type record CP_ACK_Type {             /* 24.011 cl. 7.2.2
+                                         Direction:     both */
+  TransactionIdentifier_Type          transactionIdentifier,                  /* 24.007 cl. 11.2.3.1.3      M V 1/2   */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* 24.007 cl. 11.2.3.1.1      M V 1/2 */
+  MessageType                         messageType                             /* cl. 8.1.3    M V 1   */
+};
+
+type record CP_ERROR_Type {           /* 24.011 cl. 7.2.3
+                                         Direction:     both */
+  TransactionIdentifier_Type          transactionIdentifier,                  /* 24.007 cl. 11.2.3.1.3      M V 1/2   */
+  ProtocolDiscriminator               protocolDiscriminator,                  /* 24.007 cl. 11.2.3.1.1      M V 1/2 */
+  MessageType                         messageType,                            /* cl. 8.1.3    M V 1   */
+  CP_Cause_Type                       cP_Cause                                /* cl. 8.1.4.2  O LV <= 249 octets */
+};
+
+type union CP_PDU_Type {
+  CP_DATA_Type           CP_DATA,
+  CP_ACK_Type            CP_ACK,
+  CP_ERROR_Type          CP_ERROR
+};
+/* SM-CP PDU Declarations */
+
+/* SM-RP Type Declarations */
+
+type B3_Type RP_MessageTypeIndicator_Type;                                    /* 24.011 cl. 8.2.2 */
+type O1_Type RP_MessageReference_Type;                                        /* 24.011 cl. 8.2.3 */
+
+type record RP_OriginatorAddress_dl { /* 24.011 cl. 8.2.5.1 */
+  B1_Type                             spare optional,                         /* 0   */
+  B7_Type                             iei optional,                           /* 0101 1110 */
+  O1_Type                             iel,                                    /* min value 2 and max value is 11  */
+  TypeOfNumberingPlan                 typeOfNumberingPlan,                    /*    */
+  octetstring                         digits length(1..10)
+};
+
+type record RP_OriginatorAddress_ul { /* 24.011 cl. 8.2.5.1 */
+  B1_Type                             spare optional,                         /* 0   */
+  B7_Type                             iei optional,                           /* 0101 1110 */
+  O1_Type                             iel                                     /* 0  */
+};
+
+type record RP_DestinationAddress_ul { /* 24.011 cl. 8.2.5.2 */
+  B1_Type                             spare optional,                         /* 0   */
+  B7_Type                             iei optional,                           /* 0101 1110 */
+  O1_Type                             iel,                                    /* min value 2 and max value is 11  */
+  TypeOfNumberingPlan                 typeOfNumberingPlan,                    /*    */
+  octetstring                         digits length(1..10)
+};
+type record RP_DestinationAddress_dl { /* 24.011 cl. 8.2.5.2 */
+  B1_Type                             spare optional,                         /* 0   */
+  B7_Type                             iei optional,                           /* 0101 1110 */
+  O1_Type                             iel                                     /* 0  */
+};
+
+type record RP_UserData {             /* 24.011 cl. 8.2.5.3 */
+  B1_Type                             spare optional,                         /* 0, present in case of TLV; omit in case of LV   */
+  B7_Type                             iei optional,                           /* 1000001, present in case of TLV; omit in case of LV   */
+  O1_Type                             iel,                                    /*   */
+  TP_PDU_Type                         tP_PDU                                  /* <= 232 octets */
+};
+
+type record RP_Cause {             /* 24.011 cl. 8.2.5.4 */
+  B1_Type                             spare optional,                         /* present in case of TLV; omit in case of LV */
+  B7_Type                             iei optional,                           /* present in case of TLV; omit in case of LV */
+  O1_Type                             iel,                                    /* 2 or 3  */
+  B1_Type                             extBit1,                                /* 0 */
+  B7_Type                             causeValue1,                            /* Table 8.4/3GPP TS 24.011  */
+  B1_Type                             extBit2,                                /* 0 */
+  B7_Type                             causeValue2,                            /* Table 8.4/3GPP TS 24.011  */
+  O1_Type                             diagnostic optional                     /* Parameters included in the return error from MAP */
+};
+
+/* End SM-RP Type Declarations */
+
+/* SM-RP PDU Declarations */
+
+type record RP_DATA_dl_Type {         /* 24.011 cl. 7.3.1.1
+                                          Direction:     n -> ue */
+  B5_Type                             spare5,                                 /* cl. 8.2.2      M V 5 bits   */
+  RP_MessageTypeIndicator_Type        rP_MessageTypeIndicator,                /* cl. 8.2.2      M V 3 bits   */
+  RP_MessageReference_Type            rP_MessageReference,                    /* cl. 8.2.3      M LV 1 */
+  RP_OriginatorAddress_dl             rP_OriginatorAddress,                   /* cl. 8.2.5.1    M LV 1-12 octets   */
+  RP_DestinationAddress_dl            rP_DestinationAddress,                  /* cl. 8.2.5.2    M LV 1   */
+  RP_UserData                         rP_UserData                             /* cl. 8.2.5.3    M LV <= 233 octets */
+};
+
+type record RP_DATA_ul_Type {         /* 24.011 cl. 7.3.1.2
+                                         Direction:     ue -> n */
+  B5_Type                             spare5,                                 /* cl. 8.2.2      M V 5 bits   */
+  RP_MessageTypeIndicator_Type        rP_MessageTypeIndicator,                /* cl. 8.2.2      M V 3 bits   */
+  RP_MessageReference_Type            rP_MessageReference,                    /* cl. 8.2.3      M LV 1 */
+  RP_OriginatorAddress_ul             rP_OriginatorAddress,                   /* cl. 8.2.5.1    M LV 1   */
+  RP_DestinationAddress_ul            rP_DestinationAddress,                  /* cl. 8.2.5.2    M LV 1   */
+  RP_UserData                         rP_UserData                             /* cl. 8.2.5.3    M LV <= 233 octets */
+};
+
+type record RP_SMMA_Type {            /* 24.011 cl. 7.3.2
+                                         Direction:     ue -> n */
+  B5_Type                             spare5,                                 /* cl. 8.2.2      M V 5 bits   */
+  RP_MessageTypeIndicator_Type        rP_MessageTypeIndicator,                /* cl. 8.2.2      M V 3 bits   */
+  RP_MessageReference_Type            rP_MessageReference                     /* cl. 8.2.3      M LV 1 */
+};
+
+type record RP_ACK_Type {             /* 24.011 cl. 7.3.3
+                                         Direction:     ue <-> n */
+  B5_Type                             spare5,                                 /* cl. 8.2.2      M V 5 bits   */
+  RP_MessageTypeIndicator_Type        rP_MessageTypeIndicator,                /* cl. 8.2.2      M V 3 bits   */
+  RP_MessageReference_Type            rP_MessageReference,                    /* cl. 8.2.3      M LV 1 */
+  RP_UserData                         rP_UserData optional                    /* cl. 8.2.5.3    O TLV <= 234 octets */
+};
+
+type record RP_ERROR_Type {           /* 24.011 cl. 7.3.4
+                                         Direction:     ue <-> n */
+  B5_Type                             spare5,                                 /* cl. 8.2.2      M V 5 bits   */
+  RP_MessageTypeIndicator_Type        rP_MessageTypeIndicator,                /* cl. 8.2.2      M V 3 bits   */
+  RP_MessageReference_Type            rP_MessageReference,                    /* cl. 8.2.3      M LV 1 */
+  RP_Cause                            rP_Cause,                               /* cl. 8.2.5.4    M LV 2-3 */
+  RP_UserData                         rP_UserData optional                    /* cl. 8.2.5.3    O TLV <= 234 octets */
+};
+
+type union RP_PDU_Type {
+  RP_DATA_dl_Type            RP_DATA_dl,
+  RP_DATA_ul_Type            RP_DATA_ul,
+  RP_SMMA_Type               RP_SMMA,
+  RP_ACK_Type                RP_ACK,
+  RP_ERROR_Type              RP_ERROR
+};
+
+/* End SM-RP PDU Declarations */
+
+/* SM-TP Type Declarations */
+
+type record TP_Address_Type {                                                 /* 23.040 cl. 9.1.2.5 */
+  O1_Type                             iel,                                    /* min value 2 and max value is 11  */
+  TypeOfNumberingPlan                 typeOfNumberingPlan,
+  octetstring                         digits length(0..10) optional
+};
+
+type B2_Type TP_MessageTypeIndicator_Type;                                    /* 23.040 cl. 9.2.3.1 */
+type O1_Type TP_MessageReference_Type;                                        /* 23.040 cl. 9.2.3.6 */
+type O1_Type TP_UserDataLength_Type;                                          /* 23.040 cl. 9.2.3.16 */
+
+type record TP_ProtocolIdentifier_Type {                                      /* 23.040 cl. 9.2.3.9 */
+  B2_Type                             pidType,                                /*  */
+  B1_Type                             interworking,                           /*  */
+  B5_Type                             pidValue                                /*  */
+};
+
+type record TP_DataCodingScheme_Type {                                        /* 23.040 cl. 9.2.3.10 + 23.040 cl. 4 */
+  B4_Type                             codingGroup,                            /*  */
+  B4_Type                             codeValue                               /*  */
+};
+
+type hexstring TP_ServiceCentreTimeStamp_Type length (14);                    /* 23.040 cl. 9.2.3.11 */
+
+type O1_Type TP_ValidityPeriodRelative_Type;                                  /* 23.040 cl. 9.2.3.12.1 */
+
+type hexstring TP_ValidityPeriodAbsolute_Type length (14);                    /* 23.040 cl. 9.2.3.12.2 */
+
+type record TP_ValidityPeriodEnhanced_Type {                                  /* 23.040 cl. 9.2.3.12.3 */
+  B1_Type                             extBit,                                 /* */
+  B1_Type                             singleShot,                             /* */
+  B3_Type                             spare3,                                 /* */
+  B3_Type                             validityPeriodFormat,                   /* */
+  O6_Type                             validityPeriod                          /* */
+};
+
+type union TP_ValidityPeriod_Type {                                           /* 23.040 cl. 9.2.3.3 */
+  TP_ValidityPeriodRelative_Type      TP_ValidityPeriodRelative,              /* Relative format */
+  TP_ValidityPeriodAbsolute_Type      TP_ValidityPeriodAbsolute,              /* Absolute format */
+  TP_ValidityPeriodEnhanced_Type      TP_ValidityPeriodEnhanced               /* Enhanced format */
+};
+
+type record TP_Status_Type {                                                  /* 23.040 cl. 9.2.3.15 */
+  B1_Type                             reserved,                               /* */
+  B7_Type                             status                                  /* */
+};
+
+type B8_Type TP_Command_Type;                                                 /* 23.040 cl. 9.2.3.19 */
+
+type record TP_ParameterIndicator_Type {                                      /* 23.040 cl. 9.2.3.27 */
+  B1_Type                             extBit1,                                /* */
+  B4_Type                             spare4,                                 /* */
+  B1_Type                             tP_UDL,                                 /* */
+  B1_Type                             tP_DCS,                                 /* */
+  B1_Type                             tP_PID                                  /* */
+};
+
+/* End SM-TP Type Declarations */
+
+/* SM-TP PDU Declarations */
+
+type record SMS_DELIVER_Type {        /* 23.040 cl. 9.2.2.1
+                                         Direction:     n -> ue */
+  B1_Type                             tP_ReplyPath,                           /* 23.040 cl. 9.2.3.17  */
+  B1_Type                             tP_UserDataHeaderIndicator,             /* 23.040 cl. 9.2.3.23 */
+  B1_Type                             tP_StatusReportIndication,              /* 23.040 cl. 9.2.3.4 */
+  B2_Type                             spare2,                                 /* */
+  B1_Type                             tP_MoreMessagesToSend,                  /* 23.040 cl. 9.2.3.2 */
+  TP_MessageTypeIndicator_Type        tP_MessageTypeIndicator,                /* 23.040 cl. 9.2.3.1 */
+  TP_Address_Type                     tP_OriginatingAddress,                  /* 23.040 cl. 9.1.2.5 */
+  TP_ProtocolIdentifier_Type          tP_ProtocolIdentifier,                  /* 23.040 cl. 9.2.3.9 */
+  TP_DataCodingScheme_Type            tP_DataCodingScheme_Type,               /* 23.040 cl. 9.2.3.10  */
+  TP_ServiceCentreTimeStamp_Type      tP_ServiceCentreTimeStamp,              /* 23.040 cl. 9.2.3.11 */
+  TP_UserDataLength_Type              tP_UserDataLength,                      /* 23.040 cl. 9.2.3.16, derived from SUBMIT */
+  octetstring                         tP_UserData length (0..140) optional    /* 23.040 cl. 9.2.3.24, derived from SUBMIT */
+};
+
+type record SMS_DELIVER_REPORT_Type { /* 23.040 cl. 9.2.2.1a
+                                         Direction:     ue -> n */
+  B1_Type                             spare1,                                 /* */
+  B1_Type                             tP_UserDataHeaderIndicator,             /* 23.040 cl. 9.2.3.23 */
+  B4_Type                             spare4,                                 /* */
+  TP_MessageTypeIndicator_Type        tP_MessageTypeIndicator,                /* 23.040 cl. 9.2.3.1 */
+  O1_Type                             tP_FailureCause optional,               /* 23.040 cl. 9.2.3.22, provided if RP_ERROR, not if RP_ACK */
+  TP_ParameterIndicator_Type          tP_ParameterIndicator,                  /* 23.040 cl. 9.2.3.27 */
+  TP_ProtocolIdentifier_Type          tP_ProtocolIdentifier optional,         /* 23.040 cl. 9.2.3.9 */
+  TP_DataCodingScheme_Type            tP_DataCodingScheme_Type optional,      /* 23.040 cl. 9.2.3.10 */
+  TP_UserDataLength_Type              tP_UserDataLength optional,             /* 23.040 cl. 9.2.3.16  */
+  octetstring                         tP_UserData length (0..159) optional    /* 23.040 cl. 9.2.3.24 */
+};
+
+type record SMS_SUBMIT_Type {         /* 23.040 cl. 9.2.2.2
+                                         Direction:     ue -> n */
+  B1_Type                             tP_ReplyPath,                           /* 23.040 cl. 9.2.3.17 */
+  B1_Type                             tP_UserDataHeaderIndicator,             /* 23.040 cl. 9.2.3.23 */
+  B1_Type                             tP_StatusReportRequest,                 /* 23.040 cl. 9.2.3.5 */
+  B2_Type                             tP_ValidityPeriodFormat,                /* 23.040 cl. 9.2.3.3 */
+  B1_Type                             tP_RejectDuplicates,                    /* 23.040 cl. 9.2.3.25 */
+  TP_MessageTypeIndicator_Type        tP_MessageTypeIndicator,                /* 23.040 cl. 9.2.3.1 */
+  TP_MessageReference_Type            tP_MessageReference,                    /* 23.040 cl. 9.2.3.6 */
+  TP_Address_Type                     tP_DestinationAddress,                  /* 23.040 cl. 9.1.2.5 */
+  TP_ProtocolIdentifier_Type          tP_ProtocolIdentifier,                  /* 23.040 cl. 9.2.3.9 */
+  TP_DataCodingScheme_Type            tP_DataCodingScheme_Type,               /* 23.040 cl. 9.2.3.10 */
+// one of the subsequent ValidityPeriod solutions has be removed
+  TP_ValidityPeriod_Type              tP_ValidityPeriod  optional,            /* 23.040 cl. 9.2.3.12 */
+//  TP_ValidityPeriodRelative_Type      tP_ValidityPeriodRelative optional,     /* 23.040 cl. 9.2.3.12.1 */
+//  TP_ValidityPeriodAbsolute_Type      tP_ValidityPeriodAbsolute optional,     /* 23.040 cl. 9.2.3.12.2 */
+//  TP_ValidityPeriodEnhanced_Type      tP_ValidityPeriodEnhanced optional,     /* 23.040 cl. 9.2.3.12.3 */
+  TP_UserDataLength_Type              tP_UserDataLength,                      /* 23.040 cl. 9.2.3.16  */
+  octetstring                         tP_UserData length (0..140) optional    /* 23.040 cl. 9.2.3.24  */
+};
+type record SMS_SUBMIT_REPORT_Type {  /* 23.040 cl. 9.2.2.2a
+                                         Direction:     n -> ue */
+  B1_Type                             spare1,                                 /* */
+  B1_Type                             tP_UserDataHeaderIndicator,             /* 23.040 cl. 9.2.3.23 */
+  B4_Type                             spare4,                                 /* */
+  TP_MessageTypeIndicator_Type        tP_MessageTypeIndicator,                /* 23.040 cl. 9.2.3.1 */
+  O1_Type                             tP_FailureCause optional,               /* 23.040 cl. 9.2.3.22, provided if RP_ERROR, not if RP_ACK */
+  TP_ParameterIndicator_Type          tP_ParameterIndicator,                  /* 23.040 cl. 9.2.3.27 */
+  TP_ServiceCentreTimeStamp_Type      tP_ServiceCentreTimeStamp,              /* 23.040 cl. 9.2.3.11 */
+  TP_ProtocolIdentifier_Type          tP_ProtocolIdentifier optional,         /* 23.040 cl. 9.2.3.9 */
+  TP_DataCodingScheme_Type            tP_DataCodingScheme_Type optional,      /* 23.040 cl. 9.2.3.10 */
+  TP_UserDataLength_Type              tP_UserDataLength optional,             /* 23.040 cl. 9.2.3.16 */
+  octetstring                         tP_UserData length (0..152) optional    /* 23.040 cl. 9.2.3.24  */
+};
+
+type record SMS_STATUS_REPORT_Type {  /* 23.040 cl. 9.2.2.3
+                                         Direction:     n -> ue */
+  B1_Type                             spare1,                                 /* */
+  B1_Type                             tP_UserDataHeaderIndicator,             /* 23.040 cl. 9.2.3.23 */
+  B1_Type                             tP_StatusReportQualifier,               /* 23.040 cl. 9.2.3.26  */
+  B2_Type                             spare2,                                 /* */
+  B1_Type                             tP_MoreMessagesToSend,                  /* 23.040 cl. 9.2.3.2 */
+  TP_MessageTypeIndicator_Type        tP_MessageTypeIndicator,                /* 23.040 cl. 9.2.3.1 */
+  TP_MessageReference_Type            tP_MessageReference,                    /* 23.040 cl. 9.2.3.6 */
+  TP_Address_Type                     tP_RecipientAddress,                    /* 23.040 cl. 9.1.2.5 */
+  TP_ServiceCentreTimeStamp_Type      tP_ServiceCentreTimeStamp,              /* 23.040 cl. 9.2.3.11 */
+  TP_ServiceCentreTimeStamp_Type      tP_DischargeTime,                       /* 23.040 cl. 9.2.3.12 */
+  TP_Status_Type                      tP_Status,                              /* 23.040 cl. 9.2.3.15 */
+  TP_ParameterIndicator_Type          tP_ParameterIndicator optional,         /* 23.040 cl. 9.2.3.27 */
+  TP_ProtocolIdentifier_Type          tP_ProtocolIdentifier optional,         /* 23.040 cl. 9.2.3.9 */
+  TP_DataCodingScheme_Type            tP_DataCodingScheme_Type optional,      /* 23.040 cl. 9.2.3.10 */
+  TP_UserDataLength_Type              tP_UserDataLength optional,             /* 23.040 cl. 9.2.3.16 */
+  octetstring                         tP_UserData length (0..143) optional    /* 23.040 cl. 9.2.3.24  */
+};
+
+type record SMS_COMMAND_Type {        /* 23.040 cl. 9.2.2.4
+                                         Direction:     ue -> n */
+  B1_Type                             spare1,                                 /* */
+  B1_Type                             tP_UserDataHeaderIndicator,             /* 23.040 cl. 9.2.3.23 */
+  B1_Type                             tP_StatRptReq,                          /* Table 8.4/3GPP TS 24.011  */
+  B3_Type                             spare3,                                 /* */
+  TP_MessageTypeIndicator_Type        tP_MessageTypeIndicator,                /* 23.040 cl. 9.2.3.1 */
+  TP_MessageReference_Type            tP_MessageReference,                    /* 23.040 cl. 9.2.3.6 */
+  TP_ProtocolIdentifier_Type          tP_ProtocolIdentifier,                  /* 23.040 cl. 9.2.3.9 */
+  TP_Command_Type                     tP_CommandType,                         /* 23.040 cl. 9.2.3.19 */
+  TP_MessageReference_Type            tP_MessageNumber,                       /* 23.040 cl. 9.2.3.18 */
+  TP_Address_Type                     tP_DestinationAddress,                  /* 23.040 cl. 9.1.2.5 */
+  TP_UserDataLength_Type              tP_CommandDataLength,                   /* 23.040 cl. 9.2.3.20 (number of octets) */
+  octetstring                         tP_CommandData length (0..156) optional /* 23.040 cl. 9.2.3.21 */
+};
+
+type union TP_PDU_Type {
+  SMS_DELIVER_Type           SMS_DELIVER,
+  SMS_DELIVER_REPORT_Type    SMS_DELIVER_REPORT,
+  SMS_SUBMIT_Type            SMS_SUBMIT,
+  SMS_SUBMIT_REPORT_Type     SMS_SUBMIT_REPORT,
+  SMS_STATUS_REPORT_Type     SMS_STATUS_REPORT,
+  SMS_COMMAND_Type           SMS_COMMAND
+};
+
+/* End SM-TP PDU Declarations */
+
+} with { encode "SMS Types"}  // group SMS_Declarations
+
+} // module

@@ -1,0 +1,672 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:09:14 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7293 $
+/******************************************************************************/
+module InterRat_CellReSelection_EtoU_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CapabilityFunctions all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_RAB_Functions all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+  import from UTRAN_RRC_Templates all;
+
+  template (value) DedicatedPriorityInformation cs_DedPrioInfo(template (value) PriorityLevelList p_PrioLevelList) :=
+  { /* @status    APPROVED */
+    action_ := {
+      configureDedicatedPriorities := {
+        t_322 := m5,
+        priorityLevelList := p_PrioLevelList,
+        eutraDetection := true
+      }
+    }
+  };
+
+  template (value) PriorityLevel cs_PriorityLevel_UTRA_FDD_1Entry(UARFCN  p_UARFCN,
+                                                                  integer p_Priorty := 5) :=
+  { /* @status    APPROVED */
+    //@sic R5s110779 sic@
+    priority := p_Priorty,
+    radioAccessTechnology := {
+      utraFDD := {
+        {
+          uarfcn := p_UARFCN
+        }
+      }
+    }
+  };
+
+  template (value) PriorityLevel cs_PriorityLevel_UTRA_TDD_1Entry(UARFCN  p_UARFCN,
+                                                                  integer p_Priorty := 5) :=
+  { /* @status    APPROVED */
+    //@sic R5s110779 sic@
+    priority := p_Priorty,
+    radioAccessTechnology := {
+      utraTDD := {
+        {
+          uarfcn := p_UARFCN
+        }
+      }
+    }
+  };
+
+  template (value) PriorityLevel cs_PriorityLevel_EUTRA_1Entry(EARFCN  p_EARFCN,
+                                                               integer p_Priorty := 4) :=
+  { /* @status    APPROVED */
+    //@sic R5s110779 sic@
+    priority := p_Priorty,
+    radioAccessTechnology := {
+      eutra := {
+        {
+          earfcn := p_EARFCN
+        }
+      }
+    }
+  };
+
+  template (value) PriorityLevelList cs_PrioLevelList_2Entries(template (value) PriorityLevel p_PriorityLevel_1stEntry,
+                                                               template (value) PriorityLevel p_PriorityLevel_2ndEntry) :=
+  { /* @status    APPROVED */
+    //@sic R5s110779 sic@
+    p_PriorityLevel_1stEntry,
+    p_PriorityLevel_2ndEntry
+  };
+
+  template (omit) UE_ConnTimersAndConstants_v860ext cs_UEConnTimersConst_v860ext := {t_323 := omit}; /* @status    APPROVED */
+
+  template (value) UTRANMobilityInformation_v860ext2_Type cs_UTRANMobilityInformation_v860ext2 ( template (omit) E_RNTI                             p_E_RNTI,
+                                                                                                 template (value) UE_ConnTimersAndConstants_v860ext p_UE_ConnTimersAndConstants_v860ext,
+                                                                                                 template (omit) DedicatedPriorityInformation       p_DedicatedPriorityInformation ) :=
+  { /* @status    APPROVED */
+    utranMobilityInformation_v860ext := {
+      newPrimary_E_RNTI            := p_E_RNTI,
+      ue_ConnTimersAndConstants    := p_UE_ConnTimersAndConstants_v860ext,
+      dedicatedPriorityInformation := p_DedicatedPriorityInformation
+    },
+    nonCriticalExtensions := omit
+  };
+
+  template (value) EUTRA_FrequencyAndPriorityInfoList cs_Eutra_FreqAndPriList_OneEntry_PriQrxlevminTresh(EARFCN                                           p_Earfcn,
+                                                                                                         template (omit) EUTRA_MeasurementBandwidth       p_MeasurementBandwidth,
+                                                                                                         EutraFrequencyAndPriorityInfoPriorityValue_Type  p_PriorityValue,
+                                                                                                         EutraFrequencyAndPriorityInfoQrxLevMin_Type      p_QrxLevMinEutra,
+                                                                                                         EutraFrequencyAndPriorityInfoThreshXhigh_Type    p_ThreshXhigh,
+                                                                                                         EutraFrequencyAndPriorityInfoThreshXlow_Type     p_ThreshXlow) :=
+    /* @status    APPROVED */
+    cs_Eutra_FreqAndPriList_OneEntry_Common(p_Earfcn, p_MeasurementBandwidth, p_PriorityValue, p_QrxLevMinEutra, p_ThreshXhigh, p_ThreshXlow, omit, true);
+
+  function f_TC_6_2_3_3_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var integer v_T1_CPICH_Cell5 := -90;
+    var integer v_T1_PCCPCH_Cell5 := -92;
+    var integer v_T2_CPICH_Cell5 := -60;
+    var integer v_T2_PCCPCH_Cell5 := -62;
+    var integer v_T3_CPICH_Cell5 := -70;
+    var integer v_T3_PCCPCH_Cell5 := -72;
+    var UtraServingCellPriorityValue_Type v_UtraPriorityValue_T0 := 4;
+    var UtraServingCellPrioritySearch1_Type  v_S_PrioritySearch1_T0 := 8;
+    var UtraServingCellthreshServingLow_Type v_ThreshServingLow_T0 := 4;
+    var EutraFrequencyAndPriorityInfoPriorityValue_Type v_EutraPriorityValue_T0 := 3;
+    var EutraFrequencyAndPriorityInfoPriorityValue_Type v_EutraPriorityValue_Step5 := 5;
+    var EutraFrequencyAndPriorityInfoQrxLevMin_Type v_QrxLevMinEutra_T0 := -60;
+    var EutraFrequencyAndPriorityInfoThreshXhigh_Type v_ThreshXhigh_T0 := 16;
+    var EutraFrequencyAndPriorityInfoThreshXlow_Type v_ThreshXlow_T0 := 10;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);//RAC is set to '00'O
+
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+
+    //Get Cell Parameters for EUTRA cell
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Update SIB19 of cell 5 according to Table 6.2.3.3.3.3-1
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell5, cs_SIB19_UtraAndOneEutraEntry (cs_Utra_PriorityInfoList_Common ( v_UtraPriorityValue_T0,
+                                                                                                            v_S_PrioritySearch1_T0,
+                                                                                                            v_ThreshServingLow_T0 ),
+                                                                          cs_Eutra_FreqAndPriList_OneEntry_Common ( v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                                                    omit,
+                                                                                                                    v_EutraPriorityValue_T0,
+                                                                                                                    v_QrxLevMinEutra_T0,
+                                                                                                                    v_ThreshXhigh_T0,
+                                                                                                                    v_ThreshXlow_T0,
+                                                                                                                    omit,
+                                                                                                                    true ) ) );
+
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_UTRAN_Preamble (utran_Cell5);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_OctetData(f_UTRAN_MobileInfo_EUTRACapability_Get())); // @sic R5-123734 sic@
+
+    f_UTRAN_TestBody_Set(true);
+
+    //@siclog "Step 1" siclog@
+    //Set cell power level according to T1
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_SetCellPower(utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5);
+
+    //@siclog "Step 3" siclog@
+    //Receive updated authentication parameters and set cell paramters according to T2
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_SetCellPower(utran_Cell5, v_T2_CPICH_Cell5, v_T2_PCCPCH_Cell5);
+
+    //@siclog "Step 4" siclog@
+    //The UE reselects Cell5 and camps on Cell5.
+    f_UTRAN_IdleMode_RAU (utran_Cell5);
+
+    //@siclog "Step 5 -6" siclog@
+    //Change the EUTRA cell priority according to Table 6.2.3.3.3.3-2.
+    //Send new SIB19 & notify UE of change in System Information
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_SysInfoModifySIB19 (utran_Cell5, cs_SIB19_UtraAndOneEutraEntry (cs_Utra_PriorityInfoList_Common ( v_UtraPriorityValue_T0,
+                                                                                                              v_S_PrioritySearch1_T0,
+                                                                                                              v_ThreshServingLow_T0 ),
+                                                                            cs_Eutra_FreqAndPriList_OneEntry_Common ( v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                                                      omit,
+                                                                                                                      v_EutraPriorityValue_Step5,
+                                                                                                                      v_QrxLevMinEutra_T0,
+                                                                                                                      v_ThreshXhigh_T0,
+                                                                                                                      v_ThreshXlow_T0,
+                                                                                                                      omit,
+                                                                                                                      true ) ) );
+
+    //@siclog "Step 7" siclog@
+    //Set cell paramters according to T3
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA, omit); //@sic R5-110746 sic@
+    f_UTRAN_SetCellPower(utran_Cell5, v_T3_CPICH_Cell5, v_T3_PCCPCH_Cell5);
+
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+
+    f_UTRAN_TestBody_Set (false);
+
+    //Release UTRAN Cell 5
+    f_UTRAN_ReleaseCell (utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+  }
+
+  function f_TC_6_2_3_4_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Send System Information of UTRAN cell to EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Receive the system information of EUTRA cell
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    f_UTRAN_SysInfo_SetSIB19(utran_Cell5,
+                             cs_SIB19_UtraAndOneEutraEntry(cs_Utra_PriorityInfoList_Prio (4),
+                                                           cs_Eutra_FreqAndPriList_OneEntry_PriQrxlevminTresh(v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                                              f_UTRAN_ConvertIntegerToEUTRA_MeasurementBandwidth(v_EUTRASysInfo.Eutra[0].DL_Bandwidth),
+                                                                                                              5,//priority
+                                                                                                              -53,//qRxLevMin
+                                                                                                              10,//threshXhigh
+                                                                                                              5)));//threshXlow //@sic R5s110210 sic@
+    
+    //Create and configure Cell 5 (cell started switched on but with max attenuation)
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    /*Bring UE to initial state by
+      1. Bring UE to Idle updated
+      2. Bring UE to state 6-11
+      3. Bring UE to state 6-12*/
+    f_UTRAN_Preamble(utran_Cell5);
+    f_UTRAN_UE_FACH_PS_Rb_Est(utran_Cell5);
+    f_UTRAN_TransitToCellPCH (utran_Cell5);
+    
+    //Send new authentication parameters and
+    //tell EUTRA PTC to set power levels according to Pre-test conditions
+    //(i.e. Cell 1 is suitable neighbour E-UTRA cell )
+    f_UTRAN_SendAuthCoOrdParameters(EUTRA);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_OctetData(f_UTRAN_MobileInfo_EUTRACapability_Get())); // @sic R5-123734 sic@
+
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //Set Cell 5 power level according to the row "T1" in table 6.2.3.4.3.2-1
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_UTRAN_SetCellPower (utran_Cell5, -70, -72);
+    
+    f_UTRAN_TestBody_Set(false);
+
+    //Wait till end of test case and release the UTRAN cell
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_UTRAN_ReleaseCell (utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+  }
+
+  function f_TC_6_2_3_5_UTRAN ( ) runs on UTRAN_PTC {
+
+    var integer v_T1_CPICH_Cell5 := -65;
+    var integer v_T1_PCCPCH_Cell5 := -67;
+    var SysInfoType19 v_Sib19;
+
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+
+    //Send System Information of UTRAN cell to EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5); // @sic R5s110112 sic@
+
+    //Create and configure Cell 5 (cell started switched on but with max attenuation)
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+
+    v_Sib19 := f_UTRAN_SysInfo_GetSIB19 (utran_Cell5); //@sic R5s100873 & R5-110721: Update to sic@
+    v_Sib19.utra_PriorityInfoList.utra_ServingCell.priority := 5; //@sic R5s100873 & R5-110721: Update to sic@
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell5, v_Sib19); //@sic R5s100873 & R5-110721: Update to sic@
+     
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Wait for completion of preamble and then set cell parameters according to T1 in Table 6.2.3.5.3.2-1
+    //@sic R5-113678 - function-call moved to better fit step 0 sic@
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 0" siclog@
+    //Wait for 6 s for UE to receive system information.
+    //@sic R5-113678 sic@
+    f_Delay(6.0);
+
+
+    //@siclog "Step 0" siclog@
+    f_Delay (6.0); // @sic R5-113678 sic@
+    
+    //@siclog "Step 1" siclog@
+    f_UTRAN_SetCellPower(utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5);
+
+    //@siclog "Step 2" siclog@
+    //Check if UE camps on Cell 5
+    f_UTRAN_IdleMode_RAU (utran_Cell5);
+
+    //Tell the EUTRA component that the test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    f_UTRAN_TestBody_Set (false);
+
+    //Switch/Power off UE and release cell
+    f_UTRAN_Postamble (utran_Cell5, U1_IDLE);
+  }
+
+  function f_TC_6_2_3_6_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var float v_T320 := 300.0;  //5 minutes : TS 34.123-1 Table 6.2.3.13.3.2-3
+    
+    timer t_WaitForRRCConnReq := 30.0;
+    timer t_T320;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Since UE starts in EUTRA wait for EUTRA PTC to send the Auth Params
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //set cell power level according to T0
+    f_UTRAN_SetCellPower(utran_Cell5, -100, -100);
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    //Wait for Step 1 to be executed on EUTRA PTC
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //@siclog "Step 2" siclog@
+    //Set cell power level according to T1
+    f_UTRAN_SetCellPower(utran_Cell5, -65, -65);
+    
+    //@siclog "Step 3" siclog@
+    //Check for no RRC CONNECTIONREQUEST on cell 5
+    t_WaitForRRCConnReq.start;
+    alt {
+      [] U_TM.receive(car_RRC_ConnReq (utran_Cell5,
+                                       tsc_RB0,
+                                       cr_108_RRC_ConnReq_r8( ? )))
+        {
+          t_WaitForRRCConnReq.stop;
+          f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 6.2.3.6 Step 3");
+        }
+      [] t_WaitForRRCConnReq.timeout { }
+    }
+    
+    //@siclog "Step 4" siclog@
+    //Tell EUTRA PTC to go on with step 4
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 9" siclog@
+    //Receive updated authentication parameters and perform Idle Mode RAU
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_IdleMode_RAU (utran_Cell5);
+    
+    //@siclog "Step 10" siclog@
+    //Set cell power level according to T2
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, -100, -100);
+
+    //Step 12: Set cell power level according to T3
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_SetCellPower(utran_Cell5, -65, -65);
+    
+    //@siclog "Step 13" siclog@
+    //Perform Idle Mode RAU
+    f_UTRAN_IdleMode_RAU ( utran_Cell5 );
+    
+    //@siclog "Step 14" siclog@
+    //Set cell power level according to T4
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, -100, -100);
+    
+    //@siclog "Step 16" siclog@
+    //Start timer T320 and set cell power level according to T5
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    t_T320.start ( 0.9 * v_T320 );//timer T320 = 5 minutes - 10% tolerance
+    f_UTRAN_SetCellPower(utran_Cell5, -65, -65);
+    
+    //@siclog "Step 17" siclog@
+    t_T320.timeout;
+
+    //@siclog "Step 18" siclog@
+    //Perform Idle Mode RAU
+    f_UTRAN_IdleMode_RAU ( utran_Cell5 );
+    
+    //Tell the EUTRA PTC that test case has ended
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    
+    f_UTRAN_TestBody_Set( false );
+    
+    //Switch/power off UE
+    f_UTRAN_Postamble ( utran_Cell5, U1_IDLE );
+  }
+
+  function f_TC_6_2_3_13_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var integer v_T0_CPICH_Cell5;
+    var integer v_T0_PCCPCH_Cell5;
+    var integer v_T1_CPICH_Cell5;
+    var integer v_T1_PCCPCH_Cell5;
+    var integer v_T2_CPICH_Cell5;
+    var integer v_T2_PCCPCH_Cell5;
+    var UtraServingCellPriorityValue_Type v_UtraPriorityValue_T0;
+    var UtraServingCellPrioritySearch1_Type  v_S_PrioritySearch1_T0;
+    var UtraServingCellthreshServingLow_Type v_ThreshServingLow_T0;
+    var EutraFrequencyAndPriorityInfoPriorityValue_Type v_EutraPriorityValue_T0;
+    var EutraFrequencyAndPriorityInfoQrxLevMin_Type v_QrxLevMinEutra_T0;
+    var EutraFrequencyAndPriorityInfoThreshXhigh_Type v_ThreshXhigh_T0;
+    var EutraFrequencyAndPriorityInfoThreshXlow_Type v_ThreshXlow_T0;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+    var template (value) PriorityLevel v_PriorityLevel_UTRA; //@sic R5s110779 sic@
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    
+    v_UtraPriorityValue_T0 := 3;
+    v_S_PrioritySearch1_T0 := 8;
+    v_ThreshServingLow_T0 := 4;
+    v_EutraPriorityValue_T0 := 4;
+    v_QrxLevMinEutra_T0 := -53;
+    v_ThreshXhigh_T0 := 16;
+    v_ThreshXlow_T0 := 7;  // @sic r5-123643 sic@
+    v_T0_CPICH_Cell5 := -60;
+    v_T0_PCCPCH_Cell5 := -62;
+    v_T1_CPICH_Cell5 := -75;
+    v_T1_PCCPCH_Cell5 := -77;
+    v_T2_CPICH_Cell5 := -60;
+    v_T2_PCCPCH_Cell5 := -62;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Get FDD or TDD mode
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Get Cell Parameters for EUTRA cell
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Update SIB19 of cell 5 according to Table 6.2.3.13.3.3-3
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell5, cs_SIB19_UtraAndOneEutraEntry (cs_Utra_PriorityInfoList_Common ( v_UtraPriorityValue_T0,
+                                                                                                            v_S_PrioritySearch1_T0,
+                                                                                                            v_ThreshServingLow_T0 ),
+                                                                          cs_Eutra_FreqAndPriList_OneEntry_Common ( v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                                                    omit,
+                                                                                                                    v_EutraPriorityValue_T0,
+                                                                                                                    v_QrxLevMinEutra_T0,
+                                                                                                                    v_ThreshXhigh_T0,
+                                                                                                                    v_ThreshXlow_T0,
+                                                                                                                    omit,
+                                                                                                                    true ) ) );
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Bring UE to initial state
+    f_UTRAN_Preamble (utran_Cell5);
+    //Interactive or background / UL:64 DL: 64 kbps / PS RAB + UL:3.4 DL:3.4 kbps SRBs for DCCH
+    f_UTRAN_UE_64kPS_Rb_Est(utran_Cell5);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_OctetData(f_UTRAN_MobileInfo_EUTRACapability_Get())); // @sic R5-123734 sic@
+    
+    //Notify E-UTRA after setting executing Preamble
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //Set cell power level according to T0
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+    
+    f_UTRAN_TestBody_Set(true);
+    
+    //Wait for E-UTRA to set power to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //@siclog "Step 1-2" siclog@
+    //SS sends UTRAN MOBILITY INFORMATION providing dedicated priority information and validity timer to the UE
+    //SS receives the UTRAN MOBILITY INFOMRATION CONFIRM message
+    if (v_FDD_TDD_Mode == UTRAN_FDD) {
+      v_PriorityLevel_UTRA := cs_PriorityLevel_UTRA_FDD_1Entry(f_UTRAN_CellInfo_GetUARFCN (utran_Cell5)); //@sic R5s110779 sic@
+    }
+    else {
+      v_PriorityLevel_UTRA := cs_PriorityLevel_UTRA_TDD_1Entry(f_UTRAN_CellInfo_GetUARFCN (utran_Cell5)); //@sic R5s110779 sic@
+    }
+    f_UTRAN_MobilityInformation(utran_Cell5,
+                                -,
+                                cs_UTRANMobilityInformation_v860ext2(omit,
+                                                                     cs_UEConnTimersConst_v860ext,
+                                                                     cs_DedPrioInfo (cs_PrioLevelList_2Entries (v_PriorityLevel_UTRA,
+                                                                                                                cs_PriorityLevel_EUTRA_1Entry(v_EUTRASysInfo.Eutra[0].Arfcn))))); //@sic R5s110779 sic@
+    
+    //@siclog "Step 3 -6" siclog@
+    //The SS releases the UE connection & receives release complete message(s).
+    f_UTRAN_RRC_ConnRel ( utran_Cell5, cell_Dch );
+    
+    //Notify EUTRA after Steps 1 to 6
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    
+    //@siclog "Step 7" siclog@
+    //Set cell power level according to T1
+    f_UTRAN_SetCellPower(utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5);
+    
+    //Wait for EUTRA TAU to be finished and
+    //then receive authentication parameters and continue with the test case
+    f_UTRAN_InterRAT_InitialiseAuthParams(); //@sic R5s110519 Change 2 sic@
+    
+    //@siclog "Step 11" siclog@
+    //Set cell paramters according to T2
+    f_UTRAN_SetCellPower(utran_Cell5, v_T2_CPICH_Cell5, v_T2_PCCPCH_Cell5);
+    
+    //@siclog "Step 12" siclog@
+    //The UE reselects Cell5 and camps on Cell5.
+    f_UTRAN_IdleMode_RAU ( utran_Cell5, cell_Dch );
+    
+    f_UTRAN_TestBody_Set ( false );
+    
+    //Notify end of test case
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    
+    //Perform Switch/Power off and Release UTRAN Cell 5
+    f_UTRAN_Postamble ( utran_Cell5, U1_IDLE );
+  }
+
+  function f_TC_6_2_3_31_UTRAN() runs on UTRAN_PTC
+  {
+    var template (value) PriorityLevel v_PriorityLevel_UTRA; //@sic R5s110779 sic@
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Get Cell Parameters for EUTRA cell
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Update SIB19 according to Table 6.2.3.31.3.2-3
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell5, cs_SIB19_UtraAndOneEutraEntry (cs_Utra_PriorityInfoList_Common ( 3,
+                                                                                                            8,
+                                                                                                            4 ),
+                                                                          cs_Eutra_FreqAndPriList_OneEntry_Common ( v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                                                    omit,
+                                                                                                                    4,
+                                                                                                                    -53,
+                                                                                                                    12,
+                                                                                                                    8,
+                                                                                                                    omit,
+                                                                                                                    true ) ) );
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Bring UE to initial state by...
+    //...bring UE to idle updated state
+    f_UTRAN_Preamble (utran_Cell5);
+    //...and then bring UE to state 6-10
+    f_UTRAN_UE_64kPS_Rb_Est(utran_Cell5);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_OctetData(f_UTRAN_MobileInfo_EUTRACapability_Get())); // @sic R5-123734 sic@
+    
+    //Ask EUTRA PTC to set power level according to T0
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1-2" siclog@
+    if (v_FDD_TDD_Mode == UTRAN_FDD) {
+      v_PriorityLevel_UTRA := cs_PriorityLevel_UTRA_FDD_1Entry(f_UTRAN_CellInfo_GetUARFCN (utran_Cell5),
+                                                               3); //@sic R5s110779 sic@
+    }
+    else {
+      v_PriorityLevel_UTRA := cs_PriorityLevel_UTRA_TDD_1Entry(f_UTRAN_CellInfo_GetUARFCN (utran_Cell5),
+                                                               3); //@sic R5s110779 sic@
+    }
+    f_UTRAN_MobilityInformation(utran_Cell5,
+                                -,
+                                cs_UTRANMobilityInformation_v860ext2(omit,
+                                                                     cs_UEConnTimersConst_v860ext,
+                                                                     cs_DedPrioInfo (cs_PrioLevelList_2Entries (v_PriorityLevel_UTRA,
+                                                                                                                cs_PriorityLevel_EUTRA_1Entry(v_EUTRASysInfo.Eutra[0].Arfcn))))); //@sic R5s110779 sic@
+    
+    //@siclog "Step 3-6" siclog@
+    f_UTRAN_RRC_ConnRel(utran_Cell5, cell_Dch);
+    
+    //@siclog "Step 7" siclog@
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_UTRAN_SetCellPower(utran_Cell5, -75, -77); //@sic R5-115645 sic@
+    
+    f_UTRAN_TestBody_Set (false);
+    
+    //Wait till end of test case and then release the cell
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_ReleaseCell (utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+  }
+
+  function f_TC_6_2_3_32_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var SysInfoType19 v_Sib19;
+    var integer v_T1_CPICH_Cell5 := -60;
+    var integer v_T1_PCCPCH_Cell5 := -62;
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA (utran_Cell5);
+    
+    //Update SIB19 according to Table 6.2.3.32.3.3-3
+    v_Sib19 := f_UTRAN_SysInfo_GetSIB19 (utran_Cell5);
+    v_Sib19.utra_PriorityInfoList.utra_ServingCell.priority := 5;
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell5, v_Sib19);
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //Set power level according to T1
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_SetCellPower(utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5);
+    
+    //@siclog "Step 2" siclog@
+    f_UTRAN_508CheckCampOnNewUtranCell (utran_Cell5);
+    
+    //Tell EUTRA PTC that test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_UTRAN_TestBody_Set (false);
+    
+    //Switch/Power off UE and release cell
+    f_UTRAN_Postamble (utran_Cell5, U1_IDLE);
+  }
+
+}

@@ -1,0 +1,714 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:09:14 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7293 $
+/******************************************************************************/
+module InterRat_CellReSelection_EtoU {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SysInfo_Templates all;
+
+  template (value) IdleModeMobilityControlInfo cs_IdleModeMobCntrlInfo_Common ( template (omit) FreqPriorityListEUTRA      p_FreqPriorityListEUTRA,
+                                                                                template (omit) FreqsPriorityListGERAN     p_FreqsPriorityListGERAN,
+                                                                                template (omit) FreqPriorityListUTRA_FDD   p_FreqPriorityListUTRA_FDD,
+                                                                                template (omit) FreqPriorityListUTRA_TDD   p_FreqPriorityListUTRA_TDD,
+                                                                                template (omit) BandClassPriorityListHRPD  p_BandClassPriorityListHRPD,
+                                                                                template (omit) BandClassPriorityList1XRTT p_BandClassPriorityList1XRTT,
+                                                                                template (omit) T320_Type                  p_T320 ) :=
+  { /* @status    APPROVED */
+    freqPriorityListEUTRA := p_FreqPriorityListEUTRA,
+    freqPriorityListGERAN := p_FreqsPriorityListGERAN,
+    freqPriorityListUTRA_FDD := p_FreqPriorityListUTRA_FDD,
+    freqPriorityListUTRA_TDD := p_FreqPriorityListUTRA_TDD,
+    bandClassPriorityListHRPD := p_BandClassPriorityListHRPD,
+    bandClassPriorityList1XRTT := p_BandClassPriorityList1XRTT,
+    t320 := p_T320
+  };
+
+  template (value) IdleModeMobilityControlInfo cs_IdleModeMobCntrlInfo_1EutraEntry ( template (value) FreqPriorityListEUTRA p_FreqPriorityListEUTRA ) :=
+  /* @status    APPROVED */
+    cs_IdleModeMobCntrlInfo_Common ( p_FreqPriorityListEUTRA, omit, omit, omit, omit, omit, omit );
+
+  template (value) IdleModeMobilityControlInfo cs_IdleModeMobCntrlInfo_1EutraUtraFDDEntry ( template (value) FreqPriorityListEUTRA      p_FreqPriorityListEUTRA,
+                                                                                            template (value) FreqPriorityListUTRA_FDD p_FreqPriorityListUTRA_FDD ) :=
+  /* @status    APPROVED */
+    cs_IdleModeMobCntrlInfo_Common ( p_FreqPriorityListEUTRA, omit, p_FreqPriorityListUTRA_FDD, omit, omit, omit, omit );
+
+  template (value) IdleModeMobilityControlInfo cs_IdleModeMobCntrlInfo_1EutraUtraTDDEntry ( template (value) FreqPriorityListEUTRA      p_FreqPriorityListEUTRA,
+                                                                                            template (value) FreqPriorityListUTRA_TDD p_FreqPriorityListUTRA_TDD ) :=
+  /* @status    APPROVED */
+    cs_IdleModeMobCntrlInfo_Common ( p_FreqPriorityListEUTRA, omit, omit, p_FreqPriorityListUTRA_TDD, omit, omit, omit );
+
+  template (value) IdleModeMobilityControlInfo cs_IdleModeMobCntrlInfo_1EutraUtraFDDEntry_T320 ( template (value) FreqPriorityListEUTRA    p_FreqPriorityListEUTRA,
+                                                                                                 template (value) FreqPriorityListUTRA_FDD p_FreqPriorityListUTRA_FDD,
+                                                                                                 T320_Type                                 p_T320 ) :=
+  /* @status    APPROVED */
+    cs_IdleModeMobCntrlInfo_Common ( p_FreqPriorityListEUTRA, omit, p_FreqPriorityListUTRA_FDD, omit, omit, omit, p_T320 );
+
+  template (value) IdleModeMobilityControlInfo cs_IdleModeMobCntrlInfo_1EutraUtraTDDEntry_T320 ( template (value) FreqPriorityListEUTRA    p_FreqPriorityListEUTRA,
+                                                                                                 template (value) FreqPriorityListUTRA_TDD p_FreqPriorityListUTRA_TDD,
+                                                                                                 T320_Type                                 p_T320 ) :=
+  /* @status    APPROVED */
+    cs_IdleModeMobCntrlInfo_Common ( p_FreqPriorityListEUTRA, omit, omit, p_FreqPriorityListUTRA_TDD, omit, omit, p_T320 );
+
+  template (value) FreqPriorityListEUTRA cs_FreqPriorityListEUTRA_1Entry ( ARFCN_ValueEUTRA p_Dl_CarrierFreq,
+                                                                           integer          p_Prio ) :=
+  { /* @status    APPROVED */
+    {
+      carrierFreq := p_Dl_CarrierFreq,
+      cellReselectionPriority := p_Prio
+    }
+  };
+
+  template (value) FreqPriorityListUTRA_FDD cs_FreqPriorityListUTRA_FDD_1Entry ( ARFCN_ValueUTRA         p_ARFCN_ValueUTRA,
+                                                                                 CellReselectionPriority p_CellReselectionPrio ) :=
+  { /* @status    APPROVED */
+    {
+      carrierFreq := p_ARFCN_ValueUTRA,
+      cellReselectionPriority := p_CellReselectionPrio
+    }
+  };
+
+  template (value) FreqPriorityListUTRA_TDD cs_FreqPriorityListUTRA_TDD_1Entry ( ARFCN_ValueUTRA         p_ARFCN_ValueUTRA,
+                                                                                 CellReselectionPriority p_CellReselectionPrio ) :=
+  { /* @status    APPROVED */
+    {
+      carrierFreq := p_ARFCN_ValueUTRA,
+      cellReselectionPriority := p_CellReselectionPrio
+    }
+  };
+
+  template (value) CarrierFreqUTRA_FDD cs_CarrierFreqUTRA_FDD_CRPrio_ThXHi( ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                            template (omit) CellReselectionPriority p_CellReselectionPriority,
+                                                                            ReselectionThreshold                    p_ThreshX_High ) :=
+    /* @status    APPROVED */
+    cs_CarrierFreqUTRA_FDD_Common ( p_ARFCN_ValueUTRA, p_CellReselectionPriority, p_ThreshX_High);
+
+  template (value) CarrierFreqUTRA_TDD cs_CarrierFreqUTRA_TDD_CRPrio_ThXHi( ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                            template (omit) CellReselectionPriority p_CellReselectionPriority,
+                                                                            ReselectionThreshold                    p_ThreshX_High ) :=
+    /* @status    APPROVED */
+    cs_CarrierFreqUTRA_TDD_Common ( p_ARFCN_ValueUTRA, p_CellReselectionPriority, p_ThreshX_High);
+
+  function f_TC_6_2_3_3_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    var boolean v_CSInOtherRAT := false;
+    var CellRes_Prio_Type v_CellRes_Prio_T0 := 3;
+    var CellRes_Prio_Type v_CellRes_Prio_Step5 := 5;
+    var CellReselectionPriority v_CellReselectionPriority_Cell5 := 4;
+    var IRAT_Coordination_MSG v_IRAT_Coordination_MSG;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -80);
+
+    //Set TAC according to 36.523-1 Table 6.0.4-2: Tracking Area Code (TAC) for E-UTRAN cells
+    //TAC for Cell 1 is set to 1 in f_EUTRA_Init
+
+    //Set SIB3 for Cell 1 according to Table 6.2.3.3.3.3-4
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio (eutra_Cell1, v_CellRes_Prio_T0);
+
+    //Coordinate with UTRAN component to receive UTRAN frequencies
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+
+    //Set SIB6 for Cell 1 according to Table 6.2.3.3.3.3-6
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1, //@sic R5s110031 : Change 6.1 sic@
+                                                  cs_CarrierFreqUTRA_FDD_CRPrio (v_UTRANSysInfo.Utran[0].FDD.Freq,
+                                                                                 v_CellReselectionPriority_Cell5),
+                                                  omit); // @sic R5s110753 sic@
+    }
+    else {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1, //@sic R5s110031 : Change 6.1 sic@
+                                                  omit,
+                                                  cs_CarrierFreqUTRA_TDD_CRPrio (v_UTRANSysInfo.Utran[0].TDD.Freq,
+                                                                                 v_CellReselectionPriority_Cell5)); // @sic R5s110753 sic@
+    }
+
+    //Send the cell info to the UTRAN component
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                                f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Since Authentication parameters were updated in the idle updated procedure...
+    //...receive updated parameters...
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    UTRAN.receive (cmr_IRAT_OctetData) -> value v_IRAT_Coordination_MSG; // @sic R5-123734 sic@
+
+    f_EUTRA_TestBody_Set (true);
+
+    //@siclog "Step 1" siclog@
+    //Set cell paramters according to T1
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_ServingCellRS_EPRE);
+
+    //@siclog "Step 2" siclog@
+    //Check that UE camps on Cell 1 with the generic test procedure TS 36.508 table 6.4.2.7A-2
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, false, false, v_IRAT_Coordination_MSG.OctetData); // @sic R5-123734 sic@
+    
+    //@siclog "Step 2A" siclog@
+    //Wait for 6 s for UE to receive system information.
+    //@sic R5-113678 sic@
+    f_Delay(6.0);
+
+    //@siclog "Step 3" siclog@
+    //Hand over authentication parameters and set cell paramters according to T2
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN); //@sic R5s110031 : Change 6.2 sic@
+    f_EUTRA_SetCellPower (eutra_Cell1, -115); //@sic R5-110677 sic@
+
+    //@siclog "Step 5" siclog@
+    //Set SIB3 for Cell 1 according to Table 6.2.3.3.3.3-5
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio (eutra_Cell1, v_CellRes_Prio_Step5);
+    f_EUTRA_ModifySysinfo_ValueTag_NoPaging (eutra_Cell1);
+
+    //@siclog "Step 7" siclog@
+    //Set cell paramters according to T3
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN); //@sic R5-110746 sic@
+    f_EUTRA_SetCellPower (eutra_Cell1, -80);
+
+    //@siclog "Step 8" siclog@
+    //Check that UE camps on Cell 1 with the generic test procedure TS 36.508 table 6.4.2.7A-1
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, true, false, v_IRAT_Coordination_MSG.OctetData); // @sic R5s110168 change 6.4, R5-123734 sic@
+
+    //Tell the UTRAN component that the test case is over
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Switch/Power off UE
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_6_2_3_4_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    var boolean v_CSInOtherRAT := false;
+    var IRAT_Coordination_MSG v_IRAT_Coordination_MSG;
+  
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+    
+    //Set maximum power level in cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -80);
+    
+    //Receive information about UTRAN cell 5
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+    
+    //Send information about EUTRA cells
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                                f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Set SystemInformationBlockType3 for cell 1 according to Table 6.2.3.4.3.3-3
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio(eutra_Cell1, 5);
+    
+    //Set SystemInformationBlockType6 for cell 1 according to Table 6.2.3.4.3.3-3
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  cs_CarrierFreqUTRA_FDD_CRPrio(v_UTRANSysInfo.Utran[0].FDD.Freq, 4),
+                                                  omit); // @sic R5s110753 sic@
+    }
+    else {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  omit,
+                                                  cs_CarrierFreqUTRA_TDD_CRPrio(v_UTRANSysInfo.Utran[0].TDD.Freq, 4)); // @sic R5s110753 sic@
+    }
+                                                
+    //Configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Receive authentication parameters from Idle updated in UTRAN PTC
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    
+    //Receive authentication parameters from UTRAN PTC
+    //and Set power levels according to Pre-test conditions
+    //(i.e. Cell 1 is suitable neighbour E-UTRA cell )
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE);
+    UTRAN.receive (cmr_IRAT_OctetData) -> value v_IRAT_Coordination_MSG; // @sic R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Changes Cell 1 and Cell 5 levels according to the row "T1" in table 6.2.3.4.3.2-1.
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPower (eutra_Cell1, -80);
+    
+    //@siclog "Step 2" siclog@
+    //Check that the UE camps on EUTRA cell 1 with the help of generic test procedure in TS 36.508 table 6.4.2.7A-1.
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, true, false, v_IRAT_Coordination_MSG.OctetData); //@sic R5s110210, R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Tell UTRAN PTC that test case has ended
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger); //@sic R5s110210 sic@
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_6_2_3_5_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var CellReselectionPriority v_CellReselectionPriority_Cell5 := 5;
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+
+    //Coordinate with UTRAN component to receive UTRAN frequencies for cell 5
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+
+    //Set Sys. info for Cell 1 according to Table 6.2.3.5.3.2-2
+   if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1, //@sic R5s100873 : Change 2 sic@
+                                                  cs_CarrierFreqUTRA_FDD_CRPrio (v_UTRANSysInfo.Utran[0].FDD.Freq, v_CellReselectionPriority_Cell5),
+                                                  omit); // @sic R5s110753 sic@
+    }
+    else {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1, //@sic R5s100873 : Change 2 sic@
+                                                  omit,
+                                                  cs_CarrierFreqUTRA_TDD_CRPrio (v_UTRANSysInfo.Utran[0].TDD.Freq, v_CellReselectionPriority_Cell5)); // @sic R5s110753 sic@
+    }
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+
+    //Preamble to ensure USIM is updated with valid TAI, to bring UE to initial state and to send auth. params to UTRAN PTC
+    f_EUTRA_Preamble_InterRAT(eutra_Cell1, STATE2_IDLEUPDATE, UTRAN);
+
+    f_EUTRA_TestBody_Set ( true );
+    
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_3_6_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell1;
+    var NAS_MSG_Indication_Type v_NAS_Ind;
+    var NAS_KsiValue v_KsiValue;
+    var CellReselectionPriority v_CellReselectionPriority_Cell5 := 5; // @sic R5s110127 sic@
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var ReselectionThreshold v_ThreshServingLow_Cell1 := 1;
+    var P_MaxUTRA_FDD v_P_Max_Fdd := 0;
+    var ReleaseCause v_ReleaseCause := other;
+    var T320_Type v_T320 := min5;
+    var boolean v_CSInOtherRAT := false;
+    var template (value) IdleModeMobilityControlInfo v_IdleModeMobilityControlInfo;
+    
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c4 );
+    
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -70 );
+    
+    //Get cell specific parameters
+    v_CarrierFreq_Cell1 := f_EUTRA_CellInfo_GetEARFCN ( eutra_Cell1 );
+
+    //Set SIB3 according to Table 6.2.3.6.3.3-2
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow ( eutra_Cell1, v_ThreshServingLow_Cell1 );
+    
+    //Coordinate with UTRAN component to receive UTRAN frequency of utran_Cell5
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo ( UTRAN );
+    
+    //Set SIB6 for Cell 1 according to Table 6.2.3.6.3.3-3
+   if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  cs_CarrierFreqUTRA_FDD_CRPrio_PMax (v_UTRANSysInfo.Utran[0].FDD.Freq,
+                                                                                      v_CellReselectionPriority_Cell5,
+                                                                                      v_P_Max_Fdd),
+                                                  omit); // @sic R5s110753 sic@
+    }
+    else {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  omit,
+                                                  cs_CarrierFreqUTRA_TDD_CRPrio_PMax (v_UTRANSysInfo.Utran[0].TDD.Freq,
+                                                                                      v_CellReselectionPriority_Cell5,
+                                                                                      v_P_Max_Fdd)); // @sic R5s110753 sic@
+    }
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Get the latest security parameters and send them to the UTRAN PTC
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN);
+    
+    //Set cell power level according to T0
+    f_EUTRA_SetCellPower (eutra_Cell1, -70);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Step 1: Transmit RRCConnectionRelease
+    f_EUTRA_RRC_ConnectionRelease_Common (eutra_Cell1,
+                                          cs_RRCConnectionRelease (v_RRC_TI,
+                                                                   v_ReleaseCause,
+                                                                   omit,
+                                                                   cs_IdleModeMobCntrlInfo_1EutraEntry (cs_FreqPriorityListEUTRA_1Entry ( v_CarrierFreq_Cell1.dl_CarrierFreq, 4))));
+    //@siclog "Step 2" siclog@
+    //Step 2: Set cell power level according to T1
+    f_IRAT_SendCoOrd ( UTRAN, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, -90 );
+    
+    //Wait for step 3 to be executed at UTRAN PTC
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    
+    //@siclog "Step 4" siclog@
+    //Step 4: Page UE
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+
+    //@siclog "Step 5-7" siclog@
+    //Step 5-7: RRCConnectionRequest, RRCConnectionSetup & RRCConnectionSetupComplete
+    v_KsiValue := f_EUTRA_SecurityKSIasme_Get ( );
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas ( eutra_Cell1,
+                                                  v_RRC_TI,
+                                                  cr_EstablishmentCause_mt_Access,
+                                                  cr_NAS_Indication ( tsc_SHT_IntegrityProtected,
+                                                                      cr_508_SERVICE_REQUEST ( v_KsiValue ) ) );
+    
+    //@siclog "Step 8" siclog@
+    //Step 8: Send RRCConnectionRelease
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {// @sic R5-115770 sic@
+      v_IdleModeMobilityControlInfo := cs_IdleModeMobCntrlInfo_1EutraUtraFDDEntry ( cs_FreqPriorityListEUTRA_1Entry (  v_CarrierFreq_Cell1.dl_CarrierFreq, 4 ),
+                                                                                    cs_FreqPriorityListUTRA_FDD_1Entry ( v_UTRANSysInfo.Utran[0].FDD.Freq, 5 ) );
+    }
+    else {
+      v_IdleModeMobilityControlInfo := cs_IdleModeMobCntrlInfo_1EutraUtraTDDEntry ( cs_FreqPriorityListEUTRA_1Entry (  v_CarrierFreq_Cell1.dl_CarrierFreq, 4 ),
+                                                                                    cs_FreqPriorityListUTRA_TDD_1Entry ( v_UTRANSysInfo.Utran[0].FDD.Freq, 5 ) );
+    }
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_Cell1,
+                                           cs_RRCConnectionRelease ( v_RRC_TI, v_ReleaseCause, omit, v_IdleModeMobilityControlInfo ) );
+    
+    //Send trigger to UTRAN PTC for step 9
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN); //@sic R5s110168 : Send updated security parameters to UTRAN PTC sic@
+    
+    //@siclog "Step 10" siclog@
+    //Step 10: Set cell power level according to T2
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    f_EUTRA_SetCellPower ( eutra_Cell1, -70 );
+    
+    //@siclog "Step 11" siclog@
+    //Step 11: UE performs TAU procedure
+    t_IdleMode_GenericTimer.start;
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT ( eutra_Cell1, tsc_RRC_TI_Def, v_CSInOtherRAT, true, true, omit, false, NORMAL); // @sic R5s110176, R5-123734 sic@
+    t_IdleMode_GenericTimer.stop;
+    //Send RRCConnectionRelease to end TAU properly and according to Table 6.2.3.6.3.3-6
+
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {// @sic R5-115770 sic@
+      v_IdleModeMobilityControlInfo := cs_IdleModeMobCntrlInfo_1EutraUtraFDDEntry ( cs_FreqPriorityListEUTRA_1Entry (  v_CarrierFreq_Cell1.dl_CarrierFreq, 4 ),
+                                                                                    cs_FreqPriorityListUTRA_FDD_1Entry ( v_UTRANSysInfo.Utran[0].FDD.Freq, 3 ) );
+    }
+    else {
+      v_IdleModeMobilityControlInfo := cs_IdleModeMobCntrlInfo_1EutraUtraTDDEntry ( cs_FreqPriorityListEUTRA_1Entry (  v_CarrierFreq_Cell1.dl_CarrierFreq, 4 ),
+                                                                                    cs_FreqPriorityListUTRA_TDD_1Entry ( v_UTRANSysInfo.Utran[0].FDD.Freq, 3 ) );
+    }
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_Cell1,
+                                           cs_RRCConnectionRelease ( v_RRC_TI, v_ReleaseCause, omit, v_IdleModeMobilityControlInfo ) );
+    
+    //@siclog "Step 12" siclog@
+    //Step 12: Set cell power level according to T3
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN);
+    f_EUTRA_SetCellPower ( eutra_Cell1, -115 );
+    
+    //@siclog "Step 14" siclog@
+    //Step 14: Set cell power level according to T4
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    f_EUTRA_SetCellPower ( eutra_Cell1, -70 );
+    
+    //@siclog "Step 15" siclog@
+    //Step 15: UE performs TAU
+    t_IdleMode_GenericTimer.start;
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT ( eutra_Cell1, tsc_RRC_TI_Def, v_CSInOtherRAT, true, true, omit, false, NORMAL); // @sic R5s110176, R5-123734 sic@
+    t_IdleMode_GenericTimer.stop;
+    //Send RRCConnectionRelease to end TAU properly and according to Table 6.2.3.6.3.3-7
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {// @sic R5-115770 sic@
+      v_IdleModeMobilityControlInfo := cs_IdleModeMobCntrlInfo_1EutraUtraFDDEntry_T320 ( cs_FreqPriorityListEUTRA_1Entry (  v_CarrierFreq_Cell1.dl_CarrierFreq, 4 ),
+                                                                                         cs_FreqPriorityListUTRA_FDD_1Entry ( v_UTRANSysInfo.Utran[0].FDD.Freq, 3 ),
+                                                                                         v_T320 );
+    }
+    else {
+      v_IdleModeMobilityControlInfo := cs_IdleModeMobCntrlInfo_1EutraUtraTDDEntry_T320 ( cs_FreqPriorityListEUTRA_1Entry (  v_CarrierFreq_Cell1.dl_CarrierFreq, 4 ),
+                                                                                         cs_FreqPriorityListUTRA_TDD_1Entry ( v_UTRANSysInfo.Utran[0].FDD.Freq, 3 ),
+                                                                                         v_T320 );
+    }
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_Cell1,
+                                           cs_RRCConnectionRelease ( v_RRC_TI, v_ReleaseCause, omit, v_IdleModeMobilityControlInfo ) );
+
+    //@siclog "Step 16" siclog@
+    //Step 16: Set cell power level according to T5
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN);
+
+    //Wait for test case to end
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_3_13_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    var integer v_T0_RSEPRE_Cell1 := -97;
+    var integer v_T1_RSEPRE_Cell1 := -85;
+    var integer v_T2_RSEPRE_Cell1 := -97;
+    var CellRes_Prio_Type v_CellRes_Prio_ServingFreq := 4;
+    var ReselectionThreshold v_ThreshServingLow_Cell1 := 10; //@sic R5s110588 & R5-115631 sic@
+    var ReselectionThreshold v_ThreshX_High_n_Low := 5;
+    var boolean v_CSInOtherRAT := false;
+    var IRAT_Coordination_MSG v_IRAT_Coordination_MSG;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init (c4);
+    
+    //Set TAC according to 36.523-1 Table 6.0.4-2: Tracking Area Code (TAC) for E-UTRAN cells
+    //TAC for Cell 1 is set to 1 in f_EUTRA_Init
+
+    //Set Cell Reselection Priority in SIB3 for Cell 1 according to Table 6.2.3.13.3.2-3
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio (eutra_Cell1, v_CellRes_Prio_ServingFreq);
+    
+    //Set Threshold-low in SIB3 for Cell 1 according to Table 6.2.3.13.3.2-3
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow (eutra_Cell1, v_ThreshServingLow_Cell1);
+
+    //Coordinate with UTRAN component to receive UTRAN frequency of utran_Cell5
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+
+    //Set SIB6 for Cell 1 according to Table 6.2.3.3.3.3-6
+   if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  cs_CarrierFreqUTRA_FDD_ReselectionThreshold (v_UTRANSysInfo.Utran[0].FDD.Freq,
+                                                                                               v_ThreshX_High_n_Low),
+                                                  omit); // @sic R5s110753 sic@
+    }
+    else {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  omit,
+                                                  cs_CarrierFreqUTRA_TDD_ReselectionThreshold (v_UTRANSysInfo.Utran[0].TDD.Freq,
+                                                                                               v_ThreshX_High_n_Low)); // @sic R5s110753 sic@
+    }
+
+    //Send the cell info to the UTRAN component
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN,
+                                         f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Since Authentication parameters were updated in the idle updated procedure...
+    //...receive updated parameters...
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    
+    // Get and store the Authentication parameters when they're sent by UTRAN during RAb establishment
+    // @sic R5s120097 sic@
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+
+    //Wait for UTRA preamble to be completed and set cell power level according to T0
+    UTRAN.receive (cmr_IRAT_OctetData) -> value v_IRAT_Coordination_MSG; // @sic R5-123734 sic@
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, v_T0_RSEPRE_Cell1);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1 - 6" siclog@
+    //Notify UTRA PTC after setting power to T0
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    //Wait till steps 1 to 6 are completed in UTRA PTC
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    
+    //@siclog "Step 7" siclog@
+    f_EUTRA_SetCellPower (eutra_Cell1, v_T1_RSEPRE_Cell1);
+    
+    //@siclog "Step 8" siclog@
+    f_EUTRA_508CheckCampOnNewEutraCellUponMobilityFromAnotherRAT (eutra_Cell1, v_CSInOtherRAT, true, false, v_IRAT_Coordination_MSG.OctetData, NORMAL); // @sic R5s110176, R5-123734 sic@
+    
+    //@siclog "Step 9" siclog@
+    
+    //@siclog "Step 10" siclog@
+    //@sic R5-113678 sic@
+    f_Delay(6.0);
+    
+    //@siclog "Step 11" siclog@
+    f_EUTRA_SendAuthParameters (eutra_Cell1, UTRAN); //@sic R5s110519 Change 2 sic@
+    f_EUTRA_SetCellPower (eutra_Cell1, v_T2_RSEPRE_Cell1);
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Release all non-serving cells
+    f_EUTRA_ReleaseAllCells();
+  }
+
+  function f_TC_6_2_3_31_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    var boolean v_CSInOtherRAT := false;
+    var IRAT_Coordination_MSG v_IRAT_Coordination_MSG;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+    
+    //Set maximum power level in cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -79);
+    
+    //Receive information about UTRAN cells
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+    
+    //Send information about EUTRA cells
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN,
+                                         f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Update SIB3 according to Table 6.2.3.31.3.3-4
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow (eutra_Cell1, 5);
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio (eutra_Cell1, 4);
+    
+    //Set SIB6 according to specific message contents
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  cs_CarrierFreqUTRA_FDD_ReselectionThreshold (v_UTRANSysInfo.Utran[0].FDD.Freq, 5),
+                                                  omit); // @sic R5s110753 sic@
+    }
+    else {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  omit,
+                                                  cs_CarrierFreqUTRA_TDD_ReselectionThreshold(v_UTRANSysInfo.Utran[0].TDD.Freq, 5)); // @sic R5s110753 sic@
+    }
+    
+    //Configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Receive authentication parameters from Idle updated in UTRAN PTC
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    UTRAN.receive (cmr_IRAT_OctetData) -> value v_IRAT_Coordination_MSG; // @sic R5-123734 sic@
+    
+    //Receive authentication parameters from RAB establishment in UTRAN PTC
+    // @sic R5s120097 sic@
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+
+    //Set power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, -97);
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 7" siclog@
+    //Set power level according to T1
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, -79);
+    
+    //@siclog "Step 8" siclog@
+    //Check that UE performs TAU by executing generic test procedure in TS 36.508 subclause Table 6.4.2.7A-1
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, true, false, v_IRAT_Coordination_MSG.OctetData); // @sic R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //Send trigger to UTRAN PTC that test case is over
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    //Postamble
+    f_EUTRA_Postamble(eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_6_2_3_32_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+       
+    //Receive information about UTRAN cells
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+    
+    //Send information about EUTRA cells
+    //f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+    //                                            f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Update SIB3 according to Table 6.2.3.32.3.3-1
+    f_EUTRA_CellInfo_SetSIB3(eutra_Cell1,
+                             cs_508_SystemInformationBlockType3_NonIntraSearch_Intrasearch(7, 11));
+    
+    //Update SIB6 according to Table 6.2.3.32.3.3-2
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  cs_CarrierFreqUTRA_FDD_CRPrio_ThXHi(v_UTRANSysInfo.Utran[0].FDD.Freq,
+                                                                                      5,
+                                                                                      6),
+                                                  omit); // @sic R5s110753 sic@
+    }
+    else {
+      f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(eutra_Cell1,
+                                                  omit,
+                                                  cs_CarrierFreqUTRA_TDD_CRPrio_ThXHi(v_UTRANSysInfo.Utran[0].TDD.Freq,
+                                                                                      5,
+                                                                                      6)); // @sic R5s110753 sic@
+    }
+    
+    //Configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Bring UE to initial state state Registered, Idle mode (state 2) on Cell 1
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 0" siclog@
+    f_Delay (6.0);
+    
+    //@siclog "Step 1" siclog@
+    //Set power level according to T1
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN); /* Power level in EUTRA cell is already according to T1.
+                                                       Handover test case by sending updated auth parameters */
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Release all non-serving cells
+    f_EUTRA_ReleaseAllCells();
+  }
+
+}

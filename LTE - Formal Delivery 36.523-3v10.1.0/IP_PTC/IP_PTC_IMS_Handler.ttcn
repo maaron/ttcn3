@@ -1,0 +1,511 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-07 21:23:45 +0200 (Tue, 07 Aug 2012) $
+// $Rev: 7104 $
+/******************************************************************************/
+
+module IP_PTC_IMS_Handler {
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from IP_ASP_TypeDefs all;
+  import from IP_PTC_Templates all;
+  import from IP_PTC_Component all;
+  import from UDP_Functions all;
+  import from IMS_ASP_TypeDefs all;
+  import from IMS_ASP_Templates all;
+  import from IP_PTC_IMS_Templates all;
+
+  type enumerated IMS_LocalRemote_Type {local, remote};
+  type enumerated IMS_ClientServer_Type {client, server};
+
+  //****************************************************************************
+  // Configuration templates (system interface)
+  //----------------------------------------------------------------------------
+
+  template (value) IPSEC_CONFIG_REQ cas_IPSEC_Config_REQ(template (value) IPsec_SecurityAssociationList_Type p_SA_List,
+                                                         IPsec_SecurityKeys_Type p_SecurityKeys) :=
+  {
+    Configure := {
+      SA_List := p_SA_List,
+      SecurityKeys := p_SecurityKeys
+    }
+  };
+  template (value) IPSEC_CONFIG_REQ cas_IPSEC_Release_REQ(template (value) IPsec_SecurityAssociationList_Type p_SA_List) :=
+  {
+    Release := {
+      SA_List := p_SA_List
+    }
+  };
+
+  template IPSEC_CONFIG_CNF car_IPSEC_CONFIG_CNF := {Confirm := true};
+
+  //****************************************************************************
+  // IPsec
+  //****************************************************************************
+
+  function fl_IPsec_Configure(IMS_SecurityInfo_Type p_SecurityInfo,
+                              IPsec_SecurityKeys_Type p_SecurityKeys) runs on IP_PTC
+  {
+    var IPsec_IntegrityAlgorithm_Type v_IntegrityAlgorithm := p_SecurityInfo.IntegrityAlgorithm;
+    var IPsec_CipheringAlgorithm_Type v_CipheringAlgorithm := p_SecurityInfo.CipheringAlgorithm;
+    var template (value) IPsec_SecurityAssociationList_Type v_SA_List := f_IPsec_SA_List(p_SecurityInfo, v_IntegrityAlgorithm, v_CipheringAlgorithm);
+
+    IPSEC_CTRL.send(cas_IPSEC_Config_REQ(v_SA_List, p_SecurityKeys));
+    IPSEC_CTRL.receive(car_IPSEC_CONFIG_CNF);
+  }
+
+  function fl_IPsec_Release(IMS_SecurityInfo_Type p_SecurityInfo) runs on IP_PTC
+  {
+    var template (value) IPsec_SecurityAssociationList_Type v_SA_List := f_IPsec_SA_List(p_SecurityInfo);
+
+    IPSEC_CTRL.send(cas_IPSEC_Release_REQ(v_SA_List));
+    IPSEC_CTRL.receive(car_IPSEC_CONFIG_CNF);
+  }
+
+  //****************************************************************************
+  // Start/Stop IMS Security
+  //****************************************************************************
+
+  function fl_ImsServer_SecurityIsEstablished(IMS_Server_Type p_ImsServer) return boolean
+  {
+    return isvalue(p_ImsServer.SecurityInfo);
+  }
+
+  function f_ImsServer_IsStarted(IMS_Server_Type p_ImsServer) return boolean
+  {
+    return isvalue(p_ImsServer.DrbInfo);
+  }
+
+  function fl_ImsServer_SecurityStop(IMS_Server_Type p_ImsServer) runs on IP_PTC
+  {
+    var IP_AddrInfo_Type v_NW_Address;
+    var PortNumber_Type v_PortNumber;
+
+    if (fl_ImsServer_SecurityIsEstablished(p_ImsServer)) {
+
+      v_NW_Address := p_ImsServer.SecurityInfo.NW_Address;
+      v_PortNumber := p_ImsServer.SecurityInfo.ProtectedPorts.Port_ps;
+
+      // stop UDP server
+      f_UdpServer_Stop(v_NW_Address, v_PortNumber);
+      
+      // !!! TCP !!!
+      // stop TCP server: protected (IPv4, IPv6)
+      // close TCP Connections: protected (IPv4, IPv6)
+      // !!! TCP !!!
+      
+      // Release security association
+      fl_IPsec_Release(p_ImsServer.SecurityInfo);
+    }
+  }
+
+  function fl_ImsServer_SecurityStart(IMS_SecurityInfo_Type p_SecurityInfo,
+                                      IPsec_SecurityKeys_Type p_SecurityKeys,
+                                      IP_DrbInfo_Type p_DrbInfo) runs on IP_PTC return IMS_SecurityInfo_Type
+  {
+    var IMS_SecurityInfo_Type v_SecurityInfo := p_SecurityInfo;
+    var IMS_SPIs_Type v_SPIs := p_SecurityInfo.SPIs;
+
+    // get SPIs for the network side:
+    v_SecurityInfo.SPIs := f_SPIs_SetNetworkValues(v_SPIs);
+
+    fl_IPsec_Configure(v_SecurityInfo, p_SecurityKeys);
+
+    f_UdpServer_Start(v_SecurityInfo.NW_Address, v_SecurityInfo.ProtectedPorts.Port_ps, p_DrbInfo);
+
+    // !!! TCP !!!
+    // establish TCP server; TCP client shall be established when data needs to be sent for the first time
+    // !!! TCP !!!
+
+    return v_SecurityInfo;
+  }
+
+  //****************************************************************************
+  // Start/Stop IMS Server
+  //****************************************************************************
+
+  template (value) IMS_Server_Type cs_IMS_Server_Init :=
+  {
+    UnprotectedPorts := {
+      Port_us := tsc_IMS_PortNumber_5060,
+      Port_ps := tsc_IMS_PortNumber_5060
+    },
+    IPv4Addr := omit,
+    IPv6Addr := omit,
+    SecurityKeys := omit,
+    SecurityInfo := omit,
+    DrbInfo := omit
+  };
+
+  function f_IP_IMS_Stop(IMS_Server_Type p_ImsServer) runs on IP_PTC return IMS_Server_Type
+  {
+    var IMS_Server_Type v_ImsServer := p_ImsServer;
+
+    if (f_ImsServer_IsStarted(v_ImsServer)) {
+      fl_ImsServer_SecurityStop(v_ImsServer);
+      f_UdpServer_Stop(v_ImsServer.IPv4Addr, tsc_IMS_PortNumber_5060);
+      f_UdpServer_Stop(v_ImsServer.IPv6Addr, tsc_IMS_PortNumber_5060);
+      
+      // !!! TCP !!!
+      // stop TCP server: protected (IPv4, IPv6)
+      // !!! TCP !!!
+      v_ImsServer := valueof(cs_IMS_Server_Init);
+    }
+    return v_ImsServer;
+  }
+
+  function f_IP_IMS_Start(IMS_Server_Type p_ImsServer,
+                          charstring p_P_CSCF_IPv4Address,
+                          charstring p_P_CSCF_IPv6Address,
+                          IP_DrbInfo_Type p_DrbInfo) runs on IP_PTC return IMS_Server_Type
+  {
+    var IMS_Server_Type v_ImsServer := p_ImsServer;
+    var PortNumber_Type v_PortNumber := v_ImsServer.UnprotectedPorts.Port_ps;
+    
+    v_ImsServer.IPv4Addr := valueof(cs_IPv4Addr(p_P_CSCF_IPv4Address));
+    v_ImsServer.IPv6Addr := valueof(cs_IPv6Addr(p_P_CSCF_IPv6Address));
+    v_ImsServer.DrbInfo := p_DrbInfo;
+
+    /* Start UDP servers for the given PDN;
+     * Note: if there is already a UDP server using the same IP address and port, f_UdpServer_Start will raise an error;
+     *       => it is implicitly checked that different PDNs have different addresses as requested by 36.523-3 cl. 4.2.4.6 */
+    f_UdpServer_Start(v_ImsServer.IPv4Addr, v_PortNumber, p_DrbInfo);
+    f_UdpServer_Start(v_ImsServer.IPv6Addr, v_PortNumber, p_DrbInfo);
+
+    // !!! TCP !!! Note: it is not clear whether TCP is needed for unprotected ports at all
+
+    return v_ImsServer;
+  }
+
+  //============================================================================
+  // Access functions
+
+  function fl_IP_IMS_GetPort(IMS_Server_Type p_ImsServer,
+                             IMS_ProtectedUnprotected_Type p_ProtectedUnprotected,                   // protected or unprotected
+                             IMS_LocalRemote_Type p_LocalRemote,                                     // local or remote
+                             InternetProtocol_Type p_Protocol := udp,                                // udp or tcp
+                             IMS_ClientServer_Type p_ClientServer := server)                         // client or server
+    return PortNumber_Type
+  {
+    var IMS_ProtectedPorts_Type v_ProtectedPorts;
+    var PortNumber_Type v_PortNumber;
+
+    select (p_ProtectedUnprotected) {
+      case (protected) {
+        if (not fl_ImsServer_SecurityIsEstablished(p_ImsServer)) {
+          FatalError(__FILE__, __LINE__, "no security established");
+        }
+        v_ProtectedPorts := p_ImsServer.SecurityInfo.ProtectedPorts;
+        
+        select (p_Protocol) {
+          case (udp) {
+            select (p_LocalRemote) {
+              case (local)  {v_PortNumber := v_ProtectedPorts.Port_ps}
+              case (remote) {v_PortNumber := v_ProtectedPorts.Port_us}
+            }
+          }
+          case (tcp) {
+            select (p_LocalRemote) {
+              case (local) {
+                select (p_ClientServer) {
+                  case (client) {v_PortNumber := v_ProtectedPorts.Port_pc}
+                  case (server) {v_PortNumber := v_ProtectedPorts.Port_ps}
+                }
+              }
+              case (remote) {
+                select (p_ClientServer) {
+                  case (client) {v_PortNumber := v_ProtectedPorts.Port_uc}
+                  case (server) {v_PortNumber := v_ProtectedPorts.Port_us}
+                }
+              }
+            }
+          }
+        }
+      }
+      case (unprotected) {
+        select (p_LocalRemote) {
+          case (local)  {v_PortNumber := p_ImsServer.UnprotectedPorts.Port_ps}
+          case (remote) {v_PortNumber := p_ImsServer.UnprotectedPorts.Port_us}
+        }
+      }
+    }
+    return v_PortNumber;
+  }
+
+  //****************************************************************************
+  // UL Data
+  //----------------------------------------------------------------------------
+
+  function fl_IP_IMS_UL_ResponseOrRequest(Datagram_Content_Type p_Data) return IMS_ClientServer_Type
+  { /* for UDP client and server are not distinguished in terms of portnumbers (i.e. UE sends both reponses and requests to the NW's server port)
+       => to get out whether we've received a response or a request we need to evaluate the message content
+       returns "server" in case of a request, "client" in case of a response */
+    var charstring v_SIP_Message := oct2char(p_Data);
+    var template charstring v_AnyResponse := pattern "SIP/[1-9].[0-9] [1-9][0-9][0-9]*";
+
+    if (match(v_SIP_Message, v_AnyResponse)) {
+      return client;
+    } else {
+      return server;
+    }
+  }
+
+  function fl_IP_IMS_UL_DecodeAndSendRequest(IP_IMS_SERVER_PORT p_Port,
+                                             template (value) IMS_RoutingInfo_Type p_RoutingInfo,
+                                             bitstring p_Data)
+  { /* send request from the UE to the IMS PTC which is connected to the given port */
+    var IMS_Request_Type v_Request;
+    
+    if (decvalue(p_Data, v_Request) != 0) {
+      FatalError(__FILE__, __LINE__, "IMS Request cannot be decoded");
+      return;
+    }
+
+    /* p_Port.checkstate: new TTCN-3 feature acc. to V4.3.2 (clause 22.5.5);
+       as long as this operation is not used we will get a runtime when sending on a port what is not connected (i.e. when there is no IMS PTC on the other side) */
+
+/*     if (not p_Port.checkstate("Connected")) { */
+/*       FatalError(__FILE__, __LINE__, "no IMS handling for this PDN"); */
+/*     } */
+
+    p_Port.send(cas_IMS_DATA_REQ(p_RoutingInfo, v_Request));
+  }
+
+  function fl_IP_IMS_UL_DecodeAndSendResponse(IP_IMS_CLIENT_PORT p_Port,
+                                              template (value) IMS_RoutingInfo_Type p_RoutingInfo,
+                                              bitstring p_Data)
+  { /* send response from the UE to the IMS PTC which is connected to the given port */
+    var IMS_Response_Type v_Response;
+    
+    if (decvalue(p_Data, v_Response) != 0) {
+      FatalError(__FILE__, __LINE__, "IMS Response cannot be decoded");
+      return;
+    }
+
+    /* p_Port.checkstate: new TTCN-3 feature acc. to V4.3.2 (clause 22.5.5);
+       as long as this operation is not used we will get a runtime when sending on a port what is not connected (i.e. when there is no IMS PTC on the other side) */
+
+/*     if (not p_Port.checkstate("Connected")) { */
+/*       FatalError(__FILE__, __LINE__, "no IMS handling for this PDN"); */
+/*     } */
+
+    p_Port.send(cas_IMS_DATA_RSP(p_RoutingInfo, v_Response));
+  }
+
+  function fl_IP_IMS_UL_DecodeAndSend(integer p_PdnIndex,
+                                      IMS_ClientServer_Type p_ClientServer,
+                                      template (value) IMS_RoutingInfo_Type p_RoutingInfo,
+                                      Datagram_Content_Type p_Data) runs on IP_PTC
+  { /* foreward message sent by the UE to the IMS PTC which is started for the given PDN */
+    var bitstring v_Bitstring := oct2bit(p_Data);
+    
+    select (p_ClientServer) {
+      case (server) {
+        fl_IP_IMS_UL_DecodeAndSendRequest(IMS_Server[p_PdnIndex], p_RoutingInfo, v_Bitstring);
+      }
+      case (client) {
+        fl_IP_IMS_UL_DecodeAndSendResponse(IMS_Client[p_PdnIndex], p_RoutingInfo, v_Bitstring);
+      }
+    }
+  }
+
+  altstep a_IP_IMS_UL_ReceiveData(integer p_PdnIndex,
+                                  template (present) IP_AddrInfo_Type p_IpAddr,
+                                  template (present) PortNumber_Type  p_PortNumber,
+                                  IMS_ProtectedUnprotected_Type p_ProtectedUnprotected) runs on IP_PTC
+  { /* receive UDP datagram from the UE */
+    var IP_SOCKET_IND v_IP_SOCKET_IND;
+    var Datagram_Content_Type v_Data;
+    var template (omit) IP_AddrInfo_Type v_NW_Address := omit;
+    var template (omit) IP_AddrInfo_Type v_UE_Address := omit;
+    var template (value) IMS_RoutingInfo_Type v_RoutingInfo;
+    var IMS_ClientServer_Type v_ClientServer;
+
+    // receive unprotected messages
+    [] IP_SOCK.receive(cr_UDP_DATA_IND(cr_IP_Socket(p_IpAddr, p_PortNumber)))
+      -> value v_IP_SOCKET_IND
+      {
+        v_Data := v_IP_SOCKET_IND.DATA.Ind.UDP.RecvFrom.Buffer;
+        select (p_ProtectedUnprotected) {
+          case (unprotected) {
+            /* initial access: unprotected connection; => IMS PTC gets handed over the UE's and the NW's IP address (=> IPv4 or IPv6) */
+            v_NW_Address := v_IP_SOCKET_IND.DATA.ConnectionId.Local.IpAddr;    // may be IPv4 or IPv6
+            v_UE_Address := v_IP_SOCKET_IND.DATA.ConnectionId.Remote.IpAddr;   // may be IPv4 or IPv6
+            v_ClientServer := server;
+          }
+          case (protected) {
+            v_ClientServer := fl_IP_IMS_UL_ResponseOrRequest(v_Data);   /* for UDP Requests and Responses are sent by the UE from Port_uc to Port_ps,
+                                                                         * i.e. there is not data for Port_us to Port_pc and therefore Requests and Responses
+                                                                         * cannot be distinguished by the port on which they have been received */
+          }
+        }
+        v_RoutingInfo := cs_IMS_RoutingInfo(p_ProtectedUnprotected, udp, v_UE_Address, v_NW_Address);
+        fl_IP_IMS_UL_DecodeAndSend(p_PdnIndex, v_ClientServer, v_RoutingInfo, v_Data);
+      }
+  }
+
+  altstep a_IP_IMS_UL_Handler(IMS_Server_Type p_ImsServer,
+                              integer p_PdnIndex) runs on IP_PTC
+  { /* receive UDP datagram from protected or unprotected port */
+    var boolean v_ImsServer_IsStarted := f_ImsServer_IsStarted(p_ImsServer);
+    var boolean v_SecurityIsEstablished := v_ImsServer_IsStarted and fl_ImsServer_SecurityIsEstablished(p_ImsServer);
+ 
+    [v_ImsServer_IsStarted]
+      a_IP_IMS_UL_ReceiveData(p_PdnIndex,
+                              (p_ImsServer.IPv4Addr, p_ImsServer.IPv6Addr),
+                              tsc_IMS_PortNumber_5060,
+                              unprotected);
+
+    [v_SecurityIsEstablished]   /* receive protected IMS message via UDP;
+                                 * NOTE: for UDP Requests and Responses both are sent by the UE from Port_uc to Port_ps,
+                                 *       i.e. we don't need to listen at the port Port_pc */
+      a_IP_IMS_UL_ReceiveData(p_PdnIndex,
+                              p_ImsServer.SecurityInfo.NW_Address,
+                              fl_IP_IMS_GetPort(p_ImsServer, protected, local, udp, server),
+                              protected);
+  }
+
+  //****************************************************************************
+  // DL Data
+  //----------------------------------------------------------------------------
+
+  function fl_IP_IMS_DL_Send(IMS_Server_Type p_ImsServer,
+                             IMS_RoutingInfo_Type p_RoutingInfo,
+                             IMS_ClientServer_Type p_ClientServer,
+                             bitstring p_Data) runs on IP_PTC
+  { /* Send IMS message in DL either on protected or on unprotected port
+     * Routing:
+     * there are several assumptions regarding the routing:
+     * - when there are multiple PDNs there shall be different P-CSCF addresses for each PDN
+     * - at the unprotected port(s) there are requests from the UE only i.e. the network will not send any request on an unprotected port
+     * - for requests on an unprotected port the RoutingInfo of the corresponding response (sent from the IMS server) shall contain the network (P-CSCF) address
+     *   (i.e. even when there is more than one address the IP PTC knows which one to use)
+     * - when security is started, network and UE address are stored together with the security association
+     *   => on protected ports the routing is well-known at the IP-PTC */
+    var InternetProtocol_Type v_Protocol := p_RoutingInfo.Protocol;
+    var IMS_ProtectedUnprotected_Type v_ProtectedUnprotected := p_RoutingInfo.Security;
+    var PortNumber_Type v_LocalPort := fl_IP_IMS_GetPort(p_ImsServer, v_ProtectedUnprotected, local, v_Protocol,  p_ClientServer);
+    var PortNumber_Type v_RemotePort := fl_IP_IMS_GetPort(p_ImsServer, v_ProtectedUnprotected, remote, v_Protocol, p_ClientServer);
+    var Datagram_Content_Type v_Data := bit2oct(p_Data);
+    var IP_AddrInfo_Type v_UE_Address;
+    var IP_AddrInfo_Type v_NW_Address;
+    var template (value) IP_Socket_Type v_LocalSocket;
+    var template (value) IP_Socket_Type v_RemoteSocket;
+
+    select (v_ProtectedUnprotected) {
+      case (unprotected) {      /* the IMS server has to provide the addresses (i.e. the IMS server uses the addresses as gotten in the request)
+                                   => we know whether to send on IPv4 or on IPv6 */
+        v_NW_Address := p_RoutingInfo.NW_Address;
+        v_UE_Address := p_RoutingInfo.UE_Address;
+      }
+      case (protected)   {      /* use addresses as stored for the security context */
+        if (not fl_ImsServer_SecurityIsEstablished(p_ImsServer)) {
+          FatalError(__FILE__, __LINE__, "IMS security not established");
+        }
+        v_NW_Address := p_ImsServer.SecurityInfo.NW_Address;
+        v_UE_Address := p_ImsServer.SecurityInfo.UE_Address;
+      }
+    }
+    v_LocalSocket  := cs_IP_Socket(v_NW_Address, v_LocalPort);
+    v_RemoteSocket := cs_IP_Socket(v_UE_Address, v_RemotePort);
+   
+    select (v_Protocol) {
+      case (udp) {
+        IP_SOCK.send(cs_UDP_DATA_REQ(v_LocalSocket, v_RemoteSocket, v_Data));
+      }
+      case (tcp) {
+        FatalError(__FILE__, __LINE__, "TCP is not supported yet");       // !!!!! TCP !!!!!
+        return;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid protocol");
+        return;
+      }
+    }
+  }
+
+  altstep a_IP_IMS_DL_Handler(IMS_Server_Type p_ImsServer,
+                              integer p_PdnIndex) runs on IP_PTC
+  { // to handle requests or responses from the IMS PTC
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+    var IMS_DATA_RSP v_IMS_DATA_RSP;
+    var bitstring v_Data;
+
+    [] IMS_Server[p_PdnIndex].receive(cr_IMS_DATA_RSP_Any) -> value v_IMS_DATA_RSP
+      {
+        v_Data := encvalue(v_IMS_DATA_RSP.Response);
+        fl_IP_IMS_DL_Send(p_ImsServer, v_IMS_DATA_RSP.RoutingInfo, server, v_Data);
+      }
+    [] IMS_Client[p_PdnIndex].receive(cr_IMS_DATA_REQ_Any) -> value v_IMS_DATA_REQ
+      {
+        v_Data := encvalue(v_IMS_DATA_REQ.Request);
+        fl_IP_IMS_DL_Send(p_ImsServer, v_IMS_DATA_REQ.RoutingInfo, client, v_Data);
+      }
+  }
+
+  //****************************************************************************
+  // Security configuration
+  //----------------------------------------------------------------------------
+
+  altstep a_IP_IMS_Config(inout IMS_Server_Type p_ImsServer,
+                          IP_IMS_CTRL_PORT p_Port) runs on IP_PTC
+  { // to handle configuration from the IMS PTC
+    var IMS_CONFIG_REQ v_IMS_CONFIG_REQ;
+    var IMS_PortsAndSecurityConfigReq_Type v_PortsAndSecurityConfig;
+
+    [] p_Port.receive(car_IMS_InstallKey_REQ) -> value v_IMS_CONFIG_REQ
+      {
+        p_ImsServer.SecurityKeys := v_IMS_CONFIG_REQ.InstallKey;
+        p_Port.send(cas_IMS_InstallKey_CNF);
+      }
+
+    [] p_Port.receive(car_IMS_PortsAndSecurityConfig_REQ) -> value v_IMS_CONFIG_REQ
+      {
+        if (not isvalue(p_ImsServer.SecurityKeys)) {
+          FatalError(__FILE__, __LINE__, "security keys missing");
+        }
+        v_PortsAndSecurityConfig := v_IMS_CONFIG_REQ.PortsAndSecurityConfig;
+        
+        if (isvalue(v_PortsAndSecurityConfig.UnprotectedPort_us)) {
+          p_ImsServer.UnprotectedPorts.Port_us := v_PortsAndSecurityConfig.UnprotectedPort_us;   // set UE's port number as requested by the UE
+        } else {
+          p_ImsServer.UnprotectedPorts.Port_us := tsc_IMS_PortNumber_5060;                       // restore port number e.g. if it has been set to other value in previous session
+        }
+        
+        fl_ImsServer_SecurityStop(p_ImsServer);      // Note: p_ImsServer is not changed but IP sec is released and the UDP server is stop on Port_ps
+
+        p_ImsServer.SecurityInfo := fl_ImsServer_SecurityStart(v_PortsAndSecurityConfig.SecurityInfo,
+                                                               p_ImsServer.SecurityKeys,
+                                                               p_ImsServer.DrbInfo);
+        
+        p_Port.send(cas_IMS_PortsAndSecurityConfig_CNF(cs_PortsAndSecurityConfigCnf(p_ImsServer.SecurityInfo.ProtectedPorts,
+                                                                                    p_ImsServer.SecurityInfo.SPIs)));
+      }
+  }
+
+  //============================================================================
+  
+  altstep a_IP_IMS_Handler(inout IP_PTC_IMS_Info_Type p_IMS_Info) runs on IP_PTC
+  {
+    var IMS_Server_Type v_ImsServer_PDN1 := p_IMS_Info.Server[tsc_Index_PDN1];
+    var IMS_Server_Type v_ImsServer_PDN2 := p_IMS_Info.Server[tsc_Index_PDN2];
+
+    [] a_IP_IMS_UL_Handler(v_ImsServer_PDN1, tsc_Index_PDN1);
+    [] a_IP_IMS_UL_Handler(v_ImsServer_PDN2, tsc_Index_PDN2);
+
+    [] a_IP_IMS_DL_Handler(v_ImsServer_PDN1, tsc_Index_PDN1);
+    [] a_IP_IMS_DL_Handler(v_ImsServer_PDN2, tsc_Index_PDN2);
+
+    [] a_IP_IMS_Config(v_ImsServer_PDN1, IMS_CTRL[tsc_Index_PDN1]) {
+      p_IMS_Info.Server[tsc_Index_PDN1] := v_ImsServer_PDN1;     // configuration for PDN1 has been modified
+    }
+    [] a_IP_IMS_Config(v_ImsServer_PDN2, IMS_CTRL[tsc_Index_PDN2]) {
+      p_IMS_Info.Server[tsc_Index_PDN2] := v_ImsServer_PDN2;     // configuration for PDN2 has been modified
+    }
+  }
+}

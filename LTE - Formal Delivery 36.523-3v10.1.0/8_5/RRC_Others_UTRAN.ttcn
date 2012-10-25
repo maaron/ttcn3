@@ -1,0 +1,172 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 14:09:14 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7293 $
+/******************************************************************************/
+
+module RRC_Others_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_CapabilityFunctions all;
+  import from NAS_CommonTypeDefs all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CapabilityFunctions all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_RAB_Functions all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UpperTesterFunctions all;
+
+  template (value) DL_CCCH_Message cs_RRCConnRej ( IntegrityCheckInfo        p_Integrityinfo,
+                                                   InitialUE_Identity        p_InitialUE_Identity,
+                                                   EARFCN                    p_Earfcn,
+                                                   RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI ) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := p_Integrityinfo,
+    message_ := {
+      rrcConnectionReject := {
+        r3 := {
+          rrcConnectionReject_r3 := {
+            initialUE_Identity        := p_InitialUE_Identity,
+            rrc_TransactionIdentifier := p_RRC_TI,
+            rejectionCause            := unspecified,
+            waitTime                  := 15,
+            redirectionInfo           := omit
+          },
+          laterNonCriticalExtensions := {
+            rrcConnectionReject_r3_add_ext := omit,
+            v690NonCriticalExtensions := {
+              rrcConnectionReject_v690ext := {
+                redirectionInfo_v690ext := omit
+              },
+              v6f0NonCriticalExtensions := {
+                rrcConnectionReject_v6f0ext := {
+                  countingCompletion := omit
+                },
+                v860NonCriticalExtensions := {
+                  rrcConnectionReject_v860ext := {
+                    redirectionInfo := {
+                      interRATInfo := {
+                        eutra := {
+                          eutra_TargetFreqInfoList := {
+                            {
+                              dlEUTRACarrierFreq              := p_Earfcn,
+                              eutraBlacklistedCellPerFreqList := omit
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  va40NonCriticalExtensions := omit          /* @sic R5s120178 BASELINE MOVING 2012 (nonCriticalExtensions renamed to va40NonCriticalExtensions) sic@ */
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  function f_TC_8_5_2_1_UTRAN ( ) runs on UTRAN_PTC
+  {
+
+    var InitialUE_Identity v_InitialUE_Id;
+    var template (value) QualityOfService v_QualityOfService;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var EutraFrequencyAndPriorityInfoPriorityValue_Type v_EutraPriorityValue_T0 := 3;
+    var UtraServingCellPriorityValue_Type v_UtraPriorityValue_T0 := 4;
+    var integer v_DedicatedId := 1;
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode ;
+    var EUTRA_MeasurementBandwidth v_EUTRA_MeasurementBandwidth := f_UTRAN_ConvertIntegerToEUTRA_MeasurementBandwidth(f_ConvertDL_BandwidthPIXITToInteger());
+
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+
+    //Get Cell Parameters for EUTRA cell from EUTRA PTC
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    //Update SIB19 of cell 5 according to Table 8.5.2.1.3.3-1
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell5,
+                              cs_SIB19_UtraAndOneEutraEntry (cs_Utra_PriorityInfoList_Prio (v_UtraPriorityValue_T0),
+                                                             cs_Eutra_FreqAndPriList_OneEntry_Def (v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                                   v_EUTRA_MeasurementBandwidth,
+                                                                                                   v_EutraPriorityValue_T0)));
+
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+
+    //Bring UE to inital state
+    f_UTRAN_Preamble (utran_Cell5);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_OctetData(f_UTRAN_MobileInfo_EUTRACapability_Get())); // @sic R5-123734 sic@
+
+    f_UTRAN_TestBody_Set (true);
+
+    //Derive Quality of service for AT command
+    v_QualityOfService := f_UTRAN_InitialiseQoS (utran_Cell5);
+
+    //Get security info
+    v_SecurityInfo := f_UTRAN_Security_Get ();
+
+    //@siclog "Step 1" siclog@
+    //Make the UE initiate an outgoing PS call.
+    f_UT_ActivatePDPContextUG (UT,
+                               v_DedicatedId,
+                               v_QualityOfService,
+                               "");
+    
+    //@siclog "Step 2" siclog@
+    //Receive RRC CONNECTION REQUEST
+    alt { // @sic R5-120756 sic@
+      [v_FDD_TDD_Mode == UTRAN_FDD] U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                      tsc_RB0,
+                                      cdr_RRC_ConnReqWith_v860ext(?, cr_RRCConnReq_v860ext(true, ?), cr_RRCConnReq_v690ext_PSDomain))) -> value v_RLC_TR_DATA_IND
+        {}
+      [v_FDD_TDD_Mode == UTRAN_TDD] U_TM.receive(car_RRC_ConnReq(utran_Cell5,
+                                      tsc_RB0,
+                                      cdr_RRC_ConnReqWith_v860ext(?, cr_RRCConnReq_v860ext(?, true), cr_RRCConnReq_v690ext_PSDomain))) -> value v_RLC_TR_DATA_IND
+        {}
+    }
+    v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+    f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.5.2.1 Step 2");
+
+    //@siclog "Step 3" siclog@
+    //Transmit RRC CONNECTION REJECT
+    U_UM.send (cas_DL_CCCH_Data_Req (utran_Cell5,
+                                     tsc_RB0,
+                                     cs_RRCConnRej (v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                    v_InitialUE_Id,
+                                                    v_EUTRASysInfo.Eutra[0].Arfcn)));
+
+    //Hand over test case to EUTRA PTC, i.e. perform TAU in EUTRA cell
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    //Wait till end of test case
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+
+    f_UTRAN_TestBody_Set (false);
+
+    //Release the non camping cell
+    f_UTRAN_ReleaseCell (utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+  }
+
+}

@@ -1,0 +1,127 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-07-02 00:15:45 +0200 (Mon, 02 Jul 2012) $
+// $Rev: 6970 $
+/******************************************************************************/
+
+module RRC_Measurement_C2K_CDMA2000 {
+
+  import from CDMA2000_CommonDefs all;
+  import from CDMA2000_CommonFunctions all;
+  import from CDMA2000_Component all;
+  import from CommonIratDefs all;
+
+  function f_TC_8_3_2_7_CDMA2000 () runs on CDMA2000_PTC
+  {
+    
+    const PowerIor_Type  tsc_T0_T2_Cell15 := -75; // cell power corresponds to Ior //@sic R5s103646 sic@
+    const PowerIor_Type  tsc_T1_Cell15 := -60;     // cell power corresponds to Ior //@sic R5s103646 sic@
+    const PowerIor_Type  tsc_T0_T1_T2_Cell16 := -75; // cell power corresponds to Ior //@sic R5s103646 sic@
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 );
+    // Set MAX reference power corresponding to Ior/Ioc =-5 and -20 for cell 15 and 16 respectively
+    // Note as cell 15 and 16 are on different frequency the
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell15, -55, -60, omit);    //Ioc =-55, Ior/Ioc=-5, Pilot offset =0 i.e. only pilot is transmitted //@sic R5s103646 sic@
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell16, -55, -75, omit);    //Ioc =-55, ior/Ioc=-20, Pilot offset =0 i.e. only pilot is transmitted //@sic R5s103646 sic@
+    
+    //Create CDMA2000 cell15 and cell16 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell15 );
+    f_CDMA2000CreateCell ( cdma2000_Cell16 );
+    f_CDMA2000_Send_IR_SysInfoToEUTRA ( cdma2000_Cell15 );
+    
+    //First Trigger: to Change cell power according to T0 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //Set CDMA2000 cell's power level for T0
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, tsc_T0_T2_Cell15 );
+    f_CDMA2000_SetCellPower( cdma2000_Cell16, tsc_T0_T1_T2_Cell16 );
+    
+    f_CDMA2000_TestBody_Set( true );
+    //------------------------------------------------
+    //Start TestBody
+    
+    //Second Trigger: Step 4: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, tsc_T1_Cell15 );
+    
+    //Third Trigger: Step 7: Change cell power according to T2
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, tsc_T0_T2_Cell15 );
+    
+    // Step 9-13 void
+    
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    
+    f_CDMA2000_ReleaseCells(); //Delete all configured CDMA2000 cells
+    
+  }; //end of testcase 8.3.2.7
+
+  function f_TC_8_3_2_9_CDMA2000 () runs on CDMA2000_PTC
+  {
+    const PowerIor_Type  tsc_T0_T2_T4_Cell19 := -90; // cell power corresponds to Ior
+    const PowerIor_Type  tsc_T1_T3_Cell19 := -75; // cell power corresponds to Ior
+    const PowerIor_Type  tsc_T0_T1_T2_T3_T4_Cell20 := -90; // cell power corresponds to Ior
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000, type1XRTT );
+    
+    // Set MAX reference power corresponding to Ior/Ioc = 0 and -15 for cell 19 and 20 respectively
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell19, -75, -75, omit); //Ioc = -75, Ior/Ioc = 0, Pilot offset = -7
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell20, -75, -90, omit); //Ioc = -75, ior/Ioc = -15, Pilot offset = -7
+    
+    //Create CDMA2000 cell19 and cell20 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell19 );
+    f_CDMA2000CreateCell ( cdma2000_Cell20 );
+    f_CDMA2000_Send_IR_SysInfoToEUTRA ( cdma2000_Cell19 );
+    
+    //First Trigger: to Change cell power according to T0 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //Set CDMA2000 cell's power level for T0
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, tsc_T0_T2_T4_Cell19 );
+    f_CDMA2000_SetCellPower( cdma2000_Cell20, tsc_T0_T1_T2_T3_T4_Cell20 );
+    
+    f_CDMA2000_TestBody_Set( true );
+
+    //------------------------------------------------
+    //Start TestBody
+    
+    //Second Trigger: Step 4: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, tsc_T1_T3_Cell19 );
+    
+    //Third Trigger: Step 7: Change cell power according to T2
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, tsc_T0_T2_T4_Cell19 );
+    
+    //Fourth Trigger: Step 9: Change cell power according to T3
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, tsc_T1_T3_Cell19 );
+    
+    //Fifth Trigger: Step 12: Change cell power according to T4
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, tsc_T0_T2_T4_Cell19 );
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    
+    f_CDMA2000_ReleaseCells(); //Delete all configured CDMA2000 cells
+  }
+
+}

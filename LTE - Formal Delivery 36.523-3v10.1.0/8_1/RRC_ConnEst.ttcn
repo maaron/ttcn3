@@ -1,0 +1,1777 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:04:47 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7312 $
+/******************************************************************************/
+
+module RRC_ConnEst {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from UpperTesterFunctions all;
+
+  template (value) RachProcedureConfig_Type cs_RachProcedureConfig_TC_8_1_2_3( RACH_TimingAdvance_Type p_RAR_TA,
+                                                                               Dl_Bandwidth_Type p_Dl_Bandwidth ):=
+  { /* Rach Response config for test case 8.1.2.3 (no contention resolution) */
+    /* @status    APPROVED */
+    RACH_ConfigCommon := omit,
+    RACH_ConfigDedicated := omit,
+    RachProcedureList := {
+      //RAR Tx successful but no Contention Resolution
+      {
+        RAResponse := cs_RandomAccessResponseConfig_Def( p_RAR_TA, p_Dl_Bandwidth ),
+        ContentionResolutionCtrl := cs_ContReslCtrl_None_TCRNTI
+      }
+    }
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_5 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := omit,
+    ac_BarringForMO_Data := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s512,
+      ac_BarringForSpecialAC := '11111'B //@sic R5-104265 sic@
+    }
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_6 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := omit,
+    ac_BarringForMO_Data := {
+      ac_BarringFactor := p50,
+      ac_BarringTime := s64,
+      ac_BarringForSpecialAC := '00000'B //@sic R5-110230 sic@
+    }
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_7 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := true,
+    ac_BarringForMO_Signalling := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s4,
+      ac_BarringForSpecialAC := '00000'B
+    },
+    ac_BarringForMO_Data := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s4,
+      ac_BarringForSpecialAC := '00000'B
+    }
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_9_Cell1 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := omit,
+    ac_BarringForMO_Data := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s512,
+      ac_BarringForSpecialAC := '11111'B
+    }
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_9_Cell11 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := {
+      ac_BarringFactor := p50,
+      ac_BarringTime := s64,  // @sic R5-121894 sic@
+      ac_BarringForSpecialAC := '00000'B //@sic R5-110230 sic@
+    },
+    ac_BarringForMO_Data := omit
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_13_Cell1 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s8,
+      ac_BarringForSpecialAC := '11111'B
+    },
+    ac_BarringForMO_Data := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s512,
+      ac_BarringForSpecialAC := '11111'B
+    }
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_13_Cell11 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s512,
+      ac_BarringForSpecialAC := '11111'B
+    },
+    ac_BarringForMO_Data := omit
+  };
+
+  template (value) DL_CCCH_Message cs_RRCConnectionSetup_DeltaMCS ( RRC_TransactionIdentifier p_RRC_TI,
+                                                                    template (value) PUCCH_ConfigDedicated p_PUCCH_ConfigDedicated,
+                                                                    template (omit) CQI_ReportPeriodic p_CQI_ReportingPeriodic,                    // @sic R5-120497 sic@
+                                                                    template (omit) SoundingRS_UL_ConfigDedicated p_SoundingRsUl_ConfigDedicated,  // @sic R5-120497 sic@
+                                                                    SR_PUCCH_ResourceIndex_Type p_SR_PUCCH_ResourceIndex,
+                                                                    template (value) PhysicalConfigDedicated_AntennaInfo_Type p_AntennaInfo,       // @sic R5-100786 sic@
+                                                                    SR_ConfigIndex_Type p_SR_ConfigIndex ) :=                                      // @sic R5-102177 sic@
+  { /* @status    APPROVED */
+    message_ := {
+      c1 := {
+        rrcConnectionSetup := {
+          rrc_TransactionIdentifier := p_RRC_TI,
+          criticalExtensions := {
+            c1 := {
+              rrcConnectionSetup_r8 := {
+                radioResourceConfigDedicated :=
+                cs_508_RadioResourceConfigDedicated_SRB1 ( cs_MAC_MainConfig_SRB1,
+                                                           cds_PhysicalConfigDedicated_SRB1_DeltaMCS(p_PUCCH_ConfigDedicated,
+                                                                                                     p_CQI_ReportingPeriodic,
+                                                                                                     p_SoundingRsUl_ConfigDedicated,
+                                                                                                     p_SR_PUCCH_ResourceIndex,
+                                                                                                     p_AntennaInfo,
+                                                                                                     p_SR_ConfigIndex) ),// @sic R5-102177 sic@
+                nonCriticalExtension := omit
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) PhysicalConfigDedicated cds_PhysicalConfigDedicated_SRB1_DeltaMCS ( template (value) PUCCH_ConfigDedicated p_PUCCH_ConfigDedicated,
+                                                                                       template (omit) CQI_ReportPeriodic p_CQI_ReportingPeriodic,                    // @sic R5-120497 sic@
+                                                                                       template (omit) SoundingRS_UL_ConfigDedicated p_SoundingRsUl_ConfigDedicated,  // @sic R5-120497 sic@
+                                                                                       SR_PUCCH_ResourceIndex_Type p_SR_PUCCH_ResourceIndex,
+                                                                                       template (value) PhysicalConfigDedicated_AntennaInfo_Type p_AntennaInfo, // @sic R5-100786 sic@
+                                                                                       SR_ConfigIndex_Type p_SR_ConfigIndex ) // @sic R5-102177 sic@
+    modifies cs_508_PhysicalConfigDedicated_Default_SRB1 :=
+  { /* @status    APPROVED */
+    uplinkPowerControlDedicated := cds_UplinkPowerControlDedicated_DeltaMCS
+  };
+
+  template (value) UplinkPowerControlDedicated cds_UplinkPowerControlDedicated_DeltaMCS
+    modifies cs_508_UplinkPowerControlDedicated_Default :=
+  { /* @status    APPROVED */
+    //p0_UE_PUSCH := 0,
+    deltaMCS_Enabled := en1
+    //accumulationEnabled := true,
+    //p0_UE_PUCCH := 0,
+    //pSRS_Offset := 3,
+    //filterCoefficient := fc4
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_CellConfig_Update_DeltaMCS_Info_REQ ( EUTRA_CellId_Type  p_CellId,
+                                                                             template (value) TimingInfo_Type p_TimingInfo,
+                                                                             template (value) UplinkPowerControlDedicated p_UplinkPowerControlDedicated ) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          Basic := omit,
+          Active := {
+            C_RNTI := omit,
+            PhysicalLayerConfigUL := {
+              Prach := omit,
+              Pucch := omit,
+              Pusch := omit,
+              TimingAdvance := omit,
+              SRS_UL_Config := omit,
+              SR_Config := omit,
+              CQI_ReportConfig := omit,
+              UplinkPowerControlCommon := omit,
+              UplinkPowerControlDedicated := cs_UplinkPowerControlDedicated_r8 ( p_UplinkPowerControlDedicated )
+            },
+            RachProcedureConfig := omit,
+            CcchDcchDtchConfig := omit
+          }
+        }
+      }
+    }
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TC_8_1_2_8 :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s16,
+      ac_BarringForSpecialAC := '11111'B
+    },
+    ac_BarringForMO_Data := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := s16,
+      ac_BarringForSpecialAC := '11111'B
+    }
+  };
+
+  function fl_EUTRA_RRC_ConnectionSetup_DeltaMCS (EUTRA_CellId_Type p_CellId,
+                                                  template (value) TimingInfo_Type p_TimingInfo,
+                                                  RRC_TransactionIdentifier p_RRC_TI) runs on EUTRA_PTC
+  {
+    // Get FDD or TDD mode from Cell-configuration:
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type  v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info(p_CellId);
+    var SR_PUCCH_ResourceIndex_Type v_Sr_PUCCH_ResourceIndex := f_EUTRA_CellInfo_GetSR_PUCCH_ResourceIndex ( p_CellId );
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (p_CellId);
+    var SR_ConfigIndex_Type v_SR_ConfigIndex := f_EUTRA_CellInfo_GetSR_ConfigIndex ( eutra_Cell1 );
+
+    // switch on UL grant assignments
+    f_EUTRA_StartDefULGrantTransmission(p_CellId);
+
+    SRB.send ( cas_SRB0_RrcPdu_REQ ( p_CellId,
+                                     p_TimingInfo,
+                                     cs_RRCConnectionSetup_DeltaMCS ( p_RRC_TI,
+                                                                      v_EUTRA_FDD_TDD_Info.pucch_Config,
+                                                                      v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,        // @sic R5-120497 sic@
+                                                                      v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,    // @sic R5-120497 sic@
+                                                                      v_Sr_PUCCH_ResourceIndex,
+                                                                      v_AntennaInfo,
+                                                                      v_SR_ConfigIndex ) ) ); // @sic R5-102177 sic@
+  }
+
+  function fl_EUTRA_ActivateAdditionalPDN_Steps_2a2_to_6(EUTRA_CellId_Type p_CellId,
+                                                         EPS_BearerIdentity p_EpsBearerId2,
+                                                         EUTRA_RRC_STATE_Type p_RRCState) runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_PTId_UE;
+    var template (omit) ProtocolConfigOptions v_Pco;
+    var template (value) AccessPointName v_AccessPointName;
+    var PDN_Address v_PDN_Address2;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var PDN_CONNECTIVITY_REQUEST v_PDNConnReq;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (p_CellId); //Get FDD or TDD mode from Cell-configuration
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NasCount_Type v_NasCountUL;
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (p_CellId); //@sic R5-100786 sic@
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList;
+    var octetstring v_APN_Value := tsc_APN1; // APN-1(New PDN name), different from default
+
+    v_DRB_ToAddModList[0] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1);
+
+    // The UE transmits a SERVICE REQUEST
+    // The UE transmits a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN.
+    if ( p_RRCState == RRC_IDLE ){
+      // UE is in RRC Idle mode
+      // Steps 2a2 to 2a7
+      f_EUTRA_RRC_ConnectionSetup_Def ( eutra_Cell1 );
+
+      v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                         cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                         cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                           cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+      v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+
+      // activate security in AS with parameters from AKA performed in preamble
+      v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+      v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(p_CellId,
+                                                       v_SecurityParams,
+                                                       v_NasCountUL);
+      f_EUTRA_Security_Set(v_SecurityParams);
+
+      SRB.send(cas_SRB1_RrcPdu_REQ(p_CellId,
+                                   cs_TimingInfo_Now,
+                                   cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                          omit,
+                                                                          omit,
+                                                                          cs_508_RadioResourceConfigDedicated_SRB2( v_DRB_ToAddModList,
+                                                                                                                    cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                    cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                               v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                               v_AntennaInfo)),
+                                                                          omit)));
+
+      // receive RRCConnectionReconfigurationComplete
+      SRB.receive(car_SRB1_RrcPdu_IND(p_CellId,
+                                      cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+
+    } // end of if RRC_Idle
+    // UE is now in RRC connected mode
+
+    // Step 3. The UE transmits an ULInformationTransfer message including the PDN CONNECTIVITY REQUEST message.
+    SRB.receive ( car_SRB2_NasPdu_IND ( p_CellId,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN_Value)))))-> value v_ReceivedAsp;
+
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNConnReq := v_NasInd.Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := cs_AccessPointName(v_APN_Value);
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+
+    // Change from DRB1 to DRB2 to handle U Plane data
+    f_EUTRA_StartIPfor2ndPDN(p_CellId); //@sic R5-113734 change 8 sic@
+
+    // Step 4 and 5. The SS transmits an RRCConnectionReconfiguration message including
+    // the ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message to establish the
+    // default EPS bearer context.
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco));
+    f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig(p_CellId,
+                                                          tsc_RRC_TI_Def,
+                                                          p_EpsBearerId2, // Default bearer ID to additional PDN
+                                                          v_PTId_UE,  // use value as defined by the UE
+                                                          v_AccessPointName,
+                                                          v_PDN_Address2,
+                                                          f_GetDefPCOforPCSCFAddress(v_Pco));
+
+    // Step 6. The UE transmits an ULInformationTransfer message including the ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActivateDefEpsBearerContextAccept(p_EpsBearerId2))));
+
+    //1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+
+    f_EUTRA_RRC_ConnectionRelease(p_CellId);  // @sic R5s100326 sic@
+
+  } // fl_EUTRA_ActivateAdditionalPDN_Steps_2a2_to_6
+
+  function fl_EUTRA_CellInfo_SetHighSpeedFlag (EUTRA_CellId_Type p_CellId,
+                                               boolean p_HighSpeedFlag) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.prach_Config.prach_ConfigInfo.highSpeedFlag := p_HighSpeedFlag;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  };
+
+  function fl_EUTRA_CellInfo_SetRootSequenceIndex (EUTRA_CellId_Type p_CellId,
+                                                   integer p_RootSequenceInd) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+
+    if ( (p_RootSequenceInd > 837) or (p_RootSequenceInd < 0) ) {
+      FatalError (__FILE__, __LINE__, "Parameter Root Sequence Index out of range(0..837)");
+    }
+
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.prach_Config.rootSequenceIndex := p_RootSequenceInd;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  };
+
+  function f_TC_8_1_2_1_EUTRA() runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var B3_Type v_KsiValue;
+    var NAS_MSG_Indication_Type v_NasInd; //@sic R5-102180 sic@
+
+    f_EUTRA_Init ( c1 );
+
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    /* Preamble to enter UE in E-UTRA RRC_IDLE (state 2) */
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    v_KsiValue := f_EUTRA_SecurityKSIasme_Get ( );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //SS sends a Paging message to the UE on the appropriate paging block, and including the UE identity in one entry of the IE pagingRecordLists
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 ); // @sic R5-101114 sic@
+
+    //@siclog "Step 2" siclog@
+    //Check: UE transmits an RRCConnectionRequest message
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_mt_Access);    // @sic R5-101114, R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.1 Step 2");
+
+    //Configure SS with same UplinkPowerControlDedicated as UE is configured in Step 3
+    f_EUTRA_SS_CommonCellConfig ( eutra_Cell1,
+                                  cas_CellConfig_Update_DeltaMCS_Info_REQ ( eutra_Cell1,
+                                                                            cs_TimingInfo_Now,
+                                                                            cds_UplinkPowerControlDedicated_DeltaMCS)); // @sic R5-101114 sic@
+    //@siclog "Step 3" siclog@
+    //SS transmit a RRCConnectionSetup message with SRB1 configuration.
+    fl_EUTRA_RRC_ConnectionSetup_DeltaMCS ( eutra_Cell1,
+                                            cs_TimingInfo_Now,
+                                            v_RRC_TI ); // @sic R5-101114 sic@
+    //@siclog "Step 4" siclog@
+    //Check: Does the UE transmit an RRCConnectionSetupComplete including SERVICE REQUEST message to confirm the successful completion of the connection establishment?
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(v_RRC_TI, ?),
+                                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                         cr_508_SERVICE_REQUEST(v_KsiValue)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.1 Step 4");
+
+    //@siclog "Step 4A - 4D" siclog@
+    //Steps 6 to 9 of the generic radio bearer establishment procedure (TS 36.508 4.5.3.3-1) are executed to successfully complete the service request procedure.
+    f_EUTRA_ServiceReqPostamble_508Steps6_9( eutra_Cell1, v_NasInd ); //@sic R5-102180 sic@
+
+    //@siclog "Step 5" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 1?
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED ); //@sic R5-103875 sic@
+  }
+
+  altstep a_EUTRA_TC_8_1_2_2_Default_Behaviour(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    [] SRB.receive( car_SRB0_RrcPdu_IND( p_CellId, cr_508_RRCConnectionRequest ) )
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.2 Step 1 of parallel behaviour.");
+      }
+  };
+
+  function f_TC_8_1_2_2_EUTRA() runs on EUTRA_PTC
+  { /* RRC Connection Establishment in RRC Idle state: Reject with wait time */
+
+    var NAS_MSG_Indication_Type v_NasInd;
+    var GutiParameters_Type v_GutiParameters;
+    var default v_MyDefaultVar := null;
+    var EUTRA_SecurityParams_Type v_SecurityParams;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+    var float v_Timer_1 := 5.0;
+    var EUTRA_POSTAMBLE_STATE_Type v_PostambleState := E1_IDLE;
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE()) };      /* @sic R5s120470 sic@ */
+
+    timer t_WaitTime;
+    timer t_Timer_1;
+
+    f_EUTRA_Init (c1);
+
+    v_GutiParameters := f_EUTRA_CellInfo_GetGuti (eutra_Cell1);
+
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+
+    /* The UE is in state Loopback Activated (state 4) with condition UE TEST LOOP MODE B on Cell 1 (serving cell) according to [18]. */
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeB );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    f_EUTRA_CloseUE_TestLoopModeB ( eutra_Cell1, '05'O );
+
+    v_SecurityParams := f_EUTRA_Security_Get();
+    v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+
+    f_EUTRA_TestBody_Set (true);
+
+    //@siclog "Step 1" siclog@
+    //The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 1.
+    DRB.send(cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell1, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));     /* @sic R5s120470 sic@ */
+
+    //@siclog "Step 1A" siclog@
+    //Wait for 1 s after the IP packet has been transmitted in step 1. (Note 3)
+    f_Delay ( 1.0 );
+
+    //@siclog "Step 1B" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease ( eutra_Cell1 );
+
+    //@siclog "Step 1C" siclog@
+    //The SS transmits a Paging message with a matching UE identity.
+    f_EUTRA_UE_Page ( eutra_Cell1,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI ) ) );
+
+    //@siclog "Step 2" siclog@
+    //Step 2: The UE transmit an RRCConnectionRequest message.
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_mt_Access);    // @sic R5s100827, R5-120721 change 3 sic@
+
+    //@siclog "Step 3" siclog@
+    //Step 3: The SS responds with RRCConnectionReject message with IE waitTime set to 10s.
+    SRB.send ( cas_SRB0_RrcPdu_REQ ( eutra_Cell1,
+                                     cs_TimingInfo_Now,
+                                     cs_RRCConnectionReject ) );
+
+    //EXCEPTION: the behaviour in table 8.1.2.2.3.2-2 runs in parallel with steps 4 and 5 below.
+    //Parallel behaviour Step 1: Check: Does the UE transmit an RRCConnectionRequest message within 10s.
+    t_WaitTime.start(f_EUTRA_SetTimerToleranceMin ( eutra_Cell1, rrcTimer, 10.0 ));
+    v_MyDefaultVar := activate(a_EUTRA_TC_8_1_2_2_Default_Behaviour ( eutra_Cell1 ) );        /* NOTE! If the timer expires during step 4 or */
+                                                                                              /* step 5 default behaviour takes place.       */
+
+    //@siclog "Step 4" siclog@
+    //Void
+
+    //@siclog "Step 5" siclog@
+    //The SS transmits a Paging message with a matching UE identity.
+    f_EUTRA_UE_Page ( eutra_Cell1,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI ) ) );
+
+    t_WaitTime.timeout;
+    deactivate(v_MyDefaultVar);
+
+    //@siclog "Step 6" siclog@
+    //Start timer Timer_1 of 5 seconds
+    t_Timer_1.start( v_Timer_1 );
+
+    //@siclog "Step 7a1" siclog@
+    //Receive RRCConnectionRequest message if UE treats Cell 1 as normal and access is granted for originating call?
+    alt {
+      [] SRB.receive(car_SRB0_RrcPdu_IND(eutra_Cell1, cr_508_RRCConnectionRequest))
+        {
+          t_Timer_1.stop;
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.2 Step 7a1");
+
+          //@siclog "Step 7a2-7a6" siclog@
+          //Steps 4 to 8 of the generic radio bearer establishment procedure (TS 36.508 4.5.3.3-1) are executed.
+
+          //@siclog "Step 7a2" siclog@
+          //send RRC Connection Setup on SRB0 (CCCH) and switch on UL grant assignments:
+          f_EUTRA_RRC_ConnectionSetup_Def (eutra_Cell1);
+
+          //@siclog "Step 7a3" siclog@
+          //receive RRC Connection Setup Complete with piggy-backed Service Request on SRB1 (DCCH):
+
+          v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                             cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                             cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                               cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+
+          //@siclog "Step 7a4-7a6" siclog@
+          //RRC Security is activated and RRC Connection Reconfiguration sent to configure SRB2 and 1 AM DRB
+          f_EUTRA_Activate_SRB2_DRB_SendRrcMsg ( eutra_Cell1, tsc_RRC_TI_Def, v_NasInd.SecurityProtection.NasCount);
+
+          //EXCEPTION: Step 7a7 and 7a8 can occur in any order
+          //@siclog "Step 7a7 - 7a8" siclog@
+          //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+          //The UE loop backs the IP packet received in step 1 on the DRB associated with the default EPS bearer context on Cell 1.
+          interleave {
+            [] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) ) {}
+            [] DRB.receive ( car_DRB_COMMON_IND_PDCP_SDUList ( eutra_Cell1, tsc_RbId_DRB1, ?, v_PDCP_SDUList_DRB1)) {} /* @sic R5s120470 sic@ */
+          }
+
+          //@siclog "Step 7a9" siclog@
+          //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 1?
+          f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+          v_PostambleState := E3_TESTMODE;
+        }
+
+      //@siclog "Step 7b1" siclog@
+      //Wait for Timer_1 to expire
+      [] t_Timer_1.timeout
+        {
+          //@siclog "Step 7b2" siclog@
+          //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 1?}
+          f_EUTRA_508Check_IdleState (eutra_Cell1);
+        }
+    }
+
+    f_EUTRA_TestBody_Set (false);
+
+    /* Postamble */
+    f_EUTRA_Postamble (eutra_Cell1, v_PostambleState);
+  }
+
+  function f_TC_8_1_2_3_EUTRA() runs on EUTRA_PTC
+  { /* RRC Connection Establishment in RRC_IDLE state: return to idle state after T300 timeout */
+
+    timer t_Wait; //@sic R5s110001 sic@
+
+    f_EUTRA_Init ( c1 );
+
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 0A" siclog@
+    //SS is configured not to transmit MAC control element with matched UE Contention Resolution Identity
+    f_EUTRA_SS_ConfigRachProcedure ( eutra_Cell1,
+                                     omit,
+                                     cs_RachProcedureConfig_TC_8_1_2_3( f_EUTRA_CellInfo_GetRAR_TA ( eutra_Cell1 ), f_EUTRA_CellInfo_GetDL_ChBandwidth ( eutra_Cell1 ) ) ); //@sic R5s110001 sic@
+
+    //@siclog "Step 1" siclog@
+    //SS sends a Paging message to the UE on the appropriate paging block, and including the UE identity in one entry of the IE pagingRecordLists
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 ); //@sic R5s110001 sic@
+
+    //@siclog "Step 2" siclog@
+    //The UE transmits an RRCConnectionRequest message.
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_mt_Access);    // @sic R5s110001, R5-120721 change 3 sic@
+
+    //@siclog "Step 3" siclog@
+    //The SS waits for 2s. Note: the UE may transmit one or more RRCConnectionRequest messages but the SS does not answer to these messages.
+    t_Wait.start( 2.0 );
+    alt {
+      [] t_Wait.timeout { }
+      [] SRB.receive( car_SRB0_RrcPdu_IND( eutra_Cell1,
+                                           cr_RRCConnectionRequest ( cr_EstablishmentCause_mt_Access ) ) ) //@sic R5s110001 sic@
+        {
+          repeat;
+        }
+    }
+
+    //@siclog "Step 3A" siclog@
+    //SS is configured to transmit MAC control element with matched UE Contention Resolution Identity
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    //@siclog "Step 4" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 1?
+    f_EUTRA_508Check_IdleState ( eutra_Cell1 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+
+  }
+
+  function f_TC_8_1_2_5_EUTRA() runs on EUTRA_PTC
+  { /* RRC Connection Establishment: 0% access probability for MO calls, no restriction for MO signalling. */
+
+    var GutiParameters_Type v_GutiParameters; //@sic R5s100315 sic@
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def; //@sic R5s100315 sic@
+    var NAS_MSG_Indication_Type v_NasInd; //@sic R5s100315 sic@
+    var NAS_KsiValue v_KsiValue; //@sic R5s100315 sic@
+
+    var boolean v_RrcMsgReceived; //@sic R5s100315 sic@
+    var boolean v_DataPduReceived; //@sic R5s100315 sic@
+
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var float v_TimerValue;
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE()) };      /* @sic R5s120470 sic@ */
+
+    timer t_Wait; //@sic R5s100315 sic@
+
+    f_EUTRA_Init ( c1 );
+
+    //Set cell powel level for cell 1 and 11 to be used at creation
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell11, -79 );
+
+    //Set Sys info for cell 11 to be used at creation
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell11, cs_AccessBarringInformation_TC_8_1_2_5 );
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell11 ); //@sic R5s100311 sic@
+
+    // Preamble
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeB );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    f_EUTRA_CloseUE_TestLoopModeB ( eutra_Cell1, '05'O );
+
+    //@sic R5-104788 : T0 removed from test case sic@
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //Void
+
+    //@siclog "Step 2" siclog@
+    //Void
+
+    //@siclog "Step 2A" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease ( eutra_Cell1 );
+
+    //@siclog "Step 2B" siclog@
+    //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+    f_Delay ( 5.0 );
+
+    //@siclog "Step 3" siclog@
+    //The SS changes Cell 1 and Cell 11 level according to the row "T1" in table 8.1.2.5.3.2-1.
+    v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell11, -79 )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+
+    //@siclog "Step 3A" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest on Cell 11?
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell11, cr_EstablishmentCause_MoSignalling);    // @sic R5s100311, R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.5 Step 3A");
+
+    //@siclog "Step 3B - 3F" siclog@
+    //Steps 2 to 6 of the generic test procedure in TS 36.508 [18] subclause 6.4.2.7 are performed on Cell 11.
+    //Note: The UE performs a TAU procedure and the RRC connection is released.
+    f_EUTRA_TrackingAreaUpdate_WithoutRrcConnReq ( eutra_Cell11, tsc_RRC_TI_Def );
+
+    //@siclog "Step 10" siclog@
+    //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+    f_Delay ( 5.0 );
+
+    //@siclog "Step 10A" siclog@
+    //Generic test procedure in TS 36.508 subclause 4.5.3.3 is performed on Cell 11.
+    //NOTE: The UE performs the establishment of the new data radio bearer associated with the default EPS bearer context.
+    f_EUTRA_RbEst_Def ( eutra_Cell11 );
+
+    //@siclog "Step 10B" siclog@
+    //The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 11.
+    DRB.send(cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell11, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));     /* @sic R5s120470 sic@ */
+
+    //@siclog "Step 10C" siclog@
+    //Wait for 1 s after the IP packet has been transmitted in step 10B. (Note 1)
+    f_Delay ( 1.0 );
+
+    //@siclog "Step 11 - 13" siclog@
+    //Void
+
+    //@siclog "Step 14" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 11.
+    f_EUTRA_RRC_ConnectionRelease ( eutra_Cell11 );   /* @sic R5-110803 change 13 sic@ */
+
+    //@siclog "Step 15" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message on Cell 11 within 30s?
+    v_TimerValue := 30.0;
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell11, v_TimerValue)) {        // @sic R5s110507 Additional Changes sic@
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.5 Step 15");
+    }
+
+    //@siclog "Step 17 - 26" siclog@
+    //Check: Does the test result of steps 1 to 10 generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 11?
+    v_GutiParameters := f_EUTRA_CellInfo_GetGuti ( eutra_Cell11 ); //@sic R5s100315 sic@
+    f_EUTRA_UE_Page ( eutra_Cell11, //@sic R5s100315 sic@
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI ) ) ); //@sic R5s100398 sic@
+
+    v_KsiValue := f_EUTRA_SecurityKSIasme_Get ( ); //@sic R5s100315 sic@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas ( eutra_Cell11,
+                                                  v_RRC_TI,
+                                                  cr_EstablishmentCause_mt_Access,
+                                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                    cr_508_SERVICE_REQUEST ( v_KsiValue ))); //@sic R5s100315 sic@
+
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg ( eutra_Cell11,
+                                           v_RRC_TI,
+                                           v_NasInd.SecurityProtection.NasCount);  //@sic R5s100315 sic@
+
+    //EXCEPTION: Step 27a1 describes behaviour that depends on UE implementation; the "lower case letter" identifies a step sequence that takes place if the UE has user data pending.
+
+    //@siclog "Step 27a1" siclog@
+    //IF the UE has user data pending THEN the UE loop backs the IP packet received in step 10C on the DRB associated with the default EPS bearer context on Cell 11.
+    t_Wait.start(10.0);  //@sic R5s100315 & R5-104265 sic@
+
+    v_RrcMsgReceived := false; //@sic R5s100315 & R5-104145 sic@
+    v_DataPduReceived := false; //@sic R5s100315 & R5-104145 sic@
+    alt { //@sic R5s100315 & R5-104145 sic@
+      [not v_DataPduReceived] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList(eutra_Cell11, tsc_RbId_DRB1, ?,  v_PDCP_SDUList_DRB1))  /* @sic R5s120470 sic@ */
+        {
+          if (not v_RrcMsgReceived) {
+            v_DataPduReceived := true;
+            repeat;
+          }
+        }
+      [not v_RrcMsgReceived] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell11,
+                                                                 cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) )
+        {
+          if (not v_DataPduReceived) {
+            v_RrcMsgReceived := true;
+            repeat;
+          }
+        }
+      [] t_Wait.timeout
+        {
+          if (not v_RrcMsgReceived) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.5 Step 26 or 27a");
+          }
+        }
+    }
+    t_Wait.stop; //@sic R5s100315 & R5-104265 sic@
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell11, E3_TESTMODE );
+  }
+
+  function f_TC_8_1_2_6_EUTRA() runs on EUTRA_PTC
+  { /*  RRC connection establishment / Non-zero percent access probability for MO calls, no restriction for MO signalling */
+
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var integer v_ExecutionCounter_K, v_ExecutionCounter_L;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var boolean v_RrcMsgReceived, v_DataPduReceived;
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE()) };      /* @sic R5s120470 sic@ */
+    timer t_Wait;
+
+    f_EUTRA_Init ( c1 );
+
+    //Set cell power level for cell 1 and 11 to be used at creation
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell11, -79 );
+
+    //Set Sys info for cell 1 and 11 to be used at creation
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell1,  cs_AccessBarringInformation_TC_8_1_2_6 );
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell11, cs_AccessBarringInformation_TC_8_1_2_6 );
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell11 );
+
+    // USIM class A is used as default @sic R5-121411 sic@
+
+    //UE is in state Generic RB Established, UE Test Mode Activated (state 3A) on Cell 1 according to [18].
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeB ); //@sic R5-110770 sic@
+    f_EUTRA_RbEst_Def ( eutra_Cell1 ); //@sic R5-110770 sic@
+
+    //Cell power levels at T1
+    v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell11, -79 )
+    };
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS initializes an internal counter K to 0 and L to 0.
+    v_ExecutionCounter_K := 0;
+    v_ExecutionCounter_L := 0;
+
+    //@siclog "Step 2" siclog@
+    //Void
+
+    //EXCEPTION: Step 2Aa1 to 3b9 shall be repeated maximum 50 times unless K > 0 and L >0. (Note 1)
+    while ( ( v_ExecutionCounter_K == 0 or v_ExecutionCounter_L == 0 ) and ( v_ExecutionCounter_K + v_ExecutionCounter_L) < 50 ) //@sic R5s110247 sic@
+      {
+        //EXCEPTION: Step 2Aa1 describe behaviour that depend on the internal counters.
+        //@siclog "Step 2Aa1" siclog@
+        //IF K>0 or L>0 THEN The SS opens the UE test loop mode.
+        if ( v_ExecutionCounter_K > 0 or v_ExecutionCounter_L > 0 )
+          {
+            f_EUTRA_OpenUE_TestLoopMode ( eutra_Cell1 ); //@sic R5-110770 sic@
+          }
+
+        //@siclog "Step 2B" siclog@
+        //The SS closes the UE test loop mode.
+        f_EUTRA_CloseUE_TestLoopModeB ( eutra_Cell1, '07'O ); //@sic R5-110770 sic@
+
+        //@siclog "Step 2C" siclog@
+        //The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 1.
+        DRB.send(cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell1, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));     /* @sic R5s120470 sic@ */
+
+        //@siclog "Step 2D" siclog@
+        //Wait for 1 s after the IP packet has been transmitted in step 2C.
+        f_Delay ( 1.0 ); //@sic R5-110770 sic@
+
+        //@siclog "Step 2E" siclog@
+        //SS transmits an RRCConnectionRelease message to release the RRC connection.
+        f_EUTRA_RRC_ConnectionRelease ( eutra_Cell1 ); //@sic R5-110770 sic@
+
+        //@siclog "Step 2F" siclog@
+        //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+        f_Delay ( 5.0 ); //@sic R5-110770 sic@
+
+        //EXCEPTION: Steps 3a1 to 3b9 describe behaviours which vary depending on whether the UE transmits an RRCConnectionRequest message or not.
+        t_Wait.start( 5.0 );
+        alt {
+          [] t_Wait.timeout
+            {
+              //@siclog "Step 3a1" siclog@
+              //IF the UE does not transmit any RRCConnectionRequest message within 5s (Note 3) THEN the SS increments the counter K by 1.
+              v_ExecutionCounter_K := v_ExecutionCounter_K + 1;
+
+              //@siclog "Step 3a2 - 3a9" siclog@
+              //Steps 2 to 9 of the generic radio bearer establishment procedure (TS 36.508 4.5.3.3-1) are executed(Note 2).
+
+              //@siclog "Step 3a2" siclog@
+              //SS sends a Paging message to the UE on the appropriate paging block, and including the UE identity in one entry of the IE pagingRecordLists
+              f_EUTRA_UE_Page_Def ( eutra_Cell1 ); //@sic R5-110770 sic@
+
+              //@siclog "Step 3a3" siclog@
+              //UE transmits an RRCConnectionRequest message.
+              f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_mt_Access);    // @sic R5-110770, R5-120721 change 3 sic@
+
+              //@siclog "Step 3a4" siclog@
+              //The SS transmit a RRCConnectionSetup message.
+              f_EUTRA_RRC_ConnectionSetup_Def ( eutra_Cell1 ); //@sic R5-110770 sic@
+
+              //@siclog "Step 3a5" siclog@
+              //The UE transmits a RRCConnectionSetupComplete message including the SERVICE REQUEST message.
+              v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1, //@sic R5-110770, R5s120121 MCC160 implementation sic@
+                                                                 cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                                 cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                                   cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+
+              //@siclog "Step 3a6-3a8" siclog@
+              //RRC Security is activated
+              //The SS transmits RRC Connection Reconfiguration message to configure SRB2 and 1 AM DRB
+              f_EUTRA_Activate_SRB2_DRB_SendRrcMsg ( eutra_Cell1, tsc_RRC_TI_Def, v_NasInd.SecurityProtection.NasCount ); //@sic R5-110770 sic@
+
+              //EXCEPTION: Steps 3a9 to 3a10 can occur in any order
+              //@siclog "Step 3a9" siclog@
+              //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+              //EXCEPTION: Step 3a10 describes behaviour that depends on UE implementation; step 3a10 takes place if the UE has user data pending.
+              //@siclog "Step 3a10" siclog@
+              //IF the UE has user data pending THEN the UE loop backs the IP packet received in step 2D on the DRB associated with the default EPS bearer context on Cell 1 within 10 s.
+              t_Wait.start(10.0); //@sic R5-110770 sic@
+
+              v_RrcMsgReceived := false; //@sic R5-110770 sic@
+              v_DataPduReceived := false; //@sic R5-110770 sic@
+              alt { //@sic R5-110770 sic@
+                [not v_DataPduReceived] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList(eutra_Cell1, tsc_RbId_DRB1, ?, v_PDCP_SDUList_DRB1))   /* @sic R5s120470 sic@ */
+                  {
+                    if (not v_RrcMsgReceived) {
+                      v_DataPduReceived := true;
+                      repeat;
+                    }
+                  }
+                [not v_RrcMsgReceived] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,
+                                                                           cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) )
+                  {
+                    if (not v_DataPduReceived) {
+                      v_RrcMsgReceived := true;
+                      repeat;
+                    }
+                  }
+                [] t_Wait.timeout
+                  {
+                    if (not v_RrcMsgReceived) {
+                      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.6 Step 3a9");
+                    }
+                  }
+              }
+              t_Wait.stop; //@sic R5-110770 sic@
+            }
+          [] SRB.receive( car_SRB0_RrcPdu_IND( eutra_Cell1,
+                                               cr_RRCConnectionRequest ( cr_EstablishmentCause_MoData ) ) )
+            {
+              //@siclog "Step 3b1" siclog@
+              //ELSE IF the UE transmits an RRCConnectionRequest message on Cell 1 THEN the SS increments the counter L by 1.
+              v_ExecutionCounter_L := v_ExecutionCounter_L + 1;
+              t_Wait.stop;
+
+              //@siclog "Step 3b2" siclog@
+              //Void
+
+              //@siclog "Step 3b3 - 3b8" siclog@
+              //Steps 4 to 9 of the generic radio bearer establishment procedure (TS 36.508 4.5.3.3-1) are executed.
+
+              //@siclog "Step 3b3" siclog@
+              //The SS transmit a RRCConnectionSetup message.
+              f_EUTRA_RRC_ConnectionSetup_Def ( eutra_Cell1 ); //@sic R5-110770 sic@
+
+              //@siclog "Step 3b4" siclog@
+              //The UE transmits a RRCConnectionSetupComplete message including the SERVICE REQUEST message.
+              v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1, //@sic R5-110770, R5s120121 MCC160 implementation sic@
+                                                                 cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                                 cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                                   cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+              //@siclog "Step 3b5-3b7" siclog@
+              //RRC Security is activated
+              //The SS transmits RRC Connection Reconfiguration message to configure SRB2 and 1 AM DRB
+              f_EUTRA_Activate_SRB2_DRB_SendRrcMsg(eutra_Cell1, tsc_RRC_TI_Def, v_NasInd.SecurityProtection.NasCount);
+
+              //EXCEPTION: Steps 3b8 to 3b9 can occur in any order
+              //@siclog "Step 3b8" siclog@
+              //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+              //@siclog "Step 3b9" siclog@
+              //The UE loop backs the IP packet received in step 4 on the DRB associated with the default EPS bearer context on Cell 1.
+              interleave { //@sic R5-110770 sic@
+                [] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) ) {}
+                [] DRB.receive ( car_DRB_COMMON_IND_PDCP_SDUList ( eutra_Cell1, tsc_RbId_DRB1, ?, v_PDCP_SDUList_DRB1)) {}   /* @sic R5s120470 sic@ */
+              }
+            }
+        }
+      }// while
+
+    //@siclog "Step 4" siclog@
+    //Check: Is the counter K > 0 and L > 0?
+    if ( v_ExecutionCounter_K > 0 and v_ExecutionCounter_L > 0 )
+      {
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.6 Step 4");
+      }
+    else
+      {
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.6 Step 4");
+      }
+
+    //@siclog "Step 4A" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease ( eutra_Cell1 ); //@sic R5-110770 sic@
+
+    //@siclog "Step 4B" siclog@
+    //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+    f_Delay ( 5.0 ); //@sic R5-110770 sic@
+
+    //@siclog "Step 5" siclog@
+    //The SS changes the power level setting according to the row "T1" in table 8.1.2.6.3.2-1.
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+
+    //@siclog "Step 6" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message on Cell 11?
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell11, cr_EstablishmentCause_MoSignalling);    // @sic R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.6 Step 6");
+
+    //@siclog "Step 7 - 11" siclog@
+    //Steps 2 to 6 of the generic test procedure in TS 36.508 subclause 6.4.2.7 are performed on Cell 11.
+    //NOTE: The UE performs a TAU procedure and the RRC connection is released.
+    f_EUTRA_TrackingAreaUpdate_WithoutRrcConnReq ( eutra_Cell11, tsc_RRC_TI_Def );
+
+    //@siclog "Step 12" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 11?
+    f_EUTRA_508Check_IdleState ( eutra_Cell11 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell11, E1_IDLE );
+
+    // USIM class A is used as default @sic R5-121411 sic@
+  }
+
+  function f_TC_8_1_2_7_EUTRA() runs on EUTRA_PTC
+  { /*  RRC Connection Establishment: 0% access probability for AC 0..9, AC 10 is barred, AC 11..15 are not barred, access for UE with the access class is in the range 11..15 is allowed. */
+
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var EUTRA_SecurityParams_Type v_AuthParams;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var O4_Type v_NasCountUL;
+    var NAS_KsiValue v_KsiValue;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo;
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE(), f_LoopbackModeB_IP_Address_NW()) };      /* @sic R5s120470 sic@ */
+    var GutiParameters_Type v_GutiParameters; //@sic R5s100539 sic@
+
+    f_EUTRA_Init ( c1 );
+
+    //Get FDD or TDD mode from Cell-configuration
+    v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info ( eutra_Cell1 );
+    v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_Cell1);
+
+    //Set cell powel level for cell 1 and 11 to be used at creation
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell11, -79 );
+
+    //Set Sys info for cell 1 and 11 to be used at creation
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell1,  cs_AccessBarringInformation_TC_8_1_2_7 );
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell11, cs_AccessBarringInformation_TC_8_1_2_7 );
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell11 ); //@sic R5s100317 sic@
+
+    f_UT_USIM_Insert ( UT, "USIM set as Type C in 34.108 section 8.3.2.15" ); //@sic R5s100466 sic@
+
+    // The UE is in state Loopback Activated (state 4) with condition UE TEST LOOP MODE B on Cell 1 according to [18].
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeB );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    f_EUTRA_CloseUE_TestLoopModeB ( eutra_Cell1, '0A'O );
+
+    //Set initial cell power levels
+    v_CellPowerList_AtT0 := {
+      cs_CellPower ( eutra_Cell11, -91 )
+    };
+
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT0 );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 0" siclog@
+    //Step 0: The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 1.
+    DRB.send ( cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell1, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));     /* @sic R5s120470 sic@ */
+
+    //@siclog "Step 0A" siclog@
+    //Wait for 1 s after the IP packet has been transmitted in step 0. (Note 1)
+    f_Delay(1.0);
+
+    //@siclog "Step 1" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease ( eutra_Cell1 );  /* @sic R5-110803 change 13 sic@ */
+
+    v_AuthParams := f_EUTRA_Security_Get(); //@sic R5s100317 sic@
+
+    //@siclog "Step 2" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message on the Cell 1?
+    v_KsiValue := f_EUTRA_SecurityKSIasme_Get ( );
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_HighPriorityAccess);    // @sic R5s100539, R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.7 Step 2");
+
+    //@siclog "Step 3" siclog@
+    //The SS transmits an RRCConnectionSetup message on Cell 1.
+    f_EUTRA_RRC_ConnectionSetup_Def ( eutra_Cell1 );
+
+    //@siclog "Step 3A" siclog@
+    //The UE transmits an RRCConnectionSetupComplete message on Cell 1. This message includes a SERVICE REQUEST message.
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                         cr_508_SERVICE_REQUEST(v_KsiValue)));
+
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+
+    //@siclog "Step 3B" siclog@
+    //The SS transmits a SecurityModeCommand message on Cell 1.
+    //@siclog "Step 3C" siclog@
+    //The UE transmits a SecurityModeComplete message on Cell 1.
+    v_AuthParams := f_EUTRA_Authentication_InitAS ( v_AuthParams, v_NasCountUL );
+    v_AuthParams := f_EUTRA_RRC_ActivateSecurity ( eutra_Cell1, v_AuthParams, v_NasCountUL );
+    f_EUTRA_Security_Set ( v_AuthParams );
+
+    //@siclog "Step 3D" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message on Cell 1.
+    SRB.send ( cas_SRB1_RrcPdu_REQ ( eutra_Cell1,
+                                     cs_TimingInfo_Now,
+                                     cs_RRCConnectionReconfiguration_SRB2_1AM_DRB_Est ( tsc_RRC_TI_Def,
+                                                                                        v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                        v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                        v_AntennaInfo ) ) );
+
+    //@siclog "Step 3E - 3EA" siclog@
+    //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+    //UE loop backs the IP packet received in step 0 on the DRB associated with the default EPS bearer context on Cell 1.
+    interleave { //@sic R5s100317 & R5-104130 sic@
+      [] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) ) {}
+      [] DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList(eutra_Cell1, tsc_RbId_DRB1, ?, v_PDCP_SDUList_DRB1)) {}   /* @sic R5s120470 sic@ */
+    }
+
+    //@siclog "Step 3F" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease ( eutra_Cell1 );
+
+    //@siclog "Step 3G" siclog@
+    //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+    f_Delay(5.0);
+
+    //@siclog "Step 4" siclog@
+    //The SS changes Cell 1 and Cell 11 level according to the row "T1" in table 8.1.2.7.3.2-1.
+    v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell11, -79 )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+
+    //@siclog "Step 4A" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.7 indicate that the UE is camped on E-UTRAN Cell 11?
+    //NOTE: The UE performs a TAU procedure and the RRC connection is released.
+    f_EUTRA_TrackingAreaUpdate ( eutra_Cell11, tsc_RRC_TI_Def, NORMAL, cr_EstablishmentCause_HighPriorityAccess ); //@sic R5s100539 sic@
+
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "508Check CampOnNewEutraCell"); //@sic R5s100539 sic@
+
+    //@siclog "Step 11" siclog@
+    //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+    f_Delay ( 5.0 ); //@sic R5w100302 sic@
+
+    //@siclog "Step 21" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 11?
+    v_GutiParameters := f_EUTRA_CellInfo_GetGuti ( eutra_Cell11 ); //@sic R5s100539 sic@
+
+    f_EUTRA_UE_Page ( eutra_Cell11,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI )) ); //@sic R5s100539 sic@
+    f_EUTRA_ServiceRequestAndActivate_SRB2_DRB ( eutra_Cell11, 0, 0, omit, omit, omit, omit, omit, true,
+                                                 cr_EstablishmentCause_HighPriorityAccess ); //@sic R5s100539 sic@
+    f_EUTRA_RRC_ConnectionRelease(eutra_Cell11); //@sic R5s100539 sic@
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "508Check IdleState"); //@sic R5s100539 sic@
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell11, E1_IDLE );
+
+    f_UT_USIM_Remove ( UT ); //@sic R5s100466 sic@
+    f_UT_USIM_Insert ( UT, "Default USIM" ); //@sic R5s100466 sic@
+  }
+
+  function f_TC_8_1_2_8_EUTRA() runs on EUTRA_PTC
+  { /* RRC Connection Establishment: range of access baring time */
+
+    var EPS_BearerIdentity v_EpsBearerId2 := '6'H; // default bearer on additional PDN
+    var GutiParameters_Type v_GutiParameters;
+    var float v_TimerValue;
+
+    timer t_Timer_1 := 20.0; //@sic R5s110245, R5-113704 sic@
+
+    f_EUTRA_Init ( c1 );
+
+    v_GutiParameters := f_EUTRA_CellInfo_GetGuti ( eutra_Cell1 );
+
+    //Create and configure cell
+    f_EUTRA_CellConfig_DRB_Common( eutra_Cell1, 1, 0 ); //@sic R5s110708 sic@
+
+    /* Preamble to enter UE in E-UTRA RRC_IDLE (state 2) */
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS transmits a Paging message including a systemInfoModification.
+    //@siclog "Step 2" siclog@
+    //The SS changes SystemInformationBlockType2 parameters to 0% access probability for MO calls.
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell1, cs_AccessBarringInformation_TC_8_1_2_8 );
+    f_EUTRA_ModifySysinfo ( eutra_Cell1);
+
+    //@siclog "Step 3" siclog@
+    //Wait for 15 s for the UE to receive system information.
+    f_Delay ( 15.0 );
+
+    //@siclog "Step 5" siclog@
+    //Cause the UE to request connectivity to an additional PDN. (Note 5)
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string);
+
+    //@siclog "Step 5A" siclog@
+    //The UE does not transmit any RRCConnectionRequest message within 5 s (The UE starts T303) (NOTE 2)
+
+    //@siclog "Step 6" siclog@
+    //Cause the UE to request connectivity to an additional PDN. (Note 5)
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string);
+
+    //@siclog "Step 7" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message within 5 s?
+    v_TimerValue := 5.0;
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {        // @sic R5s110507 Additional Changes sic@
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.8 Step 7");
+    }
+
+    //@siclog "Step 8" siclog@
+    //Wait for 20s to ensure that T303 expires.
+    f_Delay ( 20.0 );
+
+    //@siclog "Step 9" siclog@
+    //The SS transmits a Paging message including a systemInfoModification.
+    //@siclog "Step 10" siclog@
+    //The SS changes SystemInformationBlockType2 parameters to default values. (Note 4)
+    f_EUTRA_ChangeSystemInformation_ToDefault ( eutra_Cell1 );
+    f_EUTRA_ModifySysinfo ( eutra_Cell1);
+
+    //@siclog "Step 11" siclog@
+    //The SS starts timer Timer_1 = 20 s.
+
+    //EXCEPTION: Steps 12a1 to 12b3 describe a transaction that depends on the UE behaviour;
+    //the "lower case letter" identifies a step sequence that takes place if a specific behaviour happens.(Note 6)
+    //@sic R5-113704 sic@
+
+    //@sic R5s110245 sic@
+    t_Timer_1.start;
+    alt {
+         //@siclog "Step 12a1" siclog@
+         //Check: Does the UE transmit an RRCConnectionRequest message?
+         //SS stops timer Timer_1
+      [] SRB.receive( car_SRB0_RrcPdu_IND( eutra_Cell1,
+                                           cr_RRCConnectionRequest ( cr_EstablishmentCause_MoData ) ) )
+        {
+          t_Timer_1.stop;
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.8 Step 12a1");
+        }
+         //@siclog "Step 12b1" siclog@
+         //The SS waits for Timer_1 expiry
+      [] t_Timer_1.timeout
+        {
+          //@siclog "Step 12b2" siclog@
+          //Cause the UE to request connectivity to an additional PDN. (Note 5)
+          f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string);
+
+          //@siclog "Step 12b3" siclog@
+          //Check: Does the UE transmit an RRCConnectionRequest message?
+          f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_MoData);   /* @sic R5-120721 change 3 sic@ */
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.8 Step 12b3");
+        }
+    }
+
+    //@siclog "Step 14 - 23" siclog@
+    //Steps 2a2 to 6 of the generic test procedure in TS 36.508 [18] subclause 6.4.3.2 are performed on Cell1
+    fl_EUTRA_ActivateAdditionalPDN_Steps_2a2_to_6 (eutra_Cell1, '6'H, RRC_IDLE);
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }
+
+  function f_TC_8_1_2_9_EUTRA() runs on EUTRA_PTC
+  { /*  RRC connection establishment / Non-zero percent access probability for MO calls, no restriction for MO signalling */
+
+    var GutiParameters_Type v_GutiParameters;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_KsiValue v_KsiValue;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1, v_CellPowerList_AtT2;
+    var boolean v_RrcMsgReceived, v_DataPduReceived;
+    var integer v_ExecutionCounter_K, v_ExecutionCounter_L;
+    var float v_TimerValue;
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE()) };      /* @sic R5s120470 sic@ */
+
+    timer t_Wait;
+
+    f_EUTRA_Init ( c1 );
+
+    //Set cell powel level for 11 to be used at creation
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell11, -79 );
+
+    //Set Sys info for cell 1 and 11 to be used at creation
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell1,  cs_AccessBarringInformation_TC_8_1_2_9_Cell1 );
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell11, cs_AccessBarringInformation_TC_8_1_2_9_Cell11 );
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell11 );
+
+    // USIM class A is used as default @sic R5-121412 sic@
+
+    // The UE is in state Loopback Activated (state 4) with condition UE TEST LOOP MODE B on Cell 1 according to [18].
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeB );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    f_EUTRA_CloseUE_TestLoopModeB ( eutra_Cell1, '05'O );
+
+    //Cell power levels at T1
+    v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell11, -79 )
+    };
+
+    //Cell power levels at T2
+    v_CellPowerList_AtT2 := {
+      cs_CellPower ( eutra_Cell11, -91 )
+    };
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease(eutra_Cell1);
+
+    //@siclog "Step 2" siclog@
+    //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+    f_Delay( 5.0 );
+
+    //@siclog "Step 3" siclog@
+    //The SS initializes internal counters: K to 0 and L to 0.
+    v_ExecutionCounter_K := 0;
+    v_ExecutionCounter_L := 0;
+
+    while ( ( v_ExecutionCounter_K == 0 or v_ExecutionCounter_L == 0 ) and  ( v_ExecutionCounter_K + v_ExecutionCounter_L) < 50 ) //@sic R5s110287 sic@
+    {
+      //@siclog "Step 4" siclog@
+      //The SS changes the power level setting according to the row "T1" in table 8.1.2.9.3.2-1.
+      f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+
+      // IF the UE does not transmit any RRCConnectionRequest message within 34 s when K=0 and L=0 and within 8 s for other repeat times THEN the SS increments the counter K by 1.
+      if (v_ExecutionCounter_K == 0 and v_ExecutionCounter_L == 0) { // @sic R5-121894 sic@
+        t_Wait.start( 34.0 );
+      }
+      else {
+        t_Wait.start( 8.0 );
+      }
+
+      if (not f_EUTRA_RRC_ConnectionRequest_Common(eutra_Cell11, t_Wait, cr_EstablishmentCause_MoSignalling)) {  // @sic R5-120721 change 3 sic@
+
+        //@siclog "Step 5a1" siclog@
+        //IF the UE does not transmit any RRCConnectionRequest message within 5 s (Note 2) THEN the SS increments the counter K by 1
+        v_ExecutionCounter_K := v_ExecutionCounter_K + 1;
+        
+        //@siclog "Step 5a2" siclog@
+        //The SS changes the power level setting according to the row "T2" in table 8.1.2.9.3.2-1.
+        f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT2 );
+        
+        //@siclog "Step 5a3" siclog@
+        //The SS waits for 20s for the UE to perform cell reselection procedure. (Note 3)
+        f_Delay ( 20.0 );
+      }
+      else {
+        //@siclog "Step 5b1" siclog@
+        //ELSE IF the UE transmits an RRCConnectionRequest message on Cell 11 THEN the SS increments the counter L by 1.
+
+        v_ExecutionCounter_L := v_ExecutionCounter_L + 1;
+        
+        //@siclog "Step 5b2 - 5b6" siclog@
+        //Steps 2 to 6 of the generic test procedure in TS 36.508 [18] subclause 6.4.2.7 are performed on Cell 11.
+        //Note: The UE performs a TAU procedure and the RRC connection is released.
+        f_EUTRA_TrackingAreaUpdate_WithoutRrcConnReq ( eutra_Cell11, tsc_RRC_TI_Def );
+        
+        //@siclog "Step 5b7" siclog@
+        //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+        f_Delay ( 5.0 );
+        
+        //@siclog "Step 5b8" siclog@
+        //The SS changes the power level setting according to the row "T2" in table 8.1.2.9.3.2-1.
+        f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT2 );
+        
+        //@siclog "Step 5b9" siclog@
+        //The UE transmits an RRCConnectionRequest message on Cell 1.
+        f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_MoSignalling);    // @sic R5-120721 change 3 sic@
+        
+        //@siclog "Step 5b10 - 5b14" siclog@
+        //Steps 2 to 6 of the generic test procedure in TS 36.508 [18] subclause 6.4.2.7 are performed on Cell 1.
+        //Note: The UE performs a TAU procedure and the RRC connection is released.
+        f_EUTRA_TrackingAreaUpdate_WithoutRrcConnReq ( eutra_Cell1, tsc_RRC_TI_Def );
+        
+        //@siclog "Step 5b15" siclog@
+        //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+        f_Delay ( 5.0 );
+      }
+    } //while
+
+    //@siclog "Step 6" siclog@
+    //Check: Is the counter K > 0 and L > 0?
+    if ( v_ExecutionCounter_K > 0 and v_ExecutionCounter_L > 0 ) {
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.9 Step 6");
+    }
+    else {
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.9 Step 6");
+    }
+
+    //@siclog "Step 7" siclog@
+    //Generic test procedure in TS 36.508 subclause 4.5.3.3 is performed on Cell 1.
+    //NOTE: The UE performs the establishment of the new data radio bearer associated with the default EPS bearer context.
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+
+    //@siclog "Step 8" siclog@
+    //The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 1.
+    DRB.send(cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell1, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));     /* @sic R5s120470 sic@ */
+
+    //@siclog "Step 9" siclog@
+    //Wait for 1 s after the IP packet has been transmitted in step 8. (Note 4)
+    f_Delay ( 1.0 );
+
+    //@siclog "Step 10" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease(eutra_Cell1);   /* @sic R5-110803 change 13 sic@ */
+
+    //@siclog "Step 11" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message on Cell 1 within 30s?
+    v_TimerValue := 30.0;
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {        // @sic R5s110507 Additional Changes sic@
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.9 Step 11");
+    }
+
+    //@siclog "Step 12 - 21" siclog@
+    //Check: Does the test result of steps 1 to 10 generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 1?
+    v_GutiParameters := f_EUTRA_CellInfo_GetGuti ( eutra_Cell1 );
+    f_EUTRA_UE_Page ( eutra_Cell1,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI ) ) );
+
+    v_KsiValue := f_EUTRA_SecurityKSIasme_Get ( );
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas ( eutra_Cell1,
+                                                  tsc_RRC_TI_Def,
+                                                  cr_EstablishmentCause_mt_Access,
+                                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                    cr_508_SERVICE_REQUEST ( v_KsiValue )));
+
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg ( eutra_Cell1,
+                                           tsc_RRC_TI_Def,
+                                           v_NasInd.SecurityProtection.NasCount);
+
+    //@siclog "Step 22a1" siclog@
+    //IF the UE has user data pending THEN the UE loop backs the IP packet received in step 8 on the DRB associated with the default EPS bearer context on Cell 1 within 10 s.
+    t_Wait.start(10.0);
+    v_RrcMsgReceived := false;
+    v_DataPduReceived := false;
+
+    alt {
+      [not v_DataPduReceived] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList(eutra_Cell1, tsc_RbId_DRB1, ?, v_PDCP_SDUList_DRB1))     /* @sic R5s120470 sic@ */
+        {
+          if (not v_RrcMsgReceived) {
+            v_DataPduReceived := true;
+            repeat;
+          }
+        }
+      [not v_RrcMsgReceived] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,
+                                                                 cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) )
+        {
+          if (not v_DataPduReceived) {
+            v_RrcMsgReceived := true;
+            repeat;
+          }
+        }
+      [] t_Wait.timeout
+        {
+          if (not v_RrcMsgReceived) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.9 Step 21 or 22a1");
+          }
+        }
+    }
+    t_Wait.stop;
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );
+
+    // USIM class A is used as default @sic R5-121412 sic@
+  }
+
+  function f_TC_8_1_2_13_EUTRA() runs on EUTRA_PTC
+  { /*  RRC connection establishment / 0% access probability for MO calls, 0% access probability for MO signalling */
+
+    var GutiParameters_Type v_GutiParameters;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT2;
+    var float v_TimerValue;
+    var integer v_ModificationPeriodFrames; //@sic R5-113705 sic@
+    var float v_ModificationPeriod_s; //@sic R5-113705 sic@
+    var NAS_KsiValue v_KsiValue; //@sic R5s110674 sic@
+    var boolean v_RrcMsgReceived, v_DataPduReceived; //@sic R5s110674 sic@
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE()) };      /* @sic R5s120470 sic@ */
+
+    timer t_Wait;
+
+    f_EUTRA_Init ( c1 );
+
+    v_GutiParameters := f_EUTRA_CellInfo_GetGuti (eutra_Cell1);
+
+    //Set cell powel level for cell 11 to be used at creation
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell11, -79 );
+
+    //Set Sys Info for cell 11 to be used at creation
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell11, cs_AccessBarringInformation_TC_8_1_2_13_Cell11 );
+
+    //Calculate length of System Information Modification Period
+    v_ModificationPeriodFrames := f_CalculateModificationPeriod ( eutra_Cell1 ); //@sic R5-113705 sic@
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell11 );
+
+    // The UE is in state Loopback Activated (state 4) with condition UE TEST LOOP MODE B on Cell 1 according to [18].
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeB );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    f_EUTRA_CloseUE_TestLoopModeB ( eutra_Cell1, '05'O );
+
+    //Cell power levels at T1
+    v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell11, -79 )
+    };
+
+    //Cell power levels at T2
+    v_CellPowerList_AtT2 := {
+      cs_CellPower ( eutra_Cell11, -91 )
+    };
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease( eutra_Cell1 );
+
+    //@siclog "Step 2" siclog@
+    //Wait for 5 s for the UE to enter E-UTRA RRC_IDLE state.
+    f_Delay( 5.0 );
+
+    //@siclog "Step 3" siclog@
+    //The SS changes the power level setting according to the row "T1" in table 8.1.2.13.3.2-1.
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+
+    //@siclog "Step 4" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message within 40s? (Note 1)
+    v_TimerValue := 40.0;
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell11, v_TimerValue)) {        // @sic R5s110507 Additional Changes sic@
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.13 Step 4");
+    }
+
+    //@siclog "Step 5" siclog@
+    //The SS transmits a Paging message including a matched identity allocated in Cell 1.
+    f_EUTRA_UE_Page ( eutra_Cell1,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI ) ) );
+
+    //@siclog "Step 6" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message on Cell 1 within 30s? (Note 2)
+    v_TimerValue := 30.0;
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {        // @sic R5s110507 Additional Changes sic@
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.13 Step 6");
+    }
+
+    //@siclog "Step 7" siclog@
+    //The SS changes the SystemInformationBlockType1 and SystemInformationBlockType2 on Cell 1 according to Table 8.1.2.13.3.3-1.
+    f_EUTRA_CellInfo_SetSysInfo_AccessBarring ( eutra_Cell1, cs_AccessBarringInformation_TC_8_1_2_13_Cell1 );
+    f_EUTRA_SetSB1_ValueTag ( eutra_Cell1, true );
+    f_EUTRA_ModifySysinfo ( eutra_Cell1 ); //@sic R5s110285 sic@
+
+    //@siclog "Step 7A" siclog@
+    //Wait for 2.1* modification period (Note 5) to allow the new system information to take effect.
+    v_ModificationPeriod_s := int2float( v_ModificationPeriodFrames )/100.0; //Modification period in seconds //@sic R5-113705 sic@
+    f_Delay( 2.1 * v_ModificationPeriod_s ); //@sic R5-113705 sic@
+
+    //@siclog "Step 7B" siclog@
+    //The SS changes the power level setting according to the row "T2" in table 8.1.2.13.3.2-1
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT2 ); //@sic R5-113705 sic@
+
+    //@siclog "Step 8" siclog@
+    //The SS waits for 40s the UE to perform cell reselection procedure (Note 3).
+    f_Delay( 40.0 );
+
+    //@siclog "Step 9" siclog@
+    //The SS sends a Paging message to the UE on the appropriate paging block, and including the UE identity in one entry of the IE pagingRecordLists on Cell 1.
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+
+    //@siclog "Step 10" siclog@
+    //The UE transmits an RRCConnectionRequest message on Cell 1.
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1, cr_EstablishmentCause_mt_Access);    // @sic R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.13 Step 10");
+
+    //@siclog "Step 11" siclog@
+    //Steps 4 to 9 of the generic test procedure in TS 36.508 subclause 4.5.3.3 are performed on Cell 1.
+    //The SS transmit a RRCConnectionSetup message.
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_Cell1);
+
+    //@siclog "Step 12" siclog@
+    //The UE transmits a RRCConnectionSetupComplete message including the SERVICE REQUEST message.
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                       cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                          cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+
+    //@siclog "Step 13-15" siclog@
+    //RRC Security is activated
+    //The SS transmits RRC Connection Reconfiguration message to configure SRB2 and 1 AM DRB
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg ( eutra_Cell1, tsc_RRC_TI_Def, v_NasInd.SecurityProtection.NasCount );
+
+    //@siclog "Step 16" siclog@
+    //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) );
+
+    //@siclog "Step 17" siclog@
+    //The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 1.
+    DRB.send(cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell1, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));   /* @sic R5s120470 sic@ */
+
+    //@siclog "Step 18" siclog@
+    //Wait for 1 s after the IP packet has been transmitted in step 17. (Note 4)
+    f_Delay ( 1.0 );
+
+    //@siclog "Step 19" siclog@
+    //The SS transmits an RRCConnectionRelease message on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease( eutra_Cell1 );  /* @sic R5-110803 change 13 sic@ */
+
+    //@siclog "Step 20" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message on Cell 1 within 10s?
+    v_TimerValue := 10.0; //@sic R5s110674 Additional Change sic@
+    if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_Cell1, v_TimerValue)) {        // @sic R5s110507 Additional Changes sic@
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.13 Step 20");
+    }
+
+    //@siclog "Step 21-30" siclog@
+    //Check: Does the test result of steps 1 to 10 generic test procedure in TS 36.508 subclause 6.4.2.2 indicate that the UE is in E-UTRA RRC_IDLE state on Cell 1?
+    f_EUTRA_UE_Page ( eutra_Cell1,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI ) ) ); //@sic R5s110674 sic@
+
+    v_KsiValue := f_EUTRA_SecurityKSIasme_Get ( ); //@sic R5s110674 sic@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas ( eutra_Cell1,
+                                                  tsc_RRC_TI_Def,
+                                                  cr_EstablishmentCause_mt_Access,
+                                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                    cr_508_SERVICE_REQUEST ( v_KsiValue ))); //@sic R5s110674 sic@
+
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg ( eutra_Cell1,
+                                           tsc_RRC_TI_Def,
+                                           v_NasInd.SecurityProtection.NasCount); //@sic R5s110674 sic@
+
+    //@siclog "Step 31a1" siclog@
+    //IF the UE has user data pending THEN the UE loop backs the IP packet received in step 17 on the DRB associated with the default EPS bearer context on Cell 1 within 10 s.
+    t_Wait.start(10.0);
+    v_RrcMsgReceived := false; //@sic R5s110674 sic@
+    v_DataPduReceived := false; //@sic R5s110674 sic@
+
+    //@sic R5s110674 sic@
+    alt {
+      [not v_DataPduReceived] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList(eutra_Cell1, tsc_RbId_DRB1, ?, v_PDCP_SDUList_DRB1))  /* @sic R5s120470 sic@ */
+        {
+          if (not v_RrcMsgReceived) {
+            v_DataPduReceived := true;
+            repeat;
+          }
+        }
+      [not v_RrcMsgReceived] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,
+                                                                 cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) )
+        {
+          if (not v_DataPduReceived) {
+            v_RrcMsgReceived := true;
+            repeat;
+          }
+        }
+      [] t_Wait.timeout
+        {
+          if (not v_RrcMsgReceived) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.1.2.13 Step 30 or 31a1");
+          }
+        }
+    }
+    t_Wait.stop;
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch off UE and expect Detach Request
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );
+  }
+
+  function f_TC_8_1_2_14_EUTRA() runs on EUTRA_PTC
+  { /*  RRC connection establishment / High speed flag */
+
+    var NAS_MSG_Indication_Type v_NasInd;
+
+    f_EUTRA_Init ( c1 );
+
+    //Set Max. reference power for Cell 2
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 );
+
+    //Set SIB2 parameters for Cell 2 according to specific message contents
+    fl_EUTRA_CellInfo_SetRootSequenceIndex ( eutra_Cell2, 86 );
+    fl_EUTRA_CellInfo_SetHighSpeedFlag ( eutra_Cell2, true );
+                                               
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell2 );
+
+    //The UE is in state Registered, Idle mode (state 2) on Cell 1 according to [18].
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS changes Cell 2 level according to the row "T1" in table 8.1.2.14.3.2-1.
+    f_EUTRA_SetCellPower ( eutra_Cell2, -79 );
+
+    //@siclog "Step 2" siclog@
+    //The SS waits for 40s for the UE to perform cell reselection procedure.
+    f_Delay ( 40.0 );
+
+    //@siclog "Step 3" siclog@
+    //The SS transmits a Paging message on Cell 2.
+    f_EUTRA_UE_Page_Def ( eutra_Cell2 );
+
+    //@siclog "Step 4" siclog@
+    //Check: Does the UE transmit an RRCConnectionRequest message on Cell 2?
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell2, cr_EstablishmentCause_mt_Access);    // @sic R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.1.2.14 Step 4");
+
+    //@siclog "Step 5" siclog@
+    //Steps 4 to 9 of the generic radio bearer establishment procedure (TS 36.508 4.5.3.3-1) are executed to successfully complete the service request procedure on Cell 2.
+    //The SS transmit a RRCConnectionSetup message.
+    f_EUTRA_RRC_ConnectionSetup_Def ( eutra_Cell2 );
+
+    //@siclog "Step 6" siclog@
+    //The UE transmits a RRCConnectionSetupComplete message including the SERVICE REQUEST message.
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell2,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                       cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                          cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+
+    //@siclog "Step 7-9" siclog@
+    //RRC Security is activated
+    //The SS transmits RRC Connection Reconfiguration message to configure SRB2 and 1 AM DRB
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg ( eutra_Cell2, tsc_RRC_TI_Def, v_NasInd.SecurityProtection.NasCount );
+
+    //@siclog "Step 10" siclog@
+    //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 2.
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell2, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) );
+
+    //@siclog "Step 11" siclog@
+    //Check:  Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 2?
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell2 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble ( eutra_Cell2, E2_CONNECTED );
+  }
+
+}

@@ -1,0 +1,461 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-07-15 18:36:20 +0200 (Sun, 15 Jul 2012) $
+// $Rev: 7019 $
+/******************************************************************************/
+
+module IP_PTC_Main {
+
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from DHCPv4_Common all;
+  import from ICMPv6_Functions all;
+  import from IP_ASP_TypeDefs all;
+  import from IP_PTC_Component all;
+  import from IP_PTC_CtrlMsgs all;
+  import from IP_PTC_IMS_Handler all;
+  import from IP_PTC_Routing all;
+  import from IP_PTC_Templates all;
+  import from Parameters all;
+  import from UDP_Functions all;
+
+  const PortNumber_Type  tsc_PortNumber_DHCP_Server := 67;         /* @status    APPROVED */
+
+  const charstring tsc_INADDR_BROADCAST := "255.255.255.255";      /* broadcast address; used e.g. for DHCP
+                                                                      @status    APPROVED */
+
+  const charstring tsc_INADDR_ANY := "0.0.0.0";                    /* used e.g. for DHCP
+                                                                      @status    APPROVED */
+
+  const O2_Type tsc_MulticastPrefix_FF02 := 'FF02'O;               /* @status    APPROVED */
+
+  function fl_IPv4AddrIsBroadcast(charstring p_IPv4Addr) return boolean
+  {
+    return (p_IPv4Addr == tsc_INADDR_BROADCAST);
+  }
+
+  function fl_IPv4AddrIsAny(charstring p_IPv4Addr) return boolean
+  {
+    return (p_IPv4Addr == tsc_INADDR_ANY);
+  }
+
+  function fl_IPv6AddrIsMulticast(charstring p_IPv6Addr) return boolean
+  {
+    var O2_Type v_Prefix;
+    v_Prefix := str2oct(substr(p_IPv6Addr, 0, 4));
+    if (v_Prefix == tsc_MulticastPrefix_FF02) { // RFC 2375
+      return true;
+    }
+    return false;
+  }
+
+  function fl_IPv6AddrGetLinkLocalAddr(charstring p_IPv6Addr) return charstring
+  {
+    var O16_Type v_IPv6AddrOctets := f_Convert_IPv6Addr2OctString(p_IPv6Addr);
+    var O8_Type  v_InterfaceId    := substr(v_IPv6AddrOctets, 8, 8);             // interface id assuming a /64 prefix
+    
+    return f_Convert_OctString2IPv6Addr('FE80000000000000'O & v_InterfaceId);
+  }
+
+  template (value) AddrServerInfo_Type cs_IP_AddrServer_Init(template (omit) charstring p_ServerAddr := omit,
+                                                             template (omit) charstring p_ClientAddr := omit,
+                                                             template (omit) IP_DrbInfo_Type p_DrbInfo := omit) :=
+  { /* @status    APPROVED */
+    ServerAddr := p_ServerAddr,
+    ClientAddr := p_ClientAddr,
+    DrbInfo := p_DrbInfo
+  };
+
+  function fl_IP_PTC_Init() runs on IP_PTC
+  {
+    var integer i;
+
+    vc_IP_PTC_DRB_RoutingTable := {};
+
+    for (i:=0; i < tsc_NoOfPDNs; i:=i+1) {
+      vc_IP_PTC_PDN_AddrServer.DHCP[i]   := valueof(cs_IP_AddrServer_Init);
+      vc_IP_PTC_PDN_AddrServer.ICMPv6[i] := valueof(cs_IP_AddrServer_Init);
+      vc_IP_PTC_IMS_Info.Server[i]       := valueof(cs_IMS_Server_Init);
+    }
+  }
+
+  function fl_IP_AddrServer_IsRunning(AddrServerInfo_Type p_ServerInfo) return boolean
+  {
+    return isvalue(p_ServerInfo.DrbInfo);
+  }
+
+  function fl_IP_AddrServer_Find(IP_AddrServerArray_Type p_ServerArray,
+                                 template (omit) IP_DrbInfo_Type p_DrbInfo) return integer
+  {
+    var IP_DrbInfo_Type v_DrbInfoServer;
+    var IP_DrbInfo_Type v_DrbInfo;
+    var integer i;
+
+    if (isvalue(p_DrbInfo)) {
+      v_DrbInfo := valueof(p_DrbInfo);
+
+      for (i:=0; i < lengthof(p_ServerArray); i:=i+1) {
+        v_DrbInfoServer := p_ServerArray[i].DrbInfo;
+        if (isvalue(v_DrbInfoServer)) {
+          if (ischosen(v_DrbInfo.Eutra) and ischosen(v_DrbInfoServer.Eutra)) {
+            if (v_DrbInfo.Eutra.DrbId == v_DrbInfoServer.Eutra.DrbId) {
+              return i;
+            }
+          }
+          else if (ischosen(v_DrbInfo.Utran) and ischosen(v_DrbInfoServer.Utran)) {
+            if (v_DrbInfo.Utran.DrbId == v_DrbInfoServer.Utran.DrbId) {
+              return i;
+            }
+          }
+          else if (ischosen(v_DrbInfo.Geran) and ischosen(v_DrbInfoServer.Geran)) {
+            if (v_DrbInfo.Geran.DrbId == v_DrbInfoServer.Geran.DrbId) {
+              return i;
+            }
+          }
+        }
+      }
+    }
+    FatalError(__FILE__, __LINE__, "No Server found for given DRB");
+    return -1;
+  }
+
+  function fl_IP_AddrServers_Stop(integer p_Index) runs on IP_PTC
+  { /* @sic R5-113734 change 8 sic@ */
+
+    var charstring v_ServerAddr;
+
+    if (fl_IP_AddrServer_IsRunning(vc_IP_PTC_PDN_AddrServer.DHCP[p_Index])) {
+
+      v_ServerAddr := vc_IP_PTC_PDN_AddrServer.DHCP[p_Index].ServerAddr;
+      f_UdpServer_Stop(cs_IPv4Addr(v_ServerAddr), tsc_PortNumber_DHCP_Server);
+
+      vc_IP_PTC_PDN_AddrServer.DHCP[p_Index] := valueof(cs_IP_AddrServer_Init);
+    }
+    if (fl_IP_AddrServer_IsRunning(vc_IP_PTC_PDN_AddrServer.ICMPv6[p_Index])) {
+
+      v_ServerAddr := vc_IP_PTC_PDN_AddrServer.ICMPv6[p_Index].ServerAddr;
+      fl_Icmpv6Server_Stop(cs_IPv6Addr(v_ServerAddr));
+
+      v_ServerAddr := fl_IPv6AddrGetLinkLocalAddr(v_ServerAddr);
+      fl_Icmpv6Server_Stop(cs_IPv6Addr(v_ServerAddr));   // @sic R5s110603 change 3 sic@
+
+      vc_IP_PTC_PDN_AddrServer.ICMPv6[p_Index] := valueof(cs_IP_AddrServer_Init);
+    }
+  }
+
+  function fl_IP_AddrServers_Start(PDN_Index_Type p_PdnIndex,
+                                   IP_DrbInfo_Type p_DrbInfo) runs on IP_PTC
+  { /* @sic R5-113734 change 8 sic@ */
+    var integer v_Index := enum2int(p_PdnIndex);
+    var charstring v_ServerIpAddrv4;
+    var charstring v_ServerIpAddrv6;
+    var charstring v_ClientIpAddrv4;
+    var charstring v_ClientIpAddrv6;
+
+    select (p_PdnIndex) {
+      case (PDN_1) {
+        v_ServerIpAddrv4 := px_IPv4_Address1_NW;
+        v_ServerIpAddrv6 := px_IPv6_Address1_NW;
+        v_ClientIpAddrv4 := px_IPv4_Address1_UE;
+        v_ClientIpAddrv6 := px_IPv6_Address1_UE;
+      }
+      case (PDN_2) {
+        v_ServerIpAddrv4 := px_IPv4_Address2_NW;
+        v_ServerIpAddrv6 := px_IPv6_Address2_NW;
+        v_ClientIpAddrv4 := px_IPv4_Address2_UE;
+        v_ClientIpAddrv6 := px_IPv6_Address2_UE;
+      }
+    }
+
+    fl_IP_AddrServers_Stop(v_Index);    // stop sever if any running
+    
+    // DHCP
+    vc_IP_PTC_PDN_AddrServer.DHCP[v_Index] := valueof(cs_IP_AddrServer_Init(v_ServerIpAddrv4, v_ClientIpAddrv4, p_DrbInfo));
+    f_UdpServer_Start(cs_IPv4Addr(v_ServerIpAddrv4), tsc_PortNumber_DHCP_Server, p_DrbInfo);
+
+    // ICMPv6
+    vc_IP_PTC_PDN_AddrServer.ICMPv6[v_Index] := valueof(cs_IP_AddrServer_Init(v_ServerIpAddrv6, v_ClientIpAddrv6, p_DrbInfo));
+
+    fl_Icmpv6Server_Start(cs_IPv6Addr(v_ServerIpAddrv6), p_DrbInfo);
+    fl_Icmpv6Server_Start(cs_IPv6Addr(fl_IPv6AddrGetLinkLocalAddr(v_ServerIpAddrv6)), p_DrbInfo);
+  }
+
+  function fl_IP_ImsServer_Start(PDN_Index_Type p_PdnIndex,
+                                 IP_DrbInfo_Type p_DrbInfo) runs on IP_PTC
+  { /* Multiple PDNs
+     * In case of multiple PDNs (e.g. for emergency calls) there can be
+     * 1) multiple P-CSCFs i.e. one for each PDN; this is typically the case for roaming scenarios when the normal IMS registration is done at the P-CSCF in th home PLMN
+     *    whereas the emergency registration is done in the visited PLMN
+     * 2) one P-CSCF for (both) PDNs, e.g. when visited PLMN is the home PLMN
+     *
+     * Assumption:
+     *   even in case of one P-CSCF for (both) PDNs there shall be different P-CSCF IP addresse i.e. the P-CSCF shall have a different IP address for each PDN.
+     *   (in case of IPv6 as working assumption the P-CSCF and all other entities belonging to the PDN shall have the same network prefix and the network prefix for different PDNs shall be different;
+     *   see TS 36.523-3 cl. 4.2.4.6)
+     * => There can be different UDP servers for the PDNs and the routing table can be configured with IP address and port of the network side only
+     *    (Note: if the P-CSCF would have only one IP address for two PDNs in DL the routing can only be determined based on the destination address
+     *    i.e. the UE's addresses need to be considered when starting the UDP server - what is weird from socket programming point of view)
+     */
+    var charstring v_P_CSCF_IPv4Address;
+    var charstring v_P_CSCF_IPv6Address;
+    var integer v_IndexVal := enum2int(p_PdnIndex);
+    var IMS_Server_Type v_ImsServer := vc_IP_PTC_IMS_Info.Server[v_IndexVal];
+
+    select (p_PdnIndex) {
+      case (PDN_1) {
+        v_P_CSCF_IPv4Address := px_IPv4_Address1_NW;   // same address as for DHCP server
+        v_P_CSCF_IPv6Address := px_IPv6_Address1_NW;   // same address as for ICMPv6 server
+      }
+      case (PDN_2) {
+        v_P_CSCF_IPv4Address := px_IPv4_Address2_NW;   // same address as for DHCP server
+        v_P_CSCF_IPv6Address := px_IPv6_Address2_NW;   // same address as for ICMPv6 server
+      }
+    }
+    f_IP_IMS_Stop(v_ImsServer);                        // @sic R5s120065 MCC160 Implementation sic@
+
+    vc_IP_PTC_IMS_Info.Server[v_IndexVal] := f_IP_IMS_Start(v_ImsServer, v_P_CSCF_IPv4Address, v_P_CSCF_IPv6Address, p_DrbInfo);
+  }
+
+  function fl_ICMPv6_Bind(template (value) IP_AddrInfo_Type p_LocalIpAddr,
+                          boolean p_AllowBroadcast) runs on IP_PTC
+  { /* @sic R5-113734 change 8 sic@ */
+    IP_SOCK.send(cs_ICMPv6_SOCKET_REQ(cs_IP_Socket(p_LocalIpAddr, omit), p_AllowBroadcast));    // LocalPort=omit -> ICMP does not have a port number
+    IP_SOCK.receive(cr_ICMPv6_SOCKET_CNF(cr_IP_Socket(p_LocalIpAddr, omit)));                   // LocalPort=omit -> ICMP does not have a port number
+  }
+
+  function fl_ICMPv6_Close(template (value) IP_Socket_Type p_LocalSocket) runs on IP_PTC
+  {
+    IP_SOCK.send(cs_ICMPv6_CLOSE_REQ(p_LocalSocket));
+  }
+
+  function fl_Icmpv6Server_Start(template (value) IP_AddrInfo_Type p_LocalIpAddr,
+                                 IP_DrbInfo_Type p_DrbInfo,
+                                 boolean p_AllowBroadcast := true) runs on IP_PTC
+  { /* @sic R5-113734 change 8 sic@ */
+    var template (value) IP_Socket_Type v_LocalSocket := cs_IP_Socket(p_LocalIpAddr, omit);
+
+    // Bind ICMPv6 socket
+    fl_ICMPv6_Bind(p_LocalIpAddr, p_AllowBroadcast);
+
+    // Modify routing table
+    vc_IP_PTC_DRB_RoutingTable := f_RoutingTable_AddEntry(vc_IP_PTC_DRB_RoutingTable, cs_ICMPv6_ConnectionId(v_LocalSocket), p_DrbInfo);
+    f_IP_PTC_SendRoutingTable(vc_IP_PTC_DRB_RoutingTable);
+  }
+
+  function fl_Icmpv6Server_Stop(template (value) IP_AddrInfo_Type p_LocalIpAddr) runs on IP_PTC
+  { /* @sic R5-113734 change 8 sic@ */
+    var template (value) IP_Socket_Type v_LocalSocket := cs_IP_Socket(p_LocalIpAddr, omit);
+
+    // Close ICMPv6 socket
+    fl_ICMPv6_Close(v_LocalSocket);
+
+    // Modify routing table
+    vc_IP_PTC_DRB_RoutingTable := f_RoutingTable_RemoveEntry(vc_IP_PTC_DRB_RoutingTable, cs_ICMPv6_ConnectionId(v_LocalSocket));
+    f_IP_PTC_SendRoutingTable(vc_IP_PTC_DRB_RoutingTable);
+  }
+
+  altstep a_DHCP_Handler() runs on IP_PTC
+  {
+    var IP_SOCKET_IND v_IP_SOCKET_IND;
+    var IP_Socket_Type v_RemoteSocket;
+    var IP_Socket_Type v_LocalSocket;
+    var Datagram_UL_Type v_Datagram;
+    var octetstring v_RespData;
+    var charstring v_ServerIpAddr;
+    var charstring v_ClientIpAddr;
+    var integer v_PdnIndex;
+
+    [] IP_SOCK.receive(cr_UDP_DATA_IND(cr_IP_Socket(?, tsc_PortNumber_DHCP_Server)))   /* allow any IP address to deal with broadcasts */
+      -> value  v_IP_SOCKET_IND
+      {
+        v_RemoteSocket := v_IP_SOCKET_IND.DATA.ConnectionId.Remote;
+        v_LocalSocket := v_IP_SOCKET_IND.DATA.ConnectionId.Local;
+        v_Datagram := v_IP_SOCKET_IND.DATA.Ind.UDP.RecvFrom;
+        v_ServerIpAddr := v_LocalSocket.IpAddr.V4.Addr;         /* causes runtime error if address is V6; => SS implementation error */
+        v_ClientIpAddr := v_RemoteSocket.IpAddr.V4.Addr;        /* causes runtime error if address is V6; => SS implementation error */
+
+        if (fl_IPv4AddrIsBroadcast(v_ServerIpAddr) or fl_IPv4AddrIsAny(v_ClientIpAddr)) {
+          /* Assumption:
+             we have either unicast addresses for src and dest or boadcast as dest and any address as source;
+             if this is not always the case in the future this semantics need to be enhanced */
+
+          v_PdnIndex := fl_IP_AddrServer_Find(vc_IP_PTC_PDN_AddrServer.DHCP, v_Datagram.DrbInfo);
+          v_ServerIpAddr := vc_IP_PTC_PDN_AddrServer.DHCP[v_PdnIndex].ServerAddr;
+          v_ClientIpAddr := vc_IP_PTC_PDN_AddrServer.DHCP[v_PdnIndex].ClientAddr;
+
+          v_LocalSocket.IpAddr.V4.Addr  := v_ServerIpAddr;              // server address is source address
+          v_RemoteSocket.IpAddr.V4.Addr := tsc_INADDR_BROADCAST;        // send response as broadcast (dest address)
+        }
+
+        v_RespData := f_DHCPv4_GetEncodedResponse(v_Datagram.Buffer, v_ClientIpAddr, v_ServerIpAddr);
+        if (lengthof(v_RespData) >  0) {
+          IP_SOCK.send(cs_UDP_DATA_REQ(v_LocalSocket, v_RemoteSocket, v_RespData));
+        }
+      }
+  }
+
+  altstep a_ICMPv6_Handler() runs on IP_PTC
+  {
+    var IP_SOCKET_IND v_IP_SOCKET_IND;
+    var IP_Socket_Type v_RemoteSocket;
+    var IP_Socket_Type v_LocalSocket;
+    var Datagram_UL_Type v_Datagram;
+    var octetstring v_RespData;
+    var charstring v_ServerIpAddr;
+    var integer v_PdnIndex;
+    var charstring v_ClientIpAddr;
+
+    [] IP_SOCK.receive(cr_ICMPv6_DATA_IND(cr_IP_Socket(?, omit)))   /* allow any IP address to deal with multicasts */
+      -> value  v_IP_SOCKET_IND
+      {
+        v_RemoteSocket := v_IP_SOCKET_IND.DATA.ConnectionId.Remote;
+        v_LocalSocket := v_IP_SOCKET_IND.DATA.ConnectionId.Local;
+        v_Datagram := v_IP_SOCKET_IND.DATA.Ind.ICMP.RecvFrom;
+        v_ServerIpAddr := v_LocalSocket.IpAddr.V6.Addr;         /* causes runtime error if address is V4; => SS implementation error */
+        v_ClientIpAddr := v_RemoteSocket.IpAddr.V6.Addr;        /* causes runtime error if address is V4; => SS implementation error */
+
+        if (fl_IPv6AddrIsMulticast(v_ServerIpAddr)) {           /* deal with multicast */
+          /* NOTE:
+             when the local link address (as assigned as interface identifier via NAS) for different PDNs is different
+             it would also be possible to search for the server by looking for the client's local link address;
+             but for simplification we use the DRB info as for DHCP */
+          v_PdnIndex := fl_IP_AddrServer_Find(vc_IP_PTC_PDN_AddrServer.ICMPv6, v_Datagram.DrbInfo);
+          v_ServerIpAddr := vc_IP_PTC_PDN_AddrServer.ICMPv6[v_PdnIndex].ServerAddr;
+          v_ClientIpAddr := vc_IP_PTC_PDN_AddrServer.ICMPv6[v_PdnIndex].ClientAddr;
+          v_LocalSocket.IpAddr.V6.Addr  := fl_IPv6AddrGetLinkLocalAddr(v_ServerIpAddr);  /* Assumption: response for a multicast needs to be sent with SRC address as local link address (as for ROUTER SOLICITATION)
+                                                                                            @sic R5s110449 change 4 sic@ */
+
+          //v_NetworkPrefix := ???;
+        }
+        
+
+        // f_ICMPv6_GetEncodedResponse shall get network prefix only as parameter;
+        // this network prefix shall be taken from the UE address as assigned for the respective PDN
+
+
+
+        v_RespData := f_ICMPv6_GetEncodedResponse(v_Datagram.Buffer, v_ClientIpAddr);           /* NOTE: only the address prefix is used for encoding of the RouterAdvertisement */
+
+        // !!!!! how to deal e.g. with Neighbor Solicitation for Duplicate Address Detection ???
+
+
+        if (lengthof(v_RespData) >  0) {
+          /* v_LocalSocket:
+             - same address as for the corresponding request if this has been unicast or
+             - link local address e.g. for router advertisement
+             v_ClientIpAddr:
+             - same address as for the corresponding request (note: in case of a router solicitation the source address is a link local) */
+
+          v_RespData := fl_ICMPv6_UpdateCRCChecksum(v_LocalSocket.IpAddr.V6.Addr,
+                                                    v_RemoteSocket.IpAddr.V6.Addr, //@sic R5s110773 sic@
+                                                    v_RespData);
+          IP_SOCK.send(cs_ICMPv6_DATA_REQ(v_LocalSocket, v_RemoteSocket, v_RespData));          // !!!!!!!!!! what addresses to be used for the respective ICMPv6 procedures !!!!!!!
+        }
+      }
+  }
+
+  function fl_ICMPv6_UpdateCRCChecksum(charstring p_SrcAddress,
+                                       charstring p_DstAddress,
+                                       octetstring p_IcmpPDU) return octetstring
+  {
+    var octetstring v_PseudoHeader;
+    var octetstring v_IcmpPDU := p_IcmpPDU;
+    var O2_Type v_Checksum;
+    // Build pseudo headers for ICMPv6, see RFC 4443 clause 2.3
+    // Pseudo headers are specified in RFC 2460 clause 8.1
+    v_PseudoHeader :=
+      f_Convert_IPv6Addr2OctString(p_SrcAddress) &
+        f_Convert_IPv6Addr2OctString(p_DstAddress) &
+        int2oct (lengthof(p_IcmpPDU), 4) & '0000003A'O;
+      
+      // Now compute checksum
+      v_Checksum := f_IpChecksum (v_PseudoHeader & p_IcmpPDU);
+      
+      // See RFC 4443 clause 2.1
+      v_IcmpPDU[2] := v_Checksum[0];
+      v_IcmpPDU[3] := v_Checksum[1];
+      return v_IcmpPDU;
+  }
+
+  function fl_ICMPv6_SendRouterAdvertisement(PDN_Index_Type p_PdnIndex) runs on IP_PTC
+  {
+    var template (value) IP_Socket_Type v_RemoteSocket;
+    var template (value) IP_Socket_Type v_LocalSocket;
+    var charstring v_ServerIpAddr;
+    var charstring v_LinkLocalAddr;
+    var charstring v_MulticastAddr := "FF02::1";
+    var octetstring v_Data;
+    var integer v_Index := enum2int(p_PdnIndex);
+
+    if (fl_IP_AddrServer_IsRunning(vc_IP_PTC_PDN_AddrServer.ICMPv6[v_Index])) {
+      v_ServerIpAddr := vc_IP_PTC_PDN_AddrServer.ICMPv6[v_Index].ServerAddr;
+      v_LinkLocalAddr := fl_IPv6AddrGetLinkLocalAddr(v_ServerIpAddr);
+      v_Data := f_ICMPv6_GetRouterAdvertisement(v_ServerIpAddr);
+      v_RemoteSocket := cs_IP_Socket(cs_IPv6Addr(v_MulticastAddr), omit);
+      v_LocalSocket := cs_IP_Socket(cs_IPv6Addr(v_LinkLocalAddr), omit);
+      v_Data := fl_ICMPv6_UpdateCRCChecksum(v_LinkLocalAddr, v_MulticastAddr, v_Data);
+      IP_SOCK.send(cs_ICMPv6_DATA_REQ(v_LocalSocket, v_RemoteSocket, v_Data));
+    }
+  }
+
+  altstep a_ApplicationCtrl(IP_PTC_CTRL_PORT p_CtrlPort) runs on IP_PTC
+  {
+    var IP_ConfigReq_Type v_IP_ConfigReq;
+    var PDN_Index_Type v_PdnIndex;
+    var IP_DrbInfo_Type v_DrbInfo;
+    var integer i;
+
+    [] p_CtrlPort.receive(cr_IP_CtrlAnyReq) -> value v_IP_ConfigReq {
+      if (ischosen(v_IP_ConfigReq.StartIP)) {
+        v_PdnIndex := v_IP_ConfigReq.StartIP.PdnId;
+        v_DrbInfo := v_IP_ConfigReq.StartIP.DrbInfo;
+
+        fl_IP_AddrServers_Start(v_PdnIndex, v_DrbInfo);
+        fl_IP_ImsServer_Start(v_PdnIndex, v_DrbInfo);
+
+      } else if (ischosen(v_IP_ConfigReq.StopIP)) {
+        for (i:=0; i<tsc_NoOfPDNs; i:=i+1) {
+          fl_IP_AddrServers_Stop(i);
+          vc_IP_PTC_IMS_Info.Server[i] := f_IP_IMS_Stop(vc_IP_PTC_IMS_Info.Server[i]);
+        }
+
+      } else if (ischosen(v_IP_ConfigReq.ChangeEutraCell)) {
+        if (f_RoutingTable_ChangeEutraCell(vc_IP_PTC_DRB_RoutingTable, v_IP_ConfigReq.ChangeEutraCell.CellId)) {
+          // we only change the routing at the SS when really needed
+          f_IP_PTC_SendRoutingTable(vc_IP_PTC_DRB_RoutingTable);
+        }
+      
+      } else if (ischosen(v_IP_ConfigReq.SendRouterAdvertisement)) {
+        fl_ICMPv6_SendRouterAdvertisement(v_IP_ConfigReq.SendRouterAdvertisement.PdnId);
+      }
+      p_CtrlPort.send(cs_IP_CommonCnf);
+    }
+  }
+
+  function f_IP_PTC_MainLoop() runs on IP_PTC
+  {
+    fl_IP_PTC_Init();
+
+    while (true) {
+      alt {
+        [] a_ApplicationCtrl(EUTRA_CTRL);
+        [] a_ApplicationCtrl(UTRAN_CTRL);
+        [] a_ApplicationCtrl(GERAN_CTRL);
+        [] a_DHCP_Handler();
+        [] a_ICMPv6_Handler();
+        // [] a_DNS_Handler();
+        [] a_IP_IMS_Handler(vc_IP_PTC_IMS_Info);
+        [] any port.receive {
+          f_ErrorLog(__FILE__, __LINE__, "unexpected message (skipped)");
+          repeat;
+        }
+      }
+    }
+  }
+
+}

@@ -1,0 +1,193 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:10:23 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7300 $
+/******************************************************************************/
+
+module UTRAN_TTCN_ASP_Templates {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_TypeDefs all;
+
+  template (value) U_RLC_AM_REQ cas_RLC_Data_Req_Common ( UTRAN_CellId_Type                p_CellId,
+                                                          integer                          p_RB_Id,
+                                                          AmConfirmationRequest            p_AmConfirmationRequest,
+                                                          template (value) DL_DCCH_Message p_Pdu ) :=
+  { /* @status    APPROVED */
+    data := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      confirmationRequest := p_AmConfirmationRequest,
+      aM_message := {
+        dL_DCCH_Message := p_Pdu
+      }
+    }
+  };
+
+  template (value) U_RLC_AM_REQ cas_RLC_Data_Req_Cnf ( UTRAN_CellId_Type                p_CellId,
+                                                       integer                          p_RB_Id,
+                                                       Mui                              p_Mui,
+                                                       template (value) DL_DCCH_Message p_Pdu ) :=
+    /* @status    APPROVED */
+    cas_RLC_Data_Req_Common(p_CellId, p_RB_Id, {confirmationRequested := p_Mui}, p_Pdu);
+
+  template (value) U_RLC_AM_REQ cas_RLC_Data_Req_NoCnf ( UTRAN_CellId_Type                p_CellId,
+                                                         integer                          p_RB_Id,
+                                                         template (value) DL_DCCH_Message p_Pdu ) :=
+    /* @status    APPROVED */
+    cas_RLC_Data_Req_Common(p_CellId, p_RB_Id, {noConfirmationRequest := NULL}, p_Pdu);
+
+  template U_RLC_AM_IND car_RLC_Data_Ind ( UTRAN_CellId_Type        p_CellId,
+                                           integer                  p_RB_Id,
+                                           template UL_DCCH_Message p_Pdu ) :=
+  { /* @status    APPROVED */
+    data := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      integrityResult := ?,
+      aM_message := {
+        uL_DCCH_Message := p_Pdu
+      }
+    }
+  };
+
+  template U_RLC_AM_IND car_AM_DataMuiCnf ( UTRAN_CellId_Type p_CellId,
+                                            integer           p_RB,
+                                            Mui               p_Mui) :=
+  { /* @status    APPROVED */
+    cnf := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB
+      },
+      mui := p_Mui
+    }
+  };
+
+  template (value) RRC_DATA_REQ cas_DataReq_Common(UTRAN_CellId_Type p_CellId,
+                                                   SS_RB_Identity p_Rb,
+                                                   SS_CN_DomainIdentity p_CN_Domain,
+                                                   template (value) RRCDataReqType p_Pdu) :=
+  { /* @status    APPROVED */
+    cellId          := enum2int(p_CellId),
+    rB_Id           := p_Rb,
+    ch              := omit,       // always set to omit
+    sapId           := omit,       // always set to omit
+    cN_Domain       := p_CN_Domain,
+    msg             := p_Pdu
+  };
+
+  template (value) RRC_DATA_REQ cas_DataReq_CS(UTRAN_CellId_Type p_CellId,
+                                               SS_RB_Identity p_Rb,
+                                               template (value) RRCDataReqType p_Pdu) :=
+  /* @status    APPROVED */
+    cas_DataReq_Common(p_CellId, p_Rb, tsc_SS_CS_Domain, p_Pdu);
+
+  template (value) RRC_DATA_REQ cas_DataReq_PS(UTRAN_CellId_Type p_CellId,
+                                               SS_RB_Identity p_Rb,
+                                               template (value) RRCDataReqType p_Pdu) :=
+  /* @status    APPROVED */
+    cas_DataReq_Common(p_CellId, p_Rb, tsc_SS_PS_Domain, p_Pdu);
+
+  template RRC_DATA_IND car_CommonDirectTransfer(UTRAN_CellId_Type p_CellId,
+                                                 template SS_RB_Identity p_Rb,
+                                                 template (present) SS_CN_DomainIdentity p_DomainIdentity,
+                                                 template START_Value p_Start,
+                                                 template RRCDataIndType p_Pdu) :=
+  { /* @status    APPROVED */
+    cellId          := enum2int(p_CellId),
+    rB_Id           := p_Rb,
+    ch              := omit,       // always set to omit
+    sapId           := omit,       // always set to omit
+    cN_Domain       := p_DomainIdentity,
+    ttcn_start      := p_Start,
+    msg             := p_Pdu
+  };
+
+  template RRC_DATA_IND car_InitDirectTransfer(UTRAN_CellId_Type p_CellId,
+                                               template SS_RB_Identity p_Rb,
+                                               template RRCDataIndType p_Pdu) :=
+  /* @status    APPROVED */
+    car_CommonDirectTransfer(p_CellId, p_Rb, tsc_SS_CS_Domain, ?, p_Pdu);
+
+  template RRC_DATA_IND car_PS_InitDirectTransfer(UTRAN_CellId_Type p_CellId,
+                                                  template SS_RB_Identity p_Rb,
+                                                  template RRCDataIndType p_Pdu) :=
+  /* @status    APPROVED */
+    car_CommonDirectTransfer(p_CellId, p_Rb, tsc_SS_PS_Domain, ?, p_Pdu);
+
+  template RRC_DATA_IND car_PS_UplinkDirectTransfer(UTRAN_CellId_Type p_CellId,
+                                                    template SS_RB_Identity p_Rb,
+                                                    template RRCDataIndType p_Pdu) :=
+  /* @status    APPROVED */
+    car_CommonDirectTransfer(p_CellId, p_Rb, tsc_SS_PS_Domain, omit, p_Pdu);
+
+  template RRC_DATA_IND car_UplinkDirectTransfer(UTRAN_CellId_Type p_CellId,
+                                                 template SS_RB_Identity p_Rb,
+                                                 template RRCDataIndType p_Pdu) :=
+  /* @status    APPROVED */
+    car_CommonDirectTransfer(p_CellId, p_Rb, tsc_SS_CS_Domain, omit, p_Pdu);
+
+  template (value) SS_E_PUCH_Info cs_SS_E_PUCH_Info :=
+  { /* @status    APPROVED */
+    lTGI_Presence := false,
+    e_TFCS_Info := {
+      reference_Beta_QPSK_List := {
+        {
+          reference_Code_Rate := 2,
+          reference_Beta := -10
+        },
+        {
+          reference_Code_Rate := 8,
+          reference_Beta := -3
+        }
+      },
+      reference_Beta_16QAM_List := {
+        {
+          reference_Code_Rate := 2,
+          reference_Beta := -5
+        },
+        {
+          reference_Code_Rate := 8,
+          reference_Beta := 2
+        }
+      }
+    },
+    snpl_ReportType := type1,
+    prxBASEdes := -112,
+    beaconPLEst := false,
+    tpc_StepSize := 1,
+    pebase_PowerControlGAP := 254,
+    ul_SynchronisationParameters := {
+      stepSize := 1,
+      frequency := 1
+    },
+    minimum_Allowed_Code_Rate := 0,
+    maximum_Allowed_Code_Rate := 63,
+    maximumNumOfRetransSchedInfo := 4,
+    retransTimerForSchedInfo := ms40,
+    powerOffsetForSchedInfo := omit,
+    e_DCH_phyLayCategory := 1,
+    e_PUCH_TS_Information_per_UARFCN := {
+      {
+        timeslotNumber := 2,
+        midambleAllocationMode := {defaultMidamble := NULL},
+        midambleConfiguration := 8,
+        channelisation_Code := cc1_1
+      }
+    },
+    carrier_Frequency := omit
+  };
+
+}

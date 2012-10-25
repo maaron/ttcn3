@@ -1,0 +1,1408 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2012-09-04 15:06:15 +0200 (Tue, 04 Sep 2012) $
+// * $Rev: 7298 $
+// ***************************************************************************
+
+module NAS_Detach {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_NASCommonFunctions all;
+  import from EUTRA_NASCommonTemplates all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Security_Templates all;
+  import from EUTRA_Timing all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+group LocalTemplates {
+
+template NAS_UL_Message_Type cr_DETACH_REQUEST_NormalDetachandMO (template (present) NAS_KeySetIdentifier p_NasKeySetId,
+                                                                  template (present) MobileIdentity p_MobileId) :=
+  /* @status    APPROVED */
+  cr_508_DETACH_REQUEST_MO(p_NasKeySetId,
+                           p_MobileId,
+                           cr_DetachType('0'B, (tsc_DetachMO_EpsOnly, tsc_DetachMO_Combined)));
+
+template NAS_UL_Message_Type cr_DETACH_REQUEST_NormalDetachandIMSIOnly (template (present) NAS_KeySetIdentifier p_NasKeySetId,
+                                                                        template (present) MobileIdentity p_MobileId) :=
+  /* @status    APPROVED */
+  cr_508_DETACH_REQUEST_MO(p_NasKeySetId,
+                           p_MobileId,
+                           cr_DetachType('0'B, tsc_DetachMO_Imsi));
+
+template NAS_UL_Message_Type cr_DETACH_REQUEST_SwitchOffandIMSIOnly (template (present) NAS_KeySetIdentifier p_NasKeySetId,
+                                                                     template (present) MobileIdentity p_MobileId) :=
+  /* @status    APPROVED */
+  cr_508_DETACH_REQUEST_MO(p_NasKeySetId,
+                           p_MobileId,
+                           cr_DetachType('1'B, tsc_DetachMO_Imsi));
+
+template NAS_UL_Message_Type cdr_TAU_Request_combinedupdating_IMSIattach(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                                         NAS_KsiValue p_KsiValue,
+                                                                         template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                                         template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                         template (value) MobileIdentity p_OldGuti,
+                                                                         NAS_PlmnId p_PlmnId,
+                                                                         NAS_Tac    p_Tac)
+  modifies cr_508_TAU_Request :=
+{ /* @status    APPROVED */
+  tRACKING_AREA_UPDATE_REQUEST := {
+    oldGuti       := p_OldGuti,
+    lastVisitedRegisteredTai   := cr_TAI(p_PlmnId, p_Tac),
+    oldLai                     := omit,
+    tmsiStatus                 := cr_TMSI_Status('0'B)
+  }
+};
+
+} // end of group LocalTemplates
+
+function f_TC_9_2_2_1_1_EUTRA() runs on EUTRA_PTC
+{
+  // @desc UE initiated detach procedure / UE switched off.
+  
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1); // @sic R5s106627 sic@
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+
+  // Preamble: UE is in state Registered, Idle (state 2) on Cell
+  f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+  f_EUTRA_TestBody_Set(true);
+
+  fl_TC_9_2_2_1_1_Body();
+
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);  //@sic R5-103849, R5-105005 sic@
+}
+
+function fl_TC_9_2_2_1_1_Body() runs on EUTRA_PTC
+{
+  var GutiParameters_Type v_Guti := f_EUTRA_CellInfo_GetGuti ( eutra_CellA );
+  // var ReleaseCause v_RRC_ReleaseCause := other;
+  var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+  //v_AttachType and AdditionalUpdateType are introduced here to follow TTCN3 v411 standard
+  var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL); // @sic R5s110176, R5-103673 sic@
+  var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+  // temporary variable which is used when receiving NAS ASPs
+  var NAS_MSG_Indication_Type v_NasInd;
+  var NAS_AttDetValue_Type v_EDetachType := f_GetEDetachType( NORMAL); // @sic R5s110176, R5s110139 sic@
+
+  // ==========================================================================
+
+  //+   Cause the UE to switch or power off
+  //@siclog "Step 1" siclog@
+  f_UT_SwitchOffUE (UT, false);
+
+  //+  Check: does the UE transmit an RRCConnectionRequest message with establishmentCause set
+  //         to mo-Signalling followed by a DETACH REQUEST with the Detach Type IE indicating "switch off"? [1,P]
+  //@siclog "Step 2" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication(tsc_SHT_IntegrityProtected, // @sic R5s090312 sic@
+                                                               cr_508_DETACH_REQUEST_MO(cr_NAS_KeySetIdentifier (?, ?), // @sic R5-110472 sic@
+                                                                                        f_GutiParameters2MobileIdentity(omit, v_Guti),
+                                                                                        cr_DetachType( '1'B, v_EDetachType)))); // @sic R5-103675 sic@
+                                                                                        //@sic R5s110139 sic@
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+  
+  //+ Void  @sic R5-102247 sic@
+  //@siclog "Step 3 - 7 Void" siclog@
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+  
+  //+  The UE is switched on.
+  //@siclog "Step 8" siclog@
+  f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+  
+  //+  The UE transmits an ATTACH REQUEST message.
+  //@siclog "Step 9" siclog@
+  v_NasInd:= f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                            tsc_RRC_TI_Def,
+                                            cr_EstablishmentCause_Any,
+                                            cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                              cdr_ATTACH_REQUEST_WithEPSnativeSecurityCtx(v_AttachType,
+                                                                                                                          v_AdditionalUpdateType,
+                                                                                                                          v_SecurityParams.KSIasme),
+                                                                              cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                              f_GetPdnType())));
+  f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Step 9");
+  
+  // Bring UE into a stable state
+  //@siclog "StepS 10 - 21" siclog@
+  f_EUTRA_IdleUpdated_Step5_17 (eutra_CellA, STATE2_IDLEUPDATE, NORMAL, v_NasInd, false); // @sic R5-105005 sic@
+
+} // function tc_9_2_2_1_1_EUTRA
+
+function f_TC_9_2_2_1_2_EUTRA() runs on EUTRA_PTC
+{ // UE initiated detach / USIM removed from the UE
+  
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+  
+  // Preamble: UE is in state Registered, Idle (state 2) on Cell
+  f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+  f_EUTRA_TestBody_Set(true);
+  
+  fl_TC_9_2_2_1_2_Body();
+
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellA, E4_DEREGISTERED);
+}
+
+function fl_TC_9_2_2_1_2_Body() runs on EUTRA_PTC
+{
+  var GutiParameters_Type v_Guti := f_EUTRA_CellInfo_GetGuti ( eutra_CellA );
+  var float v_NoReactionTime := f_EUTRA_SetTimerToleranceMax( eutra_CellA, rrcTimer, 3.0 );
+  var NAS_MSG_Indication_Type v_NasInd;
+  var B1_Type v_SwitchOffValue;
+
+  // ==========================================================================
+  
+  //+   Cause removal of USIM from the UE without powering down
+  //@siclog "Step 1" siclog@
+  f_UT_USIM_Remove (UT);
+
+  //+  Check: Does the UE transmit a DETACH REQUEST with the Detach Type IE indicating "normal detach" or "switch off" detach and
+  //          "combined EPS/IMSI detach" or "EPS detach" depending on the UE configuration?[1,P]
+  //@siclog "Step 2" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,                               // @sic R5s110227 sic@
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                               cr_508_DETACH_REQUEST_MO(cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                        f_GutiParameters2MobileIdentity(omit, v_Guti),
+                                                                                        cr_DetachType('?'B, f_GetEDetachType(NORMAL))))); // @sic R5-123640 sic@
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+
+  //+   If in step 2 normal detach is performed SS responds with DETACH ACCEPT message
+  //@siclog "Step 2a" siclog@
+  v_SwitchOffValue := v_NasInd.Pdu.Msg.dETACH_REQUEST_MO.detachType.switchOff;
+  if (v_SwitchOffValue == '0'B) {  // @sic R5-123640 sic@
+    SRB.send (cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_DETACH_ACCEPT)));
+  }
+   
+  //@siclog "Step 3" siclog@
+  //+   Check: Does the test result of generic procedure in TS 36.508 subclause 6.4.2.5 indicate that the UE does not respond to paging
+  //           when paged with GUTI-1 and with CN domain indicator set to "PS"?
+  
+  f_EUTRA_508Check_NASNoResponse ( eutra_CellA,
+                                   cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_Guti.MME_Code, v_Guti.M_TMSI )),
+                                   v_NoReactionTime );
+} // function tc_9_2_2_1_2_EUTRA
+
+function f_TC_9_2_2_1_4_EUTRA() runs on EUTRA_PTC
+{ /* UE initiated detach / detach for non-EPS services */
+  /* @sic R5s110643 sic@ */
+
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+  f_EUTRA_CellConfig_Def(eutra_CellB);
+  
+  f_UT_ConfigureCombinedAttach (UT);
+  
+ // Preamble: UE is in state Registered, Idle (state 2) on CellA
+  f_EUTRA_Preamble (eutra_CellA, STATE2_IDLEUPDATE, Combined);
+  
+  f_EUTRA_TestBody_Set(true);
+  
+  fl_TC_9_2_2_1_4_Body();
+  
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellB, E2_CONNECTED, EPS_Only); // @sic R5s110643 sic@
+
+}// function f_TC_9_2_2_1_4_EUTRA
+
+function fl_TC_9_2_2_1_4_Body() runs on EUTRA_PTC
+{
+  var NAS_MSG_Indication_Type v_NasInd;
+  var GutiParameters_Type v_Guti2_Params := f_EUTRA_CellInfo_GetGuti(eutra_CellB);
+  var template (omit) EPS_BearerContextStatus v_EpsBearerCtxtStatus;
+  var NAS_PlmnId v_PLMN_B := f_Asn2Nas_PlmnId (v_Guti2_Params.PLMN_Identity);
+  var TrackingAreaCode v_Tac_B := f_EUTRA_CellInfo_GetTAC ( eutra_CellB );
+  var template (value) TrackingAreaIdList v_TaiList_B := cds_TAIListNonConsecutive_tlv ( v_PLMN_B, { bit2oct(v_Tac_B) } );
+  var GutiParameters_Type v_Guti_1_Params := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+  var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (EPS_Only);
+  var template (value) CellPowerList_Type v_CellPowerList;
+  
+  //+  Cause UE to initiate detach for non-EPS services..
+  //@siclog "Step 1" siclog@
+  f_UT_InitiateDetach_NonEPSOnly(UT); // @sic R5s110643 sic@
+  
+  // + Check: Does the UE transmit a DETACH REQUEST message with the Detach type IE indicating "IMSI detach" and "normal detach".[1,P]
+  // @siclog "Step 2" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                cr_DETACH_REQUEST_NormalDetachandIMSIOnly (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                           f_GutiParameters2MobileIdentity(omit, v_Guti_1_Params))));
+  
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2: DETACH REQUEST message received from UE");
+  
+  //+ The SS responds the DETACH ACCEPT message.
+  //@siclog "Step 3" siclog@
+  SRB.send(cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_DETACH_ACCEPT)));
+  
+  //+  The SS releases the RRC connection
+  //@siclog "Step 3A" siclog@
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA);   // @sic R5s110643 sic@
+  
+  //+ Set the cell type of cell A to the "Non-Suitable cell ". Set the cell type of cell B to the " Serving cell"
+  //@siclog "Step 4" siclog@
+  v_CellPowerList := {
+    cs_CellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ),
+    cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE )
+  };
+  f_EUTRA_SetCellPowerList ( v_CellPowerList );
+  
+  //+ Check: Does the UE transmit a TRACKING AREA UPDATE REQUEST message? [1,P]
+  //@siclog "Step 5" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellB,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_Any,
+                                             cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                               cr_508_TAU_Request(tsc_EpsUpdate_TaUpdate,
+                                                                                  f_EUTRA_SecurityKSIasme_Get(),
+                                                                                  cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                                  v_AdditionalUpdateType)));
+  f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Step 5");
+  v_EpsBearerCtxtStatus := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus;
+  
+  //@siclog "Step 6" siclog@
+  SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellB,
+                               cs_TimingInfo_Now,
+                               cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                              cs_508_TAU_Accept(tsc_EpsUpdate_TaUpdate,
+                                                                f_GutiParameters2MobileIdentity(tsc_IEI_Guti, v_Guti2_Params),  // @sic R5s110643 sic@
+                                                                v_TaiList_B,
+                                                                v_EpsBearerCtxtStatus,
+                                                                omit, // @sic R5s110643 sic@
+                                                                omit,
+                                                                f_GetAdditionalUpdateResult(v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType)))));
+  //@siclog "Step 7" siclog@
+  SRB.receive(car_SRB1_NasPdu_IND(eutra_CellB,
+                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cr_508_TAU_Complete)));
+} // function tc_9_2_2_1_4_EUTRA
+
+function f_TC_9_2_2_1_6_EUTRA() runs on EUTRA_PTC
+{ // @desc UE initiated detach / Abnormal case / local detach after 5 attempts due to no network response.
+
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+
+ // Preamble: UE is in state Registered, Idle (state 2) on Cell
+  f_EUTRA_Preamble (eutra_CellA, STATE2_IDLEUPDATE);
+  f_EUTRA_TestBody_Set(true);
+
+  fl_TC_9_2_2_1_6_Body();
+
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellA, E4_DEREGISTERED); // @sic R5-103875 sic@
+}
+
+function fl_TC_9_2_2_1_6_Body() runs on EUTRA_PTC
+{
+  var HalfOctet_Type v_EPS_Bearer_Id := tsc_EpsDefaultBearerId;
+  var ProcedureTransactionIdentifier v_EPS_TI := tsc_PTI_1;
+  var GutiParameters_Type v_Guti := f_EUTRA_CellInfo_GetGuti ( eutra_CellA );
+  var integer v_Expiry_Number;
+
+  // temporary variable which is used when receiving NAS ASPs
+  var NAS_MSG_Indication_Type v_NasInd;
+  var NAS_AttDetValue_Type v_AS_AttDetValue;
+
+  timer t_T3421Min := f_EUTRA_SetTimerToleranceMin(eutra_CellA, nasTimer, 15.0); // T3421 (TS 24.301 clause 10.2)- 10% R5w100302
+  timer t_T3421Max := f_EUTRA_SetTimerToleranceMax(eutra_CellA, nasTimer, 15.0); // T3421 (TS 24.301 clause 10.2)+ 10% R5w100302
+  timer t_Wait;
+
+  //@siclog "Step 1" siclog@
+  //+  Cause UE to initiate detach.
+  f_UT_InitiateDetach(UT);
+
+  //@siclog "Step 2" siclog@
+  //+  The UE transmits a DETACH REQUEST message with the Detach type IE indicating
+  //   'EPS detach' and 'normal detach'? The UE starts timer T3421.
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected, // @sic R5-103368 sic@
+                                                                cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                     f_GutiParameters2MobileIdentity(omit, v_Guti))));  // @sic R5-113807 sic@
+  v_AS_AttDetValue := v_NasInd.Pdu.Msg.dETACH_REQUEST_MO.detachType.typeOfDetach;
+ 
+  //+  The SS does not respond to the DETACH REQUEST message.
+  
+  //+  Check: When the timer T3421 expires does the UE re-transmit DETACH REQUEST message.
+  //+  Timer T3421 is re-started (1st expiry).
+  
+  //+  The SS does not respond to the DETACH REQUEST message.
+  
+  //+  Checks: When the timer T3421 expires does the UE re-tranmit DETACH REQUEST message.
+  //+  Timer T3421 is re-started (2nd expiry).
+ 
+  //+  The SS does not respond to the DETACH REQUEST message.
+  
+  //+  Check: When the timer T3421 expires does the UE re-transmit DETACH REQUEST message.
+  //+  Timer T3421 is re-started (3th expiry).
+ 
+  //+  The SS does not respond to the DETACH REQUEST message.
+ 
+  //+  Check: When the timer T3421 expires does the UE re-transmit DETACH REQUEST message.
+  //+  Timer T3421 is re-started (4th expiry).
+  //@siclog "Step 3 - 10" siclog@
+  for (v_Expiry_Number := 1; v_Expiry_Number <= 4; v_Expiry_Number := v_Expiry_Number + 1)
+    {
+      t_T3421Min.start;  //SS starts a timer to check that UE sends the Detach message after timeout.
+      alt {
+        
+        [] SRB.receive ( car_SRB1_NasPdu_IND( eutra_CellA, ?)) { // receive anything before the timer expires and it's a fail; @sic R5s100189 sic@
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step " & int2str((v_Expiry_Number*2)+2));
+          t_T3421Min.stop;
+        }
+        [] t_T3421Min.timeout {
+          SRB.receive ( car_SRB1_NasPdu_IND( eutra_CellA,
+                                             cr_NAS_Indication(tsc_SHT_IntegrityProtected, // @sic R5-103368, R5s100189 sic@
+                                                               cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                    f_GutiParameters2MobileIdentity(omit, v_Guti)))));  // @sic R5-113807 sic@
+          f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Step " & int2str((v_Expiry_Number*2)+2));
+        }
+     } // alt
+  } // for
+
+  //+  The SS does not respond to the DETACH REQUEST message.
+ 
+  //+   When the timer T3421 expires the UE aborts the detach procedure and performs a local detach (5th expiry).
+  //@siclog "Step 11 - 12" siclog@
+  t_T3421Max.start;  // @sic R5s110731 sic@
+  alt {
+    // if SS receives anything, it fails.
+    []  any port.receive
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 12");
+        t_T3421Max.stop;
+      }
+    [] t_T3421Max.timeout
+      {
+        f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Step 12");
+      }
+  }
+
+  //@siclog "Step 13" siclog@
+  //+  The SS starts the EPS bearer context modification procedure using the previously allocated EPS bearer identity.
+  SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellA,                                        // @sic R5s100189 sic@
+                               cs_TimingInfo_Now,
+                               cs_NAS_Request(tsc_SHT_IntegrityProtected,          // @sic R5s100189 sic@
+                                              cs_508_ModifyEPSBearerCxtReq(v_EPS_Bearer_Id,
+                                                                           v_EPS_TI,
+                                                                           cds_508_EPS_QoS_Dedicated_1_tlv, // @sic R5-103625 sic@ @sic R5s110737 sic@
+                                                                           f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(tsc_EpsDedicatedBearerId2))))); // @sic R5-103625 sic@
+
+  //@siclog "Step 14" siclog@
+  //    Check: does the UE transmit a MODIFY EPS BEARER CONTEXT ACCEPT
+  //    message within the next 10 s?
+  t_Wait.start(f_EUTRA_SetTimerToleranceMin(eutra_CellA, nasTTCNTimer, 10.0)); // @sic R5-106675 sic@
+  alt {
+    [] SRB.receive(car_SRB1_NasPdu_IND(eutra_CellA,                                   // @sic R5s100189 sic@
+                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected, // @sic R5s100189 sic@
+                                                         cr_508_ModifyEPSBearerCxtAccept(v_EPS_Bearer_Id))))
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 14");
+        t_Wait.stop;
+      }
+    [] t_Wait.timeout {}
+  }
+  //@siclog "Step 15" siclog@
+  // The UE is switched off.
+  f_UT_SwitchOffUE(UT, false, CNF_REQUIRED);  // @sic R5-113807 sic@
+
+  // EXCEPTION: Step 16a1 describes behaviour that depends on UE configuration;
+  // the "lower case letter" identifies a step sequence that takes place if the UE is still attached for non-EPS services.
+  //@siclog "Step 16a1 siclog@
+  // IF the UE has performed a combined attach procedure in the preamble AND initiated a detach procedure from the EPS services only at Step 2,
+  // the UE transmits a DETACH REQUEST with the Detach type IE indicating "IMSI detach".
+  if ((px_AttachTypeTested == COMBINED_ATTACH) and (v_AS_AttDetValue == tsc_DetachMO_EpsOnly)) {  // @sic R5-113807 sic@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoSignalling,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_DETACH_REQUEST_SwitchOffandIMSIOnly (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                          f_GutiParameters2MobileIdentity(omit, v_Guti))));
+  }
+} // function tc_9_2_2_1_6_EUTRA
+
+function f_TC_9_2_2_1_7_EUTRA() runs on EUTRA_PTC
+{
+  // @desc UE initiated detach / Abnormal case / Detach procedure collision
+
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+  
+  //Go to state 2
+  f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+  
+  f_EUTRA_TestBody_Set(true);
+  
+  fl_TC_9_2_2_1_7_Body();
+  
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellA, E4_DEREGISTERED); // @sic R5s110778 sic@
+  
+} // end f_TC_9_2_2_1_7_EUTRA
+
+function fl_TC_9_2_2_1_7_Body() runs on EUTRA_PTC
+{
+  var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+  var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL); // @sic R5s110176 sic@
+  var GutiParameters_Type v_GutiParams1 := f_EUTRA_CellInfo_GetGuti (eutra_CellA);
+  var NAS_MSG_Indication_Type v_NasInd;
+
+  // Cause UE to initiate detach from the EPS services.
+  //@siclog "Step 1" siclog@
+  f_UT_InitiateDetach(UT);
+  
+  //@siclog "Step 2" siclog@
+  //       The UE transmits a DETACH REQUEST message with the Detach type IE indicating
+  //       'EPS detach' and 'normal detach'? The UE starts timer T3421.
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                     f_GutiParameters2MobileIdentity(omit, v_GutiParams1) ))); // @sic R5-113807 sic@
+  
+  //  The SS does not respond to the DETACH REQUEST message.
+  //  With T3421 still running the SS shall send DETACH REQUEST message with the
+  //         Detach type IE indicating "re-attach required".
+  //@siclog "Step 3 - 4" siclog@
+  SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellA,
+                               cs_TimingInfo_Now,
+                               cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                              cs_508_DETACH_REQUEST_MT(cs_DetachType(tsc_DetachMT_ReAttach),
+                                                                       omit))));
+  
+  //  Check: Does the UE transmit a DETACH ACCEPT message?
+  //@siclog "Step 5" siclog@
+  SRB.receive(car_SRB1_NasPdu_IND(eutra_CellA,
+                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cr_508_DETACH_ACCEPT)));
+  
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step5: Detach accept message sent");
+  
+  //  The SS releases the RRC connection
+  //@siclog "Step 6" siclog@
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA);   /* @sic R5-110803 change 13 sic@ */
+
+  // EXCEPTION: Step 7a1-7b1 describe a behaviour which depends on the UE capability  @sic R5-115798 sic@
+  //  VOID
+  //@siclog "Step 7a1" siclog@
+
+  //@siclog "Step 7a2" siclog@
+  // IF pc_Re_Attach_AfterDetachColl THEN
+  // Check: Does the UE ATTACH REQUEST message with a PDN CONNECTIVITY REQUEST message?
+  if (pc_Re_Attach_AfterDetachColl == true)   // @sic R5-121750 sic@
+  {
+    v_NasInd:= f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                              tsc_RRC_TI_Def,
+                                              cr_EstablishmentCause_Any,
+                                              cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, f_GetPdnType())));
+
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7a2");
+  
+    //@siclog "Step 7a3 - 7a14" siclog@
+    f_EUTRA_IdleUpdated_Step5_17(eutra_CellA, STATE2_IDLEUPDATE, NORMAL, v_NasInd, false);
+    // Cause UE to initiate detach from the EPS services.
+    //@siclog "Step 7a15" siclog@
+    f_UT_InitiateDetach(UT);
+    //@siclog "Step 7a16" siclog@
+    // The UE transmits a DETACH REQUEST with the Detach Type IE indicating "normal detach" and "combined EPS/IMSI detach" or "EPS detach" depending on the UE configuration
+    SRB.receive ( car_SRB2_NasPdu_IND( eutra_CellA,
+                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,  // @sic R5s110778 sic@
+                                                         cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                              f_GutiParameters2MobileIdentity(omit, v_GutiParams1)))));
+    //  The SS responds with DETACH ACCEPT message
+    //@siclog "Step 7a17" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ ( eutra_CellA,  // @sic R5s110778 sic@
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                  cs_508_DETACH_ACCEPT)));
+    //  The SS releases the RRC connection
+    //@siclog "Step 7a18" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+  }
+  else
+  {
+    //@siclog "Step 7b1" siclog@
+    //ELSE Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message in the next 30s?
+    f_EUTRA_CheckNoAttachOn1Cell(eutra_CellA, 30.0);
+  }
+  
+  
+}// end function fl_TC_9_2_2_1_7_Body
+
+function f_TC_9_2_2_1_8_EUTRA() runs on EUTRA_PTC
+{ /* @desc UE initiated detach / Abnormal case / Detach and EMM common procedure collision */
+  
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+  
+  //Go to state 2
+  f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+  
+  f_EUTRA_TestBody_Set(true);
+  
+  fl_TC_9_2_2_1_8_Body();
+  
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellA, E4_DEREGISTERED);
+  
+} // end f_TC_9_2_2_1_8_EUTRA
+
+function fl_TC_9_2_2_1_8_Body() runs on EUTRA_PTC
+{
+  var NAS_MSG_Indication_Type v_NasInd;
+  var SRB_COMMON_IND v_ReceivedAsp;
+  var NasCount_Type v_NasCountUL;
+  var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+  var NAS_AttDetValue_Type v_AttachType := f_GetEDetachType(NORMAL); // @sic R5s110176 sic@
+  
+  var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti (eutra_CellA);
+  // create new GUTI with different S-TMSI
+  var GutiParameters_Type v_Guti_2_Params := f_CreateGutiParamsWithUpdatedSTmsi(v_GutiParams);
+  var template (value) MobileIdentity v_Guti;
+  var template (omit) Null_Type v_NasCountReset;
+  
+  var float v_NoReactionTime := f_EUTRA_SetTimerToleranceMax( eutra_CellA, rrcTimer, 3.0 );
+  timer t_T3450 := f_EUTRA_SetTimerToleranceMin(eutra_CellA, nasTimer, 6.0);
+  
+  //  Cause switch off
+  //@siclog "Step 1" siclog@
+  f_UT_SwitchOffUE (UT, false);
+  
+  //The UE transmits a DETACH REQUEST message with the Detach type IE indicating "switch off"
+  //@siclog "Step 2" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                cr_508_DETACH_REQUEST_MO(cr_NAS_KeySetIdentifier (?, ?), // @sic R5-110472 sic@
+                                                                                         f_GutiParameters2MobileIdentity(omit, v_GutiParams),
+                                                                                         cr_DetachType( '1'B, v_AttachType) )));
+
+    //  The SS transmits a GUTI REALLOCATION COMMAND message.
+    //@siclog "Step 3" siclog@
+  SRB.send ( cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request ( tsc_SHT_IntegrityProtected_Ciphered, // @sic R5s120213 sic@
+                                                    cs_508_GUTI_REALLOCATION_COMMAND(f_GutiParameters2MobileIdentity(omit, v_Guti_2_Params),
+                                                                                     omit) )));
+  
+  
+  //  Check: Does the UE transmit an GUTI REALLOCATION COMPLETE message?
+  //@siclog "Step 4" siclog@
+  t_T3450.start;
+  alt {
+    [] SRB.receive(car_SRB1_NasPdu_IND(eutra_CellA,
+                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered, // @sic R5s120213 sic@
+                                                         cr_508_GUTI_REALLOCATION_COMPLETE)))
+      {
+        t_T3450.stop;
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 4: GUTI REALLOCATION COMPLETE");
+      }
+    [] t_T3450.timeout {}
+  }
+  
+  f_EUTRA_RRC_ConnectionRelease_Local (eutra_CellA,
+                                       f_EUTRA_GetNextSendOccasion(eutra_CellA,
+                                                                   tsc_EUTRA_DelayBeforeIntraCellHO)); /* @sic R5-110803 change 13 sic@
+                                                                                                        * Note: the local release is scheduled i.e.
+                                                                                                        * done while f_EUTRA_508Check_NASNoResponse is running -
+                                                                                                        * This is not a problem since paging is scheduled too and even further in advance */
+  //  Check: Does the test result of generic procedure in TS 36.508 subclause 6.4.2.5
+  // indicate that the UE does not respond to paging when paged with GUTI-1 and with CN domain
+  // indicator set to "PS"?
+  //@siclog "Step 5" siclog@
+  f_EUTRA_508Check_NASNoResponse ( eutra_CellA,
+                                   cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParams.MME_Code, v_GutiParams.M_TMSI )),
+                                   v_NoReactionTime );
+  
+  //  The UE is switched on and performs an ATTACH procedure.
+  //@siclog "Step 6" siclog@
+  f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+  f_EUTRA_AttachProcedure (eutra_CellA, "No Verdict", NORMAL); // @sic R5s110176 sic@
+  
+  // Cause UE to initiate detach from the EPS services only
+  //@siclog "Step 7" siclog@
+  f_UT_InitiateDetach(UT);
+  
+  //  The UE transmits a DETACH REQUEST message with the Detach type IE indicating "EPS detach"
+  //         and "normal detach"?
+  //         The UE starts timer T3421.
+  //@siclog "Step 8" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                     f_GutiParameters2MobileIdentity(omit, v_GutiParams))));  // @sic R5-113807 sic@
+  
+  // Use GUTI-3 different from GUTI-2
+  v_Guti_2_Params.M_TMSI := oct2bit('33345678'O); //default is oct2bit('12345678'O)
+  v_Guti := f_GutiParameters2MobileIdentity( omit, v_Guti_2_Params);
+  
+  // The SS does not respond to the DETACH REQUEST message
+  //  With T3421 still running the SS shall send GUTI REALLOCATION COMMAND.
+  //@siclog "Step 9 - 10" siclog@
+  SRB.send ( cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request ( tsc_SHT_IntegrityProtected_Ciphered, // @sic R5s120213 sic@
+                                                    cs_508_GUTI_REALLOCATION_COMMAND(v_Guti,
+                                                                                     omit))));
+  
+  //  Check: Does the UE transmit a GUTI REALLOCATION COMPLETE message?
+  //@siclog "Step 11" siclog@
+  t_T3450.start;
+  alt {
+    [] SRB.receive(car_SRB1_NasPdu_IND(eutra_CellA,
+                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered, // @sic R5s120213 sic@
+                                                         cr_508_GUTI_REALLOCATION_COMPLETE)))
+      {
+        t_T3450.stop;
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 11: GUTI REALLOCATION COMPLETE received");
+      }
+    [] t_T3450.timeout {}
+  }
+  
+  // SS responds with DETACH ACCEPT message
+  //@siclog "Step 12" siclog@
+  SRB.send (cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_508_DETACH_ACCEPT)));
+  
+  //  The SS releases the RRC connection
+  //@siclog "Step 13" siclog@
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+  
+  
+  //  Cause UE to initiate attach for the EPS services.
+  //@siclog "Step 14" siclog@
+  f_UT_TriggerAttach(UT);
+  // The generic procedure in 36.508 clause 4.5.2.3-1 is executed so as to complete the attach procedure
+  f_EUTRA_AttachProcedure (eutra_CellA, "No Verdict", NORMAL); // @sic R5s110176 sic@
+  
+  
+  //  Cause UE to initiate detach from the EPS services only
+  //@siclog "Step 15" siclog@
+  f_UT_InitiateDetach(UT);
+  
+  //  The UE transmits a DETACH REQUEST message with the Detach type IE indicating
+  // "EPS detach" and "normal detach"? The UE starts timer T3421.
+  //@siclog "Step 16" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                     f_GutiParameters2MobileIdentity(omit, v_GutiParams)))); // @sic R5-113807 sic@
+  
+  //  The SS does not respond to the DETACH REQUEST message
+  //  With T3421 still running the SS shall send AUTHENTICATION REQUEST
+  //  Check: Does the UE transmit an AUTHENTICATION RESPONSE message?
+  //@siclog "Step 17 - 19" siclog@
+  v_SecurityParams := f_EUTRA_NAS_Authentication(eutra_CellA, tsc_SRB1,
+                                                 v_SecurityParams,
+                                                 tsc_SHT_IntegrityProtected_Ciphered,
+                                                 tsc_SHT_IntegrityProtected_Ciphered,
+                                                 f_Asn2Nas_PlmnId(v_GutiParams.PLMN_Identity));
+  
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 19: AUTHENTICATION RESPONSE message received");
+  
+  //  SS responds with DETACH ACCEPT message
+  //@siclog "Step 20" siclog@
+  SRB.send (cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_508_DETACH_ACCEPT)));
+  
+  //  The SS releases the RRC connection
+  //@siclog "Step 21" siclog@
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+  
+  //  Cause UE to initiate attach for the EPS services.
+  //@siclog "Step 22" siclog@
+  // The generic procedure in 36.508 clause 4.5.2.3-1 is executed so as to complete the attach procedure
+  f_UT_TriggerAttach(UT);
+  f_EUTRA_AttachProcedure (eutra_CellA, "No Verdict", NORMAL); // @sic R5s110176 sic@
+  
+  //  Cause UE to initiate detach from the EPS services only
+  //@siclog "Step 23" siclog@
+  f_UT_InitiateDetach(UT);
+  
+  //  The UE transmits a DETACH REQUEST message with the Detach type IE indicating "EPS detach"
+  //          and "normal detach"? The UE starts timer T3421
+  //@siclog "Step 24" siclog@
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                     f_GutiParameters2MobileIdentity(omit, v_GutiParams))));  // @sic R5-113807 sic@
+  
+  
+  
+  v_SecurityParams := f_EUTRA_Security_Get();
+  // Don't reset the NASCount as authentication last done before the detach request;  @sic R5s100877 sic@
+  v_NasCountReset := omit;
+  f_EUTRA_SS_NAS_SecurityConfig(cas_NasSecurityStart_REQ(cs_NAS_SecurityInit(v_SecurityParams.NAS_Integrity.Algorithm,
+                                                                             v_SecurityParams.NAS_Integrity.K_NAS,
+                                                                             v_SecurityParams.NAS_Ciphering.Algorithm,
+                                                                             v_SecurityParams.NAS_Ciphering.K_NAS,
+                                                                             v_NasCountReset))); // @sic R5s100877 sic@
+  
+  //  The SS does not respond to the DETACH REQUEST message.
+  //  With T3421 still running the SS shall send SECURITY MODE COMMAND
+  //@siclog "Step 25 - 26" siclog@
+  
+  // send NAS SECURITY MODE COMMAND (integrity protected acc. 24.301 cl. 5.4.3.2):
+  SRB.send(cas_SRB_NasPdu_REQ(eutra_CellA,
+                              tsc_SRB1,
+                              cs_TimingInfo_Now,
+                              cs_NAS_Request(tsc_SHT_IntegrityProtected_NewSecurityContext,
+                                             cs_508_SECURITY_MODE_COMMAND(v_SecurityParams.NAS_Ciphering.Algorithm,
+                                                                          v_SecurityParams.NAS_Integrity.Algorithm,
+                                                                          v_SecurityParams.KSIasme,
+                                                                          v_SecurityParams.NAS_SecurityCap))));
+  
+  //  Check: Does the UE transmit a SECURITY MODE COMPLETE message?
+  //@siclog "Step 27" siclog@
+  // receive NAS SECURITY MODE COMPLETE (integrity protected and ciphered acc. 24.301 cl. 5.4.3.3):
+  SRB.receive(car_SRB_NasPdu_IND(eutra_CellA,
+                                 tsc_SRB1,
+                                 cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered_NewSecurityContext,
+                                                   cr_508_SECURITY_MODE_COMPLETE ))) -> value v_ReceivedAsp;
+  
+  v_NasCountUL := v_ReceivedAsp.Signalling.Nas[0].SecurityProtection.NasCount;
+  f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Step 27");
+  
+  // SS responds with DETACH ACCEPT message.
+  //@siclog "Step 28" siclog@
+  SRB.send (cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_508_DETACH_ACCEPT)));
+  
+  // The SS releases the RRC connection.
+  //@siclog "Step 29" siclog@
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+  
+  // Cause UE to initiate attach for the EPS services.
+  //@siclog "Step 30" siclog@
+  // The generic procedure in 36.508 clause 4.5.2.3-1 is executed so as to complete the attach procedure.
+  f_UT_TriggerAttach(UT);
+  f_EUTRA_AttachProcedure (eutra_CellA, "No Verdict", NORMAL); // @sic R5s110176 sic@
+  
+  //  Cause UE to initiate detach from the EPS services only.
+  //@siclog "Step 31" siclog@
+  f_UT_InitiateDetach(UT);
+  
+  // The UE transmits a DETACH REQUEST message with the Detach type IE indicating "EPS detach"
+  //@siclog "Step 32" siclog@
+  //          and "normal detach"? The UE starts timer T3421.
+  v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                             tsc_RRC_TI_Def,
+                                             cr_EstablishmentCause_MoSignalling,
+                                             cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                                     f_GutiParameters2MobileIdentity(omit, v_GutiParams))));  // @sic R5-113807 sic@
+  
+  //  The SS does not respond to the DETACH REQUEST message.
+  //  With T3421 still running the SS shall send IDENTITY REQUEST.
+  //@siclog "Step 33 - 34" siclog@
+  SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellA,
+                               cs_TimingInfo_Now,
+                               cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,  // @sic R5-106597 sic@
+                                              cs_IDENTITY_REQUEST(tsc_IdType_IMSI))));
+  
+  // Check: Does the UE transmit an IDENTITY RESPONSE message?
+  //@siclog "Step 35" siclog@
+  SRB.receive(car_SRB1_NasPdu_IND(eutra_CellA,
+                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cr_IDENTITY_RESPONSE(f_Imsi2MobileIdentity(px_IMSI_Def)))));
+  
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 35");
+  
+  //  SS responds with DETACH ACCEPT message.
+  //@siclog "Step 36" siclog@
+  SRB.send (cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_508_DETACH_ACCEPT)));
+  //@siclog "Step 37" siclog@
+  //+  The SS releases the RRC connection.
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA); // @sic R5s120314 sic@
+}// end function fl_TC_9_2_2_1_8_Body
+
+function f_TC_9_2_2_1_9_EUTRA() runs on EUTRA_PTC
+{ /* @desc UE initiated detach / Abnormal case / Change of cell into a new tracking area */
+  // @sic R5s100883 sic@
+   
+  var template (value) CellPowerList_Type v_CellPowerList;
+
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c3);
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+  f_EUTRA_CellConfig_Def(eutra_CellB);
+  
+  //Go to state 2
+  f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE); // @sic R5s110084 sic@
+
+  //Go to state 3
+  f_EUTRA_RbEst_Def ( eutra_CellA );
+  
+  // The SS pre-configures Cell A as the "Serving cell" and Cell B as "Non-Suitable cell"
+  v_CellPowerList := {
+    cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ),
+    cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE )
+  };
+  f_EUTRA_SetCellPowerList ( v_CellPowerList );
+  
+  f_EUTRA_TestBody_Set(true);
+  
+  fl_TC_9_2_2_1_9_Body();
+  
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellB, E4_DEREGISTERED);
+  
+} // end f_TC_9_2_2_1_9_EUTRA
+
+function fl_TC_9_2_2_1_9_Body() runs on EUTRA_PTC
+{ // * @sic R5s100883 sic@
+
+  var NAS_MSG_Indication_Type v_NasInd;
+  var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+  var template (value) CellPowerList_Type v_CellPowerList;
+  
+  var GutiParameters_Type v_GutiParams1 := f_EUTRA_CellInfo_GetGuti (eutra_CellA);
+  var GutiParameters_Type v_GutiParams_B := f_EUTRA_CellInfo_GetGuti (eutra_CellB);
+  var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams_B.PLMN_Identity);
+  var template (omit) EPS_BearerContextStatus v_EpsBearerCtxtStatus;
+  var float v_NoReactionTime := f_EUTRA_SetTimerToleranceMax( eutra_CellB, rrcTimer, 3.0 );
+  
+  var TrackingAreaCode v_Tac := f_EUTRA_CellInfo_GetTAC ( eutra_CellB );
+  var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode ( eutra_CellB );
+  var template (omit) LocAreaId v_LAI := f_GetLAI ( v_PLMN, v_LAC, NORMAL); // @sic R5s110176 sic@
+  var template (omit) MobileIdentity v_MSId := f_GetMSId (NORMAL); // @sic R5s110176 sic@
+  var template (value) TrackingAreaIdList v_TaiList := cds_TAIListNonConsecutive_tlv ( v_PLMN, { bit2oct(v_Tac) } );
+  var EPS_UpdateTypeValue v_UpdateType := f_GetEPSTAUType(NORMAL); // @sic R5s110176 sic@
+  var SRB_COMMON_IND v_ReceivedAsp;
+
+  //  Cause UE to initiate detach from the EPS services.
+  //@siclog "Step 1" siclog@
+  f_UT_InitiateDetach(UT);
+  
+  //       The UE transmits a DETACH REQUEST message with the Detach type IE indicating
+  //       'EPS detach' and 'normal detach'? The UE starts timer T3421.
+  //@siclog "Step 2" siclog@
+  SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                  cr_NAS_Indication (tsc_SHT_IntegrityProtected_Ciphered,
+                                                     cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                          f_GutiParameters2MobileIdentity(omit, v_GutiParams1)))));  // @sic R5-113807 sic@
+  // The SS does not respond to the DETACH REQUEST message.
+  // Set the cell type of cell A to the "Non-Suitable cell".
+  //         Set the cell type of cell B to the "Serving cell".
+  // Note: T3421 value is specified as 15s in TS 24.301 and it is assumed that
+  //       SS can configure cells within this time.
+  //@siclog "Step 3 - 4" siclog@
+  v_CellPowerList := {
+    cs_CellPower ( eutra_CellA, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE ),
+    cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE )
+  };
+  f_EUTRA_SetCellPowerList ( v_CellPowerList );
+
+  //SS now creates a handover situation to direct the UE to cellB
+  //@siclog "Step 4A - 4B" siclog@
+  f_EUTRA_508RRC_IntraLTE_HO_InterCell ( eutra_CellA, eutra_CellB );
+    
+  //  Check: Does the UE transmit a TRACKING AREA UPDATE REQUEST message?
+  //@siclog "Step 5" siclog@
+  SRB.receive( car_SRB2_NasPdu_IND(eutra_CellB,
+                                   cr_NAS_Indication(
+                                   tsc_SHT_IntegrityProtected,
+                                   cdr_TAU_RequestAnyActiveFlag(v_UpdateType,
+                                                                f_EUTRA_SecurityKSIasme_Get(),
+                                                                cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                v_AdditionalUpdateType)))) -> value v_ReceivedAsp;
+  v_NasInd := v_ReceivedAsp.Signalling.Nas[0] ;
+  v_EpsBearerCtxtStatus := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus;
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5: TAU Request sent by UE");
+  
+  // The SS transmits a TRACKING AREA UPDATE ACCEPT message.
+  //@siclog "Step 6" siclog@
+  SRB.send ( cas_SRB2_NasPdu_REQ ( eutra_CellB,
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cs_508_TAU_Accept ( v_UpdateType,
+                                                                        f_GutiParameters2MobileIdentity (tsc_IEI_Guti, v_GutiParams_B ), //GUTI-2
+                                                                        v_TaiList,
+                                                                        v_EpsBearerCtxtStatus,
+                                                                        v_LAI,
+                                                                        v_MSId,
+                                                                        f_GetAdditionalUpdateResult(v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType)))));
+  
+  // Check: Does the UE transmit a TRACKING AREA UPDATE COMPLETE message?
+  //@siclog "Step 7" siclog@
+  SRB.receive(car_SRB2_NasPdu_IND(eutra_CellB,
+                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cr_508_TAU_Complete) ));
+  
+  //  The UE transmits a DETACH REQUEST message with the Detach type IE indicating
+  //         'EPS detach' and 'normal detach'? The UE starts timer T3421.
+  //@siclog "Step 8" siclog@
+  SRB.receive(car_SRB2_NasPdu_IND(eutra_CellB,
+                                  cr_NAS_Indication (tsc_SHT_IntegrityProtected_Ciphered,
+                                                     cr_DETACH_REQUEST_NormalDetachandMO (cr_NAS_KeySetIdentifier (?, tsc_NasKsi_NativeSecurityContext),
+                                                                                          f_GutiParameters2MobileIdentity(omit, v_GutiParams_B)))));  // @sic R5-113807 sic@
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8: Detach Request sent by UE");
+  
+  // SS responds with DETACH ACCEPT message
+  //@siclog "Step 9" siclog@
+  SRB.send (cas_SRB2_NasPdu_REQ ( eutra_CellB,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_508_DETACH_ACCEPT) ));
+  
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellB);
+  
+  //  Check: Does the test result of generic procedure in TS 36.508 subclause 6.4.2.5 indicate that
+  // the UE does not respond to paging when paged with GUTI-2 and with CN domain indicator set to "PS"?
+  //@siclog "Step 10" siclog@
+  f_EUTRA_508Check_NASNoResponse ( eutra_CellB,
+                                   cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParams_B.MME_Code, v_GutiParams_B.M_TMSI )),
+                                   v_NoReactionTime );
+  
+}// end function fl_TC_9_2_2_1_9_Body
+
+function f_TC_9_2_2_2_1_EUTRA() runs on EUTRA_PTC
+{
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+
+  // Preamble: UE is in state Generic RB established (state 3) on Cell 1
+  f_EUTRA_Preamble (eutra_CellA, STATE2_IDLEUPDATE);
+  f_EUTRA_RbEst_Def(eutra_CellA);
+  f_EUTRA_TestBody_Set(true);
+
+  fl_TC_9_2_2_2_1_Body();
+
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED); //@sic R5-103849 sic@
+}
+
+function fl_TC_9_2_2_2_1_Body() runs on EUTRA_PTC
+{
+  // ==========================================================================
+  // initialize constant test case data structures
+  // ==========================================================================
+  var ProcedureTransactionIdentifier v_EpsPti := tsc_PTI_1;
+  // ==========================================================================
+
+  var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+  var GutiParameters_Type v_Guti1_Params := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+  var TrackingAreaCode v_TAC := f_EUTRA_CellInfo_GetTAC(eutra_CellA);
+  var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode(eutra_CellA);
+  var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId(v_Guti1_Params.PLMN_Identity);
+  var template (omit) MobileIdentity v_MSId := f_GetMSId (NORMAL); // @sic R5s110176 sic@
+  var template (value) TrackingAreaIdList v_Tai1_List := cs_TAIListNonConsecutive_lv(f_Asn2Nas_PlmnId( v_Guti1_Params.PLMN_Identity),
+                                                                                      { bit2oct(v_TAC) });
+  var template (omit) LocAreaId v_LAI := f_GetLAI(v_PLMN,v_LAC, NORMAL); // @sic R5s110176 sic@
+  var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL); // @sic R5s110176 sic@
+  var NAS_MSG_Indication_Type v_NasInd;
+  // create new GUTI with different S-TMSI (gets sent to UE in Attach Accept)
+  var GutiParameters_Type v_Guti2_Params := f_CreateGutiParamsWithUpdatedSTmsi(v_Guti1_Params);
+  var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();  //used to follow TTCN3 v411 standard
+  var NasCount_Type v_NasCountUL;
+  var template (omit) ProtocolConfigOptions v_Pco := omit;
+  var template (omit) AccessPointName v_APN := omit;
+
+  // ==========================================================================
+
+  //+   The SS initiates Detach procedure with the Detach Type IE
+  //+   "re-attach required"
+  //@siclog "Step 1" siclog@
+  SRB.send(cas_SRB2_NasPdu_REQ(
+             eutra_CellA,
+             cs_TimingInfo_Now,
+             cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                            cs_508_DETACH_REQUEST_MT(cs_DetachType(tsc_DetachMT_ReAttach), omit))));
+
+  //+   Check: Does the UE send DETACH ACCEPT message? [1,P]
+  //@siclog "Step 2" siclog@
+  SRB.receive(car_SRB2_NasPdu_IND(
+                eutra_CellA,
+                cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                  cr_508_DETACH_ACCEPT)));
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+
+  //+   The SS releases the RRC connection
+  //@siclog "Step 3" siclog@
+  f_EUTRA_RRC_ConnectionRelease(eutra_CellA);   /* @sic R5-110803 change 13 sic@ */
+
+  if (not pc_Automatic_Re_Attach) { // @sic R5-106188 sic@
+    f_UT_TriggerAttach (UT);
+  }
+  //+ Check: Does the UE send ATTACH REQUEST message? [1,P]
+  // Note: Even if the UE is detached, according to TS24.301 clause 5.5.2.3.2 the UE
+  //       still has a valid EPS security context, so the message is expected to be protected.
+  //@siclog "Step 4" siclog@
+  v_NasInd:= f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                            tsc_RRC_TI_Def,
+                                            cr_EstablishmentCause_Any,
+                                            cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                              cdr_ATTACH_REQUEST_WithGuti(v_AttachType,
+                                                                                                          v_AdditionalUpdateType,
+                                                                                                          v_SecurityParams.KSIasme,
+                                                                                                          f_GutiParameters2MobileIdentity(omit, v_Guti1_Params),
+                                                                                                          cr_TAI_Any),
+                                                                              cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                              f_GetPdnType())));
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+  v_EpsPti := v_NasInd.Pdu.PiggybackedPduList[0].Msg.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier; // Use this value in SS responses
+  if (ispresent( v_NasInd.Pdu.PiggybackedPduList[0].Msg.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions)) { // @sic R5s100084 sic@
+    v_Pco := v_NasInd.Pdu.PiggybackedPduList[0].Msg.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;
+  }
+
+  // @sic R5s090312 sic@
+  v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+
+  // Steps 4A1&2 Optional ESM Information Transfer @sic R5s100172, R5-110708 sic@
+  v_APN := f_ESM_InitAPN (eutra_CellA, f_CheckEsmInfoTransferFlag(v_NasInd.Pdu.PiggybackedPduList[0].Msg.pDN_CONNECTIVITY_REQUEST), v_EpsPti);
+  v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA, v_SecurityParams, v_NasCountUL); // RRC SECURITY COMMAND & COMPLETE
+  f_EUTRA_Security_Set ( v_SecurityParams );//Saving security parameters
+
+  //@siclog "Step 5" siclog@
+  //+   The SS sends ATTACH ACCEPT to assign the new GUTI (GUTI-2).
+  f_EUTRA_RRCConnectionReconfigurationWithAttachAcceptAllParams(eutra_CellA,
+                                                tsc_EpsDefaultBearerId,
+                                                tsc_RRC_TI_Def,
+                                                v_EpsPti,
+                                                v_AttachType,
+                                                f_EUTRA_GetPDNAddress(f_CheckPCOforIPallocationViaNas (v_Pco)),
+                                                f_GutiParameters2MobileIdentity(tsc_IEI_Guti, v_Guti2_Params),
+                                                v_Tai1_List,
+                                                v_LAI,
+                                                v_MSId,
+                                                omit,
+                                                v_APN,
+                                                f_GetDefPCOforPCSCFAddress (v_Pco), // @sic R5-104703 sic@
+                                                f_GetAdditionalUpdateResult(v_NasInd.Pdu.Msg.aTTACH_REQUEST.addUpdateType,
+                                                                            NORMAL)); // @sic R5s110176 sic@
+  // change GUTI to GUTI-2 in cell info
+  f_EUTRA_CellInfo_SetGuti(eutra_CellA, v_Guti2_Params);
+
+  //@siclog "Step 6" siclog@
+  //+   Check: Does the UE send ATTACH COMPLETE message? [1,P]
+  f_EUTRA_NAS_AttachComplete(eutra_CellA, tsc_EpsDefaultBearerId);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+} // function tc_9_2_2_2_1_EUTRA
+
+function f_TC_9_2_2_2_2_EUTRA() runs on EUTRA_PTC
+{
+  // @desc Network initiated detach / IMSI detach.
+  
+  f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellA);
+  
+  f_UT_ConfigureCombinedAttach (UT); // @sic R5-103814 sic@
+  
+  // Preamble: UE is in state Generic RB established (state 3) on Cell A according to TS 36.508
+  f_EUTRA_Preamble (eutra_CellA, STATE2_IDLEUPDATE, Combined); // @sic R5s110176 sic@
+  f_EUTRA_RbEst_Def(eutra_CellA);
+  f_EUTRA_TestBody_Set(true);
+  
+  fl_TC_9_2_2_2_2_Body();
+  
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellA, E1_IDLE, Combined);
+}
+
+function fl_TC_9_2_2_2_2_Body() runs on EUTRA_PTC
+{
+  var GutiParameters_Type v_Guti_1_Params := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+  var NAS_Tac v_Tac := bit2oct(f_EUTRA_CellInfo_GetTAC(eutra_CellA));
+  var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode(eutra_CellA);
+  var GutiParameters_Type v_Guti_2_Params := f_CreateGutiParamsWithUpdatedSTmsi(v_Guti_1_Params);
+  
+  var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_Guti_1_Params.PLMN_Identity);
+  var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+  var template (omit) LocAreaId v_LAI := f_GetLAI(v_PLMN,v_LAC,Combined); // @sic R5s110176 sic@
+  var template (omit) MobileIdentity v_MSId := f_GetMSId (Combined); // @sic R5s110176 sic@
+  var template (omit) EPS_BearerContextStatus v_EPS_ContextStatus;
+  var SRB_COMMON_IND v_ReceivedAsp;
+  
+  var template (present) NAS_MSG_Indication_Type v_ExpectedTauRequest;
+
+  // ==========================================================================
+  
+  //+  Force the SS to initiate Detach procedure with the Detach Type IE "IMSI detach"
+  //@siclog "Step 1" siclog@
+  SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                               cs_TimingInfo_Now,
+                               cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                              cs_508_DETACH_REQUEST_MT(cs_DetachType(tsc_DetachMT_Imsi), omit))));
+  
+  //+ The UE may send DETACH ACCEPT message.(Optional)
+  //+ Check: Does the UE send TRACKING AREA UPDATE REQUEST message?
+  //@siclog "Step 2 - 3" siclog@
+  v_ExpectedTauRequest := cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                            cdr_TAU_Request_combinedupdating_IMSIattach(tsc_EpsUpdate_Combined_IMSIAttach,
+                                                                                        f_EUTRA_SecurityKSIasme_Get(),
+                                                                                        cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                                        v_AdditionalUpdateType,
+                                                                                        f_GutiParameters2MobileIdentity(omit, v_Guti_1_Params),
+                                                                                        v_PLMN,
+                                                                                        v_Tac));
+  alt{
+    [] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                         cr_508_DETACH_ACCEPT)))
+      {
+        SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA, v_ExpectedTauRequest)) -> value v_ReceivedAsp;
+      }
+    [] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA, v_ExpectedTauRequest)) -> value v_ReceivedAsp
+      {
+      }
+  }
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+  v_EPS_ContextStatus := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus; // Send this back in the Accept
+  
+  //@siclog "Step 4 - 5 Void" siclog@
+  
+  //@siclog "Step 6" siclog@
+  //+  The SS sends TRACKING AREA UPDATE ACCEPT message.
+  SRB.send ( cas_SRB2_NasPdu_REQ ( eutra_CellA, // @sic R5s120022 Ch. 1 sic@
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cs_508_TAU_Accept ( tsc_EpsUpdate_Combined_TaLaUpdate,
+                                                                        f_GutiParameters2MobileIdentity(tsc_IEI_Guti, v_Guti_2_Params),
+                                                                        cds_TAIListNonConsecutive_tlv( v_PLMN, {v_Tac } ),
+                                                                        v_EPS_ContextStatus,
+                                                                        v_LAI,
+                                                                        v_MSId,
+                                                                        f_GetAdditionalUpdateResult(v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType, Combined))))); // @sic R5s110176 sic@
+  
+  //@siclog "Step 7" siclog@
+  //+   Check: Does the UE send TRACKING AREA UPDATE COMPLETE message.
+  SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                      cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                          cr_508_TAU_Complete )));
+  f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Step 7");
+  
+  //@siclog "Step 8" siclog@
+  //+   The SS releases the RRC connection.
+  f_EUTRA_RRC_ConnectionRelease ( eutra_CellA );
+  f_EUTRA_CellInfo_SetGuti(eutra_CellA, v_Guti_2_Params);
+  
+  //EXCEPTION: Steps 9 to 9E take place only if NOT SMS Only
+  if (not pc_SMS_SGs or pc_CS_Fallback) { // @sic R5s100813 R5-110793 R5-112105 R5-115715 sic@
+    //@siclog "Step 9" siclog@
+    //+   Check: Does the UE respond to paging on cell A with S-TMSI2 for CS domain?
+    f_EUTRA_UE_Page(eutra_CellA, // @sic R5s110209 sic@
+                      cs_DomainNasPaging_OneRecord(
+                                                   cs_PagingUE_Identity_S_TMSI(v_Guti_2_Params.MME_Code,
+                                                                               v_Guti_2_Params.M_TMSI),
+                                                   cs));
+    // EXCEPTION: Step 9Aa1 describes behaviour that depends on the UE capability;
+    // the "lower case letter" identifies a step sequence that takes place if a capability is supported.@siclog "Step 9a1" siclog@
+    // @siclog "Step 9Aa1" siclog@
+    //IF the UE needs to request upper layer input before accepting the CS fallback (see ICS), the incoming CS call is accepted at the UE through MMI or AT command.
+    if ( not pc_ImmConnect ) {
+      f_UT_AnswerCSCall (UT);
+    }
+
+    //@siclog "Step 9B" siclog@
+    //Check: Does the UE send EXTENDED SERVICE REQUEST message?
+    f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA, // @sic R5s110209 sic@
+                                   tsc_RRC_TI_Def,
+                                   cr_EstablishmentCause_mt_Access,
+                                   cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                     cr_508_EXT_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get(),
+                                                                                bit2oct(v_Guti_2_Params.M_TMSI))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9B");
+
+    //  The SS transmits SERVICE REJECT with cause #39
+    //  'CS domain temporarily not available' with T3442 = 60 s.
+    //@siclog "Step 9C" siclog@
+    SRB.send ( cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                     cs_TimingInfo_Now,
+                                     cs_NAS_Request ( tsc_SHT_NoSecurityProtection,
+                                                      cs_508_SERVICE_REJECT (tsc_Cause_CSDomainNotTemporarilyAvailable,  //#39 'CS domain temporarily not available'
+                                                                             cs_GprsTimer_tv('5B'O, '001'B, '00001'B) )))); // See TS 24.008 clause 10.5.7.4 @sic R5-113811 sic@
+    //  The SS releases the RRC Connection
+    //@siclog "Step 9D" siclog@
+    f_EUTRA_RRC_ConnectionRelease ( eutra_CellA );  // @sic R5s110209 sic@
+    // The SS waits for 60 sec
+    // EXCEPTION: The behaviour in table 9.2.2.2.2.3.2-2 may occur in parallel with step 9E.
+    //@siclog "Step 9E" siclog@
+    f_EUTRA_TAU_Check ( eutra_CellA );  // @sic R5-113811, R5s110632 sic@
+  }
+  //@siclog "Step 10" siclog@
+  //+   Check: Does the UE respond to paging on cell A with S-TMSI2 for PS domain? Generic Procedure (TS36.508 subclause 6.4.2.4)
+  f_EPS_508Check_NAS_Paging(eutra_CellA, ps);
+  
+}// function tc_9_2_2_2_2_EUTRA
+
+function f_TC_9_2_2_2_14_EUTRA() runs on EUTRA_PTC
+{ /* @desc NW initiated detach / Abnormal case / EMM cause not included */
+  
+  var NAS_MSG_Indication_Type v_NasInd;
+  
+  f_EUTRA_NAS_Init(LTE_CellsOnDifferentPLMN, c1, LTE_NAS_Usef1_f2);
+  
+  // create cell and send out system information
+  f_EUTRA_CellConfig_Def(eutra_CellI);
+  
+  // Can't call f_EUTRA_Preamble as we need a different value of T3402  // @sic R5s100780 sic@
+  // First switch cell back on
+  f_EUTRA_SetCellPower ( eutra_CellI, tsc_ServingCellRS_EPRE );
+  
+  // Switch on UE
+  f_EUTRA_SwitchOnUEandStartIP(eutra_CellI); // @sic R5s120065 sic@
+  
+  // now to transmit T3402 to UE with value 2 minutes
+  v_NasInd := f_EUTRA_IdleUpdated_Step1_4 (eutra_CellI, PREAMBLE, NORMAL); // @sic R5s110176, R5s100780 sic@
+  
+  f_EUTRA_IdleUpdated_Step5_15 (eutra_CellI, // @sic R5s100780 sic@
+                                STATE2_IDLEUPDATE,
+                                NORMAL,
+                                v_NasInd,
+                                -,    /* @sic R5-120234, R5-120541, R5-120542 sic@ */
+                                cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                cs_GprsTimer_tv('17'O, '001'B, '00010'B)); // T3402 = 2 minutes
+  
+  f_EUTRA_IdleUpdated_Step16_17 (eutra_CellI,                       // @sic R5s100780 sic@
+                                 true);
+  
+  /////////////////////////////////////////////////////////////////
+  
+  f_EUTRA_RbEst_Def(eutra_CellI); // Now go to state 3
+  
+  f_EUTRA_TestBody_Set(true);
+  
+  fl_TC_9_2_2_2_14_Body();
+  
+  // Postamble
+  f_EUTRA_TestBody_Set(false);
+  f_EUTRA_Postamble(eutra_CellI, E2_CONNECTED);
+}
+
+function fl_TC_9_2_2_2_14_Body() runs on EUTRA_PTC
+{
+  var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+  var NAS_MSG_Indication_Type v_NasInd;
+  var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL); // @sic R5s110176 sic@
+  var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+  
+  timer t_T3402 := f_EUTRA_SetTimerToleranceMin (eutra_CellI, nasTimer, 120.0 ); // @sic R5s102190 sic@
+  // ==========================================================================
+  
+  //@siclog "Step 1" siclog@
+  //+  SS initiate Detach procedure with the Detach Type IE "re-attach not required" and no EMM cause IE included
+  SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellI,
+                               cs_TimingInfo_Now,
+                               cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                              cs_508_DETACH_REQUEST_MT(cs_DetachType(tsc_DetachMT_NoReAttach), omit))));
+  
+  //+ The UE transmits a DETACH ACCEPT message on Cell I. Note: Now UE should start timer T3402
+  //@siclog "Step 2" siclog@
+  SRB.receive(car_SRB2_NasPdu_IND(eutra_CellI,
+                                  cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                    cr_508_DETACH_ACCEPT)));
+  t_T3402.start;
+  
+  //+The SS releases the RRC connection.
+  //@siclog "Step 3" siclog@
+  f_EUTRA_RRC_ConnectionRelease ( eutra_CellI );
+  
+  // Check: When the timer T3402 expires does the UE transmit ATTACH REQUEST message on cell I?
+  //@siclog "Step 4" siclog@
+  t_T3402.timeout;
+  v_NasInd:= f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellI,
+                                            v_RRC_TI,
+                                            cr_EstablishmentCause_Any,
+                                            cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                              cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                  v_AdditionalUpdateType,
+                                                                                                                  f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                                                                  cr_TMSI_Status('0'B) ifpresent),
+                                                                              cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                              f_GetPdnType())));
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+  
+  //@siclog "StepS 5 - 16" siclog@
+  f_EUTRA_IdleUpdated_Step5_17(eutra_CellI, STATE2_IDLEUPDATE, NORMAL, v_NasInd, false);
+  
+}// function tc_9_2_2_2_14_EUTRA
+
+}

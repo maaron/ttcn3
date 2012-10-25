@@ -1,0 +1,1103 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 00:32:42 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7245 $
+/******************************************************************************/
+
+module GERAN_CellInfo {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CapabilityFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Parameters all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_AuthenticationCommon all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRAN_Parameters all;
+
+  template (value) CellChDescr cs_CellChDescr(O16_Type p_RefFreqList) :=
+  { /* @status    APPROVED */
+    iei             := omit,
+    refFreqList     := p_RefFreqList
+  };
+
+  template (value) CellChDescr cs_CellAllocGSM450 := cs_CellChDescr('8C838CE0400000000000000000000000'O);           /* ARFCNs : 263, 267, 275 and 279
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGSM480 := cs_CellChDescr('8C9B0CE4400000000000000000000000'O);           /* ARFCNs : 310, 315, 322 and 326
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS900_Cell24 := cs_CellChDescr('00000000000080000802009000000200'O);   /* As specified in 51.010, clause 40.2.1.1.1 {10, 37, 40, 50, 60, 80} bitmap 0
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS1800_1900_Cell24 := cs_CellChDescr('8904053D828000000000000000000000'O); /* As specified in 51.010, clause 40.2.1.1.1 {520, 530, 540, 550} range 512
+                                                                                                                           @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS700_Cell24 := cs_CellChDescr('8CDFA8D9665000000000000000000000'O);   /* As specified in 51.010, clause 40.2.1.1.1 {447, 457, 477, 487, 497, 509} range 128
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS850_Cell24 := cs_CellChDescr('8C4F86FAAF3000000000000000000000'O);   /* As specified in 51.010, clause 40.2.1.1.1 {159, 161, 163, 165, 187, 207}
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS900_Cell26 := cs_CellChDescr('00802009000000200000000000004000'O);   /* As specified in 51.010, clause 40.2.1.2 {15, 70, 97, 100, 110, 120} bitmap 0
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS1800_1900_Cell26 := cs_CellChDescr('8918053D814000000000000000000000'O); /* As specified in 51.010, clause 40.2.1.2 {560, 570, 580, 585} range 512
+                                                                                                                           @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS700_Cell26 := cs_CellChDescr('8CDB84F8200000000000000000000000'O);   /* As specified in 51.010, clause 40.2.1.2 {439, 441, 443, 445} range 128
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS850_Cell26 := cs_CellChDescr('8C5984F8200000000000000000000000'O);   /* As specified in 51.010, clause 40.2.1.2 {179, 181, 183, 185} range 128
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS900_Cell25 := cs_CellChDescr('02000020000200002000020000200000'O);   /* As specified in 51.010, clause 40.2.1.4 {22, 42, 62, 82, 102, 122} bitmap 0
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS1800_1900_Cell25 := cs_CellChDescr('8940053EC28000000000000000000000'O); /* As specified in 51.010, clause 40.2.1.4 {640, 655, 660, 670} range 512
+                                                                                                                           @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS700_Cell25 := cs_CellChDescr('8CE584F8200000000000000000000000'O);   /* As specified in 51.010, clause 40.2.1.4 {459, 461, 463, 465} range 128
+                                                                                                                       @status    APPROVED */
+
+  template (value) CellChDescr cs_CellAllocGPRS850_Cell25 := cs_CellChDescr('8C4584F8200000000000000000000000'O);   /* As specified in 51.010, clause 40.2.1.4 {139, 141, 143, 145} range 128
+                                                                                                                       @status    APPROVED */
+
+  template (value) NeighCellDescr cs_ExtNeighBCCH_FreqList2bis :=
+  { /* @status    APPROVED */
+    rfl2            := '10'B,                        // bits 128-127
+    extind          := '1'B,                         // extension indication
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1011'B,                      // bits 124-121
+    rfl             := 'EC8CF109D000000000000000000000'O // bits 120-0
+  };
+
+  template (value) NeighCellDescr cs_NeighBCCH_FreqListGPRS700 :=
+  { /* @status    APPROVED */
+    rfl2            := '10'B,                        // range 128 format
+    extind          := '0'B,                         // complete BA
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1100'B,
+    rfl             := 'DB31B0FB6D45600000000000000000'O // ARFCN: 438,447,457,467,477,487,497,502,507
+  };
+
+  template (value) NeighCellDescr cs_NeighBCCH_FreqListGPRS900 :=
+  { /* @status    APPROVED */
+    rfl2            := '00'B,                        // bit map 0 format
+    extind          := '1'B,                         // incomplete BA
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1010'B,                      // bits 124-121
+    rfl             := '802008020080000000000000080010'O // bits 120-0
+  };
+
+  template (value) NeighCellDescr cs_NeighBCCH_FreqListGPRS1800 :=
+  { /* @status    APPROVED */
+    rfl2            := '10'B,                        // range 512 format
+    extind          := '0'B,                         // complete BA
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1001'B,
+    rfl             := '0195452D3DB0147A80000000000000'O // ARFCN = 515, 590, 600, 700, 780, 810 870, 875, 885
+  };
+
+  template (value) NeighCellDescr cs_NeighBCCH_FreqListGPRS1900 :=
+  { /* @status    APPROVED */
+    rfl2            := '10'B,                        // range 512 format
+    extind          := '0'B,                         // complete BA
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1001'B,
+    rfl             := '01B0F251A4D85A7B60000000000000'O // ARFCN = 515, 590, 600, 655, 700, 710, 740, 780, 810.
+  };
+
+  template (value) NeighCellDescr cs_NeighBCCH_FreqListGPRS450 :=
+  { /* @status    APPROVED */
+    rfl2            := '10'B,                        // range 128 format
+    extind          := '0'B,                         // complete BA
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1100'B,
+    rfl             := '8194D88D70C5000000000000000000'O // ARFCN: 259, 263, 269, 275, 279, 283, 287 and 292
+  };
+
+  template (value) NeighCellDescr cs_NeighBCCH_FreqListGPRS480 :=
+  { /* @status    APPROVED */
+    rfl2            := '10'B,                        // range 128 format
+    extind          := '0'B,                         // complete BA
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1100'B,
+    rfl             := '9914D88D70C5000000000000000000'O // ARFCN: 306, 310, 316, 322, 326, 330, 334 and 339
+  };
+
+  template (value) NeighCellDescr cs_NeighBCCH_FreqListGPRS850 :=
+  { /* @status    APPROVED */
+    rfl2            := '10'B,                        // range 128 format
+    extind          := '0'B,                         // complete BA
+    baind           := '0'B,                         // bcch allocation sequence number indication
+    rfl4            := '1100'B,
+    rfl             := '44C6394B5A8A300000000000000000'O // ARFCN: 137,147,157,177,197,207,217,227,237
+  };
+
+  template (value) GERAN_CommonCellInfo_Type cs_G_CommonCellConfigInfoDef (O2_Type  p_CellIdentity):=
+  { /* @status    APPROVED */
+    gamma := '00100'B,
+    downlinkPowerLevel := 63,                        // Downlink transmission power level Vemf().
+    cellIdentity    := p_CellIdentity,               // cell identity
+    mcc             := '001'H,                       // mobile country code = 001 (decimal)
+    mnc             := '01F'H,                       // mobile network code = 01 (decimal)
+    plmn            := '00F110'O,                    // PLMN
+    lac             := '0001'O,                      // location area code = '0001'O
+    rac             := '05'O,                        // routing area code. Default = '05'O
+    nmo             := '00'B,                        // network mode of operation. Default = '00'B
+    ncc             := '001'B,                       // PLMN colour code = '001'B
+    bcc             := '101'B,                       // BS colour code = '101'B
+    dTX             := '10'B,                        // Uplink discontinuous transmission not used. (indecation in BCCH)
+    dtx8            := '0'B,                         // Uplink discontinuous transmission not used. (indecation in SACHH)
+    dtx65           := '10'B,                        // Uplink discontinuous transmission not used. (indecation in SACHH)
+    splitPGcycle    := cs_SplitPGCycleInitial,       // no split pg cycle on CCCH. value taken from PIXIT. (shall be PICS qustion?)
+    timingAdvance   := bit2oct(px_TimingAdvance),    // timing advance value = 30 * 48/13 us @sic R5s120587 sic@
+    tSC             := px_TSC,                       // training sequence code for dedicated channels.
+    controlChDesr   := {
+      mSCRelease := '1'B,                            // MSC release
+      att       := '1'B,                             // attach-detach allowed
+      bS_AG_BLKS_RES := '010'B,                      // base station access grant blocks reservation
+      cCCH_CONF := '001'B,                           // CCCH configuration
+      spareBits := '000'B,                           // spare bits
+      cBQ2      := '00'B,                            // cell bar qualify 2
+      bS_PA_MFRMS := '100'B,                         // number of multiframes for paging request
+      t3212     :=  '00'O                            // t3212 value
+    },         // Control channel description 44.018, clause 10.5.2.11
+    rachCtrlParams  := {
+      maxretx    := '00'B,                           // maximum retransmissions
+      txInteger  := '0010'B,                         // Tx integer, number of slots to spread transmission
+      cellBarAccess := '0'B,                         // cell barred for access
+      re         := '1'B,                            // call reestablishment allowed
+      acc_2      := '00000'B,                        // access control class 15-11
+      ec         := '0'B,                            // emergency call allowed
+      acc_1      :=  '0000000000'B                   // access control class 9-0
+    },        // RACH control Parameters 44.018 clause 10.5.2.29
+    cellSelParams   := {
+      cellReselHysteresis := '110'B,                 // cell reselected hysteresis
+      mS_TXPWR_MAX_CCH := '01010'B,                 // MS maximum TX power for CCH @sic R5s120602 sic@
+      acs              := '0'B,                      // additional reselect parameter indicator
+      neci             := '1'B,                      // half rate support
+      rXLEV_ACCESS_MIN := '011001'B                 // MS minimum received signal level @sic R5s120602, R5-123793 sic@
+    },         // Cell Selection Parameters 44.018 clause 10.5.2.4
+    radioLinkTimeout := '0001'B,                     // RADIO-LINK-TIMEOUT = 8 SACCH blocks
+    nccPermitted := '02'O,                           // NCC permitted = 0000 0010
+    dN_Ind       := '0'B,                            // dynamic ARFCN mapping not used
+    tlli         := tsc_TLLI_Initial,
+    oldTlli      := tsc_TLLI_Initial
+  };
+
+  template (value) DRXparameter cs_SplitPGCycleInitial :=
+  { /* @status    APPROVED */
+    iei         := omit,
+    splitPGcycleCode := '00000000'B,                 // Split PG cycle code
+    cnDRXcoef   := '0000'B,                          // CN specific DRX cycle length coefficient
+    splitOnCCCH := px_SplitOnCCCH,                   // Split on CCCCH
+    nonDRXtimer := '000'B                            // non-DRX timer
+  };
+
+  function f_GERAN_CellInfo_GetIndex (GERAN_CellId_Type p_CellId) return integer
+  {
+    select (p_CellId)
+    {
+      case (geran_Cell24) {
+        return 0;
+      } case (geran_Cell25) {
+        return 1;
+      } case (geran_Cell26) {
+        return 2;
+      } case else {
+        FatalError (__FILE__, __LINE__, "Invalid CellId");
+        return 0;
+      }
+    }
+  }
+
+  function f_GERAN_CellInfo_GetCellIdentity(GERAN_CellId_Type p_CellId) return O2_Type
+  {
+    select (p_CellId)
+    {
+      case (geran_Cell24) {
+        return '0001'O;
+      } case (geran_Cell25) {
+        return '0002'O;
+      } case (geran_Cell26) {
+        return '0003'O;
+      } case else {
+        FatalError (__FILE__, __LINE__, "Invalid CellId");
+        return '0000'O;
+      }
+    }
+  }
+
+  function f_GERAN_CellArray_Init () return GERAN_CellArray_Type
+  {
+    var template (value) GERAN_CellArray_Type v_GERAN_Cells;
+    var O2_Type v_CellId;
+    var integer v_Index;
+    
+    // fill in frequencies first
+    v_GERAN_Cells := f_GERAN_CellInfoFrequencies_Init ();
+    
+    // then do the rest for each cell
+    v_Index := f_GERAN_CellInfo_GetIndex (geran_Cell24);
+    v_CellId := f_GERAN_CellInfo_GetCellIdentity (geran_Cell24);
+    v_GERAN_Cells[0].info := cs_G_CommonCellConfigInfoDef (v_CellId);
+
+    v_Index := f_GERAN_CellInfo_GetIndex (geran_Cell25);
+    v_CellId := f_GERAN_CellInfo_GetCellIdentity (geran_Cell25);
+    v_GERAN_Cells[1].info := cs_G_CommonCellConfigInfoDef (v_CellId);
+    v_GERAN_Cells[1].info.lac := '0002'O; // LAC should be different in every cell
+
+    v_Index := f_GERAN_CellInfo_GetIndex (geran_Cell26);
+    v_CellId := f_GERAN_CellInfo_GetCellIdentity (geran_Cell26);
+    v_GERAN_Cells[2].info := cs_G_CommonCellConfigInfoDef (v_CellId);
+    v_GERAN_Cells[2].info.lac := '0003'O; // LAC should be different in every cell
+
+    return valueof(v_GERAN_Cells);
+  }
+
+  function f_GERAN_CellInfoFrequencies_Init() return template (value) GERAN_CellArray_Type
+  {
+    var template (value) GERAN_CellArray_Type v_FreqList;
+    
+    select (px_GERAN_BandUnderTest)
+    {
+      case (GSM_P900, GSM_E900)
+        {
+          v_FreqList[0].freq.bCCH_Freq := '0000010100'B;   // Serving cell: 20
+          v_FreqList[0].freq.gPRSCh_Freq := '0000011110'B; // GPRS Ch: 30
+          v_FreqList[0].freq.tch_Freq := '0000001010'B; // TCH 10
+          v_FreqList[0].freq.cellAllocation := cs_CellAllocGPRS900_Cell24;
+          v_FreqList[0].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS900;
+          v_FreqList[0].freq.arfcnList := {5, 80,90,100, 110,120,122,124};
+          v_FreqList[0].freq.extNeighBCCHFreqList := cs_ExtNeighBCCH_FreqList2bis;
+          v_FreqList[0].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[1].freq.bCCH_Freq := '0001101110'B;    // Serving cell: 110
+          v_FreqList[1].freq.gPRSCh_Freq := '0000100011'B; // GPRS Ch: 35
+          v_FreqList[1].freq.tch_Freq := '0000001111'B; // TCH 15
+          v_FreqList[1].freq.cellAllocation := cs_CellAllocGPRS900_Cell25;
+          v_FreqList[1].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS900;
+          v_FreqList[1].freq.arfcnList := {5, 20, 80,90,100, 120,122,124};
+          v_FreqList[1].freq.extNeighBCCHFreqList := cs_ExtNeighBCCH_FreqList2bis;
+          v_FreqList[1].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[2].freq.bCCH_Freq := '0000000101'B; //5
+          v_FreqList[2].freq.gPRSCh_Freq := '0000111100'B; // GPRS Ch: 60
+          v_FreqList[2].freq.tch_Freq := '0001000001'B; // TCH 65
+          v_FreqList[2].freq.cellAllocation := cs_CellAllocGPRS900_Cell26;
+          v_FreqList[2].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS900;
+          v_FreqList[2].freq.arfcnList := {20, 80,90,100, 110,120,122,124};
+          v_FreqList[2].freq.extNeighBCCHFreqList := cs_ExtNeighBCCH_FreqList2bis;
+          v_FreqList[2].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+        }
+      case (DCS1800)
+        {
+          v_FreqList[0].freq.bCCH_Freq := '1001001110'B; // Serving cell: 590
+          v_FreqList[0].freq.gPRSCh_Freq := '1010001010'B; // GPRS Ch: 650
+          v_FreqList[0].freq.tch_Freq := '1000001000'B; // TCH 520
+          v_FreqList[0].freq.cellAllocation := cs_CellAllocGPRS1800_1900_Cell24;
+          v_FreqList[0].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS1800;
+          v_FreqList[0].freq.arfcnList := {515, 600, 700, 780, 810, 870, 875, 885};
+          v_FreqList[0].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[0].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[1].freq.bCCH_Freq := '1010111100'B;  // 700
+          v_FreqList[1].freq.gPRSCh_Freq := '1011010101'B; // GPRS Ch: 725
+          v_FreqList[1].freq.tch_Freq := '1000110000'B; // TCH 560
+          v_FreqList[1].freq.cellAllocation := cs_CellAllocGPRS1800_1900_Cell25;
+          v_FreqList[1].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS1800;
+          v_FreqList[1].freq.arfcnList := {515, 590, 600, 780, 810, 870, 875, 885};
+          v_FreqList[1].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[1].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+
+          v_FreqList[2].freq.bCCH_Freq := '1000000011'B; // Serving cell: 515
+          v_FreqList[2].freq.gPRSCh_Freq := '1011101110'B; // GPRS Ch: 750
+          v_FreqList[2].freq.tch_Freq := '1001011101'B; // TCH 605
+          v_FreqList[2].freq.cellAllocation := cs_CellAllocGPRS1800_1900_Cell26;
+          v_FreqList[2].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS1800;
+          v_FreqList[2].freq.arfcnList := {590, 600, 700, 780, 810, 870, 875, 885};
+          v_FreqList[2].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[2].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+        }
+      case (PCS1900)
+        {
+          v_FreqList[0].freq.bCCH_Freq := '1001001110'B;  // Serving cell: 590
+          v_FreqList[0].freq.gPRSCh_Freq := '1010001010'B; // GPRS Ch: 650
+          v_FreqList[0].freq.tch_Freq := '1000001000'B; // TCH 520
+          v_FreqList[0].freq.cellAllocation := cs_CellAllocGPRS1800_1900_Cell24;
+          v_FreqList[0].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS1900;
+          v_FreqList[0].freq.arfcnList := {515, 600, 655, 700, 710, 740, 780, 810};
+          v_FreqList[0].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[0].freq.bandIndicator := '1'B;                         // ARFCN band = PCS1900 band
+          
+          v_FreqList[1].freq.bCCH_Freq := '1010111100'B; // 700
+          v_FreqList[1].freq.gPRSCh_Freq := '1011010101'B; // GPRS Ch: 725
+          v_FreqList[1].freq.tch_Freq := '1000110000'B; // TCH 560
+          v_FreqList[1].freq.cellAllocation := cs_CellAllocGPRS1800_1900_Cell25;
+          v_FreqList[1].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS1900;
+          v_FreqList[1].freq.arfcnList := {515, 590, 600, 655, 710, 740, 780, 810};
+          v_FreqList[1].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[1].freq.bandIndicator := '1'B;                         // ARFCN band = PCS1900 band
+          
+          v_FreqList[2].freq.bCCH_Freq := '1000000011'B; //Serving cell: 515
+          v_FreqList[2].freq.gPRSCh_Freq := '1011110011'B; // GPRS Ch: 755
+          v_FreqList[2].freq.tch_Freq := '1001011101'B; // TCH 605
+          v_FreqList[2].freq.cellAllocation := cs_CellAllocGPRS1800_1900_Cell26;
+          v_FreqList[2].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS1900;
+          v_FreqList[2].freq.arfcnList := {590, 600, 655, 700, 710, 740, 780, 810};
+          v_FreqList[2].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[2].freq.bandIndicator := '1'B;                         // ARFCN band = PCS1900 band
+        }
+      case (GSM450)
+        {
+          v_FreqList[0].freq.bCCH_Freq := '0100001111'B;    // Serving cell: 271
+          v_FreqList[0].freq.gPRSCh_Freq := '0100010100'B;  // GPRS Ch: 276
+          v_FreqList[0].freq.tch_Freq := '0100001001'B; // TCH 265
+          v_FreqList[0].freq.cellAllocation := cs_CellAllocGSM450;
+          v_FreqList[0].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS450;
+          v_FreqList[0].freq.arfcnList := {259, 263, 269, 275, 279, 283, 287, 292};
+          v_FreqList[0].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[0].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[1].freq.bCCH_Freq := '0100100000'B; //288
+          v_FreqList[1].freq.gPRSCh_Freq := '0100011100'B;  // GPRS Ch: 284
+          v_FreqList[1].freq.tch_Freq := '0100001110'B; // TCH 270
+          v_FreqList[1].freq.cellAllocation := cs_CellAllocGSM450;
+          v_FreqList[1].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS450;
+          v_FreqList[1].freq.arfcnList := {259, 263, 269, 275, 279, 283, 287, 292};
+          v_FreqList[1].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[1].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[2].freq.bCCH_Freq := '0100000100'B; // Serving cell: 260
+          v_FreqList[2].freq.gPRSCh_Freq := '0100001000'B;  // GPRS Ch: 264
+          v_FreqList[2].freq.tch_Freq := '0100010011'B; // TCH 275
+          v_FreqList[2].freq.cellAllocation := cs_CellAllocGSM450;
+          v_FreqList[2].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS450;
+          v_FreqList[2].freq.arfcnList := {259, 263, 269, 275, 279, 283, 287, 292};
+          v_FreqList[2].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[2].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+        }
+      case (GSM480)
+        {
+          v_FreqList[0].freq.bCCH_Freq := '0101001000'B;  // Serving cell: 328
+          v_FreqList[0].freq.gPRSCh_Freq := '0101000100'B; // GPRS Ch: 324
+          v_FreqList[0].freq.tch_Freq := '0101000011'B; // TCH 323
+          v_FreqList[0].freq.cellAllocation := cs_CellAllocGSM480;
+          v_FreqList[0].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS480;
+          v_FreqList[0].freq.arfcnList := {306, 310, 316, 322, 326, 330, 334, 339};
+          v_FreqList[0].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[0].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[1].freq.bCCH_Freq := '0101010000'B; //336
+          v_FreqList[1].freq.gPRSCh_Freq := '0101001100'B; // GPRS Ch: 332
+          v_FreqList[1].freq.tch_Freq := '0101001000'B; // TCH 328
+          v_FreqList[1].freq.cellAllocation := cs_CellAllocGSM480;
+          v_FreqList[1].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS480;
+          v_FreqList[1].freq.arfcnList := {306, 310, 316, 322, 326, 330, 334, 339};
+          v_FreqList[1].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[1].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[2].freq.bCCH_Freq := '0100110100'B;   // Serving cell: 308
+          v_FreqList[2].freq.gPRSCh_Freq := '0100111000'B; // GPRS Ch: 312
+          v_FreqList[2].freq.tch_Freq := '0101001101'B; // TCH 333
+          v_FreqList[2].freq.cellAllocation := cs_CellAllocGSM480;
+          v_FreqList[2].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS480;
+          v_FreqList[2].freq.arfcnList := {306, 310, 316, 322, 326, 330, 334, 339};
+          v_FreqList[2].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[2].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+        }
+      case (GSM850)
+        {
+          v_FreqList[0].freq.bCCH_Freq := '0010010011'B;  // Serving cell: 147
+          v_FreqList[0].freq.gPRSCh_Freq := '0010011101'B; // GPRS Ch: 157
+          v_FreqList[0].freq.tch_Freq := '0010011111'B; // TCH 159
+          v_FreqList[0].freq.cellAllocation := cs_CellAllocGPRS850_Cell24;
+          v_FreqList[0].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS850;
+          v_FreqList[0].freq.arfcnList := {137,157,177,197,207,217,227,237};
+          v_FreqList[0].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[0].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[1].freq.bCCH_Freq := '0011011001'B;  //217
+          v_FreqList[1].freq.gPRSCh_Freq := '0011011110'B; // GPRS Ch: 222
+          v_FreqList[1].freq.tch_Freq := '0010110011'B; // TCH 179
+          v_FreqList[1].freq.cellAllocation := cs_CellAllocGPRS850_Cell25;
+          v_FreqList[1].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS850;
+          v_FreqList[1].freq.arfcnList := {137,147,157,177,197,207,227,237};
+          v_FreqList[1].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[1].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[2].freq.bCCH_Freq := '0010001001'B; // Serving cell: 137
+          v_FreqList[2].freq.gPRSCh_Freq := '0011110010'B; // GPRS Ch: 242
+          v_FreqList[2].freq.tch_Freq := '0010101001'B; // TCH 169
+          v_FreqList[2].freq.cellAllocation := cs_CellAllocGPRS850_Cell26;
+          v_FreqList[2].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS850;
+          v_FreqList[2].freq.arfcnList := {147,157,177,197,207,217,227,237};
+          v_FreqList[2].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[2].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+        }
+      case (GSM710, GSM750, T_GSM810)
+        {
+          v_FreqList[0].freq.bCCH_Freq := '0111001001'B;   // Serving cell: 457
+          v_FreqList[0].freq.gPRSCh_Freq := '0111010011'B; // GPRS channel : 467
+          v_FreqList[0].freq.tch_Freq := '0110111111'B; // TCH 447
+          v_FreqList[0].freq.cellAllocation := cs_CellAllocGPRS700_Cell24;
+          v_FreqList[0].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS700;
+          v_FreqList[0].freq.arfcnList := {438,447,467,477,487,497,502,507};
+          v_FreqList[0].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[0].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[1].freq.bCCH_Freq := '0111011101'B; // 477
+          v_FreqList[1].freq.gPRSCh_Freq := '0111001001'B; // GPRS Ch: 457
+          v_FreqList[1].freq.tch_Freq := '0110110111'B; // TCH 439
+          v_FreqList[1].freq.cellAllocation := cs_CellAllocGPRS700_Cell25;
+          v_FreqList[1].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS700;
+          v_FreqList[1].freq.arfcnList := {438,447,457,467,487,497,502,507};
+          v_FreqList[1].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[1].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+          
+          v_FreqList[2].freq.bCCH_Freq := '0110111111'B; //447
+          v_FreqList[2].freq.gPRSCh_Freq := '0110110110'B; // GPRS Ch: 438
+          v_FreqList[2].freq.tch_Freq := '0111000001'B; // TCH 449
+          v_FreqList[2].freq.cellAllocation := cs_CellAllocGPRS700_Cell26;
+          v_FreqList[2].freq.neighBCCHFreqList := cs_NeighBCCH_FreqListGPRS700;
+          v_FreqList[2].freq.arfcnList := {438,457,467,477,487,497,502,507};
+          v_FreqList[2].freq.extNeighBCCHFreqList := omit;
+          v_FreqList[2].freq.bandIndicator := '0'B;                         // ARFCN band = DCS1800 band
+        }
+    } // end of select
+    return v_FreqList;  // @sic R5s120615 sic@
+    
+  } // end of f_GERAN_CellInfoFrequencies_Init
+
+  function f_GERAN_Security_Init() return GERAN_SecurityInfo_Type
+  {
+    var template (value) GERAN_SecurityInfo_Type v_SecurityInfo;
+    
+    v_SecurityInfo.authPS     := cs_CommonAuthParams_Init(px_eAuthRAND);
+    v_SecurityInfo.authCS     := f_AuthenticationInit (valueof (cs_CommonAuthParams_Init(px_eAuthRAND))); // @sic R5s120498 sic@
+    v_SecurityInfo.cipherKey  := px_CipherKey;                 // cipher key
+    v_SecurityInfo.cipherMode := cs_CipherModeSettingGSM;            // ciphering algorithm and cipher starting flag, 3GPP TS 44.018 clause 10.5.2.9
+    v_SecurityInfo.gprsCipherAlg := px_CipherAlg;
+    v_SecurityInfo.CSinOtherRAT := false;  // @sic R5s110168 change 8.1 sic@
+        
+    return valueof(v_SecurityInfo);
+  }
+
+  function f_GERAN_MsgInDefault_Init() return GERAN_MsgReceivedInDefault_Type
+  {
+    var template (value) GERAN_MsgReceivedInDefault_Type v_MsgInDefault;
+    
+    v_MsgInDefault.locationUpdatingRequest     := omit;
+    v_MsgInDefault.routingAreaUpdateRequest     := omit;
+        
+    return valueof(v_MsgInDefault);
+  }
+
+  function f_GERAN_SystemInformation_Init ( GERAN_CellArray_Type p_CellArray,
+                                            IRAT_CoOrd_SysInfo_List_Type p_SysInfoList) return GERAN_CellArray_Type
+  {
+    var CoOrd_EUTRASysInfo_List_Type v_EUTRA_SysInfo;
+    var CoOrd_UTRANSysInfo_List_Type v_UTRAN_SysInfo;
+    var GERAN_CellArray_Type v_CellArray := p_CellArray;
+    var template (value) GERAN_SystemInformation_Type v_SysInfo;
+    var template (value) LocAreaId v_LAI;
+    var template (value) EUTRANMeasParams_SI2 v_EUTRA_SI2_1, v_EUTRA_SI2_2;
+    var integer v_Index := 0;
+    var integer v_NoOfPTCs := lengthof (p_SysInfoList);
+    
+    select (v_NoOfPTCs) {
+      case (1) {
+        v_EUTRA_SysInfo := p_SysInfoList[0].Eutra;
+      }
+      case (2) {
+        if (ischosen(p_SysInfoList[0].Eutra)) {
+          v_EUTRA_SysInfo := p_SysInfoList[0].Eutra;
+          v_UTRAN_SysInfo := p_SysInfoList[1].Utran;
+        }
+        else {
+          v_UTRAN_SysInfo := p_SysInfoList[0].Utran;
+          v_EUTRA_SysInfo := p_SysInfoList[1].Eutra;
+        }
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "wrong PTC configuration specified in test case");
+      }
+    }
+    
+    for (v_Index := 0; v_Index < tsc_GERAN_NumberOfCells; v_Index := v_Index + 1)
+      {
+        v_LAI := cs_LAI (omit, v_CellArray[v_Index].info.plmn, v_CellArray[v_Index].info.lac);
+        
+        v_SysInfo.si1 := cs_SysInfoType1(v_CellArray[v_Index].freq.cellAllocation, v_CellArray[v_Index].info.rachCtrlParams, v_CellArray[v_Index].freq.bandIndicator);
+        v_SysInfo.si2 := cs_SysInfoType2(v_CellArray[v_Index].freq.neighBCCHFreqList, v_CellArray[v_Index].info.nccPermitted, v_CellArray[v_Index].info.rachCtrlParams);
+        v_SysInfo.si3 := cs_SysInfoType3(v_CellArray[v_Index].info.cellIdentity,
+                                         v_LAI,
+                                         v_CellArray[v_Index].info.controlChDesr,
+                                         cs_CellOptionBCCH( v_CellArray[v_Index].info.dN_Ind, v_CellArray[v_Index].info.dTX,  v_CellArray[v_Index].info.radioLinkTimeout),
+                                         v_CellArray[v_Index].info.cellSelParams, v_CellArray[v_Index].info.rachCtrlParams,
+                                         cds_SI3_RO_GPRS_SI2quater);
+        v_SysInfo.si4 := cs_SysInfoType4(v_LAI, v_CellArray[v_Index].info.cellSelParams, v_CellArray[v_Index].info.rachCtrlParams, cds_SI4_RO_GPRS);
+        v_SysInfo.si5 := cs_SysInfoType5(v_CellArray[v_Index].freq.neighBCCHFreqList);
+        v_SysInfo.si6 := cs_SysInfoType6(v_CellArray[v_Index].info.cellIdentity,
+                                         v_LAI,
+                                         cs_CellOptionSACCH( v_CellArray[v_Index].info.dtx8, v_CellArray[v_Index].info.dtx65, v_CellArray[v_Index].info.radioLinkTimeout),
+                                         v_CellArray[v_Index].info.nccPermitted,
+                                         cs_SI6_RO_Spare(v_CellArray[v_Index].freq.bandIndicator));
+        v_SysInfo.si13 := cs_SysInfoType13(cs_SI13_RO_GPRS(v_CellArray[v_Index].info.rac, v_CellArray[v_Index].info.nmo));
+        v_SysInfo.si15 := cs_SysInfoType15(cs_SI15_RO('0110'B));  // value for GSM 700.  This will be changed according to the band under test when sent, if required
+        if (isvalue (v_CellArray[v_Index].freq.extNeighBCCHFreqList)) { // @sic R5s120615 sic@
+          v_SysInfo.si2bis := cs_SysInfoType2bis(v_CellArray[v_Index].freq.extNeighBCCHFreqList, v_CellArray[v_Index].info.rachCtrlParams);
+          v_SysInfo.si5bis := cs_SysInfoType5bis(v_CellArray[v_Index].freq.extNeighBCCHFreqList);
+        } else {
+          v_SysInfo.si2bis := omit;
+          v_SysInfo.si5bis := omit;
+        }
+        // SI2quater implementation based on the different LTE combinations
+        if (lengthof(v_EUTRA_SysInfo)==1) {
+          v_EUTRA_SI2_1 := cs_EUTRAN_MeasParams_SI2 (cs_RptdEARFCNNeighCells (cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo[0].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[0].DL_Bandwidth)))); // @sic GP-120009, R5s120129 sic@
+        } else if (lengthof(v_EUTRA_SysInfo)==2) {
+          v_EUTRA_SI2_1 := cs_EUTRAN_MeasParams_SI2 (cs_RptdEARFCNNeighCells (cs_RptdEARFCNList2(int2bit(v_EUTRA_SysInfo[0].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[0].DL_Bandwidth), // @sic GP-120009 sic@
+                                                                                               int2bit(v_EUTRA_SysInfo[1].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[1].DL_Bandwidth)))); // @sic GP-120009, R5s120129 sic@
+        } else if (lengthof(v_EUTRA_SysInfo)==3) {
+          v_EUTRA_SI2_1 := cs_EUTRAN_MeasParams_SI2 (cs_RptdEARFCNNeighCells (cs_RptdEARFCNList3(int2bit(v_EUTRA_SysInfo[0].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[0].DL_Bandwidth), // @sic GP-120009 sic@
+                                                                                               int2bit(v_EUTRA_SysInfo[1].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[1].DL_Bandwidth), // @sic GP-120009 sic@
+                                                                                               int2bit(v_EUTRA_SysInfo[2].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[2].DL_Bandwidth)))); // @sic GP-120009, R5s120129 sic@
+        } else if (lengthof(v_EUTRA_SysInfo)==4) {
+          v_EUTRA_SI2_1 := cs_EUTRAN_MeasParams_SI2 (cs_RptdEARFCNNeighCells (cs_RptdEARFCNList3(int2bit(v_EUTRA_SysInfo[0].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[0].DL_Bandwidth), // @sic GP-120009 sic@
+                                                                                               int2bit(v_EUTRA_SysInfo[1].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[1].DL_Bandwidth), // @sic GP-120009 sic@
+                                                                                               int2bit(v_EUTRA_SysInfo[2].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[2].DL_Bandwidth)))); // @sic GP-120009, R5s120129 sic@
+          v_EUTRA_SI2_2 := cs_EUTRAN_MeasParams_SI2 (cs_RptdEARFCNNeighCells (cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo[3].Arfcn, 16),
+                                                                                               f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo[3].DL_Bandwidth)))); // @sic GP-120009, R5s120129 sic@
+          // We now have 2 instances of this message @sic R5s120323 sic@
+          v_EUTRA_SI2_1.eutranMeasParams.eutranStop := '0'B; //  @sic R5s120476 sic@
+          v_EUTRA_SI2_2.eutranMeasParams.eutranStart := '0'B;
+        }
+        if (v_NoOfPTCs == 2) {
+          if (ischosen(v_UTRAN_SysInfo[0].FDD)) {
+            if (lengthof(v_EUTRA_SysInfo)==4) { // @sic R5s120129 sic@
+              v_SysInfo.si2quater_1 := cs_SysInfoType2quater(cs_SI2quaterRO('0000'B,
+                                                                          '0011'B, // @sic R5s120021, R5s120129 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_3N_2FCell_FDD(int2bit(v_UTRAN_SysInfo[0].FDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit(v_UTRAN_SysInfo[2].FDD.Freq, 14),
+                                                                                                        int2bit( v_UTRAN_SysInfo[2].FDD.ScramblingCode, 9) & '0'B),
+                                                                          '0'B, omit,
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+            v_SysInfo.si2quater_2 := cs_SysInfoType2quater(cs_SI2quaterRO('0001'B,
+                                                                          '0011'B, // @sic R5s120021, R5s120129 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_1N_1FCell_FDD(int2bit(v_UTRAN_SysInfo[3].FDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit( v_UTRAN_SysInfo[3].FDD.ScramblingCode, 9) & '0'B),
+                                                                          '1'B, cs_SI2quaterMeasParams3G_ISHO, // @sic R5s12082 sic@
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+            v_SysInfo.si2quater_3 := cs_SysInfoType2quater(cs_SI2quaterRO('0010'B,
+                                                                          '0011'B, // @sic R5s120021, R5s120129 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '0'B, omit,
+                                                                          '0'B, omit, // @sic R5s12082 sic@
+                                                                          '0'B, omit,
+                                                                          v_EUTRA_SI2_1));
+            v_SysInfo.si2quater_4 := cs_SysInfoType2quater(cs_SI2quaterRO('0011'B,
+                                                                          '0011'B, // @sic R5s120021, R5s120129 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '0'B, omit,
+                                                                          '0'B, omit, // @sic R5s12082 sic@
+                                                                          '0'B, omit,
+                                                                          v_EUTRA_SI2_2));
+          } else {
+            v_SysInfo.si2quater_1 := cs_SysInfoType2quater(cs_SI2quaterRO('0000'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_3N_2FCell_FDD(int2bit(v_UTRAN_SysInfo[0].FDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit(v_UTRAN_SysInfo[2].FDD.Freq, 14),
+                                                                                                        int2bit( v_UTRAN_SysInfo[2].FDD.ScramblingCode, 9) & '0'B),
+                                                                          '0'B, omit,
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+            v_SysInfo.si2quater_2 := cs_SysInfoType2quater(cs_SI2quaterRO('0001'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_1N_1FCell_FDD(int2bit(v_UTRAN_SysInfo[3].FDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit( v_UTRAN_SysInfo[3].FDD.ScramblingCode, 9) & '0'B),
+                                                                          '1'B, cs_SI2quaterMeasParams3G_ISHO, // @sic R5s12082 sic@
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+            v_SysInfo.si2quater_3 := cs_SysInfoType2quater(cs_SI2quaterRO('0010'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '0'B, omit,
+                                                                          '0'B, omit, // @sic R5s12082 sic@
+                                                                          '0'B, omit,
+                                                                          v_EUTRA_SI2_1));
+            v_SysInfo.si2quater_4 := omit;
+            }
+          } else { //TDD
+            if (lengthof(v_EUTRA_SysInfo)==4) { // @sic R5s120129 sic@
+              v_SysInfo.si2quater_1 := cs_SysInfoType2quater(cs_SI2quaterRO('0000'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_3N_2FCell_TDD(int2bit(v_UTRAN_SysInfo[0].TDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit(v_UTRAN_SysInfo[2].TDD.Freq, 14),
+                                                                                                        int2bit( v_UTRAN_SysInfo[2].TDD.CellParametersID, 7)& v_UTRAN_SysInfo[1].TDD.Tstd& v_UTRAN_SysInfo[1].TDD.Diversity),
+                                                                          '0'B, omit,
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+              v_SysInfo.si2quater_2 := cs_SysInfoType2quater(cs_SI2quaterRO('0001'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_1N_1FCell_TDD(int2bit(v_UTRAN_SysInfo[3].TDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit( v_UTRAN_SysInfo[3].TDD.CellParametersID, 7)& v_UTRAN_SysInfo[1].TDD.Tstd& v_UTRAN_SysInfo[1].TDD.Diversity),
+                                                                          '0'B, omit,
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+              v_SysInfo.si2quater_3 := cs_SysInfoType2quater(cs_SI2quaterRO('0010'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '0'B, omit,
+                                                                          '1'B, cs_SI2quaterMeasParams3G_ISHO,
+                                                                          '0'B, omit,
+                                                                          v_EUTRA_SI2_1));
+            v_SysInfo.si2quater_4 := cs_SysInfoType2quater(cs_SI2quaterRO('0011'B,
+                                                                          '0011'B, // @sic R5s120021, R5s120129 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '0'B, omit,
+                                                                          '0'B, omit, // @sic R5s12082 sic@
+                                                                          '0'B, omit,
+                                                                          v_EUTRA_SI2_2));
+              } else {
+              v_SysInfo.si2quater_1 := cs_SysInfoType2quater(cs_SI2quaterRO('0000'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_3N_2FCell_TDD(int2bit(v_UTRAN_SysInfo[0].TDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit(v_UTRAN_SysInfo[2].TDD.Freq, 14),
+                                                                                                        int2bit( v_UTRAN_SysInfo[2].TDD.CellParametersID, 7)& v_UTRAN_SysInfo[1].TDD.Tstd& v_UTRAN_SysInfo[1].TDD.Diversity),
+                                                                          '0'B, omit,
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+              v_SysInfo.si2quater_2 := cs_SysInfoType2quater(cs_SI2quaterRO('0001'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '1'B,
+                                                                          cs_SI2quater_3G_1N_1FCell_TDD(int2bit(v_UTRAN_SysInfo[3].TDD.Freq, 14),  // @sic R5120021 sic@
+                                                                                                        int2bit( v_UTRAN_SysInfo[3].TDD.CellParametersID, 7)& v_UTRAN_SysInfo[1].TDD.Tstd& v_UTRAN_SysInfo[1].TDD.Diversity),
+                                                                          '0'B, omit,
+                                                                          '0'B, omit,
+                                                                          omit, '0'B ));   // @sic R5s120021 sic@ Can't fit everything in one instance, so have to split it up
+              v_SysInfo.si2quater_3 := cs_SysInfoType2quater(cs_SI2quaterRO('0010'B,
+                                                                          '0010'B, // @sic R5s120021 sic@
+                                                                          '0'B, // @sic GP-120371 sic@
+                                                                          '0'B, omit,
+                                                                          '1'B, cs_SI2quaterMeasParams3G_ISHO,
+                                                                          '0'B, omit,
+                                                                          v_EUTRA_SI2_1));
+              v_SysInfo.si2quater_4 := omit;
+              }
+            }
+        } else { // No UTRAN
+          if (lengthof(v_EUTRA_SysInfo)==4) { // @sic R5s120129 sic@
+            v_SysInfo.si2quater_1 := cs_SysInfoType2quater(cs_SI2quaterRO('0000'B, '0001'B, '0'B, '0'B, omit, // @sic GP-120371, R5s120129 sic@
+                                                                        '0'B, omit,
+                                                                        '0'B, omit,
+                                                                        v_EUTRA_SI2_1));
+            v_SysInfo.si2quater_2 := cs_SysInfoType2quater(cs_SI2quaterRO('0001'B, '0001'B, '0'B, '0'B, omit, // @sic GP-120371, R5s120129 sic@
+                                                                        '0'B, omit,
+                                                                        '0'B, omit,
+                                                                        v_EUTRA_SI2_2));
+            v_SysInfo.si2quater_3 := omit;  // so everything can fit in one instance @sic R5s120021 sic@
+            v_SysInfo.si2quater_4 := omit;  // so everything can fit in one instance @sic R5s120129 sic@
+          } else {
+            v_SysInfo.si2quater_1 := cs_SysInfoType2quater(cs_SI2quaterRO('0000'B, '0000'B, '0'B, '0'B, omit, // @sic GP-120371 sic@
+                                                                        '0'B, omit,
+                                                                        '0'B, omit,
+                                                                        v_EUTRA_SI2_1));
+            v_SysInfo.si2quater_2 := omit;
+            v_SysInfo.si2quater_3 := omit;  // so everything can fit in one instance @sic R5s120021 sic@
+            v_SysInfo.si2quater_4 := omit;  // so everything can fit in one instance @sic R5s120129 sic@
+          }
+        }
+        v_CellArray[v_Index].sysInfo := valueof(v_SysInfo);
+      }
+    return v_CellArray;
+  }
+
+  function f_GERAN_IR_SysInfoInit (GERAN_CellArray_Type p_CellInfo)
+    return template (value) IRAT_CoOrd_SysInfo_Type
+  {
+    var template (value) CoOrd_GERANSysInfo_Type v_Cellf11;
+    var template (value) CoOrd_GERANSysInfo_Type v_Cellf12;
+    var template (value) CoOrd_GERANSysInfo_Type v_Cellf13;
+    var integer v_Index_Cell24 := f_GERAN_CellInfo_GetIndex(geran_Cell24);
+    var integer v_Index_Cell25 := f_GERAN_CellInfo_GetIndex(geran_Cell25);
+    var integer v_Index_Cell26 := f_GERAN_CellInfo_GetIndex(geran_Cell26);
+    
+    v_Cellf11 := cs_CoOrdGERANSysInfo(bit2int(p_CellInfo[v_Index_Cell24].freq.bCCH_Freq),
+//                                      p_CellInfo[v_Index_Cell24].freq.arfcnList, @sic R5-120604 sic@
+                                      p_CellInfo[v_Index_Cell24].info.ncc,
+                                      p_CellInfo[v_Index_Cell24].info.bcc,
+                                      p_CellInfo[v_Index_Cell24].info.cellIdentity,
+                                      p_CellInfo[v_Index_Cell24].freq.bandIndicator,
+                                      p_CellInfo[v_Index_Cell24].info.plmn,
+                                      oct2bit(p_CellInfo[v_Index_Cell24].info.lac),
+                                      oct2bit(p_CellInfo[v_Index_Cell24].info.rac),
+                                      bit2int(p_CellInfo[v_Index_Cell24].freq.gPRSCh_Freq));
+    
+    v_Cellf12 := cs_CoOrdGERANSysInfo(bit2int(p_CellInfo[v_Index_Cell25].freq.bCCH_Freq),
+ //                                     p_CellInfo[v_Index_Cell25].freq.arfcnList, @sic R5-120604 sic@
+                                      p_CellInfo[v_Index_Cell25].info.ncc,
+                                      p_CellInfo[v_Index_Cell25].info.bcc,
+                                      p_CellInfo[v_Index_Cell25].info.cellIdentity,
+                                      p_CellInfo[v_Index_Cell25].freq.bandIndicator,
+                                      p_CellInfo[v_Index_Cell25].info.plmn,
+                                      oct2bit(p_CellInfo[v_Index_Cell25].info.lac),
+                                      oct2bit(p_CellInfo[v_Index_Cell25].info.rac),
+                                      bit2int(p_CellInfo[v_Index_Cell25].freq.gPRSCh_Freq));
+
+    v_Cellf13 := cs_CoOrdGERANSysInfo(bit2int(p_CellInfo[v_Index_Cell26].freq.bCCH_Freq),
+ //                                     p_CellInfo[v_Index_Cell26].freq.arfcnList, @sic R5-120604 sic@
+                                      p_CellInfo[v_Index_Cell26].info.ncc,
+                                      p_CellInfo[v_Index_Cell26].info.bcc,
+                                      p_CellInfo[v_Index_Cell26].info.cellIdentity,
+                                      p_CellInfo[v_Index_Cell26].freq.bandIndicator,
+                                      p_CellInfo[v_Index_Cell26].info.plmn,
+                                      oct2bit(p_CellInfo[v_Index_Cell26].info.lac),
+                                      oct2bit(p_CellInfo[v_Index_Cell26].info.rac),
+                                      bit2int(p_CellInfo[v_Index_Cell26].freq.gPRSCh_Freq));
+
+    return cs_CoOrdGERAN_SysInfo(v_Cellf11, v_Cellf12, v_Cellf13);
+  }
+
+  function f_GERAN_CellInfo_Get(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return GERAN_CellInfo_Type
+  {                                                                                                        // NEVER, EVER CALL THIS FROM ANYWHERE
+    var integer v_Index := f_GERAN_CellInfo_GetIndex(p_CellId);                                            // APART FROM THIS FUNCTION
+    return vc_GERAN_Global.CellArray[v_Index];
+  }
+
+  function f_GERAN_CellInfo_Set(GERAN_CellId_Type p_CellId,
+                                GERAN_CellInfo_Type p_CellCfg) runs on GERAN_PTC
+  {
+    var integer v_Index := f_GERAN_CellInfo_GetIndex(p_CellId);
+    vc_GERAN_Global.CellArray[v_Index] := p_CellCfg;
+  }
+
+  function f_GERAN_SysInfo_Get(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return GERAN_SystemInformation_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.sysInfo;
+  }
+
+  function f_GERAN_SysInfo_Set(GERAN_CellId_Type p_CellId,
+                               template (value) GERAN_SystemInformation_Type p_SysInfo) runs on GERAN_PTC
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    v_CellInfo.sysInfo := valueof(p_SysInfo);
+    f_GERAN_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_GERAN_SysInfo_GetSI1(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SYSTEMINFORMATIONTYPE1
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si1;
+  }
+
+  function f_GERAN_SysInfo_GetSI2q_1(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SYSTEMINFORMATIONTYPE2quater
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si2quater_1;
+  }
+
+  function f_GERAN_SysInfo_GetSI2q_2(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SYSTEMINFORMATIONTYPE2quater
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si2quater_2;
+  }
+
+  function f_GERAN_SysInfo_SetSI2q_1(GERAN_CellId_Type p_CellId,
+                                     template (value) SYSTEMINFORMATIONTYPE2quater p_SI2q) runs on GERAN_PTC
+  {
+    var template (value) GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    v_SysInfo.si2quater_1 := p_SI2q;
+    f_GERAN_SysInfo_Set (p_CellId, v_SysInfo);
+  }
+
+  function f_GERAN_SysInfo_SetSI2q_2(GERAN_CellId_Type p_CellId,
+                                     template (omit) SYSTEMINFORMATIONTYPE2quater p_SI2q) runs on GERAN_PTC
+  {
+    var template (value) GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    v_SysInfo.si2quater_2 := p_SI2q;
+    f_GERAN_SysInfo_Set (p_CellId, v_SysInfo);
+  }
+
+  function f_GERAN_SysInfo_GetSI3(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SYSTEMINFORMATIONTYPE3
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si3;
+  }
+
+  function f_GERAN_SysInfo_SetSI3(GERAN_CellId_Type p_CellId,
+                                     template (value) SYSTEMINFORMATIONTYPE3 p_SI3) runs on GERAN_PTC
+  {
+    var template (value) GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    v_SysInfo.si3 := p_SI3;
+    f_GERAN_SysInfo_Set (p_CellId, v_SysInfo);
+  }
+
+  function f_GERAN_SysInfo_GetSI4(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SYSTEMINFORMATIONTYPE4
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si4;
+  }
+
+  function f_GERAN_SysInfo_SetSI4(GERAN_CellId_Type p_CellId,
+                                     template (value) SYSTEMINFORMATIONTYPE4 p_SI4) runs on GERAN_PTC
+  {
+    var template (value) GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    v_SysInfo.si4 := p_SI4;
+    f_GERAN_SysInfo_Set (p_CellId, v_SysInfo);
+  }
+
+  function f_GERAN_SysInfo_GetSI6(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SYSTEMINFORMATIONTYPE6
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si6;
+  }
+
+  function f_GERAN_SysInfo_SetSI6(GERAN_CellId_Type p_CellId,
+                                     template (value) SYSTEMINFORMATIONTYPE6 p_SI6) runs on GERAN_PTC
+  {
+    var template (value) GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    v_SysInfo.si6 := p_SI6;
+    f_GERAN_SysInfo_Set (p_CellId, v_SysInfo);
+  }
+
+  function f_GERAN_SysInfo_GetSI13(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SYSTEMINFORMATIONTYPE13
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si13;
+  }
+
+  function f_GERAN_SysInfo_GetSI13_RestOctets ( GERAN_CellId_Type p_CellId) runs on GERAN_PTC return SI13RO
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    return v_SysInfo.si13.si13roct;
+  }
+
+  function f_GERAN_SysInfo_SetSI13_RestOctets ( GERAN_CellId_Type p_CellId,
+                                                template (value) SI13RO p_SI13_RO) runs on GERAN_PTC
+  {
+    var template (value) GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get (p_CellId);
+    v_SysInfo.si13.si13roct := p_SI13_RO;
+    f_GERAN_SysInfo_Set( p_CellId, v_SysInfo );
+  }
+
+  function f_GERAN_SecurityInfo_Get() runs on GERAN_PTC return GERAN_SecurityInfo_Type
+  {
+    return vc_GERAN_Global.Security;
+  }
+
+  function f_GERAN_SecurityInfo_Set(GERAN_SecurityInfo_Type p_Info) runs on GERAN_PTC
+  {
+    vc_GERAN_Global.Security := p_Info;
+  }
+
+  function f_GERAN_BCCHFreq_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B10_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.freq.bCCH_Freq;
+  }
+
+  function f_GERAN_GPRSFreq_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B10_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.freq.gPRSCh_Freq;
+  }
+
+  function f_GERAN_TCHFreq_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B10_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.freq.tch_Freq;
+  }
+
+  function f_GERAN_BandInd_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B1_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.freq.bandIndicator;
+  }
+
+  function f_GERAN_NCC_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B3_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.ncc;
+  }
+
+  function f_GERAN_BCC_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B3_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.bcc;
+  }
+
+  function f_GERAN_NMO_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B2_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.nmo;
+  }
+
+  function f_GERAN_NMO_Set(GERAN_CellId_Type p_CellId,
+                           B2_Type p_NMO) runs on GERAN_PTC
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    v_CellInfo.info.nmo := p_NMO;
+    f_GERAN_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_GERAN_TA_Get(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return O1_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.timingAdvance;
+  }
+
+  function f_GERAN_GAMMA_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return B5_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.gamma;
+  }
+
+  function f_GERAN_PLMN_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return O3_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.plmn;
+  }
+
+  function f_GERAN_PLMN_Set (GERAN_CellId_Type p_CellId, O3_Type p_PLMN) runs on GERAN_PTC
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    var SYSTEMINFORMATIONTYPE3 v_SI3 := f_GERAN_SysInfo_GetSI3(p_CellId);
+    var SYSTEMINFORMATIONTYPE4 v_SI4 := f_GERAN_SysInfo_GetSI4(p_CellId);
+    var SYSTEMINFORMATIONTYPE6 v_SI6 := f_GERAN_SysInfo_GetSI6(p_CellId);
+    v_CellInfo.info.plmn := p_PLMN;
+    v_SI3.lai.plmn := p_PLMN;
+    v_SI4.lai.plmn := p_PLMN;
+    v_SI6.lai.plmn := p_PLMN;
+    f_GERAN_CellInfo_Set (p_CellId, v_CellInfo);
+    f_GERAN_SysInfo_SetSI3(p_CellId, v_SI3);
+    f_GERAN_SysInfo_SetSI4(p_CellId, v_SI4);
+    f_GERAN_SysInfo_SetSI6(p_CellId, v_SI6);
+  }
+
+  function f_GERAN_LAC_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return O2_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.lac;
+  }
+
+  function f_GERAN_RAC_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return O1_Type
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.rac;
+  }
+
+  function f_GERAN_RAC_Set (GERAN_CellId_Type p_CellId, O1_Type p_RAC) runs on GERAN_PTC
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    v_CellInfo.info.rac := p_RAC;
+    f_GERAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_GERAN_TLLI_Get(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return TLLI
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.tlli;
+  }
+
+  function f_GERAN_TLLI_Set(GERAN_CellId_Type p_CellId, TLLI p_TLLI) runs on GERAN_PTC
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    v_CellInfo.info.tlli := p_TLLI;
+    f_GERAN_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_GERAN_OldTLLI_Set(GERAN_CellId_Type p_CellId, TLLI p_TLLI) runs on GERAN_PTC
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    v_CellInfo.info.oldTlli := p_TLLI;
+    f_GERAN_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_GERAN_ControlChDesc_Get (GERAN_CellId_Type p_CellId) runs on GERAN_PTC return ControlChDescr
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.controlChDesr;
+  }
+
+  function f_GERAN_SplitPGCycle_Get(GERAN_CellId_Type p_CellId) runs on GERAN_PTC return DRXparameter
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.info.splitPGcycle;
+  }
+
+  function f_GERAN_SplitPGCycle_Set(GERAN_CellId_Type p_CellId,
+                                    DRXparameter p_SplitPGCycle) runs on GERAN_PTC
+  {
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get(p_CellId);
+    v_CellInfo.info.splitPGcycle := p_SplitPGCycle;
+    f_GERAN_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_GERAN_Init(IRAT_ConfiguredPTCs_Type p_ConfiguredPTCs := EUTRA_GERAN) runs on GERAN_PTC
+  { /* @sic R5-113805, R5-113696, R5-113734 sic@ */
+    /* f_GERAN_Init is used as dummy function (without parameters)  for the GERAN PTC when the GERAN PTC is needed just to get the GERAN system information */
+    var IRAT_CoOrd_SysInfo_List_Type v_IR_SysInfoList;
+    vc_GERAN_Global.Ctrl.Default := null;
+    vc_GERAN_Global.Ctrl.TestBody := false;
+    vc_GERAN_Global.Security := f_GERAN_Security_Init();
+    vc_GERAN_Global.CellArray := f_GERAN_CellArray_Init();
+    vc_GERAN_Global.MsgInDefault := f_GERAN_MsgInDefault_Init ();
+
+    // Now initialize sys info, together with EUTRA inter RAT parameters, for all cells
+    select (p_ConfiguredPTCs)
+    {
+      case (EUTRA_UTRAN_GERAN) {
+        // update sys info with UTRAN inter RAT parameters for all cells
+        vc_GERAN_Global.CellArray := f_GERAN_SystemInformation_Init(vc_GERAN_Global.CellArray, f_IRAT_InitialCoOrd_2Ports(EUTRA, UTRAN, f_GERAN_IR_SysInfoInit (vc_GERAN_Global.CellArray)));
+      }
+      case (EUTRA_GERAN) {
+        v_IR_SysInfoList[0] := f_IRAT_InitialCoOrd(EUTRA, f_GERAN_IR_SysInfoInit (vc_GERAN_Global.CellArray));
+        vc_GERAN_Global.CellArray := f_GERAN_SystemInformation_Init(vc_GERAN_Global.CellArray, v_IR_SysInfoList);
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "wrong PTC configuration specified in test case");
+      }
+    }
+    f_GERAN_ActivateDefault(StandardDefault);
+  }
+
+}

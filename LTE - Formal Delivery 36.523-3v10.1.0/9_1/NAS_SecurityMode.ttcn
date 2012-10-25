@@ -1,0 +1,529 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// * $Rev: 7121 $
+// ***************************************************************************
+
+module NAS_SecurityMode {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_NASCommonFunctions all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+
+  group LocalTemplates {
+
+  template (value) IMEISV_Request cs_IMEISV_Request_WithIEI(B3_Type p_Value) :=
+  { /* @status    APPROVED */
+    iei             := 'C'H, //@sic R5s090210 sic@
+    spare           := '0'B,
+    requestValue    := p_Value
+  };
+
+  template (value) NAS_DL_Message_Type cds_SECURITY_MODE_COMMAND_IMEISV(B3_Type p_CipheringType,
+                                                                        B3_Type p_IntegrityType,
+                                                                        NAS_KsiValue p_AsmeKeySetId,
+                                                                        UE_SecurityCapability p_SecurityCap) // @sic R5s100135 sic@
+    modifies cs_508_SECURITY_MODE_COMMAND :=
+  { /* @status    APPROVED */
+    sECURITY_MODE_COMMAND := {
+      imeisvRequest              := cs_IMEISV_Request_WithIEI( tsc_IdType_IMEISV)//@sic R5s090210 sic@
+    }
+  };
+
+  template NAS_UL_Message_Type cdr_SECURITY_MODE_COMPLETE_IMEISV modifies cr_508_SECURITY_MODE_COMPLETE :=
+  { /* @status    APPROVED */
+    sECURITY_MODE_COMPLETE := {
+      // securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      // protocolDiscriminator := tsc_PD_EMM,
+      // messageType           := tsc_MT_SecurityModeComplete,
+      imeisv                := ?
+    }
+  };
+
+  template NAS_UL_Message_Type cr_SECURITY_MODE_REJECT(template (present) NAS_CauseValue_Type p_CauseValue) :=
+  { /* @status    APPROVED */
+    sECURITY_MODE_REJECT := {
+      securityHeaderType    := tsc_SHT_NoSecurityProtection,
+      protocolDiscriminator := tsc_PD_EMM,
+      messageType           := tsc_MT_SecurityModeReject,
+      emmCause              := { iei := omit,
+                                 causeValue := p_CauseValue } // @sic R5s100182 sic@
+    }
+  };
+
+  } // end of group LocalTemplates
+
+  group LocalFunctions {
+
+  function fl_EUTRA_NAS_ActivateSecurity_IMEISV(EUTRA_CellId_Type p_CellId,
+                                                EUTRA_SecurityParams_Type p_SecurityParams,
+                                                boolean p_NewSecurityCxt := true,
+                                                SRB_Identity_Type p_SRB := tsc_SRB1)
+    runs on EUTRA_PTC
+    return NasCount_Type
+  {
+    var NasCount_Type v_NasCountUL;
+
+    // download security keys and reset NAS COUNT
+    f_EUTRA_SS_NAS_ConfigureSecurity(p_SecurityParams.NAS_Integrity,
+                                     p_SecurityParams.NAS_Ciphering);
+
+    v_NasCountUL := fl_EUTRA_NAS_SecurityModeControl_IMEISV(p_CellId, p_SecurityParams, p_NewSecurityCxt, p_SRB);
+
+    // all NAS messages are ciphered from now on
+    return v_NasCountUL;
+  };
+
+  function fl_EUTRA_NAS_SecurityModeControl_IMEISV(EUTRA_CellId_Type p_CellId,
+                                                   EUTRA_SecurityParams_Type p_SecurityParams,
+                                                   boolean p_NewSecurityCxt := true,
+                                                   SRB_Identity_Type p_SRB := tsc_SRB1)
+    runs on EUTRA_PTC
+    return NasCount_Type
+  {
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var NasCount_Type v_NasCountUL;
+    var SecurityHeaderType v_SecurityHeaderType_TX;
+    var SecurityHeaderType v_SecurityHeaderType_RX;
+
+    if (p_NewSecurityCxt) {
+      v_SecurityHeaderType_TX := tsc_SHT_IntegrityProtected_NewSecurityContext;
+      v_SecurityHeaderType_RX := tsc_SHT_IntegrityProtected_Ciphered_NewSecurityContext;
+    } else {
+      v_SecurityHeaderType_TX := tsc_SHT_IntegrityProtected;
+      v_SecurityHeaderType_RX := tsc_SHT_IntegrityProtected_Ciphered;
+    }
+
+    // send NAS SECURITY MODE COMMAND on SRB1 (integrity protected acc. 24.301 cl. 5.4.3.2):
+    SRB.send(cas_SRB_NasPdu_REQ(p_CellId,
+                                p_SRB,
+                                cs_TimingInfo_Now,
+                                cs_NAS_Request(v_SecurityHeaderType_TX,
+                                               cds_SECURITY_MODE_COMMAND_IMEISV(p_SecurityParams.NAS_Ciphering.Algorithm,
+                                                                                p_SecurityParams.NAS_Integrity.Algorithm,
+                                                                                p_SecurityParams.KSIasme,
+                                                                                p_SecurityParams.NAS_SecurityCap))));
+    // receive NAS SECURITY MODE COMPLETE (integrity protected and ciphered acc. 24.301 cl. 5.4.3.3):
+    SRB.receive(car_SRB_NasPdu_IND(p_CellId,
+                                 p_SRB,
+                                   cr_NAS_Indication(v_SecurityHeaderType_RX, cdr_SECURITY_MODE_COMPLETE_IMEISV)))
+      -> value v_ReceivedAsp;
+
+    v_NasCountUL := v_ReceivedAsp.Signalling.Nas[0].SecurityProtection.NasCount;
+  return v_NasCountUL;
+  };
+
+  function fl_InvalidateUeSecurityCapabilities(UE_SecurityCapability p_SecurityCaps)
+    return UE_SecurityCapability
+  { // mask which gets used to make sure that the resulting invalid capabilities get the correct value of '0'B.
+    var UE_SecurityCapability v_InvalidSecurityCaps := p_SecurityCaps;
+
+    v_InvalidSecurityCaps.eeaCap := not4b p_SecurityCaps.eeaCap;
+    v_InvalidSecurityCaps.eiaCap := not4b p_SecurityCaps.eiaCap;
+
+    return v_InvalidSecurityCaps;
+  }
+
+  } // end of group LocalFunctions
+
+  group TestcaseImplementations {
+
+  function f_TC_9_1_3_1_EUTRA() runs on EUTRA_PTC
+  { /* NAS security mode command accepted by the UE
+     */
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+
+    // Preamble: The UE is in state Switched OFF (state 1)
+    // ==========================================================================
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_UE_Detach_SwitchOffUe(eutra_CellA, RRC_IDLE);
+    f_EUTRA_TestBody_Set(true);
+
+    fl_TC_9_1_3_1_Body();
+
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);//@sic R5-103875 sic@
+  } // function f_TC_9_1_3_1_EUTRA
+
+  function fl_TC_9_1_3_1_Body() runs on EUTRA_PTC
+  {
+    // ==========================================================================
+    // initialize constant test case data structures
+    // ==========================================================================
+    //* EPS bearer identity (24.301 cl. 9.3.2).
+    var HalfOctet_Type v_EpsBearerId := tsc_EpsDefaultBearerId;
+    var ProcedureTransactionIdentifier v_EPS_TI := '01'O;
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    var template (omit) ProtocolConfigOptions v_Pco := omit;
+    var boolean v_EIT_Flag := false;
+    var boolean v_IPallocationViaNasFlag :=  false;
+    var NAS_MSG_Indication_Type v_NasInd;  // temporary variable which is used when receiving NAS ASPs
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();   //used to follow TTCN3 v411 standard
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL); // @sic R5s110176 sic@
+    var template (value) AccessPointName v_APN;
+    var integer i;
+    var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode ( eutra_CellA );
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    var template (omit) LocAreaId v_LAI := f_GetLAI(v_PLMN,v_LAC, NORMAL); // @sic R5s110176 sic@
+    var template (omit) MobileIdentity v_MSId := f_GetMSId (NORMAL); // @sic R5s110176 sic@
+
+    //+   The UE is switched on.
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+
+    //+   The UE transmits an ATTACH REQUEST message --> ATTACH REQUEST
+    //@siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas( eutra_CellA,
+                                                tsc_RRC_TI_Def,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                  cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  f_GetPdnType())));
+    v_PdnConnectivityRequest := v_NasInd.Pdu.PiggybackedPduList[0].Msg;
+    v_EPS_TI := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier; // Use this value in SS responses
+    // Get the PCO to be used later (TS 36.508 v.8.2.2 Table 4.7.3-6)
+    if (ispresent( v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions)) {
+      v_Pco := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;
+    }
+    v_EIT_Flag := f_CheckEsmInfoTransferFlag(v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST);
+
+    //+
+    //+   The SS transmits an AUTHENTICATION REQUEST message to initiate
+    //+   the EPS authentication and AKA procedure. <-- AUTHENTICATION
+    //+   REQUEST
+    //+
+    //+   The UE transmits an AUTHENTICATION RESPONSE message and
+    //+   establishes mutual authentication. --> AUTHENTICATION RESPONSE
+    // @sic R5s090210 R5s100049 sic@
+    //@siclog "Step 3 - 4" siclog@
+    v_SecurityParams := f_EUTRA_NAS_Authentication(eutra_CellA, tsc_SRB1,
+                                                   v_SecurityParams,
+                                                   tsc_SHT_IntegrityProtected_Ciphered, //  @sic R5-102226 sic@
+                                                   tsc_SHT_IntegrityProtected_Ciphered, //  @sic R5-102226 sic@
+                                                   f_Asn2Nas_PlmnId(v_GutiParams.PLMN_Identity));
+
+    
+    //+   The SS transmits a SECURITY MODE COMMAND message to activate NAS
+    //+   security. It is integrity protected and includes request to
+    //+   include IMEISV <-- SECURITY MODE COMMAND
+  
+    //+   Check: Does the UE transmit a SECURITY MODE COMPLETE message and
+    //+   does it establish the initial security configuration? -->
+    //+   SECURITY MODE COMPLETE [1,P]
+    //@siclog "Step 5 - 6" siclog@
+    v_NasCountUL := fl_EUTRA_NAS_ActivateSecurity_IMEISV(eutra_CellA, v_SecurityParams);
+
+    //  Optional ESM Information Transfer  // @sic R5s100098 sic@
+    //@siclog "Step 6a1 - 6a2" siclog@
+    v_APN := f_ESM_InitAPN(eutra_CellA, v_EIT_Flag, v_EPS_TI); // @sic R5s100751 Additional changes sic@
+
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+
+    // The SS transmits an ATTACH ACCEPT message.
+    //@siclog "Step 7" siclog@
+    v_IPallocationViaNasFlag :=  f_CheckPCOforIPallocationViaNas (v_Pco); // See TS 36.508 v.8.2.2 Table 4.7.3-6
+    f_EUTRA_RRCConnectionReconfigurationWithAttachAcceptAllParams(eutra_CellA,
+                                                                  v_EpsBearerId,
+                                                                  tsc_RRC_TI_Def,
+                                                                  v_EPS_TI,
+                                                                  f_GetEAttachType(NORMAL), // @sic R5s110176 sic@
+                                                                  f_EUTRA_GetPDNAddress(v_IPallocationViaNasFlag),
+                                                                  f_GutiParameters2MobileIdentity(tsc_IEI_Guti,
+                                                                                                  v_GutiParams),
+                                                                  cs_TrackingAreaIdListDef_lv,
+                                                                  v_LAI,
+                                                                  v_MSId,
+                                                                  omit,
+                                                                  v_APN,  // @sic R5s100098 sic@
+                                                                  f_GetDefPCOforPCSCFAddress (v_Pco), // @sic R5-104703 sic@
+                                                                  f_GetAdditionalUpdateResult(v_NasInd.Pdu.Msg.aTTACH_REQUEST.addUpdateType,  // @sic R5-103681 sic@
+                                                                                              NORMAL)); // @sic R5s110176 sic@
+
+    //+   The UE transmits an ATTACH COMPLETE message --> ATTACH COMPLETE
+    //@siclog "Step 8" siclog@
+    f_EUTRA_NAS_AttachComplete(eutra_CellA, v_EpsBearerId);
+
+    //+   The SS Transmits an IDENTITY REQUEST message [Security
+    //+   protected] <- IDENTITY REQUEST
+    //@siclog "Step 9" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_IDENTITY_REQUEST(tsc_IdType_IMSI))));
+
+    //+   Check: Does the UE transmit an IDENTIY RESPONSE message
+    //+   [Security Protected]? -> IDENTITY RESPONSE [1,P]
+    //@siclog "Step 10" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(
+                                                      tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_IDENTITY_RESPONSE(f_Imsi2MobileIdentity(px_IMSI_Def)))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+
+    //+   The SS transmits an AUTHENTICATION REQUEST message to initiate
+    //+   the EPS authentication and AKA procedure for new key set
+    //+   generation. <-- AUTHENTICATION REQUEST
+
+    //+   The UE transmits an AUTHENTICATION RESPONSE message and
+    //+   establishes mutual authentication. --> AUTHENTICATION RESPONSE
+    //@siclog "Step 11 - 12" siclog@
+    v_SecurityParams := f_EUTRA_NAS_Authentication(eutra_CellA, tsc_SRB2,
+                                                   v_SecurityParams,
+                                                   tsc_SHT_IntegrityProtected_Ciphered,
+                                                   tsc_SHT_IntegrityProtected_Ciphered,
+                                                   f_Asn2Nas_PlmnId(v_GutiParams.PLMN_Identity));
+
+    //+   SS resets UL and DL NAS Count to zero
+    //+  (specific msg. content)
+    //+   The SS transmits a SECURITY MODE COMMAND message to activate
+    //+   NAS security. It is integrity protected and includes request to
+    //+   include IMEISV <-- SECURITY MODE COMMAND
+    //+  (specific msg. content)
+    //+   The UE transmits a NAS SECURITY MODE COMPLETE message and
+    //+   establishes the initial security configuration. --> SECURITY
+    //+   MODE COMPLETE [2,P]
+    //@siclog "Step 13 - 15" siclog@
+    v_NasCountUL := fl_EUTRA_NAS_ActivateSecurity_IMEISV(eutra_CellA, v_SecurityParams, true, tsc_SRB2);
+    //@sic R5s090210 sic@
+    // To be integrity protected with new configuration and sent on SRB2
+    /*v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+      v_SecurityParams,
+      v_NasCountUL);
+      f_EUTRA_Security_Set(v_SecurityParams); //@sic R5s090210 sic@ */
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 15");
+
+    //+ Exception : Steps 16 and 17 are executed 100 times to check UE is
+    //+ applying security correctly
+    for (i := 0; i < 100; i := i + 1) {
+
+      //+   The SS transmits an IDENTITY REQUEST message [Security
+      //+   protected] <- IDENTITY REQUEST
+      //@siclog "Step 16" siclog@
+      SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                  cs_IDENTITY_REQUEST(tsc_IdType_IMSI))));
+
+      //+   Check: Does the UE transmit an IDENTIY RESPONSE message
+      //+   [Security Protected]? -> IDENTITY RESPONSE [2,P]
+      //@siclog "Step 17" siclog@
+      SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                      cr_NAS_Indication(
+                                                        tsc_SHT_IntegrityProtected_Ciphered,
+                                                        cr_IDENTITY_RESPONSE(f_Imsi2MobileIdentity(px_IMSI_Def)))));
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 17");
+    }
+
+  } // function fl_TC_9_1_3_1_Body
+
+  function f_TC_9_1_3_2_EUTRA() runs on EUTRA_PTC
+  {
+    /// @desc NAS security mode command not accepted by the UE
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+
+    // Preamble: The UE is in state Switched OFF (state 1)
+    //           The UE does not have a EPS security contecxt // @sic R5-102190 sic@
+    // ==========================================================================
+    f_EUTRA_Preamble_Reject(eutra_CellA, tsc_EmmCause_IllegalMe, NORMAL); // @sic R5s110176 sic@
+    f_EUTRA_TestBody_Set(true);
+
+    fl_TC_9_1_3_2_Body();
+
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);//@sic R5-103875 sic@
+  } // function f_TC_9_1_3_2_EUTRA
+
+  function fl_TC_9_1_3_2_Body() runs on EUTRA_PTC
+  {
+    // ==========================================================================
+    // initialize constant test case data structures
+    // ==========================================================================
+    var HalfOctet_Type v_EpsBearerId := tsc_EpsDefaultBearerId; // EPS bearer identity (24.301 cl. 9.3.2);
+    var ProcedureTransactionIdentifier v_EpsPti := tsc_PTI_1;
+    // get all data which are required for a GUTI
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId(v_GutiParams.PLMN_Identity);
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    var template (omit) ProtocolConfigOptions v_Pco := omit;
+    var boolean v_EIT_Flag := false;
+    var boolean v_IPallocationViaNasFlag :=  false;
+    var template (value) AccessPointName v_APN;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();  //used to follow TTCN3 v411 standard
+    var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode ( eutra_CellA );
+    var template (omit) LocAreaId v_LAI := f_GetLAI ( v_PLMN, v_LAC, NORMAL); // @sic R5s110427 sic@
+    var template (omit) MobileIdentity v_MSId := f_GetMSId (NORMAL); // @sic R5s110427 sic@
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(NORMAL); // @sic R5s110427 sic@
+
+    // temporary variable which is used when receiving NAS ASPs
+    var NAS_MSG_Indication_Type v_NasInd;
+
+    // stores UE network capabilities from ATTACH REQUEST to set incorrect
+    // UE Security Capabilities in NAS SECURITY MODE COMMAND (Step 5).
+    var UE_SecurityCapability v_UeSecurityCapabilities;
+
+    //+   The UE is switched on.
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+
+    //+   The UE transmits an ATTACH REQUEST message --> ATTACH REQUEST
+    //@siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_Any,
+                                               cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                 cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                 cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                 f_GetPdnType())));
+    v_PdnConnectivityRequest := v_NasInd.Pdu.PiggybackedPduList[0].Msg;
+    v_EpsPti := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier; // Use this value in SS responses
+    // Get the PCO to be used later (TS 36.508 v.8.2.2 Table 4.7.3-6)
+    if (ispresent( v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions)) {
+      v_Pco := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;
+    }
+    v_EIT_Flag := f_CheckEsmInfoTransferFlag(v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST);
+    v_UeSecurityCapabilities := f_EUTRA_FillNAS_SecurityCapability(v_NasInd.Pdu.Msg.aTTACH_REQUEST);  // @sic R5s100135 sic@
+
+    //+   The SS transmits an AUTHENTICATION REQUEST message to initiate the EPS
+    //+   authentication and AKA procedure. <-- AUTHENTICATION REQUEST
+
+    //+   The UE transmits an AUTHENTICATION RESPONSE message and establishes
+    //+   mutual authentication. --> AUTHENTICATION RESPONSE
+    //@siclog "Step 3 - 4" siclog@
+    v_SecurityParams := f_EUTRA_Authentication_InitNAS(v_SecurityParams, v_PLMN);
+    v_SecurityParams := f_EUTRA_NAS_Authentication(eutra_CellA,
+                                                   tsc_SRB1,
+                                                   v_SecurityParams,
+                                                   tsc_SHT_NoSecurityProtection,
+                                                   tsc_SHT_NoSecurityProtection,
+                                                   f_Asn2Nas_PlmnId(v_GutiParams.PLMN_Identity));
+
+    //+   The SS transmits a NAS SECURITY MODE COMMAND message to activate NAS
+    //+   security. It is integrity protected and includes un matched replayed
+    //+   security capabilities. <-- SECURITY MODE COMMAND
+    //@siclog "Step 5" siclog@
+    f_EUTRA_SS_NAS_ConfigureSecurity(v_SecurityParams.NAS_Integrity, v_SecurityParams.NAS_Ciphering);
+    SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_NewSecurityContext,
+                                                cs_508_SECURITY_MODE_COMMAND(
+                                                v_SecurityParams.NAS_Ciphering.Algorithm,
+                                                v_SecurityParams.NAS_Integrity.Algorithm,
+                                                v_SecurityParams.KSIasme,
+                                                fl_InvalidateUeSecurityCapabilities(v_UeSecurityCapabilities)))));
+
+    //+   Check: Does the UE transmit a NAS SECURITY MODE REJECT message with
+    //+   cause 'UE security capabilities mismatch'? --> SECURITY MODE REJECT
+    //+   [1,P]
+    //@siclog "Step 6" siclog@
+    SRB.receive(car_SRB1_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_NoSecurityProtection,
+                                                      cr_SECURITY_MODE_REJECT(tsc_UeSecurityCapsMismatch))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+    //+   The SS Transmits an IDENTITY REQUEST message for IMSI (Security not
+    //+   applied] <- IDENTITY REQUEST
+    //@siclog "Step 7" siclog@
+    SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_NoSecurityProtection,
+                                                cs_IDENTITY_REQUEST(tsc_IdType_IMSI))));
+    //+   @sic R5-102190 sic@
+    //+   The UE Transmits a non security protected IDENTIY RESPONSE message (Security not applied) ->
+    //+   IDENTITY RESPONSE [1,P]
+    //@siclog "Step 8" siclog@
+    SRB.receive(car_SRB1_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_NoSecurityProtection,
+                                                      cr_IDENTITY_RESPONSE(f_Imsi2MobileIdentity(px_IMSI_Def)))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+
+    //+   The SS transmits a SECURITY MODE COMMAND message to activate NAS
+    //+   security. It is integrity protected and includes request to include
+    //+   IMEISV <-- SECURITY MODE COMMAND
+
+    //+   The UE transmits a SECURITY MODE COMPLETE message and establishes the
+    //+   initial security configuration. --> SECURITY MODE COMPLETE
+    //@siclog "Step 9 - 10" siclog@
+    v_NasCountUL := fl_EUTRA_NAS_ActivateSecurity_IMEISV(eutra_CellA, v_SecurityParams);
+
+    // ESM INFORMATION REQUEST/RESPONSE message
+    v_APN := f_ESM_InitAPN(eutra_CellA, v_EIT_Flag, v_EpsPti); // @sic R5s100751 Additional changes sic@
+
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+
+    //+   The SS transmits an ATTACH ACCEPT message <-- ATTACH ACCEPT
+    //@siclog "Step 11" siclog@
+    v_IPallocationViaNasFlag :=  f_CheckPCOforIPallocationViaNas (v_Pco); // See TS 36.508 v.8.2.2 Table 4.7.3-6
+    f_EUTRA_RRCConnectionReconfigurationWithAttachAcceptAllParams(eutra_CellA,
+                                                                  v_EpsBearerId,
+                                                                  tsc_RRC_TI_Def,
+                                                                  v_EpsPti,
+                                                                  f_GetEAttachType(NORMAL), // @sic R5s110176, R5s110218 sic@
+                                                                  f_EUTRA_GetPDNAddress(v_IPallocationViaNasFlag),
+                                                                  f_GutiParameters2MobileIdentity(tsc_IEI_Guti,
+                                                                                                  v_GutiParams),
+                                                                  cs_TrackingAreaIdListDef_lv,
+                                                                  v_LAI,   // @sic R5s110427 sic@
+                                                                  v_MSId,
+                                                                  omit,
+                                                                  v_APN,
+                                                                  f_GetDefPCOforPCSCFAddress (v_Pco), // @sic R5-104703 sic@
+                                                                  f_GetAdditionalUpdateResult(v_NasInd.Pdu.Msg.aTTACH_REQUEST.addUpdateType,  //  @sic R5-103681 sic@
+                                                                                              NORMAL)); // @sic R5s110176 sic@
+
+    //+   The UE transmits an ATTACH COMPLETE message --> ATTACH COMPLETE
+    //@siclog "Step 12" siclog@
+    f_EUTRA_NAS_AttachComplete(eutra_CellA, v_EpsBearerId);
+
+  } // function fl_TC_9_1_3_2_Body
+
+  } // end of group TestcaseImplementations
+
+}

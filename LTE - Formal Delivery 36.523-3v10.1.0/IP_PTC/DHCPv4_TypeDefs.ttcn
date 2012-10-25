@@ -1,0 +1,545 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-07-15 18:36:20 +0200 (Sun, 15 Jul 2012) $
+// $Rev: 7019 $
+/******************************************************************************/
+
+module DHCPv4_TypeDefs {
+
+  import from CommonDefs all;
+
+  type record DHCPv4Message { // RFC 2131
+    O1_Type op,
+    O1_Type htype,
+    UInt8_Type hlen,
+    UInt8_Type hops,
+    O4_Type xid,
+    UInt16_Type secs,
+    DHCPv4_FLAGS flags,
+    O4_Type ciaddr,
+    O4_Type yiaddr,
+    O4_Type siaddr,
+    O4_Type giaddr,
+    O16_Type chaddr,
+    octetstring sname length (64),
+    octetstring file length (128),
+    O4_Type magicCookie, // '63825363'O, RFC 2131 clause 3
+    DHCPMessagev4Options options,  // RFC 1533
+    O1_Type endOption,   // 0xFF  RFC2131 clause 4.1
+    octetstring padding optional
+  }; // DHCPMessage_v4
+
+  const O1_Type tsc_OPCODE_BOOTREQUEST := '01'O;
+
+  const O1_Type tsc_OPCODE_BOOTREPLY := '02'O;
+
+  const O4_Type tsc_DHCPv4_MagicCookie := '63825363'O;
+
+  const O1_Type tsc_DHCPv4_EndOption := 'FF'O; // RFC 2132 clause 3.2
+
+  type record DHCPv4_FLAGS  {   // RFC 2131 Figure 2
+    B1_Type b,  // Broadcast flag
+    B15_Type mbz // Must be ZERO
+  };
+
+  type record of charstring DHCPv4_DomainNameList; // sequence of domain names
+
+  type record of O4_Type DHCPv4_AddressList;         // List of IPv4 addresses
+
+  type record DHCPv4_AddressMask {
+    O4_Type addr,
+    O4_Type mask
+  };
+
+  type record of DHCPv4_AddressMask DHCPv4_AddressMaskList;     // List of {address, mask}
+
+  type record DHCPv4_DestinationRouter {
+    O4_Type destination,
+    O4_Type router
+  };
+
+  type record of DHCPv4_DestinationRouter DHCPv4_DestinationRouterList;
+
+  type record of UInt16_Type ListUInt16_Type;        // List of 16 bit unsigned integers
+
+  type set DHCPMessagev4Options  {
+    DHCPv4Option_SubnetMask subnetMask  optional,   // RFC 1533 clause 3.3
+    DHCPv4Option_TimeOffset timeOffset  optional,   // clause 3.4
+    DHCPv4Option_RouterOption router optional, // clause 3.5
+    DHCPv4Option_TimeServerOption timeServer optional, // clause 3.6
+    DHCPv4Option_NameServerOption nameServer optional, // clause 3.7
+    DHCPv4Option_DomainNameServerOption domainNameServer optional, // clause 3.8
+    DHCPv4Option_LogServerOption logServer optional, // clause 3.9
+    DHCPv4Option_CookieServerOption cookieServer optional, // clause 3.10
+    DHCPv4Option_LPRServerOption lprServer optional, // clause 3.11
+    DHCPv4Option_ImpressServerOption impressServer optional, // clause 3.12
+    DHCPv4Option_ResourceLocationServerOption rlocserv optional, // clause 3.13
+    DHCPv4Option_HostNameOption hostName optional, // clause 3.14
+    DHCPv4Option_BootFileSizeOption bootFileSize optional, // clause 3.15
+    DHCPv4Option_MeritDumpFile meritDumpFile optional, // clause 3.16
+    DHCPv4Option_DomainName domainName optional, // clause 3.17
+    DHCPv4Option_SwapServer swapServer optional, // clause 3.18
+    DHCPv4Option_RootPath rootPath optional, // clause 3.19
+    DHCPv4Option_ExtensionsPath extensions_path optional, // clause 3.20
+    DHCPv4Option_IP_Forwarding ip_forwarding optional,   // clause 4.1
+    DHCPv4Option_NonLocalSourceRouting nonLocalSourceRouting optional, // clause 4.2
+    DHCPv4Option_PolicyFilterOption policyFilter optional,   // clause 4.3
+    DHCPv4Option_MaximumDatagramReassemblySize maximumDatagramReassemblySize optional, // clause 4.4
+    DHCPv4Option_Default_IP_TTL default_ip_ttl optional,   // clause 4.5
+    DHCPv4Option_PathMTU_AgingTimeout pathMTU_AgingTimeout optional,      // clause 4.6
+    DHCPv4Option_PathMTU_PlateauTable pathMTU_PlateauTable optional,  // clause 4.7
+    DHCPv4Option_InterfaceMTU_Option interfaceMTU optional,  // clause 5.1
+    DHCPv4Option_AllSubnetsLocalOption allSubnetsLocal optional,  // clause 5.2
+    DHCPv4Option_BroadcastAddressOption broadcastAddress optional, // clause 5.3
+    DHCPv4Option_PerformMaskDiscovery performMaskDiscovery optional, // clause 5.4
+    DHCPv4Option_MaskSupplierOption maskSupplier optional,  // clause 5.5
+    DHCPv4Option_PerformRouterDiscoveryOption performRouterDiscovery optional,  // clause 5.6
+    DHCPv4Option_RouterSolicitationAddress  routerSolicitationAddress optional, // clause 5.7
+    DHCPv4Option_StaticRouteOption staticRoute optional, // clause 5.8
+    DHCPv4Option_TrailerEncapsulation trailerEncapsulation optional, // clause 6.1
+    DHCPv4Option_ARP_CacheTimeout arpCacheTimeout optional,  // clause 6.2
+    DHCPv4Option_EthernetEncapsulation ethernetEncapsulation optional,  // clause 6.3
+    DHCPv4Option_TCPDefaultTTL tcpDefaultTTL optional, // clause 7.1
+    DHCPv4Option_TCPKeepaliveInterval tcpKeepAliveInterval optional, // clause 7.2
+    DHCPv4Option_TCPKeepaliveGarbage tcpKeepAliveGarbage optional,   // clause 7.3
+    DHCPv4Option_NISDomain nisDomain optional, // clause 8.1
+    DHCPv4Option_NISServers nisServers optional, // clause 8.2
+    DHCPv4Option_NTPServers ntpServers optional, // clause 8.3
+    DHCPv4Option_VendorSpecificInfo vendorSpecificInfo optional,   // clause 8.4
+    DHCPv4Option_NetBIOS_Servers netbiosServers optional, // clause 8.5
+    DHCPv4Option_NetBIOS_DDServers netbiosDDServers optional, // clause 8.6
+    DHCPv4Option_NetBIOS_NodeTypeOption netbiosNodeType optional, // clause 8.7
+    DHCPv4Option_NetBIOS_ScopeOption netbiosScope optional, // clause 8.8
+    DHCPv4Option_XWindowFontOption xWindowFont_server optional, // clause 8.9
+    DHCPv4Option_XWindowDisplayManagers xWindowDisplayManagers optional, // clause 8.10
+    DHCPv4Option_RequestedIPAddress requestedIPAddress optional,   // clause 9.1
+    DHCPv4Option_IPAddressLeaseTime ipAddressLeaseTime optional,  // clause 9.2
+    DHCPv4Option_OptionOverload optionOverload optional, // clause 9.3
+    DHCPv4Option_MessageType messageType optional,  // clause 9.4
+    DHCPv4Option_ServerIdentifier serverIdentifier optional,      // clause 9.5
+    DHCPv4Option_ParameterRequestList parameterRequestList optional,       // clause 9.6
+    DHCPv4Option_Message97 message97 optional,    // clause 9.7
+    DHCPv4Option_MaxDHCPSize maxDHCPSize optional,  // clause 9.8
+    DHCPv4Option_RenewalT1Time renewalT1 optional,   // clause 9.9
+    DHCPv4Option_RebindingT2Time rebindingT2 optional,   // clause 9.10
+    DHCPv4Option_ClassIdentifier classIdentifier optional,  // clause 9.11
+    DHCPv4Option_ClientIdentifier clientIdentifier optional,  // clause 9.12
+    DHCPv4Options_SIPServers sipServers optional, // RFC 3361
+    DHCPv4Options_RapidCommit rapidCommit optional // RFC 4039 clause 4
+  };
+
+  type O1_Type DHCPv4Options_CODE; // RFC 1533
+
+  const DHCPv4Options_CODE tsc_DHCPv4Options_CODE_DomainNameServerOption := '06'O;
+
+  const DHCPv4Options_CODE tsc_DHCPv4Options_CODE_DomainName := '0F'O; // (15),
+
+  const DHCPv4Options_CODE tsc_DHCPv4Options_CODE_IPAddressLeaseTime := '33'O; // (51),
+
+  const DHCPv4Options_CODE tsc_DHCPv4Options_CODE_MessageType := '35'O; // (53),
+
+  const DHCPv4Options_CODE tsc_DHCPv4Options_CODE_ServerIdentifier := '36'O; // (54),
+
+  const DHCPv4Options_CODE tsc_DHCPv4Options_CODE_SIPServers := '78'O;  // (120) // RFC 3361
+
+  const DHCPv4Options_CODE tsc_DHCPv4Options_CODE_RapidCommit := '80'O; // (128) // RFC 4039 clause 4
+
+  type record DHCPv4Option_SubnetMask  { // clause 3.3
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_SubnetMask),
+    UInt8_Type len, //  (4),
+    O4_Type val
+  };
+
+  type record DHCPv4Option_TimeOffset  { // clause 3.4
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_TimeOffset),
+    UInt8_Type len, //  (4),
+    UInt32_Type val
+  };
+
+  type record DHCPv4Option_RouterOption  { // clause 3.5
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_RouterOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_TimeServerOption  { // clause 3.6
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_TimeServerOption),
+    UInt8_Type len ,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_NameServerOption  { // clause 3.7
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NameServerOption),
+    UInt8_Type len ,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_DomainNameServerOption  { // clause 3.8
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_DomainNameServerOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_LogServerOption  { // clause 3.9
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_LogServerOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_CookieServerOption  { // clause 3.10
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_CookieServerOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_LPRServerOption  { // clause 3.11
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_LPRServerOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_ImpressServerOption  { // clause 3.12
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ImpressServerOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_ResourceLocationServerOption  { // clause 3.13
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ResourceLocationServerOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_HostNameOption  { // clause 3.14
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_HostNameOption),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_BootFileSizeOption  { // clause 3.15
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_BootFileSizeOption),
+    UInt8_Type len,
+    UInt16_Type val
+  };
+
+  type record DHCPv4Option_MeritDumpFile  { // clause 3.16
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_MeritDumpFile),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_DomainName  { // clause 3.17
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_DomainName),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_SwapServer  { // clause 3.18
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_SwapServer),
+    UInt8_Type len, //  (4),
+    O4_Type val
+  };
+
+  type record DHCPv4Option_RootPath  { // clause 3.19
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_RootPath),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_ExtensionsPath  { // clause 3.20
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ExtensionsPath),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_IP_Forwarding  { // clause 4.1
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_IP_Forwarding),
+    UInt8_Type len, // (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_NonLocalSourceRouting  { // clause 4.2
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NonLocalSourceRouting),
+    UInt8_Type len, //  (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_PolicyFilterOption  { // clause 4.3
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_PolicyFilterOption),
+    UInt8_Type len,
+    DHCPv4_AddressMaskList addressMasks
+  };
+
+  type record DHCPv4Option_MaximumDatagramReassemblySize  { // clause 4.4
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_MaximumDatagramReassemblySize),
+    UInt8_Type len, // (2),
+    UInt16_Type val
+  };
+
+  type record DHCPv4Option_Default_IP_TTL  { // clause 4.5
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_Default_IP_TTL),
+    UInt8_Type len, // (1),
+    UInt8_Type val
+  };
+
+  type record DHCPv4Option_PathMTU_AgingTimeout { // clause 4.6
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_PathMTU_AgingTimeout),
+    UInt8_Type len, // (4),
+    UInt32_Type val
+  };
+
+  type record DHCPv4Option_PathMTU_PlateauTable { // clause 4.7
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_PathMTU_PlateauTable),
+    UInt8_Type len,
+    ListUInt16_Type sizes
+  };
+
+  type record DHCPv4Option_InterfaceMTU_Option { // clause 5.1
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_InterfaceMTU_Option),
+    UInt8_Type len, // (2),
+    UInt16_Type val
+  };
+
+  type record DHCPv4Option_AllSubnetsLocalOption { // clause 5.2
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_AllSubnetsLocalOption),
+    UInt8_Type len, // (2),
+    boolean val
+  };
+
+  type record DHCPv4Option_BroadcastAddressOption { // clause 5.3
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_BroadcastAddressOption),
+    UInt8_Type len, // (4),
+    O4_Type val
+  };
+
+  type record DHCPv4Option_PerformMaskDiscovery { // clause 5.4
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_PerformMaskDiscovery),
+    UInt8_Type len, // (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_MaskSupplierOption { // clause 5.5
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_MaskSupplierOption),
+    UInt8_Type len, // (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_PerformRouterDiscoveryOption { // clause 5.6
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_PerformRouterDiscovery),
+    UInt8_Type len, // (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_RouterSolicitationAddress { // clause 5.7
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_RouterSolicitationAddress),
+    UInt8_Type len, // (4),
+    O4_Type val
+  };
+
+  type record DHCPv4Option_StaticRouteOption { // clause 5.8
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_StaticRouteOption),
+    UInt8_Type len,
+    DHCPv4_DestinationRouterList  drList
+  };
+
+  type record DHCPv4Option_TrailerEncapsulation { // clause 6.1
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_TrailerEncapsulation),
+    UInt8_Type len, // (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_ARP_CacheTimeout  { // clause 6.2
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ARP_CacheTimeout),
+    UInt8_Type len, // (4),
+    UInt32_Type val
+  };
+
+  type record DHCPv4Option_EthernetEncapsulation { // clause 6.3
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_EthernetEncapsulation),
+    UInt8_Type len, // (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_TCPDefaultTTL  { // clause 7.1
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_TCPDefaultTTL),
+    UInt8_Type len, // (1),
+    UInt8_Type val
+  };
+
+  type record DHCPv4Option_TCPKeepaliveInterval  { // clause 7.2
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_TCPKeepaliveInterval),
+    UInt8_Type len, // (4),
+    UInt32_Type val
+  };
+
+  type record DHCPv4Option_TCPKeepaliveGarbage  { // clause 7.3
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_TCPKeepaliveGarbage),
+    UInt8_Type len, // (1),
+    boolean val
+  };
+
+  type record DHCPv4Option_NISDomain  { // clause 8.1
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NISDomain),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_NISServers  { // clause 8.2
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NISServers),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_NTPServers  { // clause 8.3
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NTPServers),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_VendorSpecificInfo  { // clause 8.4
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_VendorSpecificInfo),
+    UInt8_Type len,
+    octetstring val
+  };
+
+  type record DHCPv4Option_NetBIOS_Servers  { // clause 8.5
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NetBIOS_Servers),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_NetBIOS_DDServers  { // clause 8.6
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NetBIOS_DDServers),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_NetBIOS_NodeTypeOption  { // clause 8.7
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NetBIOS_NodeTypeOption),
+    UInt8_Type len, //(1),
+    O1_Type val
+  };
+
+  type record DHCPv4Option_NetBIOS_ScopeOption  { // clause 8.8
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_NetBIOS_ScopeOption),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_XWindowFontOption  { // clause 8.9
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_XWindowFontOption),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_XWindowDisplayManagers  { // clause 8.10
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_XWindowDisplayManagers),
+    UInt8_Type len,
+    DHCPv4_AddressList addresses
+  };
+
+  type record DHCPv4Option_RequestedIPAddress  { // clause 9.1
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_RequestedIPAddress),
+    UInt8_Type len, //(4),
+    O4_Type val
+  };
+
+  type record DHCPv4Option_IPAddressLeaseTime  { // clause 9.2
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_IPAddressLeaseTime),
+    UInt8_Type len, //(4),
+    UInt32_Type val
+  };
+
+  type record DHCPv4Option_OptionOverload  { // clause 9.3
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_OptionOverload),
+    UInt8_Type len, //(1),
+    UInt8_Type val
+  };
+
+  type enumerated DHCPv4_MsgType {  // RFC 1533 clause 9.4
+    DHCPv4_MsgType_DISCOVER_E (1),
+    DHCPv4_MsgType_OFFER_E (2),
+    DHCPv4_MsgType_REQUEST_E (3),
+    DHCPv4_MsgType_DECLINE_E (4),
+    DHCPv4_MsgType_ACK_E (5),
+    DHCPv4_MsgType_NAK_E (6),
+    DHCPv4_MsgType_RELEASE_E (7),
+    DHCPv4_MsgType_INFORM_E (8)     // RFC 2131
+  };
+
+  type record DHCPv4Option_MessageType  { // clause 9.4
+    DHCPv4Options_CODE code, //  (DHCPv4Options_CODE_MessageType),
+    UInt8_Type len, // (1),
+    DHCPv4_MsgType msgType
+  };
+
+  type record DHCPv4Option_ServerIdentifier  { // clause 9.5
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ServerIdentifier),
+    UInt8_Type len, // (4),
+    O4_Type val
+  };
+
+  type record of DHCPv4Options_CODE DHCPv4_ParameterRequestList;
+
+  type record DHCPv4Option_ParameterRequestList  { // clause 9.6
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ParameterRequestList),
+    UInt8_Type len,
+    DHCPv4_ParameterRequestList optionCodes
+  };
+
+  type record DHCPv4Option_Message97  { // clause 9.7
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_Message97),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_MaxDHCPSize  { // clause 9.8
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_MaxDHCPSize),
+    UInt8_Type len, // (2),
+    UInt16_Type val
+  };
+
+  type record DHCPv4Option_RenewalT1Time  { // clause 9.9
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_RenewalT1Time),
+    UInt8_Type len, // (4),
+    UInt32_Type val
+  };
+
+  type record DHCPv4Option_RebindingT2Time  { // clause 9.10
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_RebindingT2Time),
+    UInt8_Type len, // (4),
+    UInt32_Type val
+  };
+
+  type record DHCPv4Option_ClassIdentifier  { // clause 9.11
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ClassIdentifier),
+    UInt8_Type len,
+    charstring val
+  };
+
+  type record DHCPv4Option_ClientIdentifier  { // clause 9.12
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_ClientIdentifier),
+    UInt8_Type len,
+    UInt8_Type hardwareType,
+    octetstring val
+  };
+
+  type record DHCPv4Options_SIPServers  { // RFC 3361
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_SIPServers),
+    UInt8_Type len,
+    O1_Type enc,
+    DHCPv4_DomainNameList domainNames optional, // DNS domain name of SIP servers if enc == 0
+    DHCPv4_AddressList addressList optional   // IP Addresses of SIP servers if enc == 1
+  };
+
+  type record DHCPv4Options_RapidCommit  { // RFC 4039 clause 4
+    DHCPv4Options_CODE code, // (DHCPv4Options_CODE_RapidCommit),
+    UInt8_Type len // (0)
+  };
+
+}

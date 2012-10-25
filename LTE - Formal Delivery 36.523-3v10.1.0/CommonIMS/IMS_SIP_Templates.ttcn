@@ -1,0 +1,1605 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+
+module IMS_SIP_Templates {
+  import from CommonDefs all;
+  import from IMS_CommonParameters all;
+  import from IMS_Constants all;
+  import from IP_ASP_TypeDefs all;
+
+  import from LibSip_SIPTypesAndValues all;
+  import from LibSip_Templates all;
+  import from urn_ietf_params_xml_ns_reginfo all; // TODO_XML RFC 3680 Registration Info
+  import from LibSip_SDPTypes all;
+
+  const charstring tsc_SEC_MECHANISM := "ipsec-3gpp";               // Security Mechanism name
+  
+  // Securiity algorithms for IPSEC
+  const charstring tsc_HMAC_MD5_96 := "hmac-md5-96";
+  const charstring tsc_HMAC_SHA_1_96 := "hmac-sha-1-96";
+
+  const octetstring tsc_COLON_HEX := '3A'O;
+  
+  template (value) MessageHeader cs_MessageHeader_Dummy := m_msgHeader_dummy;
+  template MessageHeader cr_MessageHeader_Dummy := mw_msgHeader_dummy;
+
+  /******************************************************************************/
+  /* AuxiliaryTemplates */
+  /******************************************************************************/
+
+  template charstring cr_GenericParam_NoValue := ("", omit);    // i.e. either an empty string or omit
+
+  //----------------------------------------------------------------------------
+  // Generic parameter as used in SemicolonParam_List, AmpersandParam_List, CommaParam_List:
+
+  template (value) GenericParam cs_GenericParam(charstring p_Id,
+                                                template (omit) charstring p_ParamValue := omit) :=
+  {
+    id := p_Id,
+    paramValue := p_ParamValue
+  };
+  
+  template GenericParam cr_GenericParam(charstring p_Id,
+                                        template charstring p_ParamValue := omit) :=
+  {
+    id := p_Id,
+    paramValue := p_ParamValue
+  };
+  
+  //----------------------------------------------------------------------------
+  // templates to check SemicolonParam_List for a specific parameter
+
+  template SemicolonParam_List cr_SemicolonParam_List_OneSpecificParam(charstring p_Id,
+                                                                       template charstring p_ParamValue := *) :=
+  {
+    cr_GenericParam(p_Id, p_ParamValue),
+    *
+  };
+
+  template SemicolonParam_List cr_SemicolonParam_List_WithAnyTag := cr_SemicolonParam_List_OneSpecificParam(c_tagId, *);
+
+  template SemicolonParam_List cr_ReqTypeParamInContactParams(template charstring p_ReqType) := cr_SemicolonParam_List_OneSpecificParam("req-type", p_ReqType);
+  template SemicolonParam_List cr_ExpiresInContactParams(template charstring p_Expires := ?) := cr_SemicolonParam_List_OneSpecificParam("expires", p_Expires);
+  template SemicolonParam_List cr_CPInstanceInContactParams := cr_SemicolonParam_List_OneSpecificParam("c-p-instance", "sip.instance=" & tsc_IMS_UEInstanceId);
+  template SemicolonParam_List cr_SMSParamInContactParams := cr_SemicolonParam_List_OneSpecificParam("+g.3gpp.smsip", omit); // @sic R5s120530 change 2.1 sic@
+  template SemicolonParam_List cr_FeatureParamInContactParams(template (present) charstring p_ParamValue := ?) :=
+    cr_SemicolonParam_List_OneSpecificParam(tsc_IMS_AcceptContactId, p_ParamValue); // @sic R5s120530 change 3.1 sic@
+
+  template SemicolonParam_List cr_SigCompParam := cr_SemicolonParam_List_OneSpecificParam("comp", "sigcomp");
+  
+  template SemicolonParam_List cr_SecurityMechParams_IPsec(charstring p_Algorithm) :=
+  {
+    cr_GenericParam("alg", p_Algorithm),
+    cr_GenericParam("spi-c", ?),
+    cr_GenericParam("spi-s", ?),
+    cr_GenericParam("port-c", ?),
+    cr_GenericParam("port-s", ?),
+    *
+  };
+  
+  template (value) GenericParam cs_SigCompParam := cs_GenericParam("comp", "sigcomp");
+  template (value) SemicolonParam_List cs_ParamList_Feature(charstring p_FeatureValue) := {cs_GenericParam("feature-param", p_FeatureValue)};
+
+  //----------------------------------------------------------------------------
+  
+  template NameAddr cr_NameAddr(template charstring p_DisplayName,
+                                template (present) SipUrl p_SipUrl) :=
+  {
+    displayName := p_DisplayName,
+    addrSpec    := p_SipUrl
+  };
+
+  template NameAddr cr_NameAddr_NoDisplayName(template (present) SipUrl p_SipUrl) := cr_NameAddr(omit, p_SipUrl);
+
+  template (value) NameAddr cs_NameAddr(template (value) SipUrl p_SipUrl) :=
+  {
+    displayName := omit,
+    addrSpec    := p_SipUrl
+  };
+
+  //----------------------------------------------------------------------------
+  
+  //****************************************************************************
+  // IEs (in alphatic order)
+  //----------------------------------------------------------------------------
+  
+  template Accept cr_AcceptDef (charstring p_MediaRange) :=
+  {
+    fieldName := ACCEPT_E,
+    acceptArgs := {
+      {
+        mediaRange := p_MediaRange,
+        acceptParam := omit
+      }
+    }
+  };
+  
+  //----------------------------------------------------------------------------
+
+  template (value) AcceptBody cs_AcceptBody(charstring p_MediaRange) :=
+  {
+    mediaRange := p_MediaRange,
+    acceptParam := omit
+  };
+
+  template (value) Accept cs_Accept(template (value) AcceptBody_List p_AcceptBodyList) :=
+  {
+    fieldName := ACCEPT_E,
+    acceptArgs := p_AcceptBodyList
+  };
+
+  template AcceptBody cr_AcceptBody(template (present) charstring p_MediaRange) :=
+  {
+    mediaRange := p_MediaRange,
+    acceptParam := *
+  };
+
+  template Accept cr_Accept(template (present) AcceptBody_List p_AcceptBodyList) :=
+  {
+    fieldName := ACCEPT_E,
+    acceptArgs := p_AcceptBodyList
+  };
+
+  //----------------------------------------------------------------------------
+
+  template AcceptContact cr_AcceptContact(template (present) GenericParam p_GenericParam) :=
+  {
+    fieldName := ACCEPT_CONTACT_E,
+    acValues := {
+      {
+        wildcard := c_WILDCARD,
+        acRcParams := { p_GenericParam, * }
+      }
+    }
+  };
+
+  template (value) AcceptContact cs_AcceptContact(template (value) SemicolonParam_List p_ParamList) :=
+  {
+    fieldName := ACCEPT_CONTACT_E,
+    acValues := {
+      {
+        wildcard := c_WILDCARD,
+        acRcParams := p_ParamList
+      }
+    }
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template Allow cr_Allow(template (present) charstring p_Method) :=
+  {
+    fieldName := ALLOW_E,
+    methods := { p_Method }
+  };
+    
+  template (value) Allow cs_Allow(charstring p_Method) :=
+  {
+    fieldName := ALLOW_E,
+    methods := { p_Method }
+  };
+    
+  //----------------------------------------------------------------------------
+  
+  template Authorization cr_AuthorizationInitial (charstring p_UserName,
+                                                  charstring p_Realm,
+                                                  template charstring p_Nonce := cr_GenericParam_NoValue,
+                                                  template charstring p_Response := cr_GenericParam_NoValue) :=
+  {
+    fieldName := AUTHORIZATION_E,
+    body := {
+      {
+        digestResponse := {
+          cr_GenericParam("username", p_UserName),
+          cr_GenericParam("realm",    p_Realm),
+          cr_GenericParam("nonce",    p_Nonce),
+          cr_GenericParam("uri",      "sip:" & p_Realm),
+          cr_GenericParam("response", p_Response),  // Response calculated by UE
+          *
+        }
+      }
+    }
+  };
+  
+  template Authorization cr_AuthorizationDef (charstring p_UserName,
+                                              charstring p_Realm,
+                                              charstring p_Nonce,
+                                              charstring p_Opaque,
+                                              template (present) charstring p_Nc := "00000001",
+                                              template (present) charstring p_Qop := "auth",
+                                              template (present) charstring p_Cnonce := ?,
+                                              template (present) charstring p_Response := ?) :=
+  {
+    fieldName := AUTHORIZATION_E,
+    body := {
+      {
+        digestResponse := {
+          cr_GenericParam("username", p_UserName),
+          cr_GenericParam("realm",    p_Realm),
+          cr_GenericParam("nonce",    p_Nonce),
+          cr_GenericParam("opaque",   p_Opaque),
+          cr_GenericParam("uri",      "sip:" & p_Realm),
+          cr_GenericParam("qop",      p_Qop),
+          cr_GenericParam("cnonce",   p_Cnonce),
+          cr_GenericParam("nc",       p_Nc),
+          cr_GenericParam("response", p_Response),  // Response calculated by UE
+          cr_GenericParam("algorithm", "AKAv1-MD5"),
+          *
+        }
+      }
+    }
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template CallId cr_CallId (template (present) charstring p_CallId) :=
+  {
+    fieldName := CALL_ID_E,
+    callid := p_CallId
+  };
+  
+  template (value) CallId cs_CallId (charstring p_CallId) :=
+  {
+    fieldName := CALL_ID_E,
+    callid := p_CallId
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template ContactAddress cr_ContactAddress(template charstring p_DisplayName,
+                                            template (present) SipUrl p_SipUrl,
+                                            template SemicolonParam_List p_ContactParams := omit) :=
+  {
+    addressField := {
+      nameAddr := cr_NameAddr(p_DisplayName, p_SipUrl)
+    },
+    contactParams := p_ContactParams
+  };
+
+  template Contact cr_Contact(template (present) SipUrl p_SipUrl,
+                              template SemicolonParam_List p_ContactParams := *) :=
+  {
+    fieldName := CONTACT_E,
+    contactBody := {
+      contactAddresses := {
+        cr_ContactAddress(*, p_SipUrl, p_ContactParams),
+        *
+      }
+    }
+  };
+
+  template (value) Contact cs_Contact(template (value) SipUrl p_SipUrl,
+                                      template (omit) SemicolonParam_List p_ContactParams := omit) :=
+  {
+    fieldName := CONTACT_E,
+    contactBody := {
+      contactAddresses := {
+        {
+          addressField := {
+            nameAddr := cs_NameAddr(p_SipUrl)
+          },
+          contactParams := p_ContactParams
+        }
+      }
+    }
+  };
+  
+  template Contact cr_Contact_Wildcard :=
+  {
+    fieldName := CONTACT_E,
+    contactBody := {
+      wildcard := "*"
+    }
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template ContentLength cr_ContentLengthDef (template (present) integer p_Length := 0) :=
+  {
+    fieldName := CONTENT_LENGTH_E,
+    len := p_Length
+  };
+  
+  template (value) ContentLength cs_ContentLengthDef(integer p_Length := -1) :=
+  { // Note: The actual length shall be set by the encoder, see 34.229-3 clause 7.3.4
+    fieldName := CONTENT_LENGTH_E,
+    len := p_Length
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template ContentType cr_ContentTypeDef (template (present) charstring p_MediaType) :=
+  {
+    fieldName := CONTENT_TYPE_E,
+    mediaType := p_MediaType
+  };
+  
+  template (value) ContentType cs_ContentTypeDef(charstring p_MediaType) :=
+  {
+    fieldName := CONTENT_TYPE_E,
+    mediaType := p_MediaType
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template CSeq cr_CseqDef(template (present) integer p_SeqNo,
+                           charstring p_Method) :=
+  {
+    fieldName := CSEQ_E,
+    seqNumber := p_SeqNo,
+    method := p_Method
+  };
+  
+  template (value) CSeq cs_CseqDef(template (value) integer p_SeqNo,
+                                   charstring p_Method) :=
+  {
+    fieldName := CSEQ_E,
+    seqNumber := p_SeqNo,
+    method := p_Method
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template Event cr_EventDef (template EventType p_EventType) :=
+  {
+    fieldName := EVENT_E,
+    eventType := p_EventType,
+    eventParams := omit
+  };
+  
+  template (value) Event cs_EventDef (template (value) EventType p_EventType) :=
+  {
+    fieldName := EVENT_E,
+    eventType := p_EventType,
+    eventParams := omit
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template Expires cr_Expires(template (present) charstring p_DeltaSec) :=
+  {
+    fieldName := EXPIRES_E,
+    deltaSec  := p_DeltaSec
+  };
+  
+  template (value) Expires cs_Expires(charstring p_DeltaSec) :=
+  {
+    fieldName := EXPIRES_E,
+    deltaSec  := p_DeltaSec
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template From cr_From(template charstring p_DisplayName,
+                        template (present) SipUrl p_SipUrl,
+                        template (present) charstring p_Tag := ?) :=
+  {
+    fieldName := FROM_E,
+    addressField := {
+      nameAddr := cr_NameAddr(p_DisplayName, p_SipUrl)
+    },
+    fromParams := { cr_GenericParam(c_tagId, p_Tag), * }
+  };
+  
+  template From cr_FromWithTag(template (present) SipUrl p_SipUrl,
+                               template (present) charstring p_Tag := ?) := cr_From(omit, p_SipUrl, p_Tag);
+
+  template (value) From cs_From(template (value) SipUrl p_SipUrl,
+                                template (omit) charstring p_Tag := omit) :=
+  {
+    fieldName := FROM_E,
+    addressField := {
+      nameAddr := cs_NameAddr(p_SipUrl)
+    },
+    fromParams := {cs_GenericParam(c_tagId, p_Tag)}
+  };
+  
+  //----------------------------------------------------------------------------
+  template (value) HistoryInfoEntry cs_HistoryInfoEntry(template (value) charstring p_Host) :=
+  {
+    nameAddr := cs_NameAddr(cs_SipUrl_Def(p_Host)),
+    hiIndex := { 1 },
+    hiExtention := omit
+  };
+  
+  template (value) HistoryInfo cs_HistoryInfo(template (value) charstring p_Host) :=
+  {
+    fieldName := HISTORY_INFO_E,
+    historyInfoList := {
+      cs_HistoryInfoEntry(p_Host)
+    }
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template HostPort cr_HostPort(template (present) charstring p_Host := ?,
+                                template integer p_Port := *) :=
+  {
+    host := p_Host,
+    portField := p_Port
+  };
+
+  template (value) HostPort cs_HostPort(charstring p_Host,
+                                        template (omit) integer p_Port := omit) :=
+  {
+    host := p_Host,
+    portField := p_Port
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template MaxForwards cr_MaxForwardsDef (template (present) integer p_Value := (1..255)) :=
+  {
+    fieldName := MAX_FORWARDS_E,
+    forwards := p_Value
+  };
+
+  template (value) MaxForwards cs_MaxForwardsDef (template (value) integer p_Value := 67) :=
+  { // p_Value := 67 -> any value
+    fieldName := MAX_FORWARDS_E,
+    forwards := p_Value
+  };
+
+  //----------------------------------------------------------------------------
+  template (value) NameAddrParam cs_NameAddrParam(template (value) SipUrl p_SipUrl) :=
+  {
+    nameAddr := cs_NameAddr(p_SipUrl),
+    genericParams := omit
+  };
+
+  //----------------------------------------------------------------------------
+
+  template PAccessNetworkInfo cr_PAccessNetworkInfoDef (template (present) charstring p_AccessType,
+                                                        template charstring p_CellId) :=
+  {
+    fieldName := P_ACCESS_NETWORK_INFO_E,
+    accessType := p_AccessType,
+    genericParams := {
+      cr_GenericParam("utran-cell-id-3gpp", p_CellId),
+      *
+    }
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) PAssertedID cs_PAssertedId (template (value) SipUrl p_SipUrl) :=
+  {
+    fieldName := P_ASSERTED_ID_E,
+    pAssertedIDValueList := {
+      {
+        nameAddr := cs_NameAddr(p_SipUrl)
+      }
+    }
+   };
+
+  //----------------------------------------------------------------------------
+
+  template  PAssertedID cr_PAssertedId (template (present) SipUrl p_SipUrl) :=
+  {
+    fieldName := P_ASSERTED_ID_E,
+    pAssertedIDValueList := {
+      {
+        nameAddr := cr_NameAddr(*, p_SipUrl)
+      }
+    }
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) PAssertedService cs_PAssertedService(PAssertedServiceValue p_PAssertedServiceValue) :=
+  {
+    fieldName := P_ASSERTED_SERVICE_E,
+    pAssertedServiceValue := p_PAssertedServiceValue
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) PAssociatedURI cs_PAssocURI_Def(template (value) SipUrl p_PublicUserId,
+                                                   template (value) SipUrl p_TelUri) :=
+  {
+    fieldName := P_ASSOCIATED_URI_E,
+    nameAddrList := {
+      cs_NameAddrParam(p_PublicUserId),
+      cs_NameAddrParam(p_TelUri)
+    }
+  };
+
+  template (value) PAssociatedURI cs_PAssocURI_Emergency(template (value) SipUrl p_EmergencyPublicUserId) :=
+  {
+    fieldName := P_ASSOCIATED_URI_E,
+    nameAddrList := {
+      cs_NameAddrParam(p_EmergencyPublicUserId)
+    }
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) Path cs_PathDef (charstring p_Host) :=
+  {
+    fieldName := PATH_E,
+    pathValues := {
+      {
+        nameAddr := cs_NameAddr(cs_SipUrl_Def(p_Host)),
+        rrParam := omit
+      }
+    }
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) PCalledPartyID cs_PCalledPartyId (template (value) SipUrl p_SipUrl) :=
+  {
+    fieldName := P_CALLED_PARTY_E,
+    nameAddParams := cs_NameAddrParam(p_SipUrl)
+  };
+
+  //----------------------------------------------------------------------------
+
+  template PPreferredID cr_PPreferredID(template (present) PPreferredIDValue_List p_PPreferredIDList := ?) :=
+  {
+    fieldName := P_PREFERRED_ID_E,
+    pPreferredIDValueList := p_PPreferredIDList
+  };
+
+  //----------------------------------------------------------------------------
+
+  template ProxyRequire cr_ProxyRequireDef :=
+  {
+    fieldName := PROXY_REQUIRE_E,
+    optionsTags := { "sec-agree", *}
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) RAck cs_RAckDef (template (value) integer p_RSeq,
+                                    template (value) integer p_CSeq,
+                                    template (value) charstring p_Method) :=
+  {
+    fieldName := RACK_E,
+    responseNum := p_RSeq,
+    seqNumber := p_CSeq,
+    method := p_Method
+  };
+    
+  template RAck cr_RAckDef (template (present) integer p_RSeq,
+                            template (present) integer p_CSeq,
+                            template (present) charstring p_Method) :=
+  {
+    fieldName := RACK_E,
+    responseNum := p_RSeq,
+    seqNumber := p_CSeq,
+    method := p_Method
+  };
+    
+  //----------------------------------------------------------------------------
+  
+  template (value) RecordRoute cs_RecordRoute(template (value) RouteBody_List p_RouteBodyList) :=
+  {
+    fieldName := RECORD_ROUTE_E,
+    routeBody := p_RouteBodyList
+  };
+
+  template (present) RecordRoute cr_RecordRoute(template (present) RouteBody_List p_RouteBodyList) :=
+  {
+    fieldName := RECORD_ROUTE_E,
+    routeBody := p_RouteBodyList
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template RequestDisposition cr_RequestDisposition(template (present) Directive_List p_Directives) :=
+  {
+    fieldName := REQUEST_DISPOSITION_E,
+    directives := p_Directives
+  };
+
+  template (value) RequestDisposition cs_RequestDisposition(template (value) Directive_List p_Directives) :=
+  {
+    fieldName := REQUEST_DISPOSITION_E,
+    directives := p_Directives
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template RequestLine cr_RequestLineSip(Method p_Method,
+                                         template (present) SipUrl p_URI) :=
+  {
+    method := p_Method,
+    requestUri := p_URI,
+    sipVersion := c_sipNameVersion
+  };
+
+  template (value) RequestLine cs_RequestLineSip(Method p_Method,
+                                                 template (value) SipUrl p_URI) :=
+  {
+    method := p_Method,
+    requestUri := p_URI,
+    sipVersion := c_sipNameVersion
+  };
+
+  //----------------------------------------------------------------------------
+
+  template Require cr_Require(charstring p_OptionTag := "sec-agree") :=
+  {
+    fieldName := REQUIRE_E,
+    optionsTags := { p_OptionTag, * }
+  };
+
+  template (value) Require cs_Require(charstring p_OptionTag) :=
+  {
+    fieldName := REQUIRE_E,
+    optionsTags := { p_OptionTag }
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template (value) RetryAfter cs_RetryAfter (integer p_Secs) :=
+  {
+    fieldName := RETRY_AFTER_E,
+    deltaSec := int2str(p_Secs),
+    comment := omit,
+    retryParams := omit
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template RouteBody cr_RouteBody(template charstring p_DisplayName,
+                                  template (present) SipUrl p_SipUrl,
+                                  template SemicolonParam_List p_RRParam := *) :=
+  {
+    nameAddr := cr_NameAddr(p_DisplayName, p_SipUrl),
+    rrParam := p_RRParam
+  };
+
+  function f_RouteBodyWithParamsRX(template charstring p_DisplayName,
+                                   template (present) SipUrl p_SipUrl,
+                                   template GenericParam p_SigCompParam := omit) return template (present) RouteBody
+  {
+    var template SemicolonParam_List v_RRParamList := *;
+    if (ispresent(p_SigCompParam)) {
+      v_RRParamList := { p_SigCompParam, * };
+    }
+    return cr_RouteBody(p_DisplayName, p_SipUrl, v_RRParamList);
+  }
+
+  template (value) RouteBody cs_RouteBody(template (value) SipUrl p_SipUrl,
+                                          template (omit) SemicolonParam_List p_RRParam := omit) :=
+  {
+    nameAddr := cs_NameAddr(p_SipUrl),
+    rrParam := p_RRParam
+  };
+
+  function f_RouteBodyWithParamsTX(template (value) SipUrl p_SipUrl,
+                                   template (omit) GenericParam p_SigCompParam := omit) return template (value) RouteBody
+  {
+    var template (omit) SemicolonParam_List v_RRParamList := omit;
+    if (isvalue(p_SigCompParam)) {
+      v_RRParamList[0] := p_SigCompParam;
+    }
+    return cs_RouteBody(p_SipUrl, v_RRParamList);
+  }
+
+  //----------------------------------------------------------------------------
+
+  template Route cr_Route(template RouteBody_List p_RouteBodyList) :=
+  {
+    fieldName := ROUTE_E,
+    routeBody := p_RouteBodyList
+  };
+
+  template (present) Route cr_RouteRegDef(template charstring p_Host,
+                                          template integer p_Port) :=
+    cr_Route( {cr_RouteBody(*, cr_SipUrl_Def(p_Host, p_Port))} );
+
+  template (present) Route cr_RouteSubs(charstring p_Host1,
+                                        template integer p_Port,
+                                        charstring p_Host2) :=
+    cr_Route( { cr_RouteBody(omit, cr_SipUrl_Def(p_Host1, p_Port)), cr_RouteBody(omit, cr_SipUrl_Def(p_Host2)) } );
+  
+  template Route cr_RouteReReg (charstring p_Host,
+                                template integer p_Port,
+                                charstring p_Host2) :=
+    ( cr_RouteRegDef(p_Host, p_Port), cr_RouteSubs(p_Host, p_Port, p_Host2) );
+
+  //----------------------------------------------------------------------------
+
+  template RSeq cr_RSeq(template (present) integer p_ResponseNum) :=
+  {
+    fieldName := RSEQ_E,
+    responseNum := p_ResponseNum
+  };
+
+  template (value) RSeq cs_RSeq(integer p_ResponseNum) :=
+  {
+    fieldName := RSEQ_E,
+    responseNum := p_ResponseNum
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template SecurityClient cr_SecClientMandatoryFields :=
+  {
+    fieldName := SECURITY_CLIENT_E,
+    securityMech := {
+      cr_SecurityMechanism(cr_SecurityMechParams_IPsec(tsc_HMAC_MD5_96)),
+      cr_SecurityMechanism(cr_SecurityMechParams_IPsec(tsc_HMAC_SHA_1_96)),
+      *
+    }
+  };
+ 
+  template SecurityClient cr_SecClientOptionalFields(charstring p_Id,
+                                                     template charstring p_ParamValue := *) :=
+  {
+    fieldName := SECURITY_CLIENT_E,
+    securityMech := {
+      cr_SecurityMechanism(cr_SemicolonParam_List_OneSpecificParam(p_Id, p_ParamValue)),
+      cr_SecurityMechanism(cr_SemicolonParam_List_OneSpecificParam(p_Id, p_ParamValue)),
+      *
+    }
+  };
+ 
+  template SecurityClient cr_SecClientOptionalProt    := cr_SecClientOptionalFields("prot", "esp");
+  template SecurityClient cr_SecClientOptionalProtAny := cr_SecClientOptionalFields("prot");
+  template SecurityClient cr_SecClientOptionalMod     := cr_SecClientOptionalFields("mod", "trans");
+  template SecurityClient cr_SecClientOptionalModAny  := cr_SecClientOptionalFields("mod");
+  template SecurityClient cr_SecClientEalg            := cr_SecClientOptionalFields("ealg", ("des-ede3-cbc", "aes-cbc"));
+  template SecurityClient cr_SecClientEalgNull        := cr_SecClientOptionalFields("ealg", "null");
+  template SecurityClient cr_SecClientEalgAny         := cr_SecClientOptionalFields("ealg");
+
+  //----------------------------------------------------------------------------
+  
+  template SecurityMechanism cr_SecurityMechanism(template SemicolonParam_List p_MechParams) :=
+  {
+    mechName := tsc_SEC_MECHANISM,
+    mechParams := p_MechParams
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template (value) SecurityServer cs_SecServerDef(template (value) SecurityMechanism_List p_SecurityMech) :=
+  {
+    fieldName := SECURITY_SERVER_E,
+    securityMech := p_SecurityMech
+  };
+
+  //----------------------------------------------------------------------------
+  
+  template SecurityVerify cr_SecVerifyDef (template (present) SecurityMechanism_List p_SecurityMech) :=
+  {
+    fieldName := SECURITY_VERIFY_E,
+    securityMech := p_SecurityMech
+  };
+  
+  //----------------------------------------------------------------------------
+  
+  template (value) ServiceRoute cs_ServiceRouteDef (charstring p_Host) :=
+  {
+    fieldName := SERVICE_ROUTE_E,
+    routeBody := {
+      cs_RouteBody(cs_SipUrl_Def(p_Host))
+    }
+  };
+
+  //----------------------------------------------------------------------------
+
+  template SipUrl cr_SipUrl(template (present) charstring p_Scheme := c_sipScheme,
+                            template UserInfo p_UserInfo := *,
+                            template charstring p_Host,
+                            template integer p_Port := omit,
+                            template SemicolonParam_List p_Params := *) :=
+  {
+    scheme := p_Scheme,
+    userInfo := p_UserInfo,
+    hostPort := {
+      host := p_Host,
+      portField := p_Port
+    },
+    urlParameters := p_Params,
+    headers := omit
+  };
+
+  template SipUrl cr_SipUrl_Def(template charstring p_Host,
+                                template integer p_Port := omit) :=
+    cr_SipUrl(-, -, p_Host, p_Port, {cr_GenericParam("lr"), *});
+
+  template SipUrl cr_SipUrlHostPort (template charstring p_Host,
+                                     template integer p_Port) :=
+    cr_SipUrl(?, *, p_Host, p_Port, *);
+
+  template (value) SipUrl cs_SipUrl (template (value) charstring p_Scheme := c_sipScheme,
+                                     template (omit) UserInfo p_UserInfo := omit,
+                                     template (omit) charstring p_Host,
+                                     template (omit) integer p_Port := omit,
+                                     template (omit) SemicolonParam_List p_Params := omit) :=
+  {
+    scheme := p_Scheme,
+    userInfo := p_UserInfo,
+    hostPort := {
+      host := p_Host,
+      portField := p_Port
+    },
+    urlParameters := p_Params,
+    headers := omit
+  };
+
+  template (value) SipUrl cs_SipUrl_Def(template (value) charstring p_Host,
+                                        template (omit) integer p_Port := omit) :=
+    cs_SipUrl(-, -, p_Host, p_Port, {cs_GenericParam("lr")} );
+
+  //----------------------------------------------------------------------------
+
+  template (value) SubscriptionState cs_SubscriptionStateDef (charstring p_SubstateValue,
+                                                              charstring p_Expires) :=
+  {
+    fieldName := SUBSCRIPTION_STATE_E,
+    subState := p_SubstateValue,
+    substateParams := {
+      cs_GenericParam("expires", p_Expires)
+    }
+  };
+  
+  template (value) SubscriptionState cs_SubscriptionState_Active := cs_SubscriptionStateDef("active", "600000");
+  template (value) SubscriptionState cs_SubscriptionState_Terminated := cs_SubscriptionStateDef("terminated", "0");
+
+  //----------------------------------------------------------------------------
+  
+  template (present) Supported cr_Supported(template (present) OptionTag_List p_TagList) :=
+  {
+    fieldName := SUPPORTED_E,
+    optionsTags := p_TagList
+  };
+
+  template (present) Supported cr_Supported_Register := cr_Supported( { f_SIP_SetSupportedTag(pc_IMS_GRUUsInSIP), *} );
+  template (present) Supported cr_Supported_100rel   := cr_Supported( { "100rel", * } );
+  template (present) Supported cr_Supported_precondition := cr_Supported( { "precondition", * } );
+  
+  template (value) Supported cs_Supported (template (value) OptionTag_List p_TagList) :=
+  {
+    fieldName := SUPPORTED_E,
+    optionsTags := p_TagList
+  };
+  
+  template (value) Supported cs_Supported_100rel := cs_Supported({"100rel"});
+  template (value) Supported cs_Supported_precondition := cs_Supported({"precondition"});
+
+  //----------------------------------------------------------------------------
+
+  template To cr_ToDef (template (present) SipUrl p_SipUrl,
+                        template SemicolonParam_List p_Params := *) :=
+  {
+    fieldName := TO_E,
+    addressField := {
+      nameAddr := cr_NameAddr(*, p_SipUrl)
+    },
+    toParams := p_Params
+  };
+  
+  template To cr_ToWithTag (template (present) SipUrl p_SipUrl,
+                            template (present) charstring p_Tag := ?) := cr_ToDef (p_SipUrl, {cr_GenericParam(c_tagId, p_Tag), *});
+  
+  template (value) To cs_ToDef(template (value) SipUrl p_SipUrl,
+                               template (omit) SemicolonParam_List p_Params := omit) :=
+  {
+    fieldName := TO_E,
+    addressField := {
+      nameAddr := cs_NameAddr(p_SipUrl)
+    },
+    toParams := p_Params
+  };
+  
+  template (value) To cs_ToWithTag(template (value) SipUrl p_SipUrl,
+                                   charstring p_Tag) :=
+    cs_ToDef(p_SipUrl, { cs_GenericParam(c_tagId, p_Tag) });
+
+  //----------------------------------------------------------------------------
+
+  template ViaBody cr_ViaBody(template (present) charstring p_Transport,
+                              template (present) HostPort p_SendBy) :=
+  {
+    sentProtocol := {
+      protocolName := c_sipName,
+      protocolVersion := c_sipVersion,
+      transport := p_Transport
+    },
+    sentBy := p_SendBy,
+    viaParams := {
+      cr_GenericParam(c_branchId, pattern c_branchCookie & "*"), // @sic R5s120530 change 1.9 sic@
+      *
+    }
+  };
+
+  template Via cr_ViaDef(template (present) charstring p_Transport := ?,
+                         template (present) HostPort p_HostPort := cr_HostPort(?, *)) :=
+  {
+    fieldName := VIA_E,
+    viaBody := {
+      cr_ViaBody(p_Transport, p_HostPort)
+    }
+  };
+  
+  template Via cr_ViaTwoParams (template (present) charstring p_Transport,
+                                template (present) charstring p_Host1,
+                                template integer p_Port,
+                                template (present) charstring p_Host2) :=
+  {
+    fieldName := VIA_E,
+    viaBody := {
+      cr_ViaBody(p_Transport, cr_HostPort(p_Host1, p_Port)),
+      cr_ViaBody(p_Transport, cr_HostPort(p_Host2, omit))
+    }
+  };
+
+  function f_ViaParamsTX(template (value) charstring p_Branch,
+                         template (omit) GenericParam p_SigCompParam := omit) return template (value) SemicolonParam_List
+  {
+    var template (value) SemicolonParam_List v_ParamList;
+    v_ParamList[0] := cs_GenericParam(c_branchId, p_Branch);
+    if (isvalue(p_SigCompParam)) {
+      v_ParamList[1] := valueof(p_SigCompParam);
+    }
+    return v_ParamList;
+  }
+
+  template (value) ViaBody cs_ViaBody(template (value) charstring p_Transport,
+                                      template (value) HostPort p_SendBy,
+                                      template (omit) SemicolonParam_List p_ViaParams := omit) :=
+  {
+    sentProtocol := {
+      protocolName := c_sipName,
+      protocolVersion := c_sipVersion,
+      transport := p_Transport
+    },
+    sentBy := p_SendBy,
+    viaParams := p_ViaParams
+  };
+
+  template (value) Via cs_Via(template (value) ViaBody_List p_BodyList) :=
+  {
+    fieldName := VIA_E,
+    viaBody := p_BodyList
+  };
+
+  //----------------------------------------------------------------------------
+    
+  template (value) WwwAuthenticate cs_WwwAuthChallenge(charstring p_Realm,
+                                                       charstring p_Nonce,
+                                                       charstring p_Opaque) :=
+  {
+    fieldName := WWW_AUTHENTICATE_E,
+    challenge := {
+      digestCln := {
+        cs_GenericParam("realm",     p_Realm),
+        cs_GenericParam("algorithm", "AKAv1-MD5"),
+        cs_GenericParam("qop",       "auth"),
+        cs_GenericParam("nonce",     p_Nonce),
+        cs_GenericParam("opaque",    p_Opaque)
+      }
+    }
+  };
+  
+  /******************************************************************************/
+  /* AuxiliaryFunctions */
+  /******************************************************************************/
+
+  type set of GenericParam GenericParamList_Type;
+
+  //****************************************************************************
+  // auxilliary functions to access comma, semicolon or ampersand separated lists
+  //----------------------------------------------------------------------------
+
+  function fl_SIP_GenericParamList_GetParamValue(GenericParamList_Type p_ParamList,
+                                                 charstring p_ParamId) return charstring
+  {
+    var charstring v_ParamId;
+    var integer v_NoOfParams := lengthof(p_ParamList);
+    var integer i;
+    
+    for (i:=0; i < v_NoOfParams; i := i+1) {
+      v_ParamId := f_StringToLower(p_ParamList[i].id);
+      if (v_ParamId == p_ParamId) {
+        if (ispresent(p_ParamList[i].paramValue)) {
+          return p_ParamList[i].paramValue;
+        } else {
+          return "";
+        }
+      }
+    }
+    f_ErrorLog(__FILE__, __LINE__, "ParamList does not contain '" & p_ParamId & "'");
+    return "";
+  }
+  
+  function f_SIP_CommaParamList_GetParamValue(template (value) CommaParam_List p_ParamList,
+                                              charstring p_ParamId) return charstring
+  {
+    var CommaParam_List v_ParamList := valueof(p_ParamList);
+    var GenericParamList_Type v_GenericParamList;
+    var integer i;
+
+    for (i:=0; i < lengthof(v_ParamList); i := i+1) {v_GenericParamList[i] := v_ParamList[i];}
+    return fl_SIP_GenericParamList_GetParamValue(v_GenericParamList, p_ParamId);
+  }
+
+
+  function f_SIP_SemicolonParamList_GetParamValue(template (value) SemicolonParam_List p_ParamList,
+                                                  charstring p_ParamId) return charstring
+  {
+    var SemicolonParam_List v_ParamList := valueof(p_ParamList);
+    var GenericParamList_Type v_GenericParamList;
+    var integer i;
+
+    for (i:=0; i < lengthof(v_ParamList); i := i+1) {v_GenericParamList[i] := v_ParamList[i];}
+    return fl_SIP_GenericParamList_GetParamValue(v_GenericParamList, p_ParamId);
+  }
+  
+  function f_SIP_AmpersandParamList_GetParamValue(template (value) AmpersandParam_List p_ParamList,
+                                                  charstring p_ParamId) return charstring
+  {
+    var AmpersandParam_List v_ParamList := valueof(p_ParamList);
+    var GenericParamList_Type v_GenericParamList;
+    var integer i;
+
+    for (i:=0; i < lengthof(v_ParamList); i := i+1) {v_GenericParamList[i] := v_ParamList[i];}
+    return fl_SIP_GenericParamList_GetParamValue(v_GenericParamList, p_ParamId);
+  }
+
+  //****************************************************************************
+  // auxilliary functions to build templates
+  //----------------------------------------------------------------------------
+
+  function f_SIP_IntegrityAlgorithm_String(IPsec_IntegrityAlgorithm_Type p_IntegrityAlgorithm) return charstring
+  {
+    var charstring v_String := "";
+    
+    select (p_IntegrityAlgorithm) {
+      case (hmac_md5_96) {
+        v_String := tsc_HMAC_MD5_96;
+      }
+      case (hmac_sha_1_96) {
+        v_String := tsc_HMAC_SHA_1_96;
+      }
+    }
+    return v_String;
+  }
+
+  function f_SIP_CipheringAlgorithm_String(IPsec_CipheringAlgorithm_Type p_CipheringAlgorithm) return charstring
+  {
+    var charstring v_String := "";
+    
+    select (p_CipheringAlgorithm) {
+      case (des_ede3_cbc) {
+        v_String := "des-ede3-cbc";
+      }
+      case (aes_cbc) {
+        v_String := "aes-cbc";
+      }
+      case (nociph) {
+        v_String := "nociph";
+      }
+    }
+    return v_String;
+  }
+
+  //----------------------------------------------------------------------------
+  /*
+   * @desc      Build a SipUrl structure based on an URI which is either a tel or sip identity,
+   *            e.g. "sip:PublicId1@3gpp.org" or "tel:+358-555-1234567"
+   *            where scheme is either "sip" or "tel".
+   *            The returned SipUrl structure is used for building send or receive templates.
+   *            (see RFC 3261 cl. 19.1.1)
+   */
+  function fl_SIP_BuildSipUrl_Common (charstring p_URI,
+                                      template (omit) integer p_Port) return template (value) SipUrl
+  {
+    var template (omit) UserInfo v_UserInfo;
+    var charstring v_Scheme;
+    var charstring v_Host;
+    
+    // Consistency check:
+    v_Scheme := regexp (p_URI, "([a-z]#(3,4)):*", 0);
+    if (( v_Scheme != c_telScheme ) and ( v_Scheme != c_sipScheme )) {
+      FatalError(__FILE__, __LINE__, "Invalid scheme");
+    }
+    
+    // 1. p_URI has scheme, username, password and domain (e.g. "sip:IMS-User1:olaf@rs.de")
+    if (regexp (p_URI, "*:*:(*)@*", 0) != "") {
+      v_UserInfo := {
+        userOrTelephoneSubscriber := regexp(p_URI, "*:(*):*@*", 0),
+        password := regexp(p_URI, "*:*:(*)@*", 0)
+      }
+      v_Host := regexp(p_URI, "*:*@(*)", 0);
+    }
+
+    // 2. p_URI has scheme, username, and domain (e.g. "sip:IMS-User1@rs.de")
+    else if (regexp (p_URI, "*:(*)@*", 0) != "") {
+      v_UserInfo := {
+        userOrTelephoneSubscriber := regexp (p_URI, "*:(*)@*", 0),
+        password := omit
+      };
+      v_Host := regexp (p_URI, "*:*@(*)", 0);
+    }
+
+    // 3. p_URI has scheme and  domain (e.g. "sip:rs.de", or sip:[2001:db8:1::139])
+    else if ( regexp (p_URI, "([a-z]#(3,4)):(*)", 0) != "") {
+      v_UserInfo := omit;
+      v_Host := regexp (p_URI, "([a-z]#(3,4)):(*)", 1);
+    }
+
+    // 4. Else: Error case
+    else {
+      FatalError(__FILE__, __LINE__, "Cannot build SipUrl");
+    }
+    
+    return cs_SipUrl(v_Scheme, v_UserInfo, v_Host, p_Port);
+  }
+
+  function f_SIP_BuildSipUrl_RX(charstring p_URI,
+                                template (omit) integer p_Port := omit,
+                                template (omit) GenericParam p_LrParam := omit) return template (present) SipUrl
+  {
+    var template (present) SipUrl v_SipUrl := fl_SIP_BuildSipUrl_Common(p_URI, p_Port);
+    
+    if (isvalue(p_LrParam)) {
+      v_SipUrl.urlParameters := {p_LrParam, *};
+    } else {
+      v_SipUrl.urlParameters := *;
+    }
+    return v_SipUrl;
+  }
+  
+  function f_SIP_BuildSipUrl_TX(charstring p_URI,
+                                template (omit) integer p_Port := omit,
+                                template (omit) GenericParam p_LrParam := omit) return template (value) SipUrl
+  {
+    var template (value) SipUrl v_SipUrl := fl_SIP_BuildSipUrl_Common(p_URI, p_Port);
+    
+    if (isvalue(p_LrParam)) {
+      v_SipUrl.urlParameters := {p_LrParam};
+    }
+    return v_SipUrl;
+  }
+  
+  function f_SIP_SipUrl2Str(SipUrl p_SipUrl) return charstring
+  {
+    var charstring v_String := p_SipUrl.scheme & ":";
+    
+    if (ispresent(p_SipUrl.userInfo)) {
+      v_String := v_String & p_SipUrl.userInfo.userOrTelephoneSubscriber & "@" ; // @sic R5s120530 change 1.3 sic@
+    }
+    v_String := v_String & p_SipUrl.hostPort.host; // @sic R5s120530 change 1.3 sic@
+    if (ispresent(p_SipUrl.hostPort.portField)) {
+      v_String := v_String & ":" & int2str( p_SipUrl.hostPort.portField);
+    }
+    
+    return v_String;
+  }
+
+  function f_SIP_SipUrl_GetPublicUserIdentity(SipUrl p_Url) return charstring
+  {
+    return p_Url.scheme & ":" & p_Url.userInfo.userOrTelephoneSubscriber & "@" & p_Url.hostPort.host;
+  }
+  
+  function f_MessageHeader_GetCseqValue(template (value) MessageHeader p_MessageHeader) return integer
+  {
+   return valueof(p_MessageHeader.cSeq.seqNumber);
+  }
+
+  function f_MessageHeader_GetContactSipUrl(MessageHeader p_MessageHeader) return SipUrl
+  {
+    return (p_MessageHeader.contact.contactBody.contactAddresses[0].addressField.nameAddr.addrSpec);
+  }
+  
+  function f_MessageHeader_CheckRequire(MessageHeader p_MessageHeader,
+                                        charstring p_OptionTag := "100rel") return boolean
+  {
+    return (ispresent(p_MessageHeader.require) and match(p_MessageHeader.require, cr_Require(p_OptionTag)));
+  }
+
+  //----------------------------------------------------------------------------
+  
+  function f_SIP_BuildSecurityServerParam(boolean p_Confidentiality,
+                                          IPsec_IntegrityAlgorithm_Type p_IntegrityAlgorithm,
+                                          IPsec_CipheringAlgorithm_Type p_CipheringAlgorithm,
+                                          charstring p_Spi_Client,
+                                          charstring p_Spi_Server,
+                                          charstring p_SSProtClientPort,
+                                          charstring p_SSProtServerPort) return template (value) SecurityMechanism_List
+  {
+    var template (value) SecurityMechanism_List v_SecurityMechanism;
+    var integer v_ListLength1;
+    var integer v_ListLength2;
+    var template (value) SemicolonParam_List v_ParamList1;
+    var template (value) SemicolonParam_List v_ParamList2;
+    var charstring v_IntAlg  := f_SIP_IntegrityAlgorithm_String(p_IntegrityAlgorithm);
+    var charstring v_CyphAlg := f_SIP_CipheringAlgorithm_String(p_CipheringAlgorithm);
+    var charstring v_OtherIntAlg;
+    
+    select (p_IntegrityAlgorithm) {
+      case (hmac_md5_96) {
+        v_OtherIntAlg := tsc_HMAC_SHA_1_96;
+      }
+      case (hmac_sha_1_96) {
+        v_OtherIntAlg := tsc_HMAC_MD5_96;
+      }
+    }
+    
+    v_ParamList1 := {
+      cs_GenericParam("alg",    v_IntAlg),
+      cs_GenericParam("spi-c",  p_Spi_Client),
+      cs_GenericParam("spi-s",  p_Spi_Server),
+      cs_GenericParam("port-c", p_SSProtClientPort),
+      cs_GenericParam("port-s", p_SSProtServerPort),
+      cs_GenericParam("q",      "0.9")
+    };
+    
+    v_ParamList2 := {
+      cs_GenericParam("alg",    v_OtherIntAlg),
+      cs_GenericParam("spi-c",  p_Spi_Client),
+      cs_GenericParam("spi-s",  p_Spi_Server),
+      cs_GenericParam("port-c", p_SSProtClientPort),
+      cs_GenericParam("port-s", p_SSProtServerPort),
+      cs_GenericParam("q",      "0.7")
+    };
+    
+    if (p_Confidentiality) {
+      v_ListLength1 := lengthof(v_ParamList1);
+      v_ParamList1[v_ListLength1] := cs_GenericParam("ealg", v_CyphAlg);
+      v_ListLength2 := lengthof(v_ParamList2);
+      v_ParamList2[v_ListLength2] := cs_GenericParam("ealg", v_CyphAlg);
+    }
+
+    v_SecurityMechanism := {
+      {
+        mechName := tsc_SEC_MECHANISM,
+        mechParams := v_ParamList1
+      },
+      {
+        mechName := tsc_SEC_MECHANISM,
+        mechParams := v_ParamList2
+      }
+    };
+    
+    return v_SecurityMechanism;
+  }
+  
+  //----------------------------------------------------------------------------
+  
+  function f_SIP_BuildSecurityVerifyHeader(boolean p_Confidentiality,
+                                           IPsec_IntegrityAlgorithm_Type p_IntegrityAlgorithm,
+                                           IPsec_CipheringAlgorithm_Type p_CipheringAlgorithm,
+                                           charstring p_Spi_Client,
+                                           charstring p_Spi_Server,
+                                           charstring p_SSProtClientPort,
+                                           charstring p_SSProtServerPort) return template (present) SecurityVerify
+  { /* Function used to create a template for SecurityVerify header with same content as SecurityServer header */
+    var template (present) SecurityMechanism_List v_SecurityMechanism := f_SIP_BuildSecurityServerParam(p_Confidentiality,
+                                                                                                        p_IntegrityAlgorithm,
+                                                                                                        p_CipheringAlgorithm,
+                                                                                                        p_Spi_Client,
+                                                                                                        p_Spi_Server,
+                                                                                                        p_SSProtClientPort,
+                                                                                                        p_SSProtServerPort);
+    return cr_SecVerifyDef(v_SecurityMechanism);
+  }
+
+  //----------------------------------------------------------------------------
+
+  function f_SIP_RegisterResponse_BuildContactHeader(MessageHeader p_MessageHeader,
+                                                     boolean p_GRUUsInSIP,
+                                                     charstring p_Expires) return template (value) Contact
+  {
+    var template (value) Contact v_ContactHeader := cs_Contact(f_MessageHeader_GetContactSipUrl(p_MessageHeader));
+
+    if (p_GRUUsInSIP) { // Add pub-gruu and temp-gruu parameters
+      v_ContactHeader.contactBody.contactAddresses[0].contactParams := {
+        cs_GenericParam("pub-gruu",  "" & px_IMS_PublicUserIdentity1 & tsc_IMS_ArbitraryValueFor_gr),
+        cs_GenericParam("temp-gruu", tsc_IMS_TempGRUUForUE & px_IMS_HomeDomainName & ";gr"""),
+        cs_GenericParam("expires",   p_Expires)
+      };
+    } else {
+      v_ContactHeader.contactBody.contactAddresses[0].contactParams := {
+        cs_GenericParam("expires",   p_Expires)
+      };
+    }
+    return v_ContactHeader;
+  }
+
+  //----------------------------------------------------------------------------
+
+  function f_SIP_SetSupportedTag(boolean p_GRUUsInSIP) return charstring
+  { // Returns the correct tag to be included in the Supported header of REGISTER messages
+    var charstring v_SupportedTag;
+    
+    if (p_GRUUsInSIP) {
+      v_SupportedTag := "gruu";
+    }
+    else {
+      v_SupportedTag := "path";
+    }
+    return v_SupportedTag;
+  }
+  
+  //****************************************************************************
+  // auxilliary functions to access SIP mesages
+  //----------------------------------------------------------------------------
+
+  function f_SIP_ContactUrl_GetPort(SipUrl p_ContactUrl) return template (omit) PortNumber_Type
+  { /* return portnumber given in ContactUrl (if any) */
+    return p_ContactUrl.hostPort.portField;
+  }
+
+  //----------------------------------------------------------------------------
+
+  function f_SIP_Register_GetSecurityParam(REGISTER_Request p_RegisterRequest,
+                                           charstring p_ParamId) return charstring
+  {
+    var SemicolonParam_List v_ParamList := p_RegisterRequest.msgHeader.securityClient.securityMech[0].mechParams;
+    return f_SIP_SemicolonParamList_GetParamValue(v_ParamList, p_ParamId);
+  }
+
+
+  //****************************************************************************
+  // MIME Message
+  //----------------------------------------------------------------------------
+
+  template (present) MIME_Message cr_MIME_Message_EmergencyCall(template (present) SDP_Message p_SDP_Message) :=
+  { /* MIME encapsulation acc. to condition A8 in A.2.1 */
+    boundary := ?,
+    mimeEncapsulatedList := {
+      {
+        content_type := ?,
+        content_disposition := *,
+        mime_encapsulated_part := {
+          sdpMessageBody := p_SDP_Message
+        }
+      },
+      {
+        content_type := ?,
+        content_disposition := *,
+        mime_encapsulated_part := {
+          xmlBody :={
+            geopriv := ?   // Presence info with location info
+          }
+        }
+      }
+    }
+  };
+
+  //****************************************************************************
+  // SIPMessages
+  //----------------------------------------------------------------------------
+
+  template (value) MessageBody cs_MessageBody_SDP(template (value) SDP_Message p_SDP) :=
+  {
+    sdpMessageBody := p_SDP
+  };
+
+  template (value) MessageBody cs_MessageBody_RegInfo(template (value) Reginfo p_RegInfo) :=
+  {
+    xmlBody := {
+      regInfo := p_RegInfo
+    }
+  };
+
+  template (value) MessageBody cs_MessageBody_SMS(template (value) octetstring p_SMS) :=
+  {
+    smsMessage := p_SMS
+  };
+
+  template MessageBody cr_MessageBody_SDP(template (present) SDP_Message p_SDP := ?) :=
+  {
+    sdpMessageBody := p_SDP
+  };
+
+  template MessageBody cr_MessageBody_MIME(template (present) MIME_Message p_MIME := ?) :=
+  {
+    mimeMessageBody:= p_MIME
+  };
+
+  template MessageBody cr_MessageBody_SMS(template (present) octetstring p_SMS := ?) :=
+  {
+    smsMessage := p_SMS
+  };
+
+  //----------------------------------------------------------------------------
+
+  template REGISTER_Request cr_REGISTER_Request(template (present) SipUrl p_SipUrl := f_SIP_BuildSipUrl_RX("sip:" & px_IMS_HomeDomainName),
+                                                template (present) MessageHeader p_MessageHeader := ?,
+                                                template MessageBody p_MessageBody := omit,
+                                                template Payload p_Payload := omit) :=
+  {
+    requestLine := cr_RequestLineSip(REGISTER_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := p_Payload
+  };
+
+  template SUBSCRIBE_Request cr_SUBSCRIBE_Request(template (present) SipUrl p_SipUrl,
+                                                  template (present) MessageHeader p_MessageHeader := ?,
+                                                  template MessageBody p_MessageBody := omit,
+                                                  template Payload p_Payload := omit) :=
+  {
+    requestLine := cr_RequestLineSip(SUBSCRIBE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := p_Payload
+  };
+
+  template INVITE_Request cr_INVITE_Request(template (present) SipUrl p_SipUrl,
+                                            template (present) MessageHeader p_MessageHeader := ?,
+                                            template MessageBody p_MessageBody := *,
+                                            template Payload p_Payload := *) :=
+  {
+    requestLine := cr_RequestLineSip(INVITE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := p_Payload
+  };
+
+  template PUBLISH_Request cr_PUBLISH_Request(template (present) SipUrl p_SipUrl,
+                                              template (present) MessageHeader p_MessageHeader := ?,
+                                              template MessageBody p_MessageBody := *,
+                                              template Payload p_Payload := *) :=
+  {
+    requestLine := cr_RequestLineSip(PUBLISH_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := p_Payload
+  };
+
+  template PRACK_Request cr_PRACK_Request(template (present) SipUrl p_SipUrl,
+                                          template (present) MessageHeader p_MessageHeader := ?,
+                                          template MessageBody p_MessageBody := *,
+                                          template Payload p_Payload := *) :=
+  {
+    requestLine := cr_RequestLineSip(PRACK_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := p_Payload
+  };
+
+  template UPDATE_Request cr_UPDATE_Request(template (present) SipUrl p_SipUrl,
+                                            template (present) MessageHeader p_MessageHeader := ?,
+                                            template MessageBody p_MessageBody := ?,
+                                            template Payload p_Payload := *) :=
+  {
+    requestLine := cr_RequestLineSip(UPDATE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := p_Payload
+  };
+
+  template ACK_Request cr_ACK_Request(template (present) SipUrl p_SipUrl,
+                                      template (present) MessageHeader p_MessageHeader := ?) :=
+  {
+    requestLine := cr_RequestLineSip(ACK_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := omit,
+    payload := omit
+  };
+
+  template BYE_Request cr_BYE_Request(template (present) SipUrl p_SipUrl,
+                                      template (present) MessageHeader p_MessageHeader := ?,
+                                      template MessageBody p_MessageBody := omit) :=
+  {
+    requestLine := cr_RequestLineSip(BYE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := omit // @sic R5s120530 change 3.11 sic@
+  };
+
+  template MESSAGE_Request cr_MESSAGE_Request(template (present) SipUrl p_SipUrl,
+                                              template (present) MessageHeader p_MessageHeader := ?,
+                                              template MessageBody p_MessageBody := ?,
+                                              template Payload p_Payload := *) :=
+  {
+    requestLine := cr_RequestLineSip(MESSAGE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := p_Payload
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) NOTIFY_Request cs_NOTIFY_Request(template (value) SipUrl p_SipUrl,
+                                                    template (value) MessageHeader p_MessageHeader,
+                                                    template (value)  MessageBody p_MessageBody) :=
+  {
+    requestLine := cs_RequestLineSip(NOTIFY_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := omit
+  };
+
+  template (value) INVITE_Request cs_INVITE_Request(template (value) SipUrl p_SipUrl,
+                                                    template (value) MessageHeader p_MessageHeader,
+                                                    template (omit)  MessageBody p_MessageBody := omit) :=
+  {
+    requestLine := cs_RequestLineSip(INVITE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := omit
+  };
+  
+  template (value) PRACK_Request cs_PRACK_Request(template (value) SipUrl p_SipUrl,
+                                                  template (value) MessageHeader p_MessageHeader,
+                                                  template (omit)  MessageBody p_MessageBody := omit) :=
+  {
+    requestLine := cs_RequestLineSip(PRACK_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := omit
+  };
+  
+  template (value) UPDATE_Request cs_UPDATE_Request(template (value) SipUrl p_SipUrl,
+                                                    template (value) MessageHeader p_MessageHeader,
+                                                    template (value) MessageBody p_MessageBody) :=
+  {
+    requestLine := cs_RequestLineSip(UPDATE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := omit
+  };
+  
+  template (value) ACK_Request cs_ACK_Request(template (value) SipUrl p_SipUrl,
+                                              template (value) MessageHeader p_MessageHeader) :=
+  {
+    requestLine := cs_RequestLineSip(ACK_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := omit,
+    payload := omit
+  };
+  
+  template (value) BYE_Request cs_BYE_Request(template (value) SipUrl p_SipUrl,
+                                              template (value) MessageHeader p_MessageHeader) :=
+  {
+    requestLine := cs_RequestLineSip(BYE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := omit,
+    payload := omit
+  };
+  
+  template (value) MESSAGE_Request cs_MESSAGE_Request(template (value) SipUrl p_SipUrl,
+                                                      template (value) MessageHeader p_MessageHeader,
+                                                      template (value) MessageBody p_MessageBody) :=
+  {
+    requestLine := cs_RequestLineSip(MESSAGE_E, p_SipUrl),
+    msgHeader := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload := omit
+  };
+
+  //============================================================================
+  // Responses:
+  //----------------------------------------------------------------------------
+
+  template (value) Response cs_Response(template (value) StatusLine p_StatusLine,
+                                        template (value) MessageHeader p_MessageHeader,
+                                        template (omit)  MessageBody p_MessageBody := omit,
+                                        template (omit)  Payload p_Payload := omit) :=
+  {
+    statusLine  := p_StatusLine,
+    msgHeader   := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload     := p_Payload
+  };
+
+
+  template Response cr_Response(template (present) StatusLine p_StatusLine,
+                                template (present) MessageHeader p_MessageHeader,
+                                template MessageBody p_MessageBody := omit,
+                                template Payload p_Payload := omit) :=
+  {
+    statusLine  := p_StatusLine,
+    msgHeader   := p_MessageHeader,
+    messageBody := p_MessageBody,
+    payload     := p_Payload
+  };
+
+}

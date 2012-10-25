@@ -1,0 +1,74 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2012-09-04 16:50:23 +0200 (Tue, 04 Sep 2012) $
+// * $Rev: 7318 $
+// ***************************************************************************
+
+module NAS_Detach_UG_GERAN {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008TypeDefs all;
+
+  function f_TC_9_2_2_1_3_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_2_1_3_EUTRA) */
+
+    var G_L2_DATAMESSAGE_IND v_LocUpd;
+    var G_LogicChType v_ChannelType;
+    var SubChannelNumber v_SubChannel;
+    var octetstring v_PLMN;
+    var O1_Type v_RAC;
+    var O2_Type v_LAC;
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test @sic R5s110318 sic@
+
+    v_PLMN := f_GERAN_PLMN_Get(geran_Cell24);
+    v_RAC := f_GERAN_RAC_Get(geran_Cell24);
+    v_LAC := f_GERAN_LAC_Get(geran_Cell24);
+    
+    f_GERAN_CreateCell(geran_Cell24);
+    
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_TestBody_Set( true );
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    
+    //@siclog "Step 5b2" siclog@
+    f_GERAN_RRConnEst (geran_Cell24);
+    G_L2.receive (car_G_L2_Estab_IND (geran_Cell24, ?, ?, ?, cr_G_LocationUpdatingRequest))
+        -> value v_LocUpd;
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 5b2");
+
+    v_ChannelType := v_LocUpd.sabm.g_LogicChType;
+    v_SubChannel := v_LocUpd.sabm.subChannel;
+    
+    //@siclog "Step 5b3 - 5b4" siclog@
+    f_GERAN_MM_Authentication (geran_Cell24, v_ChannelType, v_SubChannel);
+    
+    //@siclog "Step 5b5" siclog@
+    G_L2.send (cas_G_L2_DATA_REQ (geran_Cell24, 0, tsc_PhyCh0, v_ChannelType, v_SubChannel, cs_G_RFN_Omit, cs_G_LocationUpdatingAccept ( v_PLMN, v_LAC, omit)));
+    
+    // release channel
+    f_G_ChannelRelease (geran_Cell24, tsc_PhyCh0, v_ChannelType, v_SubChannel);
+    
+    f_GERAN_CheckNoAttachOnCell (geran_Cell24, 30.0, "Step 5b6"); // Prose doesn't specify how long to wait
+    f_GERAN_TestBody_Set( false );
+    
+    // Test case now finished on GERAN side
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_GERAN_Postamble ( geran_Cell24, G1_IDLE, Combined); // @sic R5s110176 sic@
+  
+  } // f_TC_9_2_2_1_3_GERAN
+
+}

@@ -1,0 +1,472 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-07-02 00:15:45 +0200 (Mon, 02 Jul 2012) $
+// $Rev: 6970 $
+/******************************************************************************/
+//------------------------------------------------------------------------------
+//* History:
+//*   @sic R5-096657   Added SMS command DELETE_MESSAGE_WITHFLAG sic@
+//------------------------------------------------------------------------------
+
+module MTC_UpperTester {
+
+  import from CommonDefs all;
+  import from MTC_Base all;
+  import from UpperTesterCommon all;
+  import from UpperTesterDefs all;
+
+  template UT_COMMON_CNF car_UT_COMMON_CNF :=
+  { /* @status    APPROVED */
+    Result          := ?,  // result is a mandatory field
+    ResultString    := *
+  };
+
+  template UT_COMMON_CMD car_UT_ReqAny :=
+  { /* @status    APPROVED */
+    Cmd := ?,
+    CnfReq := ?,
+    ParameterList := *
+  };
+
+  template (value) Ut_System_Cmd_Type cs_AT_Cmd(charstring p_AtCmd) :=
+  { /* @status    APPROVED */
+    AT := p_AtCmd
+  };
+
+  template (value) Ut_System_Cmd_Type cs_MMI_Cmd(charstring p_MmiCmd,
+                                                 template (omit) Ut_ParameterList_Type p_ParamList) :=
+  { /* @status    APPROVED */
+    MMI := {
+      Cmd := p_MmiCmd,
+      ParameterList := p_ParamList
+    }
+  };
+
+  template (value) Ut_System_Cmd_Type cs_AT_CEMODE (charstring p_Mode)  := cs_AT_Cmd("AT+CEMODE=" & p_Mode  &"<CR>"); /* @status    APPROVED
+                                                                                                                         @sic R5-106675 sic@ */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_DISABLE_EPS          := cs_MMI_Cmd("DISABLE_EPS_CAPABILITY", omit);      /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_DETACH_NON_EPS       := cs_MMI_Cmd("DETACH_NON_EPS", omit);              /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CLEAR_STORED_DATA    := cs_MMI_Cmd("CLEAR_STORED_ASSISTANCE_DATA", omit);/* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_POWER_OFF            := cs_MMI_Cmd("POWER_OFF", omit);                   /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_POWER_ON             := cs_MMI_Cmd("POWER_ON", omit);                    /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_SWITCH_OFF           := cs_MMI_Cmd("SWITCH_OFF", omit);                  /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_SWITCH_ON            := cs_MMI_Cmd("SWITCH_ON", omit);                   /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_HRPD_PDN_CONNECTION  := cs_MMI_Cmd("HRPD_PDN_CONNECTION", omit);         /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_TRIGGER_USER_RESELECTION  := cs_MMI_Cmd("TRIGGER_USER_RESELECTION", omit);         /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_DTCH           := cs_MMI_Cmd("CHECK_DTCH_THROUGHCONNECTED", omit); /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_GERAN_DATA           := cs_MMI_Cmd("GERAN_UPLINK_DATA", omit);           /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_INSERT_USIM_NoParams := cs_MMI_Cmd("INSERT_USIM", omit);                 /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_INSERT_USIM (template (value) Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("INSERT_USIM", p_ParamList);                                                                           /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_TRIGGER_MOLR (template (value) Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("TRIGGER_MOLR", p_ParamList);                                                                          /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_LCS_CLIENT     := cs_MMI_Cmd("CHECK_LCS_CLIENT", omit);            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_LOCATION_ACCEPT (template (value) Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("LOCATION_ACCEPT", p_ParamList);                                                                       /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_LOCATION_IGNORE      := cs_MMI_Cmd("LOCATION_IGNORE", omit);             /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_LOCATION_DENY (template (value) Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("LOCATION_DENY", p_ParamList);                                                                         /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_LOCATION_NOTIFY (template (value) Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("LOCATION_NOTIFY", p_ParamList);                                                                         /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_REMOVE_USIM          := cs_MMI_Cmd("REMOVE_USIM", omit);                 /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_CS_CALL (charstring p_Dial) :=
+    cs_AT_Cmd("ATD"&p_Dial&";<CR>");                                                                                  /* @status    APPROVED
+                                                                                                                         @sic R5s110489 sic@ */
+
+  template (value) Ut_System_Cmd_Type cs_AT_VOICE_CALL_MODE (charstring p_Mode)  :=
+    cs_AT_Cmd("AT+CVMOD="& p_Mode & "<CR>");                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_ANSWER_CS_CALL        := cs_AT_Cmd("ATA<CR>");                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_RELEASE_CS_CALL       := cs_AT_Cmd("ATH<CR>");                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_DEFINE_EPS_QOS (charstring p_QoS) :=
+    cs_AT_Cmd("AT+CGEQOS="& p_QoS &"<CR>");                                                                           /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_DEFINE_TFT  (charstring p_TFT) :=
+    cs_AT_Cmd("AT+CGTFT="& p_TFT &"<CR>");                                                                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_REQUEST_DED_BEARER  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CGDSCONT="& p_ParamList[0].Value& "," & p_ParamList[1].Value & "<CR>");                             /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_ACTIVATEBEARER  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CGACT=1,"& p_ParamList[0].Value &"<CR>");                                                           /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_DEACTIVATEBEARER  (Ut_ParameterList_Type p_ParamList) :=                  /* @status    APPROVED */
+    cs_AT_Cmd("AT+CGACT=0,"& p_ParamList[0].Value &"<CR>");
+
+  template (value) Ut_System_Cmd_Type cs_AT_MODIFYBEARER  (Ut_ParameterList_Type p_ParamList) :=                      /* @status    APPROVED */
+    cs_AT_Cmd("AT+CGCMOD="& p_ParamList[0].Value &"<CR>");  // @sic R5s100470 sic@
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_PLMN (template (omit) Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("CHECK_PLMN", p_ParamList);                                                                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CSG_PLMN (template (value) Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("SELECT_CSG", p_ParamList);                                                                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_SET_PLMN_MANUAL (charstring p_PLMN) :=
+    cs_AT_Cmd("AT+COPS=3,2;+COPS=1,2,"& p_PLMN & "<CR>");                                                             /* @status    APPROVED
+                                                                                                                         @sic R5-106675 sic@ */
+
+  template (value) Ut_System_Cmd_Type cs_AT_PLMN_AUTOMATIC  := cs_AT_Cmd("AT+COPS=0<CR>");                            /* @status    APPROVED
+                                                                                                                         @sic R5-106675 sic@ */
+
+  template (value) Ut_System_Cmd_Type cs_AT_REQUEST_PDPCONTEXT (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CGDCONT=" & p_ParamList[0].Value &"<CR>");                                                          /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_REQUEST_ATTACH := cs_AT_Cmd("AT+CGATT=1<CR>");                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_REQUEST_DETACH := cs_AT_Cmd("AT+CGATT=0<CR>");                            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_DELETE_MESSAGE_DELFLAG  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CMGD="& p_ParamList[0].Value& "," & p_ParamList[1].Value & "<CR>");                                 /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_SELECT_MESSAGE_SERVICE  (charstring p_Service) :=
+    cs_AT_Cmd("AT+CSMS="& p_Service &"<CR>");                                                                         /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_SET_PREFERRED_STORAGE  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CPMS=" &""""& p_ParamList[0].Value& """"&"," &""""& p_ParamList[1].Value &""""& "," &""""& p_ParamList[2].Value &""""& "<CR>"); /* @status    APPROVED
+                                                                                                                                                     @sic R5s100773 R5s110064 sic@*/
+
+  template (value) Ut_System_Cmd_Type cs_AT_MESSAGE_FORMAT  (charstring p_Mode) :=
+    cs_AT_Cmd("AT+CMGF="& p_Mode & "<CR>");                                                                           /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_SELECT_CHARACTER_SET  (charstring p_Chset) :=
+    cs_AT_Cmd("AT+CSCS="& p_Chset & "<CR>");                                                                          /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_SERVICE_CENTRE_ADDRESS  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CSCA="& p_ParamList[0].Value& "," & p_ParamList[1].Value & "<CR>");                                 /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_MESSAGE_WRITE_TEXTMODE  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CMGW="& p_ParamList[0].Value& "," & p_ParamList[1].Value & "<CR>" & p_ParamList[2].Value & "<SUB><CR>"); /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_MESSAGE_WRITE_PDUMODE  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CMGW="& p_ParamList[0].Value& "<CR>" & p_ParamList[1].Value & "<ESC><CR>");                         /* @status    APPROVED */
+
+    template (value) Ut_System_Cmd_Type cs_AT_SEND_STORED_ONEMESSAGE  (charstring p_Index) :=
+    cs_AT_Cmd("AT+CMSS="& p_Index &"<CR>");                                                                           /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_SET_TEXTMODE_PARAMETERS  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CSMP="& p_ParamList[0].Value & "," & p_ParamList[1].Value & "," & p_ParamList[2].Value & "<CR>");   /* @status    APPROVED
+                                                                                                                         @sic R5s100604 sic@ @sic R5s100773 sic@*/
+
+  template (value) Ut_System_Cmd_Type cs_AT_GET_EMERGENCY_NUMS_1 := cs_AT_Cmd("AT+CPBS=""EN""; +CPBR=?<CR>");         /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_GET_EMERGENCY_NUMS_2 (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CPBR=1,"& p_ParamList[0].Value&"<CR>");                                                             /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_ETWS_INDICATION (Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("CHECK_ETWS_INDICATION", p_ParamList);                                                                 /* @status    APPROVED
+                                                                                                                         @sic R5-120721 sic@ */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_ETWS_ALERT     := cs_MMI_Cmd("CHECK_ETWS_ALERT", omit);            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_ETWS_NO_ALERT     := cs_MMI_Cmd("CHECK_ETWS_NO_ALERT", omit);      /* @status    APPROVED
+                                                                                                                         @sic R5s120119 sic@ */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_CMAS_INDICATION (Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("CHECK_CMAS_INDICATION", p_ParamList);                                                                 /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_CMAS_ALERT     := cs_MMI_Cmd("CHECK_CMAS_ALERT", omit);            /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_CMAS_NO_ALERT     := cs_MMI_Cmd("CHECK_CMAS_NO_ALERT", omit);      /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_MMI_CHECK_MESSAGE_DISPLAYED (Ut_ParameterList_Type p_ParamList) :=
+    cs_MMI_Cmd("CHECK_SMS_LENGTH_CONTENTS", p_ParamList);                                                             /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_CHECK_CLOCK :=
+    cs_AT_Cmd("AT+CCLK?<CR>");                                                                                        /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_CHECK_OPERATOR_NAME (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+COPS=3,"& p_ParamList[0].Value &";+COPS?<CR>");                                                     /* @status    APPROVED */
+
+  template (value) Ut_System_Cmd_Type cs_AT_QOS_PROFILE_REQUESTED  (Ut_ParameterList_Type p_ParamList) :=
+    cs_AT_Cmd("AT+CGEQREQ="& p_ParamList[0].Value& "," & p_ParamList[1].Value &"<CR>");                               /* @status    APPROVED */
+
+  template (value) UT_SYSTEM_REQ cas_UT_SYSTEM_REQ(template (value) Ut_System_Cmd_Type p_ATorMMI_Cmd,
+                                                   Ut_CnfReq_Type p_CnfRequired) :=
+  { /* @status    APPROVED */
+    Cmd := p_ATorMMI_Cmd,
+    CnfRequired := p_CnfRequired
+  };
+
+  function fl_UT_HandleCmd(integer p_CoordPortIndex,
+                           UT_COMMON_CMD p_UT_Req) runs on MTC_BASE return template (value) UT_SYSTEM_REQ
+  {  /* @sic R5-113037: Introduction of positioning test cases sic@ */
+    var template (omit) Ut_ParameterList_Type v_ParamList := p_UT_Req.ParameterList;
+    var boolean v_UeToBeSwitchedOn := f_MTC_BASE_UE_SwitchedOn_Get();
+    var Ut_CnfReq_Type v_CnfRequired := p_UT_Req.CnfReq;
+    var template (value) Ut_System_Cmd_Type v_SystemCmd;
+    var Ut_ParameterList_Type v_ParamListVal;
+    
+    if (f_MTC_BASE_IsWaitingForCnf()) {     // check that there is no AT or MMI command is ongoing
+      FatalError (__FILE__, __LINE__, "unexpected Upper Tester command (other command is still pending)");
+    }
+
+    if (isvalue(v_ParamList)) {
+      v_ParamListVal := valueof(v_ParamList);
+    }
+
+    if ((v_CnfRequired == CNF_REQUIRED) or (v_CnfRequired == LOCAL_CNF_REQUIRED)) {
+      // store index of coordination to be used for sending back the confirmation
+      f_MTC_BASE_CoordPortIndex_Set(p_CoordPortIndex);
+    }
+    select (p_UT_Req.Cmd) {
+      case (POWER_OFF) {
+        v_UeToBeSwitchedOn := false;
+        v_SystemCmd := cs_MMI_POWER_OFF;
+      }
+      case (POWER_ON) {
+        v_UeToBeSwitchedOn := true;
+        v_SystemCmd := cs_MMI_POWER_ON;
+      }
+      case (SWITCH_OFF) {
+        v_UeToBeSwitchedOn := false;
+        v_SystemCmd := cs_MMI_SWITCH_OFF;
+      }
+      case (SWITCH_ON) {
+        v_UeToBeSwitchedOn := true;
+        v_SystemCmd := cs_MMI_SWITCH_ON;
+      }
+      case (CONFIGURE_CEMODE) {
+        v_SystemCmd := cs_AT_CEMODE (v_ParamListVal[0].Value); // @sic R5-106675 sic@
+      }
+      case (DISABLE_EPS) {
+        v_SystemCmd := cs_MMI_DISABLE_EPS;
+      }
+      case (INSERT_USIM) {
+        if (isvalue(v_ParamList)) {
+          v_SystemCmd := cs_MMI_INSERT_USIM(v_ParamListVal);
+        } else {
+          v_SystemCmd := cs_MMI_INSERT_USIM_NoParams;
+        }
+      }
+      case (REMOVE_USIM) {
+        v_SystemCmd := cs_MMI_REMOVE_USIM;
+      }
+      case (REQUEST_CS_CALL) {
+        v_SystemCmd := cs_AT_CS_CALL (v_ParamListVal[0].Value);
+      }
+      case (CHECK_PLMN)  {
+        v_SystemCmd := cs_MMI_CHECK_PLMN (v_ParamList);
+      }
+      case (DEFINE_EPS_QOS)  {
+        v_SystemCmd := cs_AT_DEFINE_EPS_QOS (v_ParamListVal[0].Value);
+      }
+      case (DEFINE_TFT)  {
+        v_SystemCmd := cs_AT_DEFINE_TFT (v_ParamListVal[0].Value);
+      }
+      case (REQUEST_DED_BEARER)  {
+        v_SystemCmd := cs_AT_REQUEST_DED_BEARER (v_ParamListVal);
+      }
+      case (ACTIVATE_BEARER)  {
+        v_SystemCmd := cs_AT_ACTIVATEBEARER (v_ParamListVal);
+      }
+      case (PLMN_AUTOMATIC)  {
+        v_SystemCmd := cs_AT_PLMN_AUTOMATIC; // @sic R5-106675 sic@
+      }
+      case (PLMN_MANUAL) {
+        v_SystemCmd := cs_AT_SET_PLMN_MANUAL (v_ParamListVal[0].Value); // @sic R5-106675 sic@
+      }
+      case (SELECT_CSG) { // @sic R5-106675 sic@
+        v_SystemCmd := cs_MMI_CSG_PLMN (v_ParamListVal);
+      }
+      case (REQUEST_PDPCONTEXT)  {
+        v_SystemCmd := cs_AT_REQUEST_PDPCONTEXT(v_ParamListVal);
+      }
+      case (DEACTIVATE_BEARER)  {
+        v_SystemCmd := cs_AT_DEACTIVATEBEARER(v_ParamListVal);
+      }
+      case (MODIFY_BEARER)  {
+        v_SystemCmd := cs_AT_MODIFYBEARER(v_ParamListVal);
+      }
+      case (ATTACH)  {
+        v_SystemCmd := cs_AT_REQUEST_ATTACH;
+      }
+      case (DETACH)  {
+        v_SystemCmd := cs_AT_REQUEST_DETACH;
+      }
+      case (DELETE_MESSAGE_WITHFLAG)  {
+        v_SystemCmd := cs_AT_DELETE_MESSAGE_DELFLAG (v_ParamListVal);
+      }
+      case (SELECT_MESSAGE_SERVICE)  {
+        v_SystemCmd := cs_AT_SELECT_MESSAGE_SERVICE (v_ParamListVal[0].Value);
+      }
+      case (SET_PREFERRED_STORAGE)  {
+        v_SystemCmd := cs_AT_SET_PREFERRED_STORAGE (v_ParamListVal);
+      }
+      case (MESSAGE_FORMAT)  {
+        v_SystemCmd := cs_AT_MESSAGE_FORMAT (v_ParamListVal[0].Value);
+      }
+      case (SELECT_CHARACTER_SET)  {
+        v_SystemCmd := cs_AT_SELECT_CHARACTER_SET (v_ParamListVal[0].Value);
+      }
+      case (SERVICE_CENTRE_ADDRESS)  {
+        v_SystemCmd := cs_AT_SERVICE_CENTRE_ADDRESS (v_ParamListVal);
+      }
+      case (WRITE_MESSAGE_TOMEMORY_TEXTMODE)  {
+        v_SystemCmd := cs_AT_MESSAGE_WRITE_TEXTMODE (v_ParamListVal);
+      }
+      case (WRITE_MESSAGE_TOMEMORY_PDUMODE)  { // @sic R5s110750 sic@
+        v_SystemCmd := cs_AT_MESSAGE_WRITE_PDUMODE (v_ParamListVal);
+      }
+      case (SEND_STORED_MESSAGE_ONE)  {
+        v_SystemCmd := cs_AT_SEND_STORED_ONEMESSAGE (v_ParamListVal[0].Value);
+      }
+      case (SET_TEXTMODE_PARAMETERS)  {
+        v_SystemCmd := cs_AT_SET_TEXTMODE_PARAMETERS (v_ParamListVal);
+      }
+      case (CHECK_MESSAGE_DISPLAYED)  {
+        v_SystemCmd := cs_MMI_CHECK_MESSAGE_DISPLAYED (v_ParamListVal);
+      }
+      case (DEFINE_QOS)  {
+        v_SystemCmd := cs_AT_QOS_PROFILE_REQUESTED (v_ParamListVal);
+      }
+      case (CHECK_CLOCK)  {
+        v_SystemCmd := cs_AT_CHECK_CLOCK;
+      }
+      case (CHECK_OPERATOR_NAME)  {
+        v_SystemCmd := cs_AT_CHECK_OPERATOR_NAME (v_ParamListVal);
+      }
+      case (ANSWER_CS_CALL)  {
+        v_SystemCmd := cs_AT_ANSWER_CS_CALL;
+      }
+      case (RELEASE_CS_CALL)  {
+        v_SystemCmd := cs_AT_RELEASE_CS_CALL;
+      }
+      case (CHECK_ETWS_INDICATION)  {
+        v_SystemCmd := cs_MMI_CHECK_ETWS_INDICATION (v_ParamListVal);
+      }
+      case (CHECK_ETWS_ALERT)  {
+        v_SystemCmd := cs_MMI_CHECK_ETWS_ALERT;
+      }
+      case (CHECK_ETWS_NO_ALERT)  {
+        v_SystemCmd := cs_MMI_CHECK_ETWS_NO_ALERT;
+      }
+      case (CHECK_CMAS_INDICATION)  {
+        v_SystemCmd := cs_MMI_CHECK_CMAS_INDICATION (v_ParamListVal);
+      }
+      case (CHECK_CMAS_ALERT)  {
+        v_SystemCmd := cs_MMI_CHECK_CMAS_ALERT;
+      }
+      case (CHECK_CMAS_NO_ALERT)  {
+        v_SystemCmd := cs_MMI_CHECK_CMAS_NO_ALERT;
+      }
+      case (CHECK_DTCH_THROUGHCONNECTED)  {
+        v_SystemCmd := cs_MMI_CHECK_DTCH;
+      }
+      case (GERAN_UPLINK_DATA)  {
+        v_SystemCmd := cs_MMI_GERAN_DATA;
+      }
+      case (TRIGGER_MOLR)  {
+        v_SystemCmd := cs_MMI_TRIGGER_MOLR (v_ParamListVal);
+      }
+      case (CHECK_LCS_CLIENT)  {
+        v_SystemCmd := cs_MMI_CHECK_LCS_CLIENT;
+      }
+      case (VOICE_CALL_MODE)  {
+        v_SystemCmd := cs_AT_VOICE_CALL_MODE (v_ParamListVal[0].Value);
+      }
+      case (CLEAR_STORED_ASSISTANCE_DATA)  {
+        v_SystemCmd := cs_MMI_CLEAR_STORED_DATA;
+      }
+      case (DETACH_NON_EPS) {
+        v_SystemCmd := cs_MMI_DETACH_NON_EPS;
+      }
+      case (LOCATION_ACCEPT)  {
+        v_SystemCmd := cs_MMI_LOCATION_ACCEPT (v_ParamListVal);
+      }
+      case (LOCATION_DENY)  {
+        v_SystemCmd := cs_MMI_LOCATION_DENY (v_ParamListVal);
+      }
+      case (LOCATION_IGNORE)  {
+        v_SystemCmd := cs_MMI_LOCATION_IGNORE;
+      }
+      case (LOCATION_NOTIFY)  {
+        v_SystemCmd := cs_MMI_LOCATION_NOTIFY (v_ParamListVal);
+      }
+      case (HRPD_PDN_CONNECTION)  { // @sic R5s120051 sic@
+        v_SystemCmd := cs_MMI_HRPD_PDN_CONNECTION;
+      }
+      case (GET_EMERGENCY_NUMS_1)  {
+        v_SystemCmd := cs_AT_GET_EMERGENCY_NUMS_1;
+      }
+      case (GET_EMERGENCY_NUMS_2)  {
+        v_SystemCmd := cs_AT_GET_EMERGENCY_NUMS_2(v_ParamListVal);
+      }
+      case (TRIGGER_USER_RESELECTION)  {
+        v_SystemCmd := cs_MMI_TRIGGER_USER_RESELECTION;
+      }
+    }
+
+    f_MTC_BASE_UE_SwitchedOn_Set(v_UeToBeSwitchedOn);  // UE needs to be switched on or off
+
+    return cas_UT_SYSTEM_REQ(v_SystemCmd, v_CnfRequired);
+  }
+
+  function f_UT_InitialPowerOffUE() runs on MTC_BASE
+  { /* @sic R5-113037: Introduction of positioning test cases - system port handed over as parameter to get function independent from component definitions sic@ */
+    Ut.send(cas_UT_SYSTEM_REQ(cs_MMI_POWER_OFF, CNF_REQUIRED));
+    Ut.receive(car_UT_COMMON_CNF);
+  }
+
+  altstep a_MTC_ReceiveFromPTC_SendToUT(integer p_CoordPortIndex) runs on MTC_BASE
+  { /* @sic R5-113037: new common altstep to be used by distinct MTC implementations sic@ */
+    var UT_COMMON_CMD v_UT_Req;
+    var template (value) UT_SYSTEM_REQ v_UT_SYSTEM_REQ;
+
+    [] PTC_Ut[p_CoordPortIndex].receive(car_UT_ReqAny) -> value v_UT_Req
+      {
+        v_UT_SYSTEM_REQ := fl_UT_HandleCmd(p_CoordPortIndex, v_UT_Req);
+        Ut.send(v_UT_SYSTEM_REQ);
+      }
+  }
+
+  altstep a_MTC_ReceiveFromUT_SendToPTC() runs on MTC_BASE
+  { /* @sic R5-113037: Introduction of positioning test cases sic@ */
+    var UT_COMMON_CNF v_UT_Cnf;
+    var integer v_CoordPortIndex;
+
+    [] Ut.receive (car_UT_COMMON_CNF) -> value v_UT_Cnf
+      {
+        if (v_UT_Cnf.Result == false) { // If not received a successful confirmation, stop everything
+          FatalError (__FILE__, __LINE__, "AT/MMI Command failed");
+
+        } else {
+          if (f_MTC_BASE_IsWaitingForCnf()) {
+            v_CoordPortIndex := f_MTC_BASE_CoordPortIndex_Get();
+            PTC_Ut[v_CoordPortIndex].send(v_UT_Cnf);
+            f_MTC_BASE_CoordPortIndex_Set(tsc_UT_NoCnfExpected);
+          }
+          // else: just discard the CNF
+        }
+      }
+  }
+
+}

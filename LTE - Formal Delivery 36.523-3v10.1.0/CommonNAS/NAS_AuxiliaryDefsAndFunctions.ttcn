@@ -1,0 +1,369 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-30 16:30:58 +0200 (Thu, 30 Aug 2012) $
+// $Rev: 7202 $
+/******************************************************************************/
+
+module NAS_AuxiliaryDefsAndFunctions {
+
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_TypeDefs all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+
+  const O4_Type   tsc_IPv4Mask := 'FFFFFFFF'O;                            /* @status    APPROVED */
+
+  const O16_Type  tsc_IPv6Mask := 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'O;   /* @status    APPROVED */
+
+  type enumerated BEARER_CONTEXT_TYPE {                /* @status    APPROVED */
+    DEF_1, // EPS Default Bearer#1 defined in the first column of table 6.6.1
+    DEF_2, // EPS Default Bearer#2 defined in the second column of table 6.6.1
+    DEF_3, // EPS Default Bearer#3 defined in the third column of table 6.6.1
+    DED_1, // EPS Dedicated Bearer#1 defined in the first column of table 6.6.2
+    DED_2, // EPS Dedicated Bearer#2 defined in the second column of table 6.6.2
+    DED_3,  // EPS Dedicated Bearer#3 defined in the third column of table 6.6.2
+    DED_4  // EPS Dedicated Bearer#4 defined in the fourth column of table 6.6.2 @sic R5-123632 sic@
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompSingleRemotePort(UInt16_Type p_PortNumber,
+                                                                          HalfOctet_Type p_EPS_BearerId) :=
+  { // 3 octets
+    /* @status    APPROVED */
+    id := '50'O, // Single remote port
+    packetFilterComponentValue := {
+      singleRemotePort := int2oct(p_PortNumber+(hex2int(p_EPS_BearerId)-6), 2)
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompSingleRemotePort31160 (HalfOctet_Type p_EPS_BearerId) :=
+  /* @status    APPROVED */
+    cs_PktFilterCompSingleRemotePort(31160, p_EPS_BearerId);
+
+  template (value) PacketFilterComponent cs_PktFilterCompSingleRemotePort61000 (HalfOctet_Type p_EPS_BearerId) :=
+  /* @status    APPROVED */
+    cs_PktFilterCompSingleRemotePort(61000, p_EPS_BearerId);
+
+  template (value) PacketFilterComponent cs_PktFilterCompProtocolIdNextHeader :=
+  { // 2 octets
+    /* @status    APPROVED */
+    id := '30'O, // Protocol Identifier / Next header type
+    packetFilterComponentValue := {
+      protocolIdNextHeader := '11'O  // UDP
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompIPv4RemoteAddress(charstring p_RemoteAddress := px_IPv4_Address1_NW,
+                                                                           O4_Type p_Mask := tsc_IPv4Mask) :=
+  { // 9 octets
+    /* @status    APPROVED */
+    /* @sic R5s110604: optional parameters sic@ */
+    id := '10'O, // IPv4 remote address
+    packetFilterComponentValue := {
+      ipv4RemoteAddress := f_Convert_IPv4Addr2OctString(p_RemoteAddress) & p_Mask // @sic R5s100189, R5-113734 sic@
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompIPv6RemoteAddress(charstring p_RemoteAddress := px_IPv6_Address1_NW,
+                                                                           O16_Type p_Mask := tsc_IPv6Mask) :=
+  { // 33 octets
+    /* @status    APPROVED */
+    id := '20'O, // IPv6 remote address
+    packetFilterComponentValue := {
+      ipv6RemoteAddress := f_Convert_IPv6Addr2OctString(p_RemoteAddress) & p_Mask // @sic R5s100189, R5-113734 sic@
+    }
+  };
+
+  template (value) TransactionIdentifier cs_TransactionId (B3_Type p_TiValue) :=
+  { /* 24.301 cl. 9.9.4.17 */
+    /* @status    APPROVED */
+    iei     := '5D'O,
+    iel     := '01'O,
+    tiFlag  := '0'B,
+    tiValue := p_TiValue,
+    spare   := '0000'B,
+    ext     := omit,
+    tiValue_2 := omit
+  };
+
+  template (value) EPS_QualityOfService cs_508_EPS_QoS_Default_1 :=
+  { /* @status    APPROVED */
+    iei := omit,
+    iel := '09'O,
+    qci                    := '00001001'B,
+    maxBitRateUl           := '01000000'B,                //64 kbps
+    maxBitRateDl           := '01000000'B,                //64 kbps
+    guaranteedBitRateUl    := '01000000'B,                //64 kbps
+    guaranteedBitRateDl    := '01000000'B,                //64 kbps
+    maxBitRateUlExt        := '00000000'B,
+    maxBitRateDlExt        := '00000000'B,
+    guaranteedBitRateUlExt := '00000000'B,
+    guaranteedBitRateDlExt := '00000000'B
+  };
+
+  template (value) EPS_QualityOfService cds_508_EPS_QoS_Default_1_tlv
+  modifies cs_508_EPS_QoS_Default_1 :=
+  { /* according to table 6.6.2.1 in 36.508, including iei */
+    /* @status    APPROVED */
+    iei     := '5B'O
+  };
+
+  template (value) EPS_QualityOfService cds_EPS_QoS_Def_nonGBR_QCI
+  modifies cs_508_EPS_QoS_Default_1 :=
+  { /* @status    APPROVED */
+    qci     := '00000101'B // non-GBR QCI
+  };
+
+  function f_Get_508_PacketFilter(out template (value) PacketFilter p_PacketFilterByRef,
+                                  out integer p_PacketFilterLengthByRef,
+                                  integer p_PacketFilterNumber,
+                                  HalfOctet_Type p_EPS_BearerId,
+                                  B3_Type p_PdnTypeValue)
+  { /* @sic R5-112600 new parameter p_PdnTypeValue to determine whether IPv4 or IPv6 address to be used sic@ */
+    var integer v_ContentsLength := 0;
+    var template (value) PacketFilter v_Filter;
+    
+    if (p_PdnTypeValue == tsc_PdnType_IPv4) {  // IPv4 only; @sic R5s110168 change 8.3; R5-112600 sic@
+      v_Filter.contents[0] := cs_PktFilterCompIPv4RemoteAddress;
+      v_ContentsLength := v_ContentsLength + 9;
+    }
+    else { // IPv4v6 or IPv6 only
+      v_Filter.contents[0] := cs_PktFilterCompIPv6RemoteAddress;
+      v_ContentsLength := v_ContentsLength + 33;
+    }
+    
+    select (p_PacketFilterNumber){
+      case (1) {
+        v_Filter.iei         := '10'O;
+        v_Filter.precedence  := int2bit((hex2int(p_EPS_BearerId)-6), 8);
+        v_Filter.contents[1] := cs_PktFilterCompSingleRemotePort31160(p_EPS_BearerId);
+        v_ContentsLength := v_ContentsLength + 3;
+        v_Filter.contents[2] := cs_PktFilterCompProtocolIdNextHeader;
+        v_ContentsLength := v_ContentsLength + 2;
+      }
+      case (2) {
+        // Update to values in Reference packet filter #2
+        v_Filter.iei         :=  '21'O; // UL only filter, ID=1          @sic R5-104702 sic@
+        v_Filter.precedence  := int2bit((hex2int(p_EPS_BearerId)-6+8), 8); // @sic R5-104702 sic@
+        v_Filter.contents[1] := cs_PktFilterCompSingleRemotePort61000(p_EPS_BearerId);
+        v_ContentsLength := v_ContentsLength + 3;
+        v_Filter.contents[2] := cs_PktFilterCompProtocolIdNextHeader;
+        v_ContentsLength := v_ContentsLength + 2;
+      }
+      case (3){
+        // Update to values in Reference packet filter #3
+        v_Filter.iei         :=  '32'O; // Bidirectional filter, ID=2  @sic R5-104702 sic@
+        v_Filter.precedence  := '00001111'B;
+      }
+    }
+    v_Filter.iel := int2oct(v_ContentsLength, 1);
+    
+    p_PacketFilterByRef := v_Filter;
+    p_PacketFilterLengthByRef := v_ContentsLength + 3; // length of the filter contents + 3 octets for iei, precedence and iel
+  }
+
+  function f_Get_508_NegotiatedQualityOfService(BEARER_CONTEXT_TYPE p_BearerContextNumber) return template (omit) QualityOfService
+  {
+    var template (omit) QualityOfService v_QoS := omit;
+    
+    if (pc_UTRA){ // @sic R5-115585 sic@
+      
+      select (p_BearerContextNumber){
+        case (DEF_1, DEF_2) {
+          v_QoS := cs_QoS_Negotiated_1;
+        }
+        case (DED_1) {
+          v_QoS := cds_QoS_Converstational; // @sic R5-112698 sic@
+        }
+        case (DED_2) {
+          v_QoS := cds_QoS_Negotiated_2;
+        }
+        case (DED_3) {
+          v_QoS := cds_QoS_Negotiated_3;
+        }
+        case (DED_4) {
+          v_QoS := cds_QoS_Negotiated_4;
+        }
+        // All other values are currently set to FFS, so leave them set to omit
+      }
+    }
+    if (pc_GERAN){
+      
+      select (p_BearerContextNumber){
+        case (DEF_1, DEF_2) { // @sic R5-120619 sic@
+          v_QoS := cs_QoS_PDP2;
+        }
+        case (DED_1) {
+          v_QoS := cds_QoS_Converstational; // @sic R5-112698 sic@
+        }
+        case (DED_2) {
+          v_QoS := cds_QoS_PDP3;
+        }
+        case (DED_3) { // @sic R5-120632 sic@
+          v_QoS := cds_QoS_Negotiated_3;
+        }
+        case (DED_4) {
+          v_QoS := cds_QoS_Negotiated_4;
+        }
+        // All other values are currently set to FFS, so leave them set to omit
+      }
+    }
+    
+    return v_QoS;
+  }
+
+  function f_Get_508_NegotiatedLLCSAPI(BEARER_CONTEXT_TYPE p_BearerContextNumber) return template (omit) LLC_SAPI
+  {
+    var template (omit) LLC_SAPI v_LLC_SAPI := omit;
+    
+    if (pc_GERAN){   // @sic R5s110168 change 2.16 sic@
+      
+      select (p_BearerContextNumber){
+        case (DEF_1, DEF_2, DED_2) { // @sic R5-120619 sic@
+          v_LLC_SAPI         := cs_LLC_SAPI_11 ('32'O);
+        }
+        case (DED_1, DED_4) { // @sic R5-120632 sic@
+          v_LLC_SAPI         := cs_LLC_SAPI_03 ('32'O);
+        }
+        // All other values are currently set to FFS, so leave them set to omit
+      }
+    }
+    
+    return v_LLC_SAPI;
+  }
+
+  function f_Get_508_EPSBearerTI(EPS_BearerIdentity p_BearerId) return template (omit) TransactionIdentifier
+  {
+    var template (omit) TransactionIdentifier v_TI := omit;
+    
+    if (pc_GERAN or pc_UTRA){
+      v_TI := cs_TransactionId (int2bit ((hex2int(p_BearerId) -5), 3)); // @sic R5s110593 sic@
+    }
+    return v_TI;
+  }
+
+  function f_Get_508_EPSQoS() return template (value) EPS_QualityOfService
+  {
+    var template (value) EPS_QualityOfService v_QoS := cs_508_EPS_QoS_Default_1;
+    
+    if (pc_IMS){
+      v_QoS := cds_EPS_QoS_Def_nonGBR_QCI;
+    }
+    return v_QoS;
+  }
+
+  function f_Get_508_RadioPriority(BEARER_CONTEXT_TYPE p_BearerContextNumber) return template (omit) RadioPriority
+  {
+    var template (omit) RadioPriority v_RadioPriority := omit;
+    
+    if (pc_GERAN){ // @sic R5s110168 change 2.16 sic@
+      
+      select (p_BearerContextNumber){
+        case (DEF_1, DEF_2, DED_2) { // @sic R5-120619 sic@
+          v_RadioPriority := cs_RadioPriority ('8'H, '100'B);
+        }
+        // All other values are currently set to FFS, so leave them set to omit
+      }
+    }
+    
+    return v_RadioPriority;
+  }
+
+  function f_Get_508_PFI() return template (omit) PacketFlowIdentifier
+  {
+    var template (omit) PacketFlowIdentifier v_PFI := omit;
+    
+    if (pc_GERAN){
+      v_PFI := cs_PktFlowId;
+    }
+    return v_PFI;
+  }
+
+  function fl_ImsiImei2Octetstring(hexstring p_IMSI) return octetstring
+  {
+    var integer v_Length := lengthof(p_IMSI);
+    var integer v_Odd := (v_Length rem 2);
+    var octetstring v_Other := '00'O;
+    var integer I;
+    var integer K;
+    
+    if (v_Odd == 0) {                   // If length is even
+      v_Length := v_Length + 1;
+      p_IMSI := p_IMSI & 'F'H;          // add '1111' on to the end of the IMSI
+    }
+    
+    // Reverse each pair of digits
+    // First digit is not included as it is treated differently
+    K:=0;
+    for (I:=1; I < v_Length - 1; I:=I+2) {
+      v_Other[K] := hex2oct(p_IMSI[I+1] & p_IMSI[I]);
+      K := K + 1;
+    }
+    
+    return v_Other;
+  }
+
+  function f_Imsi2MobileIdentity(hexstring p_IMSI) return template (value) MobileIdentity
+  {
+    var integer v_ImsiLength := lengthof(p_IMSI);
+    var integer v_Odd := (v_ImsiLength rem 2);
+    var octetstring v_Other  := fl_ImsiImei2Octetstring (p_IMSI);  // @sic R5s100092 sic@
+    var B4_Type v_FirstDigit := hex2bit(p_IMSI[0]);
+    var B1_Type v_OddEvenInd := int2bit(v_Odd, 1);
+    
+    return cds_MobileIdentityImsi_lv(v_FirstDigit, v_OddEvenInd, v_Other);
+  }
+
+  function f_Imei2MobileIdentity(hexstring p_IMEI) return template (present) MobileIdentity
+  {
+    var integer v_ImeiLength := lengthof(p_IMEI);
+    var integer v_Odd := (v_ImeiLength rem 2);
+    var octetstring v_Other  := fl_ImsiImei2Octetstring (p_IMEI);
+    var B4_Type v_FirstDigit := hex2bit(p_IMEI[0]);
+    var B1_Type v_OddEvenInd := int2bit(v_Odd, 1);
+    
+    return cr_MobileIdentityImei(v_FirstDigit, v_OddEvenInd, v_Other);
+  }
+
+  const EmergencyLocalNumberList    px_EmergencyLocalNumberList := {"301", "302", "303", "304", "305", "306", "307", "308", "309", "310"};
+
+  function f_Get_EmergNumList(integer p_NoOfNums) return  template (value) EmergNumList
+  {
+    var integer i;
+    var template (value) EmergNumList v_EmergNum;
+    var octetstring v_LocalNum;
+    var integer v_LocalLength := 0;
+    var integer v_TotalLength := 0;
+    var B7_Type v_ServCat;
+    
+    if (p_NoOfNums > lengthof(px_EmergencyLocalNumberList)) {
+      FatalError (__FILE__, __LINE__, "Number of local emergency numbers is greater than provided in px_EmergencyLocalNumberList.  Expecting " & int2str (p_NoOfNums));
+    }
+    
+    v_EmergNum.iei := '34'O;
+    for (i := 0; i < p_NoOfNums; i:=i+1)
+      {
+        v_LocalNum := fl_ImsiImei2Octetstring(str2hex(px_EmergencyLocalNumberList[i]));
+        v_LocalLength := lengthof(v_LocalNum);
+        if (i/2 > 0) {
+          v_ServCat := tsc_EmergServManual and4b ('00'B & ('00001'B << i));
+        } else {
+          v_ServCat := tsc_EmergServAuto and4b ('00'B & ('00001'B << i));
+        }
+        v_EmergNum.emergNum[i]:= cs_EmergencyLocalNumber(int2oct(v_LocalLength, 1),
+                                                         cs_EmergServCat(v_ServCat),
+                                                         v_LocalNum);
+        v_TotalLength := v_TotalLength + 2 + v_LocalLength; // 1 octet for v_LocalLength + 1 for SCValue + length of number
+      }
+    v_EmergNum.iel := int2oct (v_TotalLength, 1);
+    return v_EmergNum;
+  }
+
+}

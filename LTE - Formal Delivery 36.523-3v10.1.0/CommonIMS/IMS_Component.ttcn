@@ -1,0 +1,449 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module IMS_Component {
+  import from LibSip_SIPTypesAndValues all;
+  import from CommonDefs all;
+  import from IMS_ASP_TypeDefs all;
+  import from IMS_PTC_CoordMsg all;
+  import from IP_ASP_TypeDefs all;
+  import from IP_ASP_Common all;
+  import from IMS_ASP_Templates all;
+  import from IMS_UpperTester all;
+  import from IMS_Constants all;
+  import from IMS_CommonFunctions all;
+  import from IMS_CommonParameters all;
+  import from IMS_SIP_Templates all;
+  import from NAS_AuthenticationCommon all;
+
+
+  type enumerated IMS_PTC_Handling_Type {
+    testcaseSpecificHandling,
+    defaultHandling
+  };
+    
+  type record IMS_PTC_Ctrl_Type {
+    default             Default,        /* default behaviour being activated on IMS PTC */
+    boolean             TestBody        /* true:  => fail may be assigend
+                                           false: => inconc is assigned instead of fail */
+  };
+
+  type record IMS_PTC_SecurityInfo_Type {
+    IPsec_IntegrityAlgorithm_Type      IntegrityAlgorithm,
+    IPsec_CipheringAlgorithm_Type      CipheringAlgorithm,
+    IMS_ProtectedPorts_Type            ProtectedPorts       optional,
+    IMS_SPIs_Type                      SPIs                 optional,
+    charstring                         Nonce                optional,
+    B32_128_Type                       XRES                 optional
+  };
+
+  type record IMS_PTC_CseqInfo_Type {
+    integer     Register,
+    integer     DialogMO,         // dialog inititiated by the UE sending an INVITE; CSeq is needed especially for MT BYE
+    integer     DialogMT          // dialog inititiated by the NW sending an INVITE; CSeq is needed especially for MT BYE
+  };
+
+  type enumerated IM_PTC_CseqType_Type { register, dialogMO, dialogMT };
+
+  
+  type record IMS_PTC_ImsInfo_Type {
+    IP_AddrInfo_Type            UE_Address      optional,
+    IP_AddrInfo_Type            NW_Address      optional,
+    InternetProtocol_Type       ProtocolUsed    optional,       // @sic R5s120530 change 1.7 sic@
+    boolean                     SigCompStarted,
+    charstring                  PublicUserId    optional,       /* public user identity sent be the UE in registration */
+    IMS_PTC_CseqInfo_Type       Cseq,
+    integer                     BranchIndex                     /* internal index used to generate unique branches */
+  };
+  
+  type record IMS_Global_Type {
+    IMS_PTC_Ctrl_Type           Ctrl,
+    IMS_PTC_SecurityInfo_Type   Security,
+    IMS_PTC_ImsInfo_Type        ImsInfo
+  };
+  
+  type component IMS_PTC {
+
+    var IMS_Global_Type         vc_IMS_Global;
+
+    // ports to RAT components
+    port IMS_CO_ORD_PORT        IPCAN;
+
+    // ports connected to IP:
+    port IMS_IP_CTRL_PORT       IMS_CTRL;
+    port IMS_IP_SERVER_PORT     IMS_Server;
+    port IMS_IP_CLIENT_PORT     IMS_Client;
+
+    // ports for MMI (used by IMS CC test suite)
+    port UT_IMS_MTC_PORT        MMI;
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) IMS_PTC_SecurityInfo_Type cs_IMS_SecurityInfo_Init :=
+  {
+    IntegrityAlgorithm := px_IMS_IPSecAlgorithm,
+    CipheringAlgorithm := px_IMS_CiphAlgo_Def,
+    ProtectedPorts := omit,
+    SPIs := omit,
+    Nonce := omit,
+    XRES := omit
+  };
+  template (value) IMS_PTC_ImsInfo_Type cs_IMS_ImsInfo_Init :=
+  {
+    UE_Address := omit,
+    NW_Address := omit,
+    ProtocolUsed := omit,
+    SigCompStarted := false,
+    PublicUserId := omit,
+    Cseq := {
+      Register := 0,
+      DialogMO := 0,
+      DialogMT := 0
+    },
+    BranchIndex := 0
+  };
+
+  //****************************************************************************
+
+  function f_IMS_PTC_Security_Init(template (omit) Common_AuthenticationParams_Type p_AuthenticationParams := omit,
+                                   IMS_ProtectedPorts_Type p_ProtectedPorts,
+                                   IMS_SPIs_Type p_SPIs) runs on IMS_PTC
+  {
+    var Common_AuthenticationParams_Type v_AuthenticationParams;
+    
+    if (isvalue(p_AuthenticationParams)) {
+      v_AuthenticationParams := valueof(p_AuthenticationParams);
+      vc_IMS_Global.Security.Nonce := f_Bitstring2Base64(v_AuthenticationParams.RandValue & v_AuthenticationParams.AUTN);
+      vc_IMS_Global.Security.XRES := v_AuthenticationParams.XRES;
+    }
+    vc_IMS_Global.Security.ProtectedPorts := p_ProtectedPorts;
+    vc_IMS_Global.Security.SPIs := p_SPIs;
+  }
+
+  function f_IMS_PTC_Security_GetIntegrityAlgorithm() runs on IMS_PTC return IPsec_IntegrityAlgorithm_Type
+  {
+    return vc_IMS_Global.Security.IntegrityAlgorithm;
+  }
+
+  function f_IMS_PTC_Security_GetCipheringAlgorithm() runs on IMS_PTC return IPsec_CipheringAlgorithm_Type
+  {
+    return vc_IMS_Global.Security.CipheringAlgorithm;
+  }
+
+  function f_IMS_PTC_Security_GetNonce() runs on IMS_PTC return charstring
+  {
+    return vc_IMS_Global.Security.Nonce;
+  }
+
+  function f_IMS_PTC_Security_GetXRES() runs on IMS_PTC return B32_128_Type
+  {
+    return vc_IMS_Global.Security.XRES;
+  }
+
+  function f_IMS_PTC_Security_GetSPIs() runs on IMS_PTC return IMS_SPIs_Type
+  {
+    return vc_IMS_Global.Security.SPIs;
+  }
+
+  function f_IMS_PTC_Security_GetProtectedPorts() runs on IMS_PTC return IMS_ProtectedPorts_Type
+  {
+    return vc_IMS_Global.Security.ProtectedPorts;
+  }
+
+  function f_IMS_PTC_BuildSecurityServerParam() runs on IMS_PTC return template (value) SecurityMechanism_List
+  {
+    var IMS_PTC_SecurityInfo_Type v_Security := vc_IMS_Global.Security;
+
+    return f_SIP_BuildSecurityServerParam(tsc_IMS_Confidentiality,
+                                          v_Security.IntegrityAlgorithm,
+                                          v_Security.CipheringAlgorithm,
+                                          int2str(v_Security.SPIs.SPI_pc),
+                                          int2str(v_Security.SPIs.SPI_ps),
+                                          int2str(v_Security.ProtectedPorts.Port_pc),
+                                          int2str(v_Security.ProtectedPorts.Port_ps));
+  }
+  
+  function f_IMS_PTC_BuildSecurityVerifyHeader() runs on IMS_PTC return template (present) SecurityVerify
+  {
+    var IMS_PTC_SecurityInfo_Type v_Security := vc_IMS_Global.Security;
+
+    return f_SIP_BuildSecurityVerifyHeader(tsc_IMS_Confidentiality,
+                                           v_Security.IntegrityAlgorithm,
+                                           v_Security.CipheringAlgorithm,
+                                           int2str(v_Security.SPIs.SPI_pc),
+                                           int2str(v_Security.SPIs.SPI_ps),
+                                           int2str(v_Security.ProtectedPorts.Port_pc),
+                                           int2str(v_Security.ProtectedPorts.Port_ps));
+  }
+
+  //****************************************************************************
+
+  function f_IMS_PTC_ImsInfo_Init(IP_AddrInfo_Type p_UE_Address,
+                                  IP_AddrInfo_Type p_NW_Address,
+                                  REGISTER_Request p_RegisterReq,
+                                  boolean p_SigCompStarted := false) runs on IMS_PTC
+  {
+    vc_IMS_Global.ImsInfo.UE_Address     := p_UE_Address;
+    vc_IMS_Global.ImsInfo.NW_Address     := p_NW_Address;
+    vc_IMS_Global.ImsInfo.SigCompStarted := p_SigCompStarted;
+    vc_IMS_Global.ImsInfo.ProtocolUsed := udp;
+    vc_IMS_Global.ImsInfo.PublicUserId   := f_SIP_SipUrl_GetPublicUserIdentity(p_RegisterReq.msgHeader.toField.addressField.nameAddr.addrSpec); // NOTE: acc. to 24.229 cl. 5.1.1.2.1 for initial registration 'From' and 'To' are equivalent
+    vc_IMS_Global.ImsInfo.Cseq.Register  := p_RegisterReq.msgHeader.cSeq.seqNumber;
+  }
+  
+  function f_IMS_PTC_UE_Address_Get() runs on IMS_PTC return IP_AddrInfo_Type
+  {
+    return vc_IMS_Global.ImsInfo.UE_Address;
+  }
+
+  function f_IMS_PTC_NW_Address_Get() runs on IMS_PTC return IP_AddrInfo_Type
+  {
+    return vc_IMS_Global.ImsInfo.NW_Address;
+  }
+
+  function f_IMS_PTC_NW_Address_GetTypeStr() runs on IMS_PTC return charstring
+  {
+    return f_IP_AddrInfo_TypeStr(vc_IMS_Global.ImsInfo.NW_Address);
+  }
+
+  function f_IMS_PTC_NW_Address_GetAddrStr() runs on IMS_PTC return charstring
+  {
+    return f_IP_AddrInfo_AddrStr(vc_IMS_Global.ImsInfo.NW_Address);
+  }
+
+  function f_IMS_PTC_UE_Address_GetHostFormat() runs on IMS_PTC return charstring
+  {
+    return f_IMS_ConvertIpAddrToHostFormat(vc_IMS_Global.ImsInfo.UE_Address);
+  }
+
+  function f_IMS_PTC_UE_IPAddrOrFQDN_Get() runs on IMS_PTC return template (present) charstring
+  {
+    return (px_IMS_HomeDomainName, f_IMS_PTC_UE_Address_GetHostFormat());
+  }
+
+  function f_IMS_PTC_NW_Address_GetHostFormat() runs on IMS_PTC return charstring
+  {
+    return f_IMS_ConvertIpAddrToHostFormat(vc_IMS_Global.ImsInfo.NW_Address);
+  }
+
+  function f_IMS_PTC_ImsInfo_SigCompStarted() runs on IMS_PTC return boolean
+  {
+    return vc_IMS_Global.ImsInfo.SigCompStarted;
+  }
+
+  function f_IMS_PTC_ImsInfo_GetSigCompParam() runs on IMS_PTC return template (omit) GenericParam
+  {
+    if (vc_IMS_Global.ImsInfo.SigCompStarted) {
+      return cs_SigCompParam;
+    } else {
+      return omit;
+    }
+  }
+
+  function f_IMS_PTC_ImsInfo_GetPublicUserId() runs on IMS_PTC return charstring
+  {
+    return vc_IMS_Global.ImsInfo.PublicUserId;
+  }
+
+  function f_IMS_PTC_ImsInfo_CseqGet(IM_PTC_CseqType_Type p_CseqType) runs on IMS_PTC return integer
+  {
+    var integer v_CseqValue;
+
+    select (p_CseqType) {
+      case (register) { v_CseqValue := vc_IMS_Global.ImsInfo.Cseq.Register; }
+      case (dialogMO) { v_CseqValue := vc_IMS_Global.ImsInfo.Cseq.DialogMO; }
+      case (dialogMT) { v_CseqValue := vc_IMS_Global.ImsInfo.Cseq.DialogMT; }
+      case else { FatalError (__FILE__, __LINE__, ""); }
+    }
+    return v_CseqValue;
+  }
+
+  function f_IMS_PTC_ImsInfo_CseqSet(IM_PTC_CseqType_Type p_CseqType,
+                                     integer p_CseqValue) runs on IMS_PTC
+  {
+    select (p_CseqType) {
+      case (register) { vc_IMS_Global.ImsInfo.Cseq.Register := p_CseqValue; }
+      case (dialogMO) { vc_IMS_Global.ImsInfo.Cseq.DialogMO := p_CseqValue; }
+      case (dialogMT) { vc_IMS_Global.ImsInfo.Cseq.DialogMT := p_CseqValue; }
+      case else { FatalError (__FILE__, __LINE__, ""); }
+    }
+  }
+
+  function f_IMS_PTC_ImsInfo_CseqIncr(IM_PTC_CseqType_Type p_CseqType) runs on IMS_PTC return integer
+  {
+    var integer v_CseqValue := f_IMS_PTC_ImsInfo_CseqGet(p_CseqType) + 1;
+    f_IMS_PTC_ImsInfo_CseqSet(p_CseqType, v_CseqValue);
+    return v_CseqValue;
+  }
+
+  function f_IMS_PTC_ImsInfo_GetNextBranch() runs on IMS_PTC return charstring
+  {
+    const CharStringList_Type tsc_TagList := { "1234567890", "2345678901", "3456789012", "4567890123", "5678901234", "6789012345", "7890123456", "8901234567", "9012345678", "0123456789",
+                                               "0987654321", "9876543210", "8765432109", "7654321098", "6543210987", "5432109876", "4321098765", "3210987654", "2109876543", "1098765432" };
+    var charstring v_Branch;
+
+    if (vc_IMS_Global.ImsInfo.BranchIndex >= lengthof(tsc_TagList)) {
+      FatalError (__FILE__, __LINE__, "not enough branches");
+    }
+
+    v_Branch := c_branchCookie & tsc_TagList[vc_IMS_Global.ImsInfo.BranchIndex];
+    vc_IMS_Global.ImsInfo.BranchIndex := vc_IMS_Global.ImsInfo.BranchIndex + 1;
+    return v_Branch;
+  }
+
+  //****************************************************************************
+  /*
+   * @desc      to deal with entry and exit of the test body
+   * @param     p_TestBodyFlag
+   * @status
+   */
+  function f_IMS_TestBody_Set(boolean p_TestBodyFlag) runs on IMS_PTC
+  {
+    vc_IMS_Global.Ctrl.TestBody := p_TestBodyFlag;
+  }
+
+  /*
+   * @desc      check whether test body is active
+   * @return    boolean
+   * @status    APPROVED
+   */
+  function fl_IMS_TestBody_Check() runs on IMS_PTC return boolean
+  {
+    return vc_IMS_Global.Ctrl.TestBody;
+  }
+  
+  /*
+   * @desc      set verdict inconc in cases when no pass/fail is possible e.g. due to wrong PICS/PIXIT
+   * @param     p_FileName
+   * @param     p_LineNo
+   * @param     p_Msg
+   * @status
+   */
+  function f_IMS_SetVerdictInconc(charstring p_FileName,
+                                  LineNo_Type p_LineNo,
+                                  charstring p_Msg)
+  {
+    f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    self.kill;    // => test case will be terminated immediately
+  }
+
+  /*
+   * @desc      set correct verdict: FAIL is assigned only when being in the test body
+   * @param     p_FileName
+   * @param     p_LineNo
+   * @param     p_Msg
+   * @status
+   */
+  function f_IMS_SetVerdictFailOrInconc(charstring p_FileName,
+                                        LineNo_Type p_LineNo,
+                                        charstring p_Msg) runs on IMS_PTC
+  {
+    if (fl_IMS_TestBody_Check()) {
+      f_SetVerdict(fail, p_FileName, p_LineNo, p_Msg);
+    } else {
+      f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    }
+    self.kill; // => test case will terminate immediately
+  }
+
+  /*
+   * @desc      set correct verdict: prelininary PASS is only be assigned when being in the test body
+   * @param     p_FileName
+   * @param     p_LineNo
+   * @param     p_Msg
+   * @status
+   */
+  function f_IMS_PreliminaryPass(charstring p_FileName,
+                                 LineNo_Type p_LineNo,
+                                 charstring p_Msg) runs on IMS_PTC
+  {
+    if (fl_IMS_TestBody_Check()) {
+      f_SetVerdict(pass, p_FileName, p_LineNo, p_Msg);
+    }
+  }
+  
+  //****************************************************************************
+
+  template IMS_CONFIG_CNF cr_IMS_CONFIG_CNF_Any := ?;
+
+  altstep a_IMS_PTC_DefaultBehaviour_TestcaseSpecificImsHandling() runs on IMS_PTC
+  {
+    [] IMS_CTRL.receive(cr_IMS_CONFIG_CNF_Any) {
+      all timer.stop;
+      f_IMS_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at the IMS_CTRL port");
+    }
+    [] IMS_Server.receive(cr_IMS_DATA_REQ_Any) {
+      all timer.stop;
+      f_IMS_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at the IMS_Server port");
+    }
+    [] IMS_Client.receive(cr_IMS_DATA_RSP_Any) {
+      all timer.stop;
+      f_IMS_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at the IMS_Client port");
+    }
+    [] any timer.timeout {
+      all timer.stop;
+      f_IMS_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected timeout");
+    }
+  }
+  
+  altstep a_IMS_PTC_DefaultBehaviour_DefaultImsHandling()
+  {
+    [] any port.receive {
+      f_ErrorLog(__FILE__, __LINE__, "unexpected message (skipped)");
+      repeat;
+    }
+    [] any timer.timeout {
+      f_ErrorLog(__FILE__, __LINE__, "unexpected timeout");
+      repeat;
+    }
+  }
+  
+  /*
+   * @desc      to activate the standard default behaviour or default behaviour for test case specific IMS handling
+   * @param     p_Default   identifies a standard behaviour to be activated
+   * @status
+   */
+  function f_IMS_PTC_ActivateDefault(IMS_PTC_Handling_Type p_Handling) runs on IMS_PTC
+  {
+    deactivate(vc_IMS_Global.Ctrl.Default);
+    
+    select (p_Handling) {
+      case (testcaseSpecificHandling) {
+        vc_IMS_Global.Ctrl.Default := activate(a_IMS_PTC_DefaultBehaviour_TestcaseSpecificImsHandling());
+      }
+      case (defaultHandling) {
+        vc_IMS_Global.Ctrl.Default := activate(a_IMS_PTC_DefaultBehaviour_DefaultImsHandling());
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "unknown default behaviour");
+      }
+    }
+  }
+  
+  //****************************************************************************
+  
+  function f_IMS_PTC_Init(IMS_PTC_Handling_Type p_Handling := testcaseSpecificHandling)  runs on IMS_PTC
+  {
+    vc_IMS_Global.Ctrl.TestBody := false;
+    vc_IMS_Global.Ctrl.Default := null;
+    vc_IMS_Global.Security := valueof(cs_IMS_SecurityInfo_Init);
+    vc_IMS_Global.ImsInfo  := valueof(cs_IMS_ImsInfo_Init);
+
+    f_IMS_PTC_ActivateDefault(p_Handling);
+  }
+
+  function f_IMS_PTC_Create() return IMS_PTC
+  {
+    var IMS_PTC v_IMS_PTC := IMS_PTC.create alive;
+    return v_IMS_PTC;
+  }
+}

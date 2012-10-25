@@ -1,0 +1,251 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module RRC_Measurement_GERAN {
+
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Templates all;
+
+  function f_TC_8_3_2_1_GERAN() runs on GERAN_PTC
+  { // Measurement configuration control and reporting / inter RAT measurements: event B2 (measurement of GERAN cells)
+
+    var integer v_T0_RSSI_Cell24 := -85;
+    var integer v_T1_RSSI_Cell24 := -65;
+    var integer v_T2_RSSI_Cell24 := -85;
+
+    //Initialise test case
+    f_GERAN_Init(EUTRA_GERAN);
+
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell24);
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell25); // @sic R5-120604 sic@
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell26); // @sic R5-120604 sic@
+
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell_MinUL(geran_Cell24);
+
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T0_RSSI_Cell24);
+
+    f_GERAN_TestBody_Set(true);
+
+    //------------------------------------------------
+    //Start TestBody
+
+    //@siclog "Step 4" siclog@
+    //Trigger: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T1_RSSI_Cell24);
+    
+    //@siclog "Step 6" siclog@
+    //Trigger: Change cell power according to T2
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T2_RSSI_Cell24);
+
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    
+    //End TestBody
+    //------------------------------------------------
+
+    f_GERAN_TestBody_Set(false);
+    
+    f_GERAN_SS_CellRelease(geran_Cell24, true); // @sic R5s110721 sic@
+    
+  } //end of testcase 8.3.2.1
+
+  function f_TC_8_3_2_2_GERAN() runs on GERAN_PTC
+  { /* Measurement configuration control and reporting / Inter-RAT measurements / Periodic reporting / Measurement of GERAN cells */
+
+    var integer v_T0_RSSI_Cell25 := tsc_GERAN_ChPwrLvl_Off;
+    var integer v_T0_RSSI_Cell26 := tsc_GERAN_ChPwrLvl_Off;
+    
+    var integer v_T1_RSSI_Cell25 := -70;
+    var integer v_T1_RSSI_Cell26 := tsc_GERAN_ChPwrLvl_Off;
+    
+    var integer v_T2_RSSI_Cell25 := tsc_GERAN_ChPwrLvl_Off;
+    var integer v_T2_RSSI_Cell26 := -70;
+    
+    //Initialise test case
+    f_GERAN_Init(EUTRA_GERAN);
+    
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell24);
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell25);
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell26);
+    
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell_MinUL(geran_Cell25);
+    f_GERAN_CreateCell_MinUL(geran_Cell26);
+    
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell25, tsc_PhyCh0, v_T0_RSSI_Cell25);
+    f_GERAN_SetChPwrLevel(geran_Cell26, tsc_PhyCh0, v_T0_RSSI_Cell26);
+    
+    f_GERAN_TestBody_Set(true);
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 3" siclog@
+    //Trigger: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell25, tsc_PhyCh0, v_T1_RSSI_Cell25);
+    f_GERAN_SetChPwrLevel(geran_Cell26, tsc_PhyCh0, v_T1_RSSI_Cell26);
+    
+    //@siclog "Step 6" siclog@
+    //Trigger: Change cell power according to T2
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell25, tsc_PhyCh0, v_T2_RSSI_Cell25);
+    f_GERAN_SetChPwrLevel(geran_Cell26, tsc_PhyCh0, v_T2_RSSI_Cell26);
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    
+    //End TestBody
+    //------------------------------------------------
+    
+    f_GERAN_TestBody_Set(false);
+    
+    f_GERAN_SS_CellRelease(geran_Cell25, true); // @sic R5s120244 sic@
+    f_GERAN_SS_CellRelease(geran_Cell26, true); // @sic R5s120244 sic@
+    
+  }  //end of testcase 8.3.2.2
+
+  function f_TC_8_3_2_5_GERAN() runs on GERAN_PTC
+  { /* Measurement configuration control and reporting / Inter-RAT measurements / Periodic reporting / Measurements of E-UTRAN, UTRAN and GERAN cells */
+
+    var integer v_T0_RSSI_Cell24 := tsc_GERAN_ChPwrLvl_Off;
+    var integer v_T2_RSSI_Cell24 := -70;
+
+    //Initialise test case
+    f_GERAN_Init(EUTRA_GERAN);
+
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell24);
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell25); // @sic R5-120604 sic@
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell26); // @sic R5-120604 sic@
+
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell_MinUL(geran_Cell24);
+
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T0_RSSI_Cell24);
+
+    f_GERAN_TestBody_Set(true);
+
+    //------------------------------------------------
+    //Start TestBody
+
+    //@siclog "Step 6" siclog@
+    //Trigger: The SS power "Off" Cell 5 and power "On" Cell 24 according to the row "T2" in table 8.3.2.5.3.2-1.
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T2_RSSI_Cell24);
+
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+
+    //End TestBody
+    //------------------------------------------------
+
+    f_GERAN_TestBody_Set(false);
+
+    f_GERAN_SS_CellRelease(geran_Cell24, true);
+
+  } //end of testcase 8.3.2.5
+
+  function f_TC_8_3_2_6_GERAN() runs on GERAN_PTC
+  { // Measurement configuration control and reporting / inter RAT measurements: Simultaneous A2 and two B2 (measurements of E-UTRAN, UTRAN and GERAN cells)
+
+    var integer v_T0_RSSI_Cell24 := -85;
+    var integer v_T1_RSSI_Cell24 := -65;
+    
+    //Initialise test case
+    f_GERAN_Init(EUTRA_UTRAN_GERAN);
+
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell24);
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell25); // @sic R5-120604 sic@
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell26); // @sic R5-120604 sic@
+    
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell_MinUL(geran_Cell24);
+    
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T0_RSSI_Cell24);
+    
+    f_GERAN_TestBody_Set(true);
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 4" siclog@
+    //Trigger: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T1_RSSI_Cell24);
+    
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    
+    //End TestBody
+    //------------------------------------------------
+    
+    f_GERAN_TestBody_Set(false);
+    
+    f_GERAN_SS_CellRelease(geran_Cell24, true); // @sic R5s110724 sic@
+
+  } //end of testcase 8.3.2.6
+
+  function f_TC_8_3_3_3_GERAN() runs on GERAN_PTC
+  { // Measurement configuration control and reporting / SON / ANR / CGI reporting of GERAN cell
+    var integer v_T0_RSSI_Cell24 := -85;
+    var integer v_T1_RSSI_Cell24 := -65;
+
+    //Initialise test case
+    f_GERAN_Init(EUTRA_GERAN);  //@sic R5s110699 sic@
+
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell24);
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell25); // @sic R5-120604 sic@
+    f_GERAN_Send_IR_SysInfoToEUTRA(geran_Cell26); // @sic R5-120604 sic@
+
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell_MinUL(geran_Cell24);
+
+    //Trigger: Set cell power: T0
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T0_RSSI_Cell24);
+
+    f_GERAN_TestBody_Set(true);
+
+    //------------------------------------------------
+    //Start TestBody
+
+    //@siclog "Step 3" siclog@
+    //Trigger: Change cell power according to T1
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetChPwrLevel(geran_Cell24, tsc_PhyCh0, v_T1_RSSI_Cell24);
+
+    //Wait for the end of the test
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+
+    //End TestBody
+    //------------------------------------------------
+
+    f_GERAN_TestBody_Set(false);
+
+    f_GERAN_SS_CellRelease(geran_Cell24, true); //@sic R5s110699 sic@
+
+  } //end of testcase 8.3.3.3
+
+}

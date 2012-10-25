@@ -1,0 +1,2280 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 00:32:42 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7245 $
+/******************************************************************************/
+
+module UTRAN_ConfigurationSteps {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from NAS_24008TypeDefs all;
+  import from Parameters all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_Component all;
+  import from UTRAN_RRC_CommonTemplates all;
+  import from UTRAN_RRC_RAB_Templates all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TTCN_ASP_Templates all;
+  import from UTRAN_TypeDefs all;
+
+  function f_UTRAN_CRLC_Config(template (value) U_CRLC_CONFIG_REQ p_CRLC_Config_REQ) runs on UTRAN_PTC
+  {
+    U_CRLC.send(p_CRLC_Config_REQ);
+    U_CRLC.receive(car_CRLC_CfgCnf); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CPHY_RL_Setup(template (value) U_CPHY_CONFIG_REQ p_CPHY_RL_Setup_REQ) runs on UTRAN_PTC
+  {
+    U_CPHY.send(p_CPHY_RL_Setup_REQ);
+    U_CPHY.receive(car_RL_SetupCnf); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CPHY_RL_Release(template (value) U_CPHY_CONFIG_REQ p_CPHY_RL_Release_REQ) runs on UTRAN_PTC
+  {
+    U_CPHY.send(p_CPHY_RL_Release_REQ);
+    U_CPHY.receive(car_RL_RelCnf); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CPHY_TrCH_Config(template (value) U_CPHY_CONFIG_REQ p_CPHY_TrCH_Config_REQ) runs on UTRAN_PTC
+  {
+    U_CPHY.send(p_CPHY_TrCH_Config_REQ);
+    U_CPHY.receive(car_TrChCfgCnf); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CPHY_TrCH_Release(template (value) U_CPHY_CONFIG_REQ p_CPHY_TrCH_Rel_REQ) runs on UTRAN_PTC
+  {
+    U_CPHY.send(p_CPHY_TrCH_Rel_REQ);
+    U_CPHY.receive(car_PHY_RelCnf); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CMAC_Config(template (value) U_CMAC_CONFIG_REQ p_CMAC_Config_REQ) runs on UTRAN_PTC
+  {
+    U_CMAC.send(p_CMAC_Config_REQ);
+    U_CMAC.receive(car_CMAC_CfgCnf); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CMACe_Config(template (value) U_CMAC_CONFIG_REQ p_CMACe_Config_REQ) runs on UTRAN_PTC
+  {
+    U_CMAC.send(p_CMACe_Config_REQ);
+    U_CMAC.receive(car_CMAC_MACe_Config_CNF (?)); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CMACes_Config(UTRAN_CellId_Type p_CellId,
+                                 template (value) U_CMAC_CONFIG_REQ p_CMACes_Config_REQ) runs on UTRAN_PTC
+  {
+    U_CMAC.send(p_CMACes_Config_REQ);
+    U_CMAC.receive(car_CMAC_MACes_Config_CNF (p_CellId)); // we don't care what the values are, we just need to wait for the CNF
+  }
+
+  function f_UTRAN_CPHY_RL_Modify (template (value) U_CPHY_CONFIG_REQ p_CPHY_RL_Modify_REQ ) runs on UTRAN_PTC
+  {
+    U_CPHY.send ( p_CPHY_RL_Modify_REQ );
+    U_CPHY.receive ( car_RL_ModifyCnf );
+  }
+
+  function f_UTRAN_CMAC_MACHs_Config ( UTRAN_CellId_Type p_CellId,
+                                       template (value) U_CMAC_CONFIG_REQ p_CMAC_MACHs_Config_REQ) runs on UTRAN_PTC
+  {
+    U_CMAC.send ( p_CMAC_MACHs_Config_REQ );
+    U_CMAC.receive ( car_CMAC_MACHs_CfgCnf ( p_CellId ) );
+  }
+
+  function f_UTRAN_SS_RB1_ToRB4_Cfg(UTRAN_CellId_Type p_CellId,
+                                    UTRAN_FDD_TDD_Type p_FDD_TDD) runs on UTRAN_PTC
+  {
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping_RB1 := cs_RB_LogCH_Mapping(tsc_UL_DCCH1, tsc_DL_DCCH1);
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping_RB2 := cs_RB_LogCH_Mapping(tsc_UL_DCCH2, tsc_DL_DCCH2);
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping_RB3 := cs_RB_LogCH_Mapping(tsc_UL_DCCH3, tsc_DL_DCCH3);
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping_RB4 := cs_RB_LogCH_Mapping(tsc_UL_DCCH4, tsc_DL_DCCH4);
+    
+    if (p_FDD_TDD == UTRAN_FDD)
+      {
+        f_UTRAN_CRLC_Config(cas_RB_UM_Info_FDD(utran_CellDedicated, // configure radio bearers: RB1 (UM + DCCH) and (UM + DCCH)
+                                         tsc_RB1,
+                                         v_RB_LogCH_Mapping_RB1));
+        
+        f_UTRAN_CRLC_Config(cas_RB_AM_Info_SRB_Fixed_FDD(utran_CellDedicated,   // configure radio bearers: RB2 (AM + DCCH) and (AM + DCCH)
+                                                   tsc_RB2,
+                                                   v_RB_LogCH_Mapping_RB2,
+                                                   cs_OctetModeRLC_Size144  ));
+        
+        f_UTRAN_CRLC_Config(cas_RB_AM_Info_SRB_Fixed_FDD(utran_CellDedicated,  // configure radio bearers: RB3 (AM + DCCH) and (AM + DCCH)
+                                                   tsc_RB3,
+                                                   v_RB_LogCH_Mapping_RB3,
+                                                   cs_OctetModeRLC_Size144 ));
+        
+        f_UTRAN_CRLC_Config(cas_RB_AM_Info_SRB_Fixed_FDD(utran_CellDedicated,  // configure radio bearers: RB4 (AM + DCCH) and (AM + DCCH)
+                                                         tsc_RB4,
+                                                         v_RB_LogCH_Mapping_RB4,
+                                                         cs_OctetModeRLC_Size144 ));
+      }
+    else
+      {
+        f_UTRAN_CRLC_Config(cas_RB_UM_Info_TDD(p_CellId, // configure radio bearers: RB1 (UM + DCCH) and (UM + DCCH)
+                                               tsc_RB1,
+                                               v_RB_LogCH_Mapping_RB1));
+        
+        f_UTRAN_CRLC_Config(cas_RB_AM_Info_SRB_Fixed_TDD(p_CellId, // configure radio bearers: RB2 (AM + DCCH) and (AM + DCCH)
+                                                         tsc_RB2,
+                                                         v_RB_LogCH_Mapping_RB2,
+                                                         cs_OctetModeRLC_Size144  ));
+        
+        f_UTRAN_CRLC_Config(cas_RB_AM_Info_SRB_Fixed_TDD(p_CellId,   // configure radio bearers: RB3 (AM + DCCH) and (AM + DCCH)
+                                                         tsc_RB3,
+                                                         v_RB_LogCH_Mapping_RB3,
+                                                         cs_OctetModeRLC_Size144 ));
+        
+        f_UTRAN_CRLC_Config(cas_RB_AM_Info_SRB_Fixed_TDD(p_CellId,   // configure radio bearers: RB4 (AM + DCCH) and (AM + DCCH)
+                                                         tsc_RB4,
+                                                         v_RB_LogCH_Mapping_RB4,
+                                                         cs_OctetModeRLC_Size144 ));//UTRAN_TDD
+      }
+  }
+
+  function f_UTRAN_SS_1DCH_DCCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UL_ScramblingCode v_UL_ScramCodeFDD := f_UTRAN_CellInfo_GetULScrmCode_FDD (p_CellId);
+
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+
+      f_UTRAN_CPHY_RL_Setup(cas_DL_DPCH_SetupInfo_FDD(p_CellId,
+                                                      tsc_DL_DPCH1,
+                                                      cs_DL_DPCH_SRB_StandAloneDPCH_FDD(tsc_DL_DPCH1_2ndScrC),
+                                                      cs_ActivateNow));
+      f_UTRAN_CPHY_TrCH_Config(cas_DCH_148_TTI_10_DL_InfoActNow_FDD(p_CellId,tsc_DL_DPCH1));
+
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_FDD(utran_CellDedicated,
+                                               tsc_DL_DPCH1,
+                                               cs_UE_Info,                      // C-RNTI and U-RNTI are not needed on DPCH
+                                               cs_TrChInfoDL_13_6_StandAlone_FDD,
+                                               cs_TrLogMappingDL_4DCCH));
+      f_UTRAN_CPHY_RL_Setup(cas_UL_DPCH_SetupInfo_FDD(p_CellId,
+                                                      tsc_UL_DPCH1,
+                                                      cs_UL_DPCH_13_6_StandAlone_FDD(v_UL_ScramCodeFDD),
+                                                      cs_ActivateNow));
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_DCH_148_TTI_10_UL_InfoActNow_FDD(p_CellId, tsc_UL_DPCH1));
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_FDD(utran_CellDedicated,
+                                               tsc_UL_DPCH1,
+                                               cs_UE_Info,                      // C-RNTI and U-RNTI are not needed on DPCH
+                                               cs_TrChInfoUL_13_6_StandAlone_FDD,
+                                               cs_TrLogMappingUL_4DCCH));
+    }
+    else {//UTRAN_TDD
+      
+      f_UTRAN_CPHY_RL_Setup(cas_DL_DPCH_SetupInfo_TDD(p_CellId,
+                                                      tsc_DL_DPCH1,
+                                                      cs_DL_DPCH_SRB_StandAlone_TDD,
+                                                      cs_ActivateNow));
+      f_UTRAN_CPHY_TrCH_Config(cas_DCH_148_TTI_10_DL_InfoActNow_TDD(p_CellId,tsc_DL_DPCH1));
+
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD(utran_CellDedicated,
+                                               tsc_DL_DPCH1,
+                                               cs_UE_Info,                      // C-RNTI and U-RNTI are not needed on DPCH
+                                               cs_TrChInfoDL_13_6_StandAlone_TDD,
+                                               cs_TrLogMappingDL_4DCCH));
+      f_UTRAN_CPHY_RL_Setup(cas_UL_DPCH_SetupInfo_TDD(p_CellId,
+                                                      tsc_UL_DPCH1,
+                                                      cs_UL_DPCH_13_6_StandAlone_TDD,
+                                                      cs_ActivateNow));
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_DCH_148_TTI_10_UL_InfoActNow_TDD(p_CellId, tsc_UL_DPCH1));
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD(utran_CellDedicated,
+                                               tsc_UL_DPCH1,
+                                               cs_UE_Info,                      // C-RNTI and U-RNTI are not needed on DPCH
+                                               cs_TrChInfoUL_13_6_StandAlone_TDD,
+                                               cs_TrLogMappingUL_4DCCH));
+    }
+  }
+
+  function f_UTRAN_SS_RB_BCCH_BCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping := cs_RB_LogCH_Mapping(omit, tsc_BCCH1);
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CRLC_Config(cas_RB_BCCH_Info_FDD(p_CellId, tsc_RB_BCCH, v_RB_LogCH_Mapping));
+    }
+    else {
+      f_UTRAN_CRLC_Config(cas_RB_BCCH_Info_TDD(p_CellId, tsc_RB_BCCH, v_RB_LogCH_Mapping)); // configure radio bearer (RB_BCCH) for BCCH on TM + BCCH + BCH, used for sending system information blocks
+    }
+  }
+
+  function f_UTRAN_SS_RB_PCCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping := cs_RB_LogCH_Mapping(omit, tsc_PCCH1);
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CRLC_Config(cas_RB_PCCH_Info_FDD(p_CellId,  // configure radio bearer(RB_PCCH) on TM + PCCH + PCH, used for sending paging message
+                                               tsc_RB_PCCH,
+                                               v_RB_LogCH_Mapping));
+    }
+    else {
+      f_UTRAN_CRLC_Config(cas_RB_PCCH_Info_TDD(p_CellId,  // configure radio bearer(RB_PCCH) on TM + PCCH + PCH, used for sending paging message
+                                               tsc_RB_PCCH,
+                                               v_RB_LogCH_Mapping));
+    }
+  }
+
+  function f_UTRAN_SS_CreateCellDCH(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    
+    f_UTRAN_SS_CellCfg(p_CellId);
+    f_UTRAN_SS_BCH_SCH_CPICH_Cfg(p_CellId);
+    f_UTRAN_SS_PCH_FACH_CCCH_Cfg(p_CellId);
+    f_UTRAN_SS_RACH_CCCH_Cfg(p_CellId);
+    if (f_UTRAN_NoOfConfiguredCells() == 0) {        // first cell to be created
+      f_UTRAN_SS_1DCH_DCCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB_BCCH_BCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB_PCCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB0_Cfg(p_CellId);
+      f_UTRAN_SS_RB1_ToRB4_Cfg(p_CellId, f_UTRAN_CellInfo_GetFDD_TDD(p_CellId));
+
+      f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_DCH_StandAloneSRB_NoConn);
+      
+    } else {                                     // further cell to be created
+      f_UTRAN_SS_RB_BCCH_BCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB_PCCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB0_Cfg(p_CellId);
+      f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_NoDPCH);
+    }
+  }
+
+  function f_UTRAN_SS_CreateCellFACH(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    f_UTRAN_SS_CellCfg(p_CellId);
+    f_UTRAN_SS_BCH_SCH_CPICH_Cfg(p_CellId);
+
+    if (f_UTRAN_NoOfConfiguredCells() == 0) {        // first cell to be created
+      if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+        f_UTRAN_SS_PCH_2FACH_CCCH_DCCH_BCCH_DTCH_Cfg(p_CellId);
+      }
+      else {
+        f_UTRAN_SS_PCH_FACH_CCCH_DCCH_BCCH_DTCH_Cfg(p_CellId);
+      }
+      f_UTRAN_SS_RACH_CCCH_DCCH_DTCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB_BCCH_BCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB_PCCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB0_Cfg(p_CellId);
+      f_UTRAN_SS_RB1_ToRB4_Cfg(p_CellId, f_UTRAN_CellInfo_GetFDD_TDD(p_CellId));
+      f_UTRAN_SS_RB_BCCH_FACH_Cfg(p_CellId);            // RB9 is on BCCH-FACH
+      f_UTRAN_SS_RB20_AM_PS_Cfg (p_CellId, cs_OctetModeRLC_Size336 );
+      f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_FACH_NoConn);
+    }
+    else {                                       // Not first cell to be created
+      f_UTRAN_SS_PCH_FACH_CCCH_Cfg(p_CellId);
+      f_UTRAN_SS_RACH_CCCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB_BCCH_BCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB_PCCH_Cfg(p_CellId);
+      f_UTRAN_SS_RB0_Cfg(p_CellId);
+      f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_FACH_NoDedicated);
+    }
+  }
+
+  function f_UTRAN_SS_PCH_2FACH_CCCH_DCCH_BCCH_DTCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+
+    f_UTRAN_CPHY_RL_Setup(cas_SCCPCH_Info_FDD(p_CellId,      // s-CCPCH1
+                                              tsc_S_CCPCH1,
+                                              tsc_S_CCPCH_2ndScrCode,
+                                              tsc_S_CCPCH1_ChC,
+                                              v_CellInfoFDD.slotFormatsCCPCH1,
+                                              f_UTRAN_CellInfo_GetsCCPCH1_Power(p_CellId),
+                                              v_CellInfoFDD.timingsCCPCH1));
+    f_UTRAN_CPHY_TrCH_Config(cas_PCH_2_FACH_InfoActNow_FDD(p_CellId, tsc_S_CCPCH1));            // connect PCH and FACH to s-CCPCH1
+    
+    f_UTRAN_CMAC_Config(cads_CMAC_CfgInfoAssPhyChFollow_FDD (p_CellId,                // map PCCH to PCH, and map CCCH, BCCH,  DTCH and DCCH's to FACH.
+                                                             tsc_S_CCPCH1,            //   C-RNTI and U-RNTI are needed when DCCH/DTCH are mapped on S-CCPCH
+                                                             cs_UE_Info(f_UTRAN_CellInfo_GetU_RNTI(p_CellId), f_UTRAN_CellInfo_GetC_RNTI(p_CellId)),
+                                                             cs_TrChInfoPCH_FACH_PS_FDD,
+                                                             cs_TrLogMappingPCH_FACH_PS_FDD));
+    f_UTRAN_CPHY_RL_Setup(cas_PICH_Info_FDD(p_CellId,
+                                            cs_PichInfo_FDD,
+                                            f_UTRAN_CellInfo_GetPICH_PowerOffset(p_CellId),
+                                            tsc_S_CCPCH1));
+  }
+
+  function f_UTRAN_SS_PCH_FACH_CCCH_DCCH_BCCH_DTCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    f_UTRAN_CPHY_RL_Setup(cas_SCCPCH_Info_TDD(p_CellId,                                      // s-CCPCH1
+                                              tsc_S_CCPCH1,
+                                              f_UTRAN_CellInfo_GetsCCPCH1_Power(p_CellId)));
+    f_UTRAN_CPHY_TrCH_Config(cas_PCH_1_FACH_InfoActNow_TDD(p_CellId, tsc_S_CCPCH1));
+    
+    f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD (p_CellId,                         //   map PCCH to PCH, and map CCCH, BCCH,  DTCH and DCCH's to FACH.
+                                              tsc_S_CCPCH1,                     //  C-RNTI and U-RNTI are needed when DCCH/DTCH are mapped on S-CCPCH
+                                              cs_UE_Info(f_UTRAN_CellInfo_GetU_RNTI(p_CellId), f_UTRAN_CellInfo_GetC_RNTI(p_CellId)),
+                                              cs_TrChInfoPCH_FACH_PS_TDD,
+                                              cs_TrLogMappingPCH_FACH_PS_TDD));
+    f_UTRAN_CPHY_RL_Setup(cas_PICH_Info_TDD(p_CellId,                                              // PICH
+                                            cs_PichInfo_TDD,
+                                            f_UTRAN_CellInfo_GetPICH_PowerOffset(p_CellId),
+                                            tsc_S_CCPCH1));
+  }
+
+  function f_UTRAN_SS_RACH_CCCH_DCCH_DTCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD;
+    var UTRAN_CellInfo_Type_TDD v_CellInfoTDD;
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+      f_UTRAN_CPHY_RL_Setup(cas_AichInfo(p_CellId,                                      // AICH
+                                         tsc_AICH1,
+                                         cs_AICH_Info,
+                                         v_CellInfoFDD.powerAICH));
+      f_UTRAN_CPHY_RL_Setup(cas_PRACH_Info_FDD(p_CellId,                                // PRACH
+                                               tsc_PRACH1,
+                                               tsc_PRACH1_Signatures,
+                                               tsc_PRACH1_ScrC,
+                                               f_UTRAN_CellInfo_GetPuncturingLimit(p_CellId),
+                                               f_UTRAN_CellInfo_GetSF_PRACH(p_CellId),
+                                               tsc_SubChNum));
+      f_UTRAN_CPHY_TrCH_Config(cas_RACH_InfoActNow_FDD(p_CellId, tsc_PRACH1));          // connectRACH  to PRACH
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_FDD(p_CellId,                                // mapping CCCH to RACH.
+                                               tsc_PRACH1,
+                                               cs_UE_Info(omit, f_UTRAN_CellInfo_GetC_RNTI(p_CellId)),
+                                               cs_TrChInfoRACH1_FDD,
+                                               cs_TrLogMappingRACH_DTCH));
+    }
+    else {
+      v_CellInfoTDD := f_UTRAN_CellInfo_GetTDDSpecific(p_CellId);
+      f_UTRAN_CPHY_RL_Setup(cas_PRACH_Info_TDD(p_CellId,                                // PRACH
+                                               tsc_PRACH1,v_CellInfoTDD.powerFPACH));
+      f_UTRAN_CPHY_TrCH_Config(cas_RACH_InfoActNow_TDD(p_CellId, tsc_PRACH1));          // connectRACH  to PRACH
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD(p_CellId,                                // mapping CCCH to RACH.
+                                               tsc_PRACH1,
+                                               cs_UE_Info(omit, f_UTRAN_CellInfo_GetC_RNTI(p_CellId)),
+                                               cs_TrChInfoRACH1_TDD,
+                                               cs_TrLogMappingRACH_DTCH));
+    }
+  }
+
+  function f_UTRAN_SS_RACH_CCCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD;
+    var UTRAN_CellInfo_Type_TDD v_CellInfoTDD;
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+      f_UTRAN_CPHY_RL_Setup(cas_AichInfo(p_CellId,                                        // AICH
+                                         tsc_AICH1,
+                                         cs_AICH_Info,
+                                         v_CellInfoFDD.powerAICH));
+      
+      f_UTRAN_CPHY_RL_Setup(cas_PRACH_Info_FDD(p_CellId,                                     // PRACH
+                                               tsc_PRACH1,
+                                               tsc_PRACH1_Signatures,
+                                               tsc_PRACH1_ScrC,
+                                               f_UTRAN_CellInfo_GetPuncturingLimit(p_CellId),
+                                               f_UTRAN_CellInfo_GetSF_PRACH(p_CellId),
+                                               tsc_SubChNum));
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_RACH_InfoActNow_FDD(p_CellId, tsc_PRACH1));                        // connectRACH  to PRACH
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_FDD(p_CellId,                                  // mapping CCCH to RACH.
+                                               tsc_PRACH1,
+                                               cs_UE_Info,
+                                               cs_TrChInfoRACH1_FDD,
+                                               cs_TrLogMappingRACH2));
+    }
+    else {
+      v_CellInfoTDD := f_UTRAN_CellInfo_GetTDDSpecific(p_CellId);
+      f_UTRAN_CPHY_RL_Setup(cas_PRACH_Info_TDD(p_CellId,                                        // PRACH
+                                               tsc_PRACH1,v_CellInfoTDD.powerFPACH));
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_RACH_InfoActNow_TDD(p_CellId, tsc_PRACH1));                           // connectRACH  to PRACH
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD(p_CellId,                  // mapping CCCH to RACH.
+                                               tsc_PRACH1,
+                                               cs_UE_Info,
+                                               cs_TrChInfoRACH1_TDD,
+                                               cs_TrLogMappingRACH2));
+    }
+  }
+
+  function f_UTRAN_NoOfConfiguredCells() runs on UTRAN_PTC return integer
+  {
+    var integer v_Cnt := 0;
+    if (f_UTRAN_CellInfo_GetConfigType (utran_Cell5) != cell_NotConfigured) {
+      v_Cnt := v_Cnt + 1;
+    }
+    if (f_UTRAN_CellInfo_GetConfigType (utran_Cell7) != cell_NotConfigured) {
+      v_Cnt := v_Cnt + 1;
+    }
+    if (f_UTRAN_CellInfo_GetConfigType (utran_Cell8) != cell_NotConfigured) {
+      v_Cnt := v_Cnt + 1;
+    }
+    if (f_UTRAN_CellInfo_GetConfigType (utran_Cell9) != cell_NotConfigured) {
+      v_Cnt := v_Cnt + 1;
+    }
+    return v_Cnt;
+  }
+
+  function f_UTRAN_SS_CellCfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD;
+    var UTRAN_CellInfo_Type_TDD v_CellInfoTDD;
+    
+    if (f_UTRAN_NoOfConfiguredCells() == 0) {        // first cell to be created
+      U_CPHY.send(cas_InitReqDef);
+      U_CPHY.receive(car_IniCnf);
+    }
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+      
+      U_CPHY.send(cas_CellCfgReq_FDD(p_CellId,
+                                     0, // This was tCell, but don't use this anymore
+                                     f_UTRAN_CellInfo_GetFrequencyInfo(p_CellId),
+                                     v_CellInfoFDD.priScrmCode,
+                                     tsc_AttenuationCellOFF,  // start with the cell switched off
+                                     f_UTRAN_CellInfo_GetSFNOffset(p_CellId),
+                                     f_UTRAN_CellInfo_GetCellTxPower(p_CellId),
+                                     v_CellInfoFDD.operationBand));
+      U_CPHY.receive(car_CellCfgCnf(p_CellId));
+    }
+    else {
+      v_CellInfoTDD := f_UTRAN_CellInfo_GetTDDSpecific(p_CellId);
+      U_CPHY.send(cas_CellCfgReq_TDD(p_CellId,
+                                     f_UTRAN_CellInfo_GetFrequencyInfo(p_CellId),
+                                     v_CellInfoTDD.cellParametersID,
+                                     tsc_AttenuationCellOFF,  // start with the cell switched off
+                                     f_UTRAN_CellInfo_GetSFNOffset(p_CellId),
+                                     f_UTRAN_CellInfo_GetCellTxPower(p_CellId),
+                                     v_CellInfoTDD.dwPCHInfo));
+      U_CPHY.receive(car_CellCfgCnf(p_CellId));
+    }
+  }
+
+  function f_UTRAN_SS_BCH_SCH_CPICH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD;
+
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+      f_UTRAN_CPHY_RL_Setup(cas_PCPICH_Info_FDD(p_CellId, v_CellInfoFDD.powerpCPICH));    // p-CPICH
+      f_UTRAN_CPHY_RL_Setup(cas_PSCH_Info_FDD(  p_CellId, v_CellInfoFDD.powerpSCH));      // p-SCH
+      f_UTRAN_CPHY_RL_Setup(cas_SSCH_Info_FDD(  p_CellId, v_CellInfoFDD.powersSCH));      // s-SCH
+      f_UTRAN_CPHY_RL_Setup(cas_PCCPCH_Info_FDD(p_CellId, f_UTRAN_CellInfo_GetpCCPCH_Power_FDD(p_CellId)));    // p-CCPCH
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_BCH_InfoActNow_FDD(p_CellId));   // BCH connected to p-CCPCH
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_FDD(p_CellId,            // mapping BCCH to BCH. C-RNTI and U-RNTI are not needed on P-CCPCH
+                                               tsc_P_CCPCH,
+                                               cs_UE_Info,
+                                               cs_TrChInfoBCH1_FDD,
+                                               cs_TrLogMappingBCH1));
+    }
+    else {
+      f_UTRAN_CPHY_RL_Setup(cas_PCCPCH_Info_TDD(p_CellId, f_UTRAN_CellInfo_GetpCCPCH_Power_TDD(p_CellId)));    // p-CCPCH
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_BCH_InfoActNow_TDD(p_CellId));   // BCH connected to p-CCPCH
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD(p_CellId,            // mapping BCCH to BCH. C-RNTI and U-RNTI are not needed on P-CCPCH
+                                               tsc_P_CCPCH,
+                                               cs_UE_Info,
+                                               cs_TrChInfoBCH1_TDD,
+                                               cs_TrLogMappingBCH1));
+    }
+  }
+
+  function f_UTRAN_SS_PCH_FACH_CCCH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD;
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+      f_UTRAN_CPHY_RL_Setup(cas_SCCPCH_Info_FDD(p_CellId,               // s-CCPCH1
+                                                tsc_S_CCPCH1,
+                                                tsc_S_CCPCH_2ndScrCode,
+                                                tsc_S_CCPCH1_ChC,
+                                                v_CellInfoFDD.slotFormatsCCPCH1,
+                                                f_UTRAN_CellInfo_GetsCCPCH1_Power(p_CellId),
+                                                v_CellInfoFDD.timingsCCPCH1));
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_PCH_2_FACH_InfoActNow_FDD(p_CellId, tsc_S_CCPCH1));           // connect PCH and FACH to s-CCPCH1
+      
+      f_UTRAN_CMAC_Config(cads_CMAC_CfgInfoAssPhyChFollow_FDD(p_CellId,                           // map PCCH to PCH.
+                                                              tsc_S_CCPCH1,
+                                                              cs_UE_Info,             // U-RNTI and C-RNTI are not needed (no DCCH/DTCH)
+                                                              cs_TrChInfoPCH_FACH_PS_FDD,
+                                                              cs_TrLogMappingPCH_FACH_CellDCH));
+      
+      f_UTRAN_CPHY_RL_Setup(cas_PICH_Info_FDD(p_CellId,                               // PICH
+                                              cs_PichInfo_FDD,
+                                              f_UTRAN_CellInfo_GetPICH_PowerOffset(p_CellId),
+                                              tsc_S_CCPCH1));
+    }
+    else {
+      f_UTRAN_CPHY_RL_Setup(cas_SCCPCH_Info_TDD(p_CellId,     // s-CCPCH1
+                                                tsc_S_CCPCH1,
+                                                f_UTRAN_CellInfo_GetsCCPCH1_Power(p_CellId)));
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_PCH_1_FACH_InfoActNow_TDD(p_CellId, tsc_S_CCPCH1));       // connect PCH and FACH to s-CCPCH1
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD(p_CellId,      // map PCCH to PCH.
+                                               tsc_S_CCPCH1,
+                                               cs_UE_Info,             // U-RNTI and C-RNTI are not needed (no DCCH/DTCH)
+                                               cs_TrChInfoPCH_FACH_PS_TDD,
+                                               cs_TrLogMappingPCH_FACH_CellDCH));
+      
+      f_UTRAN_CPHY_RL_Setup(cas_PICH_Info_TDD(p_CellId,
+                                              cs_PichInfo_TDD,
+                                              f_UTRAN_CellInfo_GetPICH_PowerOffset(p_CellId),
+                                              tsc_S_CCPCH1));
+    }
+  }
+
+  function f_UTRAN_SS_RB0_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping_DL := cs_RB_LogCH_Mapping(omit, tsc_DL_CCCH5);
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping_UL := cs_RB_LogCH_Mapping(tsc_UL_CCCH5, omit);
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CRLC_Config(cas_RB_UM_DL_Info_FDD(p_CellId,   // configure radio bearers (downlink): RB0 (UM + CCCH + FACH)
+                                                tsc_RB0,
+                                                v_RB_LogCH_Mapping_DL));
+      f_UTRAN_CRLC_Config(cas_RB_TM_UL_Info_FDD(p_CellId,  // cofigure radio bearers (uplink): RB0 (TM + CCCH + RACH)
+                                                tsc_RB0,
+                                                238,
+                                                v_RB_LogCH_Mapping_UL));
+    }
+    else {
+      f_UTRAN_CRLC_Config(cas_RB_UM_DL_Info_TDD(p_CellId,  // configure radio bearers (downlink): RB0 (UM + CCCH + FACH)
+                                                tsc_RB0,
+  //                                              0,   // @sic R5-110103 changed by Chen sic@
+                                                v_RB_LogCH_Mapping_DL));
+      f_UTRAN_CRLC_Config(cas_RB_TM_UL_Info_TDD(p_CellId,
+                                                tsc_RB0,
+                                                168,   // @sic R5-110103 changed by Chen sic@
+                                                238,
+                                                v_RB_LogCH_Mapping_UL));
+    }
+  }
+
+  function f_UTRAN_SS_RB20_AM_PS_Cfg(UTRAN_CellId_Type p_CellId,
+                                     template (value) OctetModeRLC_SizeInfoType1 p_RLC_Size,
+                                     template (value) LogicalChannelIdentity p_LogChUL :=tsc_UL_DTCH1,
+                                     template (value) LogicalChannelIdentity p_LogChDL := tsc_DL_DTCH1) runs on UTRAN_PTC //@sic R5s120455 sic@
+  {
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping_RB20 := cs_RB_LogCH_Mapping(p_LogChUL, p_LogChDL ); //@sic R5s120455 sic@
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CRLC_Config(cas_RB_AM_Info_RAB_FDD(utran_CellDedicated, tsc_RB20, v_RB_LogCH_Mapping_RB20, p_RLC_Size));
+    }
+    else {
+      f_UTRAN_CRLC_Config(cas_RB_AM_Info_RAB_TDD(utran_CellDedicated, tsc_RB20, v_RB_LogCH_Mapping_RB20, p_RLC_Size));
+    }
+  }
+
+  function f_UTRAN_SS_RB_BCCH_FACH_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var template (value) RB_LogCH_Mapping v_RB_LogCH_Mapping := cs_RB_LogCH_Mapping(omit, tsc_BCCH6);
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CRLC_Config(cas_RB_TM_DL_InfoNoSeg_FDD(p_CellId, tsc_RB_BCCH_FACH, 166, v_RB_LogCH_Mapping));
+    }
+    else {
+      f_UTRAN_CRLC_Config(cas_RB_TM_DL_InfoNoSeg_TDD(p_CellId, tsc_RB_BCCH_FACH, 166, v_RB_LogCH_Mapping));
+    }
+  }
+
+  function f_UTRAN_SetCellPower (UTRAN_CellId_Type p_CellId,
+                                 integer           p_DL_TxPowerLevel,
+                                 integer           p_TDD_DL_TxPowerLevel := -3 ) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type_FDD v_CellInfo_FDD;
+    var UTRAN_CellInfo_Type_TDD v_CellInfo_TDD;
+    var integer v_AttenuationLevelToSet := 0;
+    
+    if (p_DL_TxPowerLevel <0) {
+      if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+        v_CellInfo_FDD := f_UTRAN_CellInfo_GetFDDSpecific (p_CellId); // @sic R5s11278 sic@
+        select (p_DL_TxPowerLevel) {
+          case (-1) { // Serving Cell
+            v_AttenuationLevelToSet := 0;
+          }
+          case (-2) { // Suitable Neighbour Cell
+            v_AttenuationLevelToSet := 10;
+          }
+          case (-3) { // Non Suitable Cell
+            v_AttenuationLevelToSet := 30;
+          }
+          case else {
+            v_AttenuationLevelToSet := v_CellInfo_FDD.powerpCPICH - p_DL_TxPowerLevel;
+          }
+        }
+      }
+      else { // TDD
+        v_CellInfo_TDD := f_UTRAN_CellInfo_GetTDDSpecific (p_CellId); // @sic R5s11278 sic@
+        select (p_DL_TxPowerLevel) {
+          case (-1) { // Serving Cell
+            v_AttenuationLevelToSet := 0;
+          }
+          case (-2) { // Suitable Neighbour Cell
+            v_AttenuationLevelToSet := 10;
+          }
+          case (-3) { // Non Suitable Cell
+            v_AttenuationLevelToSet := 31;
+          }
+          case else {
+            v_AttenuationLevelToSet := v_CellInfo_TDD.powerpCCPCH - p_TDD_DL_TxPowerLevel;
+          }
+        }
+      }
+    } else if (p_DL_TxPowerLevel == tsc_AttenuationCellOFF) { // @sic R5s110014 sic@
+       v_AttenuationLevelToSet := tsc_AttenuationCellOFF;
+    }
+    else {
+      FatalError(__FILE__, __LINE__,"UTRAN power level is incorrectly specified");
+    }
+    
+    U_CPHY.send(cas_CellTxPowerModifyReq (p_CellId, v_AttenuationLevelToSet));
+    U_CPHY.receive(car_CellTxPowerModifyCnf(p_CellId));
+  }
+
+  function f_UTRAN_ReleaseCell (UTRAN_CellId_Type p_CellId, RB_ConfigType p_RBConfig) runs on UTRAN_PTC
+  {
+    U_CPHY.send(cas_CPHY_Cell_Release_REQ (p_CellId, p_RBConfig)); // @sic R5s110176 sic@
+    U_CPHY.receive(car_CPHY_Cell_Release_CNF(p_CellId));
+  }
+
+  function f_UTRAN_SIB_Bitstring_Segmentation(bitstring p_SIBBitString) return SegmentsOfSysInfoBlock
+  {
+    var SegmentsOfSysInfoBlock v_Segments;
+    var integer v_TotalLength := lengthof(p_SIBBitString);
+    var integer v_Count := 0;
+    var bitstring v_SegmentArray [16];
+    
+    if (v_TotalLength <= 226)
+      {
+        v_Count := 1;
+        if ((v_TotalLength> 214) and (v_TotalLength <226))
+          {
+            v_SegmentArray[0] := p_SIBBitString & int2bit(0, (226 - v_TotalLength));
+          }
+        else {
+          v_SegmentArray[0] := p_SIBBitString;
+        }
+      }
+    else { // longer than 226
+      do {    // @sic R5s110782 sic@
+        if (v_TotalLength >= 222)  // Data fixed segment
+        {
+          v_SegmentArray[v_Count] := substr(p_SIBBitString, 0, 222); // Segment the first 222 bits
+          v_TotalLength := v_TotalLength - 222;
+          p_SIBBitString := substr (p_SIBBitString, 222, v_TotalLength); // then remove this amount from the overall string
+        }
+        else if (v_TotalLength < 222 and v_TotalLength > 214) // Data fixed segment (filled with padding)
+        {
+          v_SegmentArray[v_Count] := substr(p_SIBBitString, 0, v_TotalLength) & int2bit(0, (222 - v_TotalLength));
+          v_TotalLength := 0; // to finish the loop
+        }
+        else // Data variable segment <=214
+        {
+          v_SegmentArray[v_Count] := p_SIBBitString;
+          v_TotalLength := 0; // to finish the loop
+        }
+      v_Count := v_Count + 1;
+      } while (v_TotalLength > 0);
+    }
+    
+    v_Segments.segCount :=  v_Count;
+    v_Segments.seg1 := v_SegmentArray[0];
+    if (v_Count > 1) {
+      v_Segments.seg2 := v_SegmentArray[1];
+    } else {
+      v_Segments.seg2 := omit;
+    }
+    if (v_Count > 2) {
+      v_Segments.seg3 := v_SegmentArray[2];
+    } else {
+      v_Segments.seg3 := omit;
+    }
+    if (v_Count > 3) {
+      v_Segments.seg4 := v_SegmentArray[3];
+    } else {
+      v_Segments.seg4 := omit;
+    }
+    if (v_Count > 4) {
+      v_Segments.seg5 := v_SegmentArray[4];
+    } else {
+      v_Segments.seg5 := omit;
+    }
+    if (v_Count > 5) {
+      v_Segments.seg6 := v_SegmentArray[5];
+    } else {
+      v_Segments.seg6 := omit;
+    }
+    if (v_Count > 6) {
+      v_Segments.seg7 := v_SegmentArray[6];
+    } else {
+      v_Segments.seg7 := omit;
+    }
+    if (v_Count > 7) {
+      v_Segments.seg8 := v_SegmentArray[7];
+    } else {
+      v_Segments.seg8 := omit;
+    }
+    if (v_Count > 8) {
+      v_Segments.seg9 := v_SegmentArray[8];
+    } else {
+      v_Segments.seg9 := omit;
+    }
+    if (v_Count > 9) {
+      v_Segments.seg10 := v_SegmentArray[9];
+    } else {
+      v_Segments.seg10 := omit;
+    }
+    if (v_Count > 10) {
+      v_Segments.seg11 := v_SegmentArray[10];
+    } else {
+      v_Segments.seg11 := omit;
+    }
+    if (v_Count > 11) {
+      v_Segments.seg12 := v_SegmentArray[11];
+    } else {
+      v_Segments.seg12 := omit;
+    }
+    if (v_Count > 12) {
+      v_Segments.seg13 := v_SegmentArray[12];
+    } else {
+      v_Segments.seg13 := omit;
+    }
+    if (v_Count > 13) {
+      v_Segments.seg14 := v_SegmentArray[13];
+    } else {
+      v_Segments.seg14 := omit;
+    }
+    if (v_Count > 14) {
+      v_Segments.seg15 := v_SegmentArray[14];
+    } else {
+      v_Segments.seg15 := omit;
+    }
+    if (v_Count > 15) {
+      v_Segments.seg16 := v_SegmentArray[15];
+    } else {
+      v_Segments.seg16 := omit;
+    }
+    return v_Segments;
+  }
+
+  function f_UTRAN_SendDefSysInfo(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (p_CellId);
+    var RatType v_RatType  := fdd;
+    
+    if (v_FDD_TDD_Mode == UTRAN_TDD) {
+      v_RatType := tdd;
+    }
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, 6, 27, cs_SIB_MsgNoSegment, tsc_Now, v_RatType);
+    f_UTRAN_SendSIB1_SIB2(p_CellId, tsc_Now, v_RatType);
+    f_UTRAN_SendSIB5(p_CellId, v_CellSysInfo.SIB5_Type, tsc_Now, 6, v_RatType);
+    f_UTRAN_SendSIB6(p_CellId, tsc_Now, v_RatType);
+    f_UTRAN_SendSIB3_4_7_18(p_CellId, tsc_Now, v_RatType);
+    f_UTRAN_SendSIB11(p_CellId, tsc_Now, 6, v_RatType);
+    f_UTRAN_SendSIB12(p_CellId, tsc_Now, v_RatType);
+    f_UTRAN_SendSIB19(p_CellId, tsc_Now, v_RatType);
+
+    f_UTRAN_SendSB1(p_CellId, tsc_Now, v_RatType);
+    f_UTRAN_SendMIB(p_CellId, tsc_Now, v_RatType);
+  }
+
+  function fl_UTRAN_SIB_ChangeValueTag(UTRAN_CellSysInfo_Type p_CellSysInfo,
+                                       SIB_Type p_SIB_Type) return UTRAN_CellSysInfo_Type
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := p_CellSysInfo;
+    var PLMN_ValueTag v_PLMN_ValueTag;   // for sib1
+    var CellValueTag  v_CellValueTag;    // for the other sibs
+    
+    select (p_SIB_Type) {
+      case (systemInformationBlockType1) {
+        v_PLMN_ValueTag := v_CellSysInfo.MIB.sibSb_ReferenceList[1].sibSb_Type.sysInfoType1;
+        v_CellSysInfo.MIB.sibSb_ReferenceList[1].sibSb_Type.sysInfoType1 := v_PLMN_ValueTag mod 256 + 1;
+      }
+      case (systemInformationBlockType2) {
+        v_CellValueTag := v_CellSysInfo.MIB.sibSb_ReferenceList[2].sibSb_Type.sysInfoType2;
+        v_CellSysInfo.MIB.sibSb_ReferenceList[2].sibSb_Type.sysInfoType2 := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType3) {
+        v_CellValueTag := v_CellSysInfo.MIB.sibSb_ReferenceList[3].sibSb_Type.sysInfoType3;
+        v_CellSysInfo.MIB.sibSb_ReferenceList[3].sibSb_Type.sysInfoType3 := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType4) {
+        v_CellValueTag := v_CellSysInfo.MIB.sibSb_ReferenceList[4].sibSb_Type.sysInfoType4;
+        v_CellSysInfo.MIB.sibSb_ReferenceList[4].sibSb_Type.sysInfoType4 := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType5) {
+        v_CellValueTag := v_CellSysInfo.MIB.sibSb_ReferenceList[5].sibSb_Type.sysInfoType5;
+        v_CellSysInfo.MIB.sibSb_ReferenceList[5].sibSb_Type.sysInfoType5 := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType5bis) {
+        v_CellValueTag := v_CellSysInfo.MIB.sibSb_ReferenceList[5].sibSb_Type.sysInfoType5bis;
+        v_CellSysInfo.MIB.sibSb_ReferenceList[5].sibSb_Type.sysInfoType5bis := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType6) {
+        v_CellValueTag := v_CellSysInfo.SB1.sib_ReferenceList[0].sib_Type.sysInfoType6;
+        v_CellSysInfo.SB1.sib_ReferenceList[0].sib_Type.sysInfoType6 := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType11) {
+        v_CellValueTag := v_CellSysInfo.SB1.sib_ReferenceList[2].sib_Type.sysInfoType11;
+        v_CellSysInfo.SB1.sib_ReferenceList[2].sib_Type.sysInfoType11 := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType12) {
+        v_CellValueTag := v_CellSysInfo.SB1.sib_ReferenceList[3].sib_Type.sysInfoType12;
+        v_CellSysInfo.SB1.sib_ReferenceList[3].sib_Type.sysInfoType12 := v_CellValueTag mod 4 + 1;
+      }
+      case (systemInformationBlockType18) {
+        v_CellValueTag := v_CellSysInfo.SB1.sib_ReferenceList[4].sib_Type.sysInfoType18;
+        v_CellSysInfo.SB1.sib_ReferenceList[4].sib_Type.sysInfoType18 := v_CellValueTag mod 4 + 1;
+      }
+      case (extensionType) {
+        v_CellValueTag := v_CellSysInfo.SB1.v6b0NonCriticalExtensions.v860NonCriticalExtensions.sysInfoTypeSB1_v860ext.extSIBTypeInfoSchedulingInfo_List[0].valueTagInfo.cellValueTag;
+        v_CellSysInfo.SB1.v6b0NonCriticalExtensions.v860NonCriticalExtensions.sysInfoTypeSB1_v860ext.extSIBTypeInfoSchedulingInfo_List[0].valueTagInfo.cellValueTag := v_CellValueTag mod 4 + 1;
+      }
+      case (schedulingBlock1) {
+        v_CellValueTag := v_CellSysInfo.MIB.sibSb_ReferenceList[0].sibSb_Type.sysInfoTypeSB1;
+        v_CellSysInfo.MIB.sibSb_ReferenceList[0].sibSb_Type.sysInfoTypeSB1 := v_CellValueTag mod 4 + 1;
+      }
+    }
+    return v_CellSysInfo;
+  }
+
+  function fl_UTRAN_MIB_ChangeValueTag(UTRAN_CellSysInfo_Type p_CellSysInfo) return UTRAN_CellSysInfo_Type
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := p_CellSysInfo;
+    var MIB_ValueTag v_MIB_ValueTag;
+    
+    if (not v_CellSysInfo.MIB_ValueTagChanged) {
+      v_MIB_ValueTag := v_CellSysInfo.MIB.mib_ValueTag;
+      v_CellSysInfo.MIB.mib_ValueTag := v_MIB_ValueTag mod 8 + 1;
+      v_CellSysInfo.MIB_ValueTagChanged := true;
+    }
+    return v_CellSysInfo;
+  }
+
+  function fl_UTRAN_SB1_ChangeValueTag(UTRAN_CellSysInfo_Type p_CellSysInfo) return UTRAN_CellSysInfo_Type
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := p_CellSysInfo;
+    
+    if (not v_CellSysInfo.SB1_ValueTagChanged) {
+      v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, schedulingBlock1);
+      v_CellSysInfo := fl_UTRAN_MIB_ChangeValueTag(v_CellSysInfo);
+      v_CellSysInfo.SB1_ValueTagChanged := true;
+    }
+    return v_CellSysInfo;
+  }
+
+  function fl_UTRAN_BCCH_BCH_Msg_Schedule(UTRAN_CellId_Type p_CellId,
+                                          integer p_Repetition,
+                                          integer p_Position,
+                                          template (value) BCCH_BCH_Message p_Message,
+                                          integer p_Timing,
+                                          RatType p_RatType) runs on UTRAN_PTC
+  {
+    var template (value) U_CMAC_CONFIG_REQ  v_SysInfo;
+    
+    if (p_Timing >= 512) {
+      v_SysInfo := cas_SysInfo_Schedul(p_CellId, p_Repetition, p_Position, p_RatType);
+    } else {
+      v_SysInfo := cas_SysInfo_Schedul(p_CellId, p_Repetition, p_Position, p_RatType, p_Timing);
+    }
+    U_CMAC.send(v_SysInfo);
+    U_CMAC.receive(car_SysInfoCfgCnf(p_CellId, tsc_RB_BCCH));
+    U_TM.send(cas_BCCH_BCH_DataReq(p_CellId, tsc_RB_BCCH, p_Message));
+  }
+
+  function fl_UTRAN_SIB_MsgLastSegment(SIB_Type  p_SIB_Type,
+                                       integer   p_SegIndex,
+                                       bitstring p_SIBData) return template (value) BCCH_BCH_Message
+  {
+    var template (value) BCCH_BCH_Message v_BCCH_BCH_Message;
+    if (lengthof(p_SIBData) <= 214) {
+      v_BCCH_BCH_Message := cs_SIB_MsgLastShort(p_SIB_Type, p_SegIndex, p_SIBData);
+    } else {
+      v_BCCH_BCH_Message := cs_SIB_MsgLast(p_SIB_Type, p_SegIndex, p_SIBData);
+    }
+    return v_BCCH_BCH_Message;
+  }
+
+  function fl_UTRAN_SIB_MsgInOneSegment(SIB_Type  p_SIB_Type,
+                                  bitstring p_SIBData) return template (value) BCCH_BCH_Message
+  {
+    var template (value) BCCH_BCH_Message v_BCCH_BCH_Message;
+
+    if (lengthof(p_SIBData) == 226) {
+      v_BCCH_BCH_Message := cs_SIB_MsgCmpl(p_SIB_Type, p_SIBData);
+    } else {
+      v_BCCH_BCH_Message := cs_SIB_MsgCmplList1(p_SIB_Type, p_SIBData);
+    }
+    return v_BCCH_BCH_Message;
+  }
+
+  function fl_UTRAN_SIB_Segmentation(SIB_Type               p_SIB_Type,
+                                     SegmentsOfSysInfoBlock p_Segments,
+                                     integer                p_MaxNoOfSegm) return template (value) UTRAN_SIB_BCCH_BCH_Messages_Type
+  {
+    var template (value) UTRAN_SIB_BCCH_BCH_Messages_Type v_SIB_BCCH_BCH_Msg;
+    
+    if (p_Segments.segCount > p_MaxNoOfSegm) {
+      FatalError(__FILE__, __LINE__,"to many segments");
+    } else {
+      if (p_Segments.segCount == 1) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := fl_UTRAN_SIB_MsgInOneSegment(p_SIB_Type, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg3 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg4 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg5 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg6 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg7 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg8 := cs_SIB_MsgNoSegment;
+
+      } else if (p_Segments.segCount == 2) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := cs_SIB_MsgFirst(p_SIB_Type, 2, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := fl_UTRAN_SIB_MsgLastSegment(p_SIB_Type, 1, p_Segments.seg2);
+        v_SIB_BCCH_BCH_Msg.Seg3 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg4 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg5 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg6 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg7 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg8 := cs_SIB_MsgNoSegment;
+
+      } else if (p_Segments.segCount == 3) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := cs_SIB_MsgFirst(p_SIB_Type, 3, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := cs_SIB_MsgSubsequent(p_SIB_Type, 1, p_Segments.seg2);
+        v_SIB_BCCH_BCH_Msg.Seg3 := fl_UTRAN_SIB_MsgLastSegment(p_SIB_Type, 2, p_Segments.seg3);
+        v_SIB_BCCH_BCH_Msg.Seg4 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg5 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg6 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg7 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg8 := cs_SIB_MsgNoSegment;
+
+      } else if (p_Segments.segCount == 4) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := cs_SIB_MsgFirst(p_SIB_Type, 4, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := cs_SIB_MsgSubsequent(p_SIB_Type, 1, p_Segments.seg2);
+        v_SIB_BCCH_BCH_Msg.Seg3 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg3);
+        v_SIB_BCCH_BCH_Msg.Seg4 := fl_UTRAN_SIB_MsgLastSegment(p_SIB_Type, 3, p_Segments.seg4);
+        v_SIB_BCCH_BCH_Msg.Seg5 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg6 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg7 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg8 := cs_SIB_MsgNoSegment;
+      } else if (p_Segments.segCount == 5) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := cs_SIB_MsgFirst(p_SIB_Type, 4, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := cs_SIB_MsgSubsequent(p_SIB_Type, 1, p_Segments.seg2);
+        v_SIB_BCCH_BCH_Msg.Seg3 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg3);
+        v_SIB_BCCH_BCH_Msg.Seg4 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg4);
+        v_SIB_BCCH_BCH_Msg.Seg5 := fl_UTRAN_SIB_MsgLastSegment(p_SIB_Type, 3, p_Segments.seg5);
+        v_SIB_BCCH_BCH_Msg.Seg6 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg7 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg8 := cs_SIB_MsgNoSegment;
+      } else if (p_Segments.segCount == 6) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := cs_SIB_MsgFirst(p_SIB_Type, 4, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := cs_SIB_MsgSubsequent(p_SIB_Type, 1, p_Segments.seg2);
+        v_SIB_BCCH_BCH_Msg.Seg3 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg3);
+        v_SIB_BCCH_BCH_Msg.Seg4 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg4);
+        v_SIB_BCCH_BCH_Msg.Seg5 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg5);
+        v_SIB_BCCH_BCH_Msg.Seg6 := fl_UTRAN_SIB_MsgLastSegment(p_SIB_Type, 3, p_Segments.seg6);
+        v_SIB_BCCH_BCH_Msg.Seg7 := cs_SIB_MsgNoSegment;
+        v_SIB_BCCH_BCH_Msg.Seg8 := cs_SIB_MsgNoSegment;
+      } else if (p_Segments.segCount == 7) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := cs_SIB_MsgFirst(p_SIB_Type, 4, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := cs_SIB_MsgSubsequent(p_SIB_Type, 1, p_Segments.seg2);
+        v_SIB_BCCH_BCH_Msg.Seg3 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg3);
+        v_SIB_BCCH_BCH_Msg.Seg4 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg4);
+        v_SIB_BCCH_BCH_Msg.Seg5 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg5);
+        v_SIB_BCCH_BCH_Msg.Seg6 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg6);
+        v_SIB_BCCH_BCH_Msg.Seg7 := fl_UTRAN_SIB_MsgLastSegment(p_SIB_Type, 3, p_Segments.seg7);
+        v_SIB_BCCH_BCH_Msg.Seg8 := cs_SIB_MsgNoSegment;
+      } else if (p_Segments.segCount == 8) {
+        v_SIB_BCCH_BCH_Msg.Seg1 := cs_SIB_MsgFirst(p_SIB_Type, 4, p_Segments.seg1);
+        v_SIB_BCCH_BCH_Msg.Seg2 := cs_SIB_MsgSubsequent(p_SIB_Type, 1, p_Segments.seg2);
+        v_SIB_BCCH_BCH_Msg.Seg3 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg3);
+        v_SIB_BCCH_BCH_Msg.Seg4 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg4);
+        v_SIB_BCCH_BCH_Msg.Seg5 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg5);
+        v_SIB_BCCH_BCH_Msg.Seg6 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg6);
+        v_SIB_BCCH_BCH_Msg.Seg7 := cs_SIB_MsgSubsequent(p_SIB_Type, 2, p_Segments.seg7);
+        v_SIB_BCCH_BCH_Msg.Seg8 := fl_UTRAN_SIB_MsgLastSegment(p_SIB_Type, 3, p_Segments.seg8);
+      }
+    }
+    return v_SIB_BCCH_BCH_Msg;
+  }
+
+  function f_UTRAN_SendSIB1_SIB2(UTRAN_CellId_Type p_CellId,
+                                 integer           p_Timing,
+                                 RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var SegmentsOfSysInfoBlock v_Segments;
+    var template (value) BCCH_BCH_Message v_BCCH_BCH_Message;
+    
+    v_Segments.seg1 := encvalue(v_CellSysInfo.SIB1);
+    v_Segments.seg2 := encvalue(v_CellSysInfo.SIB2);
+    
+    if ((lengthof(v_Segments.seg1) + lengthof(v_Segments.seg2)) > 201) {
+      FatalError(__FILE__, __LINE__,"sib1 and sib2 are more than 201 bits");
+    }
+    else {
+      v_BCCH_BCH_Message := cs_SIB_MsgCmplList2(systemInformationBlockType1,
+                                                v_Segments.seg1,
+                                                systemInformationBlockType2,
+                                                v_Segments.seg2);
+      fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, 6, 11, v_BCCH_BCH_Message, p_Timing, p_RatType);
+    }
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType1);
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType2);
+    v_CellSysInfo := fl_UTRAN_MIB_ChangeValueTag(v_CellSysInfo);
+    f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);                     // write back sys info
+  }
+
+  function f_UTRAN_SendSIB5(UTRAN_CellId_Type p_CellId,
+                            SIB_Type          p_SIB_Type, // systemInformationBlockType5 or systemInformationBlockType5bis
+                            integer           p_Timing,
+                            integer           p_Repetition,
+                            RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var template (value) UTRAN_SIB_BCCH_BCH_Messages_Type v_SIB_BCCH_BCH_Msg;
+    var SegmentsOfSysInfoBlock v_Segments;
+    var integer v_Pos[4];
+    var template (value) SchedulingInformation v_SchedulingInfo[4];
+    var template (value) SchedulingInformation v_SchedulingInfo_MIB;
+    
+    if ((p_SIB_Type != systemInformationBlockType5) and (p_SIB_Type != systemInformationBlockType5bis)) {
+      FatalError(__FILE__, __LINE__,"invalid SIB Type");
+    }
+    v_Pos[0] := 19;
+    v_Pos[1] := 21;
+    v_Pos[2] := 22;
+    v_Pos[3] := 23;
+    v_SchedulingInfo[0] := cs_SIB5_Schedul1;
+    v_SchedulingInfo[1] := cs_SIB5_Schedul2;
+    v_SchedulingInfo[2] := cs_SIB5_Schedul3;
+    v_SchedulingInfo[3] := cs_SIB5_Schedul4;
+    
+    v_Segments := f_UTRAN_SIB_Bitstring_Segmentation(encvalue(v_CellSysInfo.SIB5));
+    v_SIB_BCCH_BCH_Msg := fl_UTRAN_SIB_Segmentation(p_SIB_Type, v_Segments, 4);
+    
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, p_Repetition, v_Pos[0], v_SIB_BCCH_BCH_Msg.Seg1, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, p_Repetition, v_Pos[1], v_SIB_BCCH_BCH_Msg.Seg2, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, p_Repetition, v_Pos[2], v_SIB_BCCH_BCH_Msg.Seg3, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, p_Repetition, v_Pos[3], v_SIB_BCCH_BCH_Msg.Seg4, p_Timing, p_RatType);
+    
+    if (v_Segments.segCount == 1) {
+      v_SchedulingInfo_MIB := v_SchedulingInfo[0];
+    } else if (v_Segments.segCount == 2) {
+      v_SchedulingInfo_MIB := v_SchedulingInfo[1];
+    } else if (v_Segments.segCount == 3) {
+      v_SchedulingInfo_MIB := v_SchedulingInfo[2];
+    } else if (v_Segments.segCount == 4) {
+      v_SchedulingInfo_MIB := v_SchedulingInfo[3];
+    } else {
+      FatalError(__FILE__, __LINE__,"sib5: more than 4 segments");
+    }
+    
+    v_CellSysInfo.MIB.sibSb_ReferenceList[5].scheduling := valueof(v_SchedulingInfo_MIB);
+    
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, p_SIB_Type);
+    v_CellSysInfo := fl_UTRAN_MIB_ChangeValueTag(v_CellSysInfo);
+    f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+  }
+
+  function f_UTRAN_SendSIB6(UTRAN_CellId_Type p_CellId,
+                            integer           p_Timing,
+                            RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var template (value) UTRAN_SIB_BCCH_BCH_Messages_Type v_SIB_BCCH_BCH_Msg;
+    var SegmentsOfSysInfoBlock v_Segments;
+    var integer v_Repetition := 6;
+    var integer v_Pos[4];
+    var template (value) SchedulingInformation v_SchedulingInfo[4];
+    var template (value) SchedulingInformation v_SchedulingInfo_SB1;
+    
+    v_Pos[0] := 3;
+    v_Pos[1] := 5;
+    v_Pos[2] := 6;
+    v_Pos[3] := 7;
+    v_SchedulingInfo[0] := cs_SIB6_Schedul1;
+    v_SchedulingInfo[1] := cs_SIB6_Schedul2;
+    v_SchedulingInfo[2] := cs_SIB6_Schedul3;
+    v_SchedulingInfo[3] := cs_SIB6_Schedul4;
+    
+    v_Segments := f_UTRAN_SIB_Bitstring_Segmentation(encvalue(v_CellSysInfo.SIB6));
+    v_SIB_BCCH_BCH_Msg := fl_UTRAN_SIB_Segmentation(systemInformationBlockType6, v_Segments, 4);
+    
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Pos[0], v_SIB_BCCH_BCH_Msg.Seg1, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Pos[1], v_SIB_BCCH_BCH_Msg.Seg2, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Pos[2], v_SIB_BCCH_BCH_Msg.Seg3, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Pos[3], v_SIB_BCCH_BCH_Msg.Seg4, p_Timing, p_RatType);
+    
+    if (v_Segments.segCount == 1) {
+      v_SchedulingInfo_SB1 := v_SchedulingInfo[0];
+    } else if (v_Segments.segCount == 2) {
+      v_SchedulingInfo_SB1 := v_SchedulingInfo[1];
+    } else if (v_Segments.segCount == 3) {
+      v_SchedulingInfo_SB1 := v_SchedulingInfo[2];
+    } else if (v_Segments.segCount == 4) {
+      v_SchedulingInfo_SB1 := v_SchedulingInfo[3];
+    } else {
+      FatalError(__FILE__, __LINE__,"sib6: more than 4 segments");
+    }
+    
+    v_CellSysInfo.SB1.sib_ReferenceList[0].scheduling := valueof(v_SchedulingInfo_SB1);
+    
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType6);
+    v_CellSysInfo := fl_UTRAN_SB1_ChangeValueTag(v_CellSysInfo);
+    f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+  }
+
+  function f_UTRAN_SendSIB3_4_7_18(UTRAN_CellId_Type p_CellId,
+                                   integer           p_Timing,
+                                   RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var SegmentsOfSysInfoBlock v_SegmentsSib7;
+    var SegmentsOfSysInfoBlock v_Segments;
+    var template (value) BCCH_BCH_Message v_BCCH_BCH_Message;
+    var integer v_Repetition := 6;
+    
+    v_SegmentsSib7 := f_UTRAN_SIB_Bitstring_Segmentation(encvalue( v_CellSysInfo.SIB7));
+
+    if (v_SegmentsSib7.segCount != 1) {
+      FatalError(__FILE__, __LINE__,"sib7: more than 1 segment");
+    }
+    else {
+      v_BCCH_BCH_Message := fl_UTRAN_SIB_MsgInOneSegment(systemInformationBlockType7, v_SegmentsSib7.seg1);
+      fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, 2, v_BCCH_BCH_Message, p_Timing, p_RatType);
+      
+      v_Segments.seg1 := encvalue(v_CellSysInfo.SIB3);
+      
+      if ((lengthof(v_Segments.seg1) + lengthof(v_SegmentsSib7.seg1)) > 201) {
+        FatalError(__FILE__, __LINE__,"sib3 and sib7 are more than 201 bits");
+      }
+      else {
+        v_BCCH_BCH_Message := cs_SIB_MsgCmplList2(systemInformationBlockType7,
+                                                  v_SegmentsSib7.seg1,
+                                                  systemInformationBlockType3,
+                                                  v_Segments.seg1);
+        fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, 10, v_BCCH_BCH_Message, p_Timing, p_RatType);
+      }
+      
+      v_Segments.seg1 := encvalue(v_CellSysInfo.SIB4);
+      
+      if ((lengthof(v_Segments.seg1) + lengthof(v_SegmentsSib7.seg1)) > 201) {
+        FatalError(__FILE__, __LINE__,"sib4 and sib7 are more than 201 bits");
+      }
+      else {
+        v_BCCH_BCH_Message := cs_SIB_MsgCmplList2(systemInformationBlockType7,
+                                                  v_SegmentsSib7.seg1,
+                                                  systemInformationBlockType4,
+                                                  v_Segments.seg1);
+        fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, 26, v_BCCH_BCH_Message, p_Timing, p_RatType);
+      }
+      
+      
+      v_Segments.seg1 := encvalue(v_CellSysInfo.SIB18);
+      
+      if ((lengthof(v_Segments.seg1) + lengthof(v_SegmentsSib7.seg1)) > 201) {
+        FatalError(__FILE__, __LINE__,"sib18 and sib7 are more than 201 bits");
+      }
+      else {
+        v_BCCH_BCH_Message := cs_SIB_MsgCmplList2(systemInformationBlockType7,
+                                                  v_SegmentsSib7.seg1,
+                                                  systemInformationBlockType18,
+                                                  v_Segments.seg1);
+        fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, 18, v_BCCH_BCH_Message, p_Timing, p_RatType);
+      }
+    }
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType3);
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType4);
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType18);
+    v_CellSysInfo := fl_UTRAN_SB1_ChangeValueTag(v_CellSysInfo);
+    // there is no valueTag for sib7
+    v_CellSysInfo := fl_UTRAN_MIB_ChangeValueTag(v_CellSysInfo);
+    f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+  }
+
+  function f_UTRAN_SendSIB11(UTRAN_CellId_Type p_CellId,
+                             integer           p_Timing,
+                             integer           p_Repetition,
+                             RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var template (value) UTRAN_SIB_BCCH_BCH_Messages_Type v_SIB_BCCH_BCH_Msg;
+    var SegmentsOfSysInfoBlock v_Segments;
+    var integer v_Pos[4];
+    var template (value) SchedulingInformation v_SchedulingInfo_SB1;
+    
+    v_Segments := f_UTRAN_SIB_Bitstring_Segmentation(encvalue(v_CellSysInfo.SIB11));
+    
+    v_Pos[0] := 29;
+    v_Pos[1] := 30;
+    v_Pos[2] := 31;
+    v_SIB_BCCH_BCH_Msg := fl_UTRAN_SIB_Segmentation(systemInformationBlockType11, v_Segments, 3);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, p_Repetition, v_Pos[0], v_SIB_BCCH_BCH_Msg.Seg1, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, p_Repetition, v_Pos[1], v_SIB_BCCH_BCH_Msg.Seg2, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, p_Repetition, v_Pos[2], v_SIB_BCCH_BCH_Msg.Seg3, p_Timing, p_RatType);
+    
+    if (v_Segments.segCount == 1) {
+      v_SchedulingInfo_SB1 := cs_SIB11_Schedul1;
+    } else if (v_Segments.segCount == 2) {
+      v_SchedulingInfo_SB1 := cs_SIB11_Schedul2;
+    } else if (v_Segments.segCount == 3) {
+      v_SchedulingInfo_SB1 := cs_SIB11_Schedul3;
+    } else {
+      FatalError(__FILE__, __LINE__,"sib11: more than 3 segments");
+    }
+    
+    v_CellSysInfo.SB1.sib_ReferenceList[2].scheduling := valueof(v_SchedulingInfo_SB1);
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType11);
+    v_CellSysInfo := fl_UTRAN_SB1_ChangeValueTag(v_CellSysInfo);
+    f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+  }
+
+  function f_UTRAN_SendSIB12(UTRAN_CellId_Type p_CellId,
+                             integer           p_Timing,
+                             RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var template (value) BCCH_BCH_Message v_BCCH_BCH_Message;
+    var SegmentsOfSysInfoBlock v_SegmentsSib12;
+
+    v_SegmentsSib12.seg1 := encvalue(v_CellSysInfo.SIB12);
+    
+    if (lengthof(v_SegmentsSib12.seg1) == 226) {
+      v_BCCH_BCH_Message := cs_SIB_MsgCmpl(systemInformationBlockType12,
+                                           v_SegmentsSib12.seg1);
+    } else {
+      v_BCCH_BCH_Message := cs_SIB_MsgCmplList1(systemInformationBlockType12,
+                                                v_SegmentsSib12.seg1);
+    }
+    
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, 6, 13, v_BCCH_BCH_Message, p_Timing, p_RatType);
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, systemInformationBlockType12);
+    v_CellSysInfo := fl_UTRAN_SB1_ChangeValueTag(v_CellSysInfo);
+    f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+  }
+
+  function f_UTRAN_SendSIB19(UTRAN_CellId_Type p_CellId,
+                             integer           p_Timing,
+                             RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var template (value) UTRAN_SIB_BCCH_BCH_Messages_Type v_SIB_BCCH_BCH_Msg;
+    var SegmentsOfSysInfoBlock v_SegmentsSib19;
+    var integer v_Repetition := 6;
+    var integer v_Pos[4];
+    var template (value) SchedulingInformation v_SchedulingInfo_SB1;
+
+    v_SegmentsSib19 := f_UTRAN_SIB_Bitstring_Segmentation(encvalue(v_CellSysInfo.SIB19));
+    
+    v_Pos[0] := 14;
+    v_Pos[1] := 15;
+    
+    v_SIB_BCCH_BCH_Msg := fl_UTRAN_SIB_Segmentation(extensionType, v_SegmentsSib19, 2);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Pos[0], v_SIB_BCCH_BCH_Msg.Seg1, p_Timing, p_RatType);
+    fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Pos[1], v_SIB_BCCH_BCH_Msg.Seg2, p_Timing, p_RatType);
+    
+    if (v_SegmentsSib19.segCount == 1) {
+      v_SchedulingInfo_SB1 := cs_SIB19_Schedul1;
+    } else if (v_SegmentsSib19.segCount == 2) {
+      v_SchedulingInfo_SB1 := cs_SIB19_Schedul2;
+    } else {
+      FatalError(__FILE__, __LINE__,"sib19: more than 2 segments");
+    }
+    
+    v_CellSysInfo.SB1.v6b0NonCriticalExtensions.v860NonCriticalExtensions.sysInfoTypeSB1_v860ext.extSIBTypeInfoSchedulingInfo_List[0].schedulingInfo := valueof(v_SchedulingInfo_SB1);
+    v_CellSysInfo := fl_UTRAN_SIB_ChangeValueTag(v_CellSysInfo, extensionType);
+    v_CellSysInfo := fl_UTRAN_SB1_ChangeValueTag(v_CellSysInfo);
+    f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+  }
+
+  function f_UTRAN_SendSB1(UTRAN_CellId_Type p_CellId,
+                           integer           p_Timing,
+                           RatType           p_RatType) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var SegmentsOfSysInfoBlock v_Segments    := f_UTRAN_SIB_Bitstring_Segmentation(encvalue (v_CellSysInfo.SB1));
+    var template (value) BCCH_BCH_Message v_BCCH_BCH_Message;
+    var integer v_Repetition := 4;
+    var integer v_Position   := 1;
+    
+    if (v_Segments.segCount > 1) {
+      FatalError(__FILE__, __LINE__,"sb1: more than 1 segment");
+      
+    } else {
+      v_BCCH_BCH_Message := fl_UTRAN_SIB_MsgInOneSegment(schedulingBlock1, v_Segments.seg1);
+      fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Position, v_BCCH_BCH_Message, p_Timing, p_RatType);
+      v_CellSysInfo := fl_UTRAN_SB1_ChangeValueTag(v_CellSysInfo);
+      v_CellSysInfo.MIB.sibSb_ReferenceList[0].scheduling := valueof(cs_SB1_Schedul1);
+      v_CellSysInfo.SB1_ValueTagChanged := false;
+      f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);                     // write back sys info
+    }
+  }
+
+  function f_UTRAN_SendMIB(UTRAN_CellId_Type p_CellId,
+                           integer           p_Timing,
+                           RatType           p_RatType) runs on UTRAN_PTC {
+
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var MasterInformationBlock v_MIB         := v_CellSysInfo.MIB;
+    var SegmentsOfSysInfoBlock v_Segments;
+    var template (value) BCCH_BCH_Message v_BCCH_BCH_Message;
+    var integer v_Repetition := 3;
+    var integer v_Position   := 0;
+    
+    v_CellSysInfo.MIB.plmn_Type.gsm_MAP.plmn_Identity := f_UTRAN_CellInfo_GetPLMNIdentity (p_CellId);
+    v_MIB := v_CellSysInfo.MIB; // @sic R5s110168 change 8.8 sic@
+
+    v_Segments := f_UTRAN_SIB_Bitstring_Segmentation(encvalue( v_MIB));
+    
+    if (v_Segments.segCount > 1) {
+      FatalError(__FILE__, __LINE__,"mib: more than 1 segment");
+      
+    } else {
+      v_BCCH_BCH_Message := fl_UTRAN_SIB_MsgInOneSegment(masterInformationBlock, v_Segments.seg1);
+      fl_UTRAN_BCCH_BCH_Msg_Schedule(p_CellId, v_Repetition, v_Position, v_BCCH_BCH_Message, p_Timing, p_RatType);
+      
+      v_CellSysInfo.MIB_ValueTagChanged := false;
+      f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);                     // write back sys info
+    }
+  }
+
+  function f_UTRAN_SS_ResetSecurityKey() runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityOld := f_UTRAN_Security_Get();
+    var UTRAN_SecurityInfo_Type v_SecurityInfoNew := f_UTRAN_SecurityInfo_Init();
+    // Keep old authentication parameters in case authentication is not re-done
+    v_SecurityInfoNew.authKeys.AuthPS := v_SecurityOld.authKeys.AuthPS;
+    v_SecurityInfoNew.authKeys.AuthCS.CKey := v_SecurityOld.authKeys.AuthCS.CKey;
+    v_SecurityInfoNew.authKeys.AuthCS.IKey := v_SecurityOld.authKeys.AuthCS.IKey;
+    v_SecurityInfoNew.authKeys.AuthCS.CKeySeq := v_SecurityOld.authKeys.AuthCS.CKeySeq;
+    v_SecurityInfoNew.authKeys.CSinOtherRAT := v_SecurityOld.authKeys.CSinOtherRAT; // @sic R5s110168 change 8.7 sic@
+    v_SecurityInfoNew.cipheringAlgorithmCapability := v_SecurityOld.cipheringAlgorithmCapability; // @sic R5s110788 sic@
+    v_SecurityInfoNew.integrProtAlgCap := v_SecurityOld.integrProtAlgCap; // @sic R5s110788 sic@
+
+
+    f_UTRAN_Security_Set(v_SecurityInfoNew);
+  }
+
+  function f_UTRAN_CalculateActTime(integer p_FrameNumber) return ActivationTime
+  {
+    return (256 + p_FrameNumber - (p_FrameNumber mod 8 + 8)) mod 256;
+  }
+
+  function f_UTRAN_CPHY_GetFrameNumber(UTRAN_CellId_Type       p_CellId,
+                                       PhysicalChannelIdentity p_PhysicalChannelIdentity) runs on UTRAN_PTC return integer
+  {
+    var U_CPHY_CONFIG_CNF v_CPHY_Frame_Number_CNF;
+    var integer v_FrameNumber := 0;
+    
+    U_CPHY.send(cas_GetFrameNum(p_CellId, p_PhysicalChannelIdentity));
+    U_CPHY.receive(car_GetFrameNum(p_CellId, p_PhysicalChannelIdentity)) -> value v_CPHY_Frame_Number_CNF;
+    v_FrameNumber := v_CPHY_Frame_Number_CNF.frameNo.frameNumber;
+    
+    return v_FrameNumber;
+  }
+
+  function f_UTRAN_ActivateCiphering_DL_SS(UTRAN_CellId_Type p_CellId,
+                                           ActivationTime    p_CipherActTime) runs on UTRAN_PTC return template (value) RB_ActivationTimeInfoList
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var template (value) RB_ActivationTimeInfoList v_RB_ActivationTimeInfoList;
+    var RLC_SequenceNumber  v_RLC_SN_RB1, v_RLC_SN_RB2, v_RLC_SN_RB3, v_RLC_SN_RB4, v_RLC_SN_RAB;
+    var CRLC_SequenceNumber_CNF v_CRLC_SequenceNumber_CNF;
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB1);
+    v_RLC_SN_RB1  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB2);
+    v_RLC_SN_RB2  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB3);
+    v_RLC_SN_RB3  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB4);
+    v_RLC_SN_RB4  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+    
+    f_UTRAN_CRLC_Suspend(tsc_RB1, v_RLC_SN_RB1);
+    f_UTRAN_CRLC_Suspend(tsc_RB3, v_RLC_SN_RB3);
+    f_UTRAN_CRLC_Suspend(tsc_RB4, v_RLC_SN_RB4);
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB1,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB1,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB2,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB2 + 2,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB3,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB3,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB4,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB4,
+                                                                    notInc));
+    }
+    else {
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB1,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB1,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB2,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB2 + 2,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB3,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB3,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB4,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB4,
+                                                                    notInc));
+    }
+
+    v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs(v_RLC_SN_RB1,
+                                                             v_RLC_SN_RB2 + 2,
+                                                             v_RLC_SN_RB3,
+                                                             v_RLC_SN_RB4);
+    if (v_SecurityInfo.recentSecureDomain == ps_domain) {
+      select (v_CellConfig) {
+        case (cell_DCH_64kPS_RAB_SRB) {
+          v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB20);
+          v_RLC_SN_RAB := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+          v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs_20(v_RLC_SN_RB1,
+                                                                      v_RLC_SN_RB2 + 2,
+                                                                      v_RLC_SN_RB3,
+                                                                      v_RLC_SN_RB4,
+                                                                      v_RLC_SN_RAB);
+          f_UTRAN_CRLC_DL_CipherCfgRB ( p_CellId, v_SecurityInfo.recentSecureDomain, v_SecurityInfo.dL_CipherMode, v_CellConfig, true ); // @sic  R5s110305 sic@
+        }
+        case (cell_DCH_E_HS, cell_E_HS) {
+          v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB25);
+          v_RLC_SN_RAB := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+          v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs_25(v_RLC_SN_RB1,
+                                                                      v_RLC_SN_RB2 + 2,
+                                                                      v_RLC_SN_RB3,
+                                                                      v_RLC_SN_RB4,
+                                                                      v_RLC_SN_RAB);
+          f_UTRAN_CRLC_DL_CipherCfgRB ( p_CellId, v_SecurityInfo.recentSecureDomain, v_SecurityInfo.dL_CipherMode, v_CellConfig, true ); // @sic R5s110305 sic@
+        }
+      }
+    }
+    f_UTRAN_CMAC_CipherCfg(p_CellId, p_CipherActTime, v_SecurityInfo.dL_CipherMode, incPerCFN_Cycle);
+    return (v_RB_ActivationTimeInfoList);
+  }
+
+  function f_UTRAN_CRLC_DL_CipherCfgRB(UTRAN_CellId_Type p_CellId,
+                                       CN_DomainIdentity p_Cn_DomainIdentity,
+                                       CipheringModeCommand_r7 p_CipherMode,
+                                       RB_ConfigType p_RbType,
+                                       boolean p_Suspend) runs on UTRAN_PTC
+  {
+    var RLC_SequenceNumber v_RLC_SN_RAB := 0;
+    var CRLC_SequenceNumber_CNF v_CRLC_SequenceNumber_CNF;
+    var integer v_RB_Id;
+
+    if ( p_Cn_DomainIdentity == ps_domain ) {
+      select (p_RbType) {
+        case (cell_DCH_64kPS_RAB_SRB, cell_FACH_PS) { // @sic R5s110210 sic@
+          v_RB_Id := tsc_RB20;
+        }
+        case (cell_DCH_HS_DSCH, cell_DCH_E_HS, cell_E_HS) {
+          v_RB_Id := tsc_RB25;
+        }
+        case else {
+          FatalError(__FILE__, __LINE__,"Configuration not supported");
+        }
+      }
+    } else {
+      FatalError(__FILE__, __LINE__,"CS branch not yet implemented");
+    }
+
+    if (p_Suspend) {
+      v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(v_RB_Id);
+      v_RLC_SN_RAB := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+      f_UTRAN_CRLC_Suspend(v_RB_Id, v_RLC_SN_RAB);
+    }
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+        f_UTRAN_CRLC_CipheringActivate ( cas_CRLC_DL_CipherActReq_FDD ( utran_CellDedicated,
+                                                                        p_Cn_DomainIdentity,
+                                                                        v_RB_Id,
+                                                                        p_CipherMode,
+                                                                        v_RLC_SN_RAB,
+                                                                        notInc ) );
+    }
+    else{
+        f_UTRAN_CRLC_CipheringActivate ( cas_CRLC_DL_CipherActReq_TDD ( utran_CellDedicated,
+                                                                        p_Cn_DomainIdentity,
+                                                                        v_RB_Id,
+                                                                        p_CipherMode,
+                                                                        v_RLC_SN_RAB,
+                                                                        notInc ) );
+    }
+  }
+
+  function f_UTRAN_CRLC_IntegrityActivate(template (value) U_CRLC_CONFIG_REQ p_CRLC_Integrity_Activate_REQ) runs on UTRAN_PTC
+  {
+    U_CRLC.send(p_CRLC_Integrity_Activate_REQ);
+    U_CRLC.receive(car_CRLC_IntegrityActivateCnf(utran_CellDedicated));
+  }
+
+  function f_UTRAN_CRLC_ResumeSecurity(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    
+    f_UTRAN_CRLC_Resume(tsc_RB1);
+    f_UTRAN_CRLC_Resume(tsc_RB3);
+    f_UTRAN_CRLC_Resume(tsc_RB4);
+    
+    if (((v_CellConfig == cell_DCH_64kPS_RAB_SRB)) and
+        (v_SecurityInfo.recentSecureDomain == ps_domain)) {
+      f_UTRAN_CRLC_Resume(tsc_RB20);
+
+    } else if ((v_CellConfig == cell_DCH_E_HS) or
+               (v_CellConfig == cell_E_HS)) {
+      f_UTRAN_CRLC_Resume(tsc_RB25);
+    }
+  }
+
+  function f_UTRAN_CRLC_Resume(integer p_RB_Id) runs on UTRAN_PTC
+  {
+    U_CRLC.send(cas_ResumeRB(utran_CellDedicated, p_RB_Id));
+    U_CRLC.receive(car_ResumeRB(utran_CellDedicated, p_RB_Id));
+  }
+
+  function f_UTRAN_CRLC_Suspend(integer            p_RB_Id,
+                                RLC_SequenceNumber p_RLC_SeqNum) runs on UTRAN_PTC
+  {
+    U_CRLC.send(cas_RLC_SuspendRB(utran_CellDedicated, p_RB_Id, p_RLC_SeqNum));
+    U_CRLC.receive(car_SuspendRB(utran_CellDedicated, p_RB_Id));
+  }
+
+  function f_UTRAN_CRLC_ProhibitRLC_Ack(integer                            p_RB_Id,
+                                        template (value) U_CRLC_CONFIG_REQ p_CRLC_ProhibitRLC_Ack_REQ) runs on UTRAN_PTC
+  {
+    U_CRLC.send(p_CRLC_ProhibitRLC_Ack_REQ);
+    U_CRLC.receive(car_CRLC_ProhibitRLC_Ack_CNF(utran_CellDedicated, p_RB_Id));
+  }
+
+  function f_UTRAN_CRLC_SecurityMode_Config(CN_DomainIdentity                p_Domain,
+                                            template (omit) HyperFrameNumber p_HFN,
+                                            template (omit) KeyCiphering     p_KC,
+                                            template (omit) IntegrityKey     p_IK := omit,
+                                            template (omit) GSM_CipheringKey p_GSM_ck := omit)  runs on UTRAN_PTC
+  {
+    U_CRLC.send(cas_CRLC_SecurityModeCfgReq(utran_CellDedicated, p_Domain, p_HFN, p_KC, p_IK, p_GSM_ck));
+    U_CRLC.receive(car_CRLC_SecurityModeCfgCnf(utran_CellDedicated));
+  }
+
+  function f_UTRAN_CMAC_SecurityMode_Config(CN_DomainIdentity                p_Domain,
+                                            template (omit) HyperFrameNumber p_HFN,
+                                            template (omit) KeyCiphering     p_KC := omit,
+                                            template (omit) IntegrityKey     p_IK := omit,
+                                            template (omit) GSM_CipheringKey p_GSM_ck := omit) runs on UTRAN_PTC
+  {
+    U_CMAC.send(cas_CMAC_SecurityModeCfgReq(utran_CellDedicated, p_Domain, p_HFN, p_KC, p_IK, p_GSM_ck));
+    U_CMAC.receive(car_CMAC_SecurityModeCfgCnf(utran_CellDedicated));
+  }
+
+  function f_UTRAN_CRLC_SequenceNumber_Get(integer p_RB_Id) runs on UTRAN_PTC return CRLC_SequenceNumber_CNF
+  {
+    var U_CRLC_CONFIG_CNF v_CRLC_SequenceNumber_CNF;
+    
+    U_CRLC.send(cas_GetRLC_SeqNum(utran_CellDedicated, p_RB_Id));
+    U_CRLC.receive(car_GetRLC_SeqNum(utran_CellDedicated, p_RB_Id)) -> value v_CRLC_SequenceNumber_CNF;
+    return v_CRLC_SequenceNumber_CNF.seqNo;
+  }
+
+  function f_UTRAN_CRLC_SetRRC_MessageSN(UTRAN_CellId_Type  p_CellId,
+                                         integer            p_RB_Id,
+                                         RRC_SequenceNumber p_SN) runs on UTRAN_PTC
+  {
+    U_CRLC.send(cas_DL_CRLC_SetRRC_MSN_REQ(p_CellId, p_RB_Id, p_SN));
+    U_CRLC.receive(car_CRLC_SetRRC_MSN_CNF(p_CellId, p_RB_Id));
+  }
+
+  function f_UTRAN_CRLC_RRC_MessageSN_Get(integer p_RB_Id) runs on UTRAN_PTC return CRLC_RRC_MessageSN_CNF
+  {
+    var U_CRLC_CONFIG_CNF v_CRLC_RRC_MessageSN_CNF;
+  
+    U_CRLC.send(cas_CRLC_RRC_MessageSN_REQ(utran_CellDedicated, p_RB_Id));
+    U_CRLC.receive(car_CRLC_RRC_MessageSN_CNF(utran_CellDedicated, p_RB_Id)) -> value v_CRLC_RRC_MessageSN_CNF;
+
+    return v_CRLC_RRC_MessageSN_CNF.rrcMsgSN;
+  }
+
+  function f_UTRAN_SetDL_RRC_MessageSN(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    f_UTRAN_CRLC_SetRRC_MessageSN(p_CellId, tsc_RB0, 0);
+    f_UTRAN_CRLC_SetRRC_MessageSN(p_CellId, tsc_RB1, 0);
+    f_UTRAN_CRLC_SetRRC_MessageSN(p_CellId, tsc_RB2, 0);
+    f_UTRAN_CRLC_SetRRC_MessageSN(p_CellId, tsc_RB3, 0);
+    f_UTRAN_CRLC_SetRRC_MessageSN(p_CellId, tsc_RB4, 0);
+  }
+
+  function f_UTRAN_CRLC_CipheringActivate(template (value) U_CRLC_CONFIG_REQ p_CRLC_Ciphering_Activate_REQ)  runs on UTRAN_PTC
+  {
+    U_CRLC.send(p_CRLC_Ciphering_Activate_REQ);
+    U_CRLC.receive(car_CRLC_CipherActCnf(utran_CellDedicated));
+  }
+
+  function f_UTRAN_CMAC_CipherCfg(UTRAN_CellId_Type       p_CellId,
+                                  ActivationTime          p_CipherActTime,
+                                  CipheringModeCommand_r7 p_CipherMode,
+                                  Increment_Mode          p_IncrDcr) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    
+    if ((v_CellConfig == cell_DCH_Speech) and (v_SecurityInfo.recentSecureDomain == cs_domain)) {
+      f_UTRAN_CMAC_UL_DL_CipherCfg(p_CipherMode,
+                                   p_CipherActTime,
+                                   p_IncrDcr);
+    }
+  }
+
+  function f_UTRAN_CMAC_CipheringActivate(integer                            p_PhyChId,
+                                          template (value) U_CMAC_CONFIG_REQ p_CMAC_Ciphering_Activate_REQ) runs on UTRAN_PTC
+  {
+    U_CMAC.send(p_CMAC_Ciphering_Activate_REQ);
+    U_CMAC.receive(car_CMAC_CipherActCnf(utran_CellDedicated, p_PhyChId));
+  }
+
+  function f_UTRAN_CMAC_UL_DL_CipherCfg(CipheringModeCommand_r7 p_CipherMode,
+                                        integer                 p_ActTime,
+                                        Increment_Mode          p_IncrDcr) runs on UTRAN_PTC
+  {
+    f_UTRAN_CMAC_CipheringActivate(tsc_DL_DPCH1,
+                                   cas_CMAC_DL_CipherActReq(utran_CellDedicated,
+                                                            tsc_DL_DPCH1,
+                                                            p_CipherMode,
+                                                            p_ActTime,
+                                                            p_IncrDcr));
+    f_UTRAN_CMAC_CipheringActivate(tsc_UL_DPCH1,
+                                   cas_CMAC_UL_CipherActReq(utran_CellDedicated,
+                                                            tsc_UL_DPCH1,
+                                                            p_CipherMode,
+                                                            p_ActTime,
+                                                            p_IncrDcr));
+  }
+
+  function f_UTRAN_RestartCRLC_ForNextConnection(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var UTRAN_FDD_TDD_Type v_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD(p_CellId);
+    
+    select (v_CellConfig) {
+      case (cell_DCH_StandAloneSRB) {
+        f_UTRAN_CRLC_RelReconfSRB(v_FDD_TDD);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_DCH_StandAloneSRB_NoConn);
+      }
+      case (cell_FACH) {
+        f_UTRAN_CRLC_RelReconfSRB(v_FDD_TDD);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_FACH_NoConn);
+      }
+      case (cell_DCH_Speech,
+            cell_DCH_64kPS_RAB_SRB,
+            cell_Four_DTCH_PS_CS) { // @sic R5s120070 sic@
+        f_UTRAN_SS_ReconfRAB_ToSRB(p_CellId);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_DCH_StandAloneSRB_NoConn);
+      }
+      case (cell_DCH_E_HS,
+            cell_E_HS,
+            cell_DCH_HS_DSCH) { // @sic R5s110683 sic@
+        f_UTRAN_SS_ReconfRAB_ToSRB(p_CellId);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_DCH_StandAloneSRB_NoConn);
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid configuration");
+      }
+    }
+  }
+
+  function f_UTRAN_SS_RelDPCH(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var UTRAN_FDD_TDD_Type v_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD(p_CellId);
+    var integer v_NodeB := f_UTRAN_CellInfo_GetNodeB_Id(p_CellId);
+    
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB1, v_FDD_TDD);
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB2, v_FDD_TDD);
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB3, v_FDD_TDD);
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB4, v_FDD_TDD);
+    
+    select (v_CellConfig) {
+      case (cell_DCH_StandAloneSRB_NoConn, cell_DCH_StandAloneSRB) {
+       // Nothing extra to do in this case
+      }
+      case (cell_DCH_Speech) {
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB10, v_FDD_TDD);
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB11, v_FDD_TDD);
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB12, v_FDD_TDD);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_DCH_StandAloneSRB_NoConn);
+      }
+      case (cell_DCH_64kPS_RAB_SRB) {
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB20, v_FDD_TDD);
+      }
+      case (cell_Four_DTCH_PS_CS){  //@sic R5s120070 sic@
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB20, v_FDD_TDD);
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB10, v_FDD_TDD);
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB11, v_FDD_TDD);
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB12, v_FDD_TDD);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_DCH_StandAloneSRB_NoConn);
+      }
+
+      case (cell_DCH_HS_DSCH) {
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB25, v_FDD_TDD);
+        if (v_FDD_TDD == UTRAN_FDD) {
+          f_UTRAN_CMAC_Config(cas_MAC_FDD_Release(p_CellId, tsc_HSPDSCH)); // @sic R5s110788 sic@
+          f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_FDD(p_CellId, tsc_HSPDSCH, cs_TrChConfigTypeNonDCH)); // @sic R5s110386, R5-113036 sic@
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_HSPDSCH));
+        }
+        else { //TDD
+          f_UTRAN_CMAC_Config(cas_MAC_TDD_Release(p_CellId, tsc_HSPDSCH)); // @sic R5s110788 sic@
+          f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_TDD(p_CellId, tsc_HSPDSCH, cs_TrChConfigTypeNonDCH)); // @sic R5s110386,  R5-113036 sic@
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_TDD(p_CellId, tsc_HSPDSCH));
+        }
+      }
+      case (cell_DCH_E_HS,
+            cell_E_HS) {
+        f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB25, v_FDD_TDD);
+        U_CMAC.send(cas_CMAC_MACes_Release_REQ(utran_CellDedicated));
+        U_CMAC.receive(car_CMAC_MACes_Config_CNF(utran_CellDedicated));
+        if (v_FDD_TDD == UTRAN_FDD) {
+          U_CMAC.send(cas_CMAC_MACe_Release_FDD_REQ(v_NodeB));
+          U_CMAC.receive(car_CMAC_MACe_Config_CNF(v_NodeB));
+          f_UTRAN_CMAC_Config(cas_MAC_FDD_Release(p_CellId, tsc_HSPDSCH)); // @sic R5s120397 sic@
+          f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_FDD(p_CellId, tsc_E_DPCH, cs_TrChConfigTypeNonDCH)); // @sic R5s110386, R5-113036 sic@
+          f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_FDD(p_CellId, tsc_HSPDSCH, cs_TrChConfigTypeNonDCH)); // @sic R5s110386, R5-113036 sic@
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_E_DPCH));
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_E_HICH));
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_E_AGCH));
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_HSPDSCH));
+          if (v_CellConfig == cell_E_HS) {
+            f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_F_DPCH));
+            f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_UL_DPCH1)); // @sic R5s120551 sic@
+          }
+        }
+        else { //TDD
+          U_CMAC.send(cas_CMAC_MACe_Release_TDD_REQ(v_NodeB));
+          U_CMAC.receive(car_CMAC_MACe_Config_CNF(v_NodeB));
+          f_UTRAN_CMAC_Config(cas_MAC_TDD_Release(utran_CellDedicated, tsc_HSPDSCH));
+          f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_TDD(p_CellId, tsc_E_DPCH, cs_TrChConfigTypeNonDCH)); // @sic R5s110386,  R5-113036 sic@
+          f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_TDD(p_CellId, tsc_HSPDSCH, cs_TrChConfigTypeNonDCH)); // @sic R5s110386,  R5-113036 sic@
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_TDD(p_CellId, tsc_E_DPCH));
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_TDD(p_CellId, tsc_E_HICH));
+          f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_TDD(p_CellId, tsc_HSPDSCH));
+          if (v_CellConfig == cell_E_HS) {
+            f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_TDD(p_CellId, tsc_F_DPCH));
+          }
+        }
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid configuration");
+      }
+    }
+    if (v_FDD_TDD == UTRAN_FDD) {
+     if (v_CellConfig != cell_E_HS) { // not applicable for Cell_E_HS  @sic R5s120551 sic@
+      f_UTRAN_CMAC_Config(cas_MAC_FDD_Release(utran_CellDedicated, tsc_DL_DPCH1));
+      f_UTRAN_CMAC_Config(cas_MAC_FDD_Release(utran_CellDedicated, tsc_UL_DPCH1));
+      f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_FDD(p_CellId, tsc_DL_DPCH1, cs_TrChConfigTypeDCH_NoSHO)); // @sic R5s110386,  R5-113036 sic@
+      f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_FDD(p_CellId, tsc_UL_DPCH1, cs_TrChConfigTypeDCH_NoSHO)); // @sic R5s110386, R5-113036 sic@
+      f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_DL_DPCH1));
+      f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_FDD(p_CellId, tsc_UL_DPCH1));
+      }
+     }
+    else { //TDD
+      f_UTRAN_CMAC_Config(cas_MAC_TDD_Release(utran_CellDedicated, tsc_DL_DPCH1));
+      f_UTRAN_CMAC_Config(cas_MAC_TDD_Release(utran_CellDedicated, tsc_UL_DPCH1));
+      f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_TDD(p_CellId, tsc_DL_DPCH1, cs_TrChConfigTypeDCH_NoSHO)); // @sic R5s110386, R5-113036 sic@
+      f_UTRAN_CPHY_TrCH_Release (cas_PHY_ReleaseDCH_TDD(p_CellId, tsc_UL_DPCH1, cs_TrChConfigTypeDCH_NoSHO)); // @sic R5s110386, R5-113036 sic@
+      f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_TDD(p_CellId, tsc_DL_DPCH1));
+      f_UTRAN_CPHY_RL_Release (cas_RL_RelReq_TDD(p_CellId, tsc_UL_DPCH1));
+    }
+  }
+
+  function f_UTRAN_SS_ReconfRAB_ToSRB(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_FDD_TDD_Type v_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD(p_CellId);
+
+    f_UTRAN_SS_RelDPCH(p_CellId);
+    f_UTRAN_SS_1DCH_DCCH_Cfg(p_CellId);
+    f_UTRAN_SS_RB1_ToRB4_Cfg(utran_CellDedicated, v_FDD_TDD);
+  }
+
+  function f_UTRAN_CRLC_RelReconfSRB(UTRAN_FDD_TDD_Type p_FDD_TDD) runs on UTRAN_PTC
+  {
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB1, p_FDD_TDD); // @sic R5s110171 sic@
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB2, p_FDD_TDD); // @sic R5s110171 sic@
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB3, p_FDD_TDD); // @sic R5s110171 sic@
+    f_UTRAN_CRLC_Rel(utran_CellDedicated, tsc_RB4, p_FDD_TDD); // @sic R5s110171 sic@
+    f_UTRAN_SS_RB1_ToRB4_Cfg(utran_CellDedicated, p_FDD_TDD);
+  }
+
+  function f_UTRAN_CRLC_Rel(UTRAN_CellId_Type p_CellId,
+                            integer           p_RB_Id,
+                            UTRAN_FDD_TDD_Type p_FDD_TDD) runs on UTRAN_PTC // @sic R5s110171 sic@
+  {
+    if (p_FDD_TDD == UTRAN_FDD) { // @sic R5-110103, R5s110171 sic@
+      U_CRLC.send(cas_CRLC_RB_RelReq_FDD(p_CellId, p_RB_Id));
+    } else {
+      U_CRLC.send(cas_CRLC_RB_RelReq_TDD(p_CellId, p_RB_Id));
+    }
+    U_CRLC.receive(car_CRLC_CfgCnf);
+  }
+
+  function f_UTRAN_SendPage1_ModifySI (UTRAN_CellId_Type p_CellId, MIB_ValueTag p_MIB_ValueTag) runs on UTRAN_PTC
+  {
+    f_Delay (5.0); // wait before sending a paging type 1 message
+    f_UTRAN_CMAC_Pag1_Cfg(p_CellId);
+    U_TM.send (cas_PagingType1 (p_CellId, tsc_RB_PCCH, cs_RRC_PagingType1_ModifySI (p_MIB_ValueTag)));
+    U_TM.send (cas_SysInfoChangeInd (p_CellId, tsc_RB_BCCH_FACH, cs_SysInfoChangeInd (p_MIB_ValueTag)));
+  }
+
+  function f_UTRAN_CMAC_Pag1_Cfg (UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var DRX_CycleLengthStructure v_DRX_Cycle := f_UTRAN_CellInfo_GetDRX_CycleLength(p_CellId); // Paging Indicator calculation defined in 23.304 cl 8.3
+    var bitstring v_PI := '000000000000000000'B;
+    var IMSI_GSM_MAP v_IMSI_GsmMap := f_U_ConvertImsi2ASN(px_IMSI_Def);
+    var integer v_PI_Int := 0;
+    var integer i;
+    
+    // @sic R5s110215 sic@
+    // The Page Indicator to use is calculated by using the following formula:
+    // PI =    DRX Index mod Np where DRX Index = IMSI div 8192, 25.304, cl. 8.3
+
+    for (i := 0; i< lengthof(v_IMSI_GsmMap); i := i+1)
+    {
+      v_PI_Int := (v_PI_Int * 10) + v_IMSI_GsmMap[i];
+    }
+    
+    v_PI_Int := v_PI_Int/8192;
+    v_PI_Int := v_PI_Int mod 18;
+    
+    v_PI[v_PI_Int] := '1'B;
+    
+    if (pc_CS and pc_PS) {   // UE supports CS and PS
+      if (v_DRX_Cycle.cN_CS_DRX_CycleLength <= v_DRX_Cycle.cN_PS_DRX_CycleLength) {
+        // CN Drx Cycle length for CS is smaller than PS, then CN Drx Cycle  length for CS is used
+        v_DRX_Cycle.uTRAN_DRX_CycleLength := v_DRX_Cycle.cN_CS_DRX_CycleLength; //Lidia
+        
+      } else {
+        // CN Drx Cycle length for CS is not smaller than PS, then CN Drx Cycle  length for PS is used
+        v_DRX_Cycle.uTRAN_DRX_CycleLength := v_DRX_Cycle.cN_PS_DRX_CycleLength;
+        
+      }
+    } else if (pc_CS and not (pc_PS)) {
+      // UE supports only CS, the CN Drx cycle length for CS is used
+      v_DRX_Cycle.uTRAN_DRX_CycleLength := v_DRX_Cycle.cN_CS_DRX_CycleLength;
+      
+    } else if (pc_PS and not (pc_CS)) {
+      // UE supports only PS, the CN Drx cycle length for PS is used
+      v_DRX_Cycle.uTRAN_DRX_CycleLength := v_DRX_Cycle.cN_PS_DRX_CycleLength;
+    }
+    
+    U_CMAC.send(cas_CMAC_PagingCfgReq(p_CellId, tsc_S_CCPCH1, fdd, cs_MAC_PagingCfg (v_PI, v_DRX_Cycle.uTRAN_DRX_CycleLength, f_U_ConvertImsi2ASN(px_IMSI_Def))));
+    U_CMAC.receive (car_CMAC_PagingCfgCnf(p_CellId, tsc_S_CCPCH1));
+  }
+
+  function f_UTRAN_SysInfoModifySIB3 (UTRAN_CellId_Type             p_CellId,
+                                      template (value) SysInfoType3 p_SIB3) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (p_CellId);
+    var RatType v_RatType;
+    
+    if (v_FDD_TDD_Mode == UTRAN_TDD) {
+      v_RatType := tdd;
+    } else {
+      v_RatType := fdd;
+    }
+
+      v_CellSysInfo.SIB3 := valueof(p_SIB3);
+      v_CellSysInfo := fl_UTRAN_MIB_ChangeValueTag(v_CellSysInfo);
+      
+      f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+      f_UTRAN_SendSIB3_4_7_18 (p_CellId, tsc_Now, v_RatType);
+      f_UTRAN_SendSB1 (p_CellId, tsc_Now, v_RatType);
+      f_UTRAN_SendMIB (p_CellId, tsc_Now, v_RatType);
+      f_UTRAN_SendPage1_ModifySI (p_CellId, v_CellSysInfo.MIB.mib_ValueTag);
+  }
+
+  function f_UTRAN_SysInfoModifySIB19 (UTRAN_CellId_Type              p_CellId,
+                                       template (value) SysInfoType19 p_SIB19) runs on UTRAN_PTC
+  {
+    var UTRAN_CellSysInfo_Type v_CellSysInfo := f_UTRAN_SysInfo_Get(p_CellId);
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (p_CellId);
+    var RatType v_RatType  := fdd;
+    
+    if (v_FDD_TDD_Mode == UTRAN_TDD) {
+      v_RatType := tdd;
+    } else {
+      v_RatType := fdd;
+    }
+      v_CellSysInfo.SIB19 := valueof(p_SIB19);
+      v_CellSysInfo := fl_UTRAN_MIB_ChangeValueTag(v_CellSysInfo);
+      
+      f_UTRAN_SysInfo_Set(p_CellId, v_CellSysInfo);
+      f_UTRAN_SendSIB19 (p_CellId, tsc_Now, v_RatType);
+      f_UTRAN_SendSB1 (p_CellId, tsc_Now, v_RatType);
+      f_UTRAN_SendMIB (p_CellId, tsc_Now, v_RatType);
+      f_UTRAN_SendPage1_ModifySI (p_CellId, v_CellSysInfo.MIB.mib_ValueTag);
+  }
+
+  function f_UTRAN_SS_SetConfigRRC_RB3 ( UTRAN_CellId_Type p_CellId ) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var UTRAN_FDD_TDD_Type v_UTRAN_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD(p_CellId);
+    var C_RNTI v_CRNTI := f_UTRAN_CellInfo_GetC_RNTI(p_CellId);
+    
+    select (v_CellConfig) {
+      case (cell_FACH, cell_FACH_NoConn) {      // FDD
+        if (v_UTRAN_FDD_TDD == UTRAN_FDD) {
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_FDD(p_CellId,
+                                                        tsc_PRACH1,
+                                                        cs_UE_Info (omit, v_CRNTI),
+                                                        cs_TrChInfoRACH1_FDD,
+                                                        cds_TrLogMappingRACH_DTCH_RRC_RB3,
+                                                        cs_ActivateNow ));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_FDD(utran_CellDedicated,
+                                                          tsc_RB3_DCCH_RRC,
+                                                          cs_RB_LogCH_Mapping(tsc_UL_DCCH3, omit)));
+        } else {                                // TDD
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_TDD(p_CellId,
+                                                        tsc_PRACH1,
+                                                        cs_UE_Info(omit, v_CRNTI),
+                                                        cs_TrChInfoRACH1_TDD,
+                                                        cds_TrLogMappingRACH_DTCH_RRC_RB3,
+                                                        cs_ActivateNow));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_TDD(utran_CellDedicated,
+                                                          tsc_RB3_DCCH_RRC,
+                                                          cs_RB_LogCH_Mapping(tsc_UL_DCCH3, omit)));
+        }
+      }
+      case (cell_DCH_StandAloneSRB, cell_DCH_StandAloneSRB_NoConn) {
+        if (v_UTRAN_FDD_TDD == UTRAN_FDD) {     // FDD
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_FDD(utran_CellDedicated,
+                                                        tsc_UL_DPCH1,
+                                                        cs_UE_Info (omit, omit),
+                                                        cs_TrChInfoUL_13_6_StandAlone_FDD,
+                                                        cds_TrLogMappingUL_4DCCH_RRC_RB3,
+                                                        cs_ActivateNow));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_FDD(utran_CellDedicated,
+                                                          tsc_RB3_DCCH_RRC,
+                                                          cs_RB_LogCH_Mapping (tsc_UL_DCCH3, omit)));
+        } else {                                  // TDD
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_TDD(utran_CellDedicated,
+                                                      tsc_UL_DPCH1,
+                                                        cs_UE_Info,
+                                                        cs_TrChInfoUL_13_6_StandAlone_TDD,
+                                                        cds_TrLogMappingUL_4DCCH_RRC_RB3,
+                                                        cs_ActivateNow));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_TDD(utran_CellDedicated,
+                                                          tsc_RB3_DCCH_RRC,
+                                                          cs_RB_LogCH_Mapping(tsc_UL_DCCH3, omit)));
+        }
+      }
+      case (cell_DCH_Speech) {
+        //FFS - implementation need is under investigation
+      }
+      
+      /*
+      case (cell_DCH_64kCS_RAB_SRB) {
+        //FFS - implementation need is under investigation
+      }
+      case (cell_DCH_57_6kCS_RAB_SRB) {
+        //FFS - implementation need is under investigation
+      }
+      */
+      case (cell_DCH_64kPS_RAB_SRB) {
+        //FFS - implementation need is under investigation
+      }
+    }
+  }
+
+  function f_UTRAN_SS_RemoveConfigRRC_RB3 (UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType (p_CellId);
+    var UTRAN_FDD_TDD_Type v_UTRAN_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD (p_CellId);
+    var C_RNTI v_CRNTI := f_UTRAN_CellInfo_GetC_RNTI ( p_CellId );
+    
+    select (v_CellConfig) {
+      case (cell_FACH, cell_FACH_NoConn) {
+        if (v_UTRAN_FDD_TDD == UTRAN_FDD)       { //FDD
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_FDD(p_CellId,
+                                                        tsc_PRACH1,
+                                                        cs_UE_Info(omit, v_CRNTI),
+                                                        cs_TrChInfoRACH1_FDD,
+                                                        cs_TrLogMappingRACH_DTCH,
+                                                        cs_ActivateNow));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_FDD(utran_CellDedicated,
+                                                          tsc_RB3,
+                                                          cs_RB_LogCH_Mapping(tsc_UL_DCCH3, omit)));
+        } else {                                // TDD
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_TDD(p_CellId,
+                                                        tsc_PRACH1,
+                                                        cs_UE_Info(omit, v_CRNTI),
+                                                        cs_TrChInfoRACH1_TDD,
+                                                        cs_TrLogMappingRACH_DTCH,
+                                                        cs_ActivateNow));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_TDD(utran_CellDedicated,
+                                                          tsc_RB3,
+                                                          cs_RB_LogCH_Mapping(tsc_UL_DCCH3, omit)));
+        }
+      }
+      case (cell_DCH_StandAloneSRB, cell_DCH_StandAloneSRB_NoConn) {
+        if (v_UTRAN_FDD_TDD == UTRAN_FDD) {     // FDD
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_FDD(utran_CellDedicated,
+                                                        tsc_UL_DPCH1,
+                                                        cs_UE_Info,
+                                                        cs_TrChInfoUL_13_6_StandAlone_FDD,
+                                                        cs_TrLogMappingUL_4DCCH,
+                                                        cs_ActivateNow));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_FDD(utran_CellDedicated,
+                                                          tsc_RB3,
+                                                          cs_RB_LogCH_Mapping(tsc_UL_DCCH3, omit)));
+        } else {                                // TDD
+          f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_TDD(utran_CellDedicated,
+                                                        tsc_UL_DPCH1,
+                                                        cs_UE_Info,
+                                                        cs_TrChInfoUL_13_6_StandAlone_TDD,
+                                                        cs_TrLogMappingUL_4DCCH,
+                                                        cs_ActivateNow));
+          f_UTRAN_CRLC_Config(cas_RB_AM_ReconfMapping_TDD(utran_CellDedicated,
+                                                          tsc_RB3,
+                                                          cs_RB_LogCH_Mapping(tsc_UL_DCCH3, omit)));
+        }
+      }
+      case (cell_DCH_Speech) {
+        //FFS - implementation need is under investigation
+      }
+      case (cell_DCH_64kPS_RAB_SRB) {
+        //FFS - implementation need is under investigation
+      }
+
+      /*
+      case (cell_DCH_64kCS_RAB_SRB) {
+        //FFS - implementation need is under investigation
+      }
+      case (cell_DCH_57_6kCS_RAB_SRB) {
+        //FFS - implementation need is under investigation
+      }
+      */
+      case (cell_DCH_64kPS_RAB_SRB) {
+        //FFS - implementation need is under investigation
+      }
+    }
+  }
+
+  function f_UTRAN_SS_New_CRNTI (UTRAN_CellId_Type p_CellId,
+                                 C_RNTI            p_New_CRNTI) runs on UTRAN_PTC {
+  
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType (p_CellId);
+    var UTRAN_FDD_TDD_Type v_UTRAN_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD (p_CellId);
+    
+    if ((v_CellConfig == cell_FACH) or
+        (v_CellConfig == cell_FACH_PS) or
+        (v_CellConfig == cell_FACH_NoConn)){
+
+      if ( v_UTRAN_FDD_TDD == UTRAN_FDD ) {//FDD
+        //Reconfigure RLC size to allow C-RNTI in MAC header
+        //Configure radio bearers: RB1 (UM + DCCH) and (UM + DCCH); Payload size=136 (default)
+        f_UTRAN_CRLC_Config(cas_RB_UM_ReconfigInfo_FDD(utran_CellDedicated,    // @sic R5s110278, R5s110315 sic@
+                                               tsc_RB1,
+                                               cs_RB_LogCH_Mapping(tsc_UL_DCCH1,
+                                                             tsc_DL_DCCH1)));
+      
+        f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_FDD(p_CellId,
+                                                tsc_PRACH1,
+                                                cs_UE_Info(omit, p_New_CRNTI),
+                                                cs_TrChInfoRACH1_FDD,
+                                                cs_TrLogMappingRACH_DTCH,
+                                                cs_ActivateNow));
+
+        f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_FDD(p_CellId,
+                                                tsc_S_CCPCH1,
+                                                cs_UE_Info(omit, p_New_CRNTI),
+                                                cs_TrChInfoPCH_FACH_PS_FDD,
+                                                cs_TrLogMappingPCH_FACH_PS_FDD,
+                                                cs_ActivateNow));
+      }
+      else{ //TDD
+        f_UTRAN_CRLC_Config(cas_RB_UM_ReconfigInfo_TDD(p_CellId,   // @sic R5s110278 sic@
+                                                       tsc_RB1,
+                                                       cs_RB_LogCH_Mapping(tsc_UL_DCCH1,
+                                                                           tsc_DL_DCCH1)));
+      
+        f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_TDD(p_CellId,
+                                                tsc_PRACH1,
+                                                cs_UE_Info(omit, p_New_CRNTI),
+                                                cs_TrChInfoRACH1_TDD,
+                                                cs_TrLogMappingRACH_DTCH,
+                                                cs_ActivateNow));
+
+        f_UTRAN_CMAC_Config(cas_CMAC_ReconfigInfo_TDD(p_CellId,
+                                                tsc_S_CCPCH1,
+                                                cs_UE_Info(omit, p_New_CRNTI),
+                                                cs_TrChInfoPCH_FACH_PS_TDD,
+                                                cs_TrLogMappingPCH_FACH_PS_TDD,
+                                                cs_ActivateNow));
+
+      }
+    }
+    else {//Configuration does not apply
+      FatalError(__FILE__, __LINE__,"Configuration of new CRNTI can not be performed as cell is not propoerly configured");
+    }
+  }
+
+  function f_UTRAN_TransitToCellPCH ( UTRAN_CellId_Type p_CellId ) runs on UTRAN_PTC
+  {
+    
+    var RB_ConfigType v_CellConfiguration := f_UTRAN_CellInfo_GetConfigType (p_CellId);
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get ();
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI;
+    
+    if (v_CellConfiguration == cell_FACH_PS) {
+      
+      f_Delay(0.5);//Wait 500ms to allow any outstanding acknowledgements to be received.
+      
+      //@siclog "Step 1" siclog@
+      //Send PHYSICAL CHANNEL RECONFIGURATION message
+      U_AM.send ( cas_RLC_Data_Req_NoCnf ( utran_CellDedicated, // @sic R5s110210 sic@
+                                           tsc_RB2,
+                                           cs_PhysicalChannelReconfiguration (v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                                              v_RRC_TI,
+                                                                              omit,//Activation time is set to omit as Cell-FACH
+                                                                              omit,
+                                                                              cell_PCH,
+                                                                              cs_UTRAN_DRX_CycleLengthCoefficient_r7(3),
+                                                                              tsc_MaxAllowPwr)));
+      
+      //Since SS is configured to Cell-FACH no reconfiguring is needed
+      
+      //@siclog "Step 2" siclog@
+      //Receive PHYSICAL CHANNEL RECONFIGURATION COMPLETE
+      U_AM.receive (car_RLC_Data_Ind (utran_CellDedicated, // @sic R5s110210 sic@
+                                      tsc_RB2,
+                                      cr_PhysicalChannelReconfigurationComplete(v_RRC_TI)));
+      
+      f_Delay(0.5);//Wait 500ms to allow any outstanding acknowledgements to be received.
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "Configuration not supported. Only cell_FACH_PS is supported");
+    }
+  }
+
+  function f_UTRAN_PrepareCellRRC_ConnEst ( UTRAN_CellId_Type  p_CellId,
+                                            template (omit) UTRAN_CellId_Type  p_OtherCell := omit) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_OtherCellConfig, v_CellConfig := f_UTRAN_CellInfo_GetConfigType (p_CellId);
+    var UTRAN_FDD_TDD_Type v_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD ( p_CellId );
+    var C_RNTI v_CRNTI := f_UTRAN_CellInfo_GetC_RNTI ( p_CellId );
+    var U_RNTI v_URNTI := f_UTRAN_CellInfo_GetU_RNTI ( p_CellId );
+    var boolean v_OtherCellExists := false;
+    var UTRAN_CellId_Type v_OtherCell;
+    
+    if (isvalue (p_OtherCell)) { // other cell exists
+      v_OtherCellExists := true;
+      v_OtherCellConfig := f_UTRAN_CellInfo_GetConfigType(valueof(p_OtherCell));
+      v_OtherCell := valueof (p_OtherCell);
+    }
+    
+    select (v_CellConfig)
+    {
+      case (cell_DCH_StandAloneSRB_NoConn,
+            cell_FACH_NoConn) {
+        // Do nothing
+      }
+      case (cell_NoDPCH,
+            cell_DCH_Speech,
+            cell_DCH_64kPS_RAB_SRB) {
+        if (v_OtherCellExists) {
+          if (v_OtherCellConfig == cell_DCH_StandAloneSRB_NoConn or
+              v_OtherCellConfig == cell_DCH_StandAloneSRB or
+              v_OtherCellConfig == cell_DCH_Speech or
+              v_OtherCellConfig == cell_DCH_64kPS_RAB_SRB) {
+            f_UTRAN_SS_RelDPCH (v_OtherCell);
+            f_UTRAN_CellInfo_SetConfigType (v_OtherCell, cell_NoDPCH);
+            f_UTRAN_SS_1DCH_DCCH_Cfg(p_CellId);
+            f_UTRAN_SS_RB1_ToRB4_Cfg(utran_CellDedicated, v_FDD_TDD);
+            f_UTRAN_CellInfo_SetConfigType (p_CellId, cell_DCH_StandAloneSRB_NoConn);
+          }
+        }
+      }
+      case (cell_FACH_NoDedicated) {
+        if (v_OtherCellExists) {
+          if (v_OtherCellConfig == cell_FACH_NoConn or
+              v_OtherCellConfig ==cell_FACH or
+              v_OtherCellConfig == cell_FACH_PS) {
+            f_UTRAN_CRLC_Rel (v_OtherCell, tsc_RB_BCCH_FACH, v_FDD_TDD);
+            f_UTRAN_CMAC_Config (cas_CMAC_ReconfigInfo_FDD ( v_OtherCell,
+                                                             tsc_S_CCPCH1,
+                                                             cs_UE_Info (omit, omit),
+                                                             cs_TrChInfoPCH_FACH_PS_FDD,
+                                                             cs_TrLogMappingPCH_FACH_CellDCH,
+                                                             cs_ActivateNow ));
+            f_UTRAN_CMAC_Config ( cas_CMAC_ReconfigInfo_FDD ( v_OtherCell,
+                                                              tsc_PRACH1,
+                                                              cs_UE_Info (omit, omit),
+                                                              cs_TrChInfoRACH1_FDD,
+                                                              cs_TrLogMappingRACH2,
+                                                              cs_ActivateNow ));
+            f_UTRAN_CellInfo_SetConfigType (v_OtherCell, cell_FACH_NoDedicated);
+            f_UTRAN_CMAC_Config (cas_CMAC_ReconfigInfo_FDD ( p_CellId,
+                                                             tsc_S_CCPCH1,
+                                                             cs_UE_Info (v_URNTI, v_CRNTI),
+                                                             cs_TrChInfoPCH_FACH_PS_FDD,
+                                                             cs_TrLogMappingPCH_FACH_PS_FDD,
+                                                             cs_ActivateNow ));
+            f_UTRAN_CMAC_Config ( cas_CMAC_ReconfigInfo_FDD ( p_CellId,
+                                                              tsc_PRACH1,
+                                                              cs_UE_Info (omit, v_CRNTI),
+                                                              cs_TrChInfoRACH1_FDD,
+                                                              cs_TrLogMappingRACH_DTCH,
+                                                              cs_ActivateNow ));
+            f_UTRAN_SS_RB_BCCH_FACH_Cfg (p_CellId);
+            f_UTRAN_CellInfo_SetConfigType (p_CellId, cell_FACH_NoConn);
+          }
+        }
+      }
+    }
+  }
+
+}

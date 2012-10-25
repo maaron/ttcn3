@@ -1,0 +1,634 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+
+module EUTRA_IdleMode {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CellInfoFrequency all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Parameters all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SysInfo_Templates all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+
+  type CarrierFreqUTRA_FDD.p_MaxUTRA P_MaxUTRA_FDD;  /* @status    APPROVED */
+
+  type CarrierFreqUTRA_FDD.q_QualMin Q_QualMin_FDD;  /* @status    APPROVED */
+
+  const float tsc_IdleMode_GenericTimer := 360.0;               /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell2  := int2bit (2, 16);    /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell3  := int2bit (3, 16);    /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell4  := int2bit (4, 16);    /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell6  := int2bit (6, 16);    /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell10 := int2bit (10, 16);   /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell11 := int2bit (11, 16);   /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell12 := int2bit (12, 16);   /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell13 := int2bit (13, 16);   /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell14 := int2bit (14, 16);   /* @status    APPROVED */
+
+  const TrackingAreaCode tsc_IdleMode_TAC_Cell23 := int2bit (23, 16);   /* @status    APPROVED */
+
+  const charstring tsc_UT_PLMN1 := "00101";                             /* @status    APPROVED */
+
+  const charstring tsc_UT_PLMN2 := "00211";                             /* @status    APPROVED */
+
+  const charstring tsc_UT_PLMN3 := "00321";                             /* @status    APPROVED */
+
+  const charstring tsc_UT_PLMN4 := "00431";                             /* @status    APPROVED */
+
+  const charstring tsc_UT_PLMN13 := "00281";                            /* @status    APPROVED */
+
+  template (value) InterFreqCarrierFreqInfo cs_InterFreqCarrierFreq_Common(CarrierFreqEUTRA                        p_EUTRA_CarrierFreq,
+                                                                           Q_RxLevMin                              p_Q_RxLevMin,
+                                                                           template (omit) P_Max                   p_P_Max,
+                                                                           T_Reselection                           p_T_Reselection,
+                                                                           template (omit) SpeedStateScaleFactors  p_T_ReselectionEUTRA_Sf,
+                                                                           ReselectionThreshold                    p_ThreshX_High,
+                                                                           ReselectionThreshold                    p_ThreshX_Low,
+                                                                           AllowedMeasBandwidth                    p_AllowedMeasBandwidth,
+                                                                           PresenceAntennaPort1                    p_PresenceAntennaPort1,
+                                                                           template (omit) CellReselectionPriority p_CellReselectionPriority,
+                                                                           NeighCellConfig                         p_NeighCellConfig,
+                                                                           Q_OffsetRange                           p_Q_OffsetRange,
+                                                                           template (omit) InterFreqNeighCellList  p_InterFreqNeighCellList,
+                                                                           template (omit) InterFreqBlackCellList  p_InterFreqBlackCellList) :=
+  { /* @status    APPROVED */
+    dl_CarrierFreq           := p_EUTRA_CarrierFreq.dl_CarrierFreq,
+    q_RxLevMin               := p_Q_RxLevMin,
+    p_Max                    := p_P_Max,
+    t_ReselectionEUTRA       := p_T_Reselection,
+    t_ReselectionEUTRA_SF    := p_T_ReselectionEUTRA_Sf,
+    threshX_High             := p_ThreshX_High,
+    threshX_Low              := p_ThreshX_Low,
+    allowedMeasBandwidth     := p_AllowedMeasBandwidth,
+    presenceAntennaPort1     := p_PresenceAntennaPort1,
+    cellReselectionPriority  := p_CellReselectionPriority,
+    neighCellConfig          := p_NeighCellConfig,
+    q_OffsetFreq             := p_Q_OffsetRange,
+    interFreqNeighCellList   := p_InterFreqNeighCellList,
+    interFreqBlackCellList   := p_InterFreqBlackCellList,
+    q_QualMin_r9             := omit,      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    threshX_Q_r9             := omit       /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) InterFreqCarrierFreqInfo cs_InterFreqCarrierFreq_TRes_ThreshXHigh_CRPri(CarrierFreqEUTRA                        p_EUTRA_CarrierFreq,
+                                                                                           AllowedMeasBandwidth                    p_AllowedMeasBandwidth,
+                                                                                           T_Reselection                           p_T_Reselection,
+                                                                                           ReselectionThreshold                    p_ThreshX_High,
+                                                                                           template (omit) CellReselectionPriority p_CellReselectionPriority) :=
+    /* @status    APPROVED */
+    cs_InterFreqCarrierFreq_Common(p_EUTRA_CarrierFreq,
+                                   -53,
+                                   omit,
+                                   p_T_Reselection,
+                                   omit,
+                                   p_ThreshX_High,
+                                   1,
+                                   p_AllowedMeasBandwidth,
+                                   false,
+                                   p_CellReselectionPriority,
+                                   '01'B,
+                                   dB0,
+                                   omit,
+                                   omit);
+
+  template (value) InterFreqCarrierFreqInfo cs_InterFreqCarrierFreq_CRPri(CarrierFreqEUTRA                        p_EUTRA_CarrierFreq,
+                                                                          AllowedMeasBandwidth                    p_AllowedMeasBandwidth,
+                                                                          template (omit) CellReselectionPriority p_CellReselectionPriority) :=
+  /* @status    APPROVED */
+    cs_InterFreqCarrierFreq_Common(p_EUTRA_CarrierFreq,
+                                   -53,//@sic R5s100725 : as per 36.508 Table 4.4.3.3-4, the default value is -53 sic@
+                                   omit,
+                                   0,
+                                   omit,
+                                   2,
+                                   1,
+                                   p_AllowedMeasBandwidth,
+                                   false,
+                                   p_CellReselectionPriority,
+                                   '01'B,
+                                   dB0,
+                                   omit,
+                                   omit);
+
+  template (value) InterFreqCarrierFreqInfo cs_InterFreqCarrierFreq_ThreshXHigh_CRPri(CarrierFreqEUTRA                        p_EUTRA_CarrierFreq,
+                                                                                      AllowedMeasBandwidth                    p_AllowedMeasBandwidth,
+                                                                                      ReselectionThreshold                    p_ThreshX_High,
+                                                                                      template (omit) CellReselectionPriority p_CellReselectionPriority) :=
+  /* @status    APPROVED */
+    cs_InterFreqCarrierFreq_Common(p_EUTRA_CarrierFreq,
+                                   -53,//@sic R5s100725 : as per 36.508 Table 4.4.3.3-4, the default value is -53 sic@
+                                   omit,
+                                   0,
+                                   omit,
+                                   p_ThreshX_High,
+                                   1,
+                                   p_AllowedMeasBandwidth,
+                                   false,
+                                   p_CellReselectionPriority,
+                                   '01'B,
+                                   dB0,
+                                   omit,
+                                   omit);
+
+  template (value) InterFreqCarrierFreqInfo cs_InterFreqCarrierFreq_ThreshXHigh(CarrierFreqEUTRA     p_EUTRA_CarrierFreq,
+                                                                                AllowedMeasBandwidth p_AllowedMeasBandwidth,
+                                                                                ReselectionThreshold p_ThreshX_High) :=
+  /* @status    APPROVED */
+    cs_InterFreqCarrierFreq_Common(p_EUTRA_CarrierFreq,
+                                   -53,//@sic R5s100725 : as per 36.508 Table 4.4.3.3-4, the default value is -53 sic@
+                                   omit,
+                                   0,
+                                   omit,
+                                   p_ThreshX_High,
+                                   1,
+                                   p_AllowedMeasBandwidth,
+                                   false,
+                                   4,
+                                   '01'B,
+                                   dB0,
+                                   omit,
+                                   omit);
+
+  template (value) InterFreqCarrierFreqInfo cs_InterFreqCarrierFreq_ThreshXLow(CarrierFreqEUTRA     p_EUTRA_CarrierFreq,
+                                                                               AllowedMeasBandwidth p_AllowedMeasBandwidth,
+                                                                               ReselectionThreshold p_ThreshX_Low) :=
+  /* @status    APPROVED */
+    cs_InterFreqCarrierFreq_Common(p_EUTRA_CarrierFreq,
+                                   -53,//@sic R5s100725 : as per 36.508 Table 4.4.3.3-4, the default value is -53 sic@
+                                   omit,
+                                   0,
+                                   omit,
+                                   2,
+                                   p_ThreshX_Low,
+                                   p_AllowedMeasBandwidth,
+                                   false,
+                                   4,
+                                   '01'B,
+                                   dB0,
+                                   omit,
+                                   omit);
+
+  template (value) CarrierFreqUTRA_FDD cs_CarrierFreqUTRA_FDD_Common(ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                     template (omit) CellReselectionPriority p_CellReselectionPriority := 3,
+                                                                     ReselectionThreshold                    p_ThreshX_High := 2,
+                                                                     ReselectionThreshold                    p_ThreshX_Low  := 1,
+                                                                     Q_RxLevMin                              p_Q_RxLevMin   := -40,
+                                                                     P_MaxUTRA_FDD                           p_P_MaxUTRA    := 21,
+                                                                     Q_QualMin_FDD                           p_Q_QualMin    := -24) :=
+  { /* @status    APPROVED */
+    carrierFreq             := p_ARFCN_ValueUTRA,
+    cellReselectionPriority := p_CellReselectionPriority,
+    threshX_High            := p_ThreshX_High,
+    threshX_Low             := p_ThreshX_Low,
+    q_RxLevMin              := p_Q_RxLevMin,
+    p_MaxUTRA               := p_P_MaxUTRA,
+    q_QualMin               := p_Q_QualMin,
+    threshX_Q_r9            := omit       /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) CarrierFreqUTRA_TDD cs_CarrierFreqUTRA_TDD_Common(ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                     template (omit) CellReselectionPriority p_CellReselectionPriority := 3,
+                                                                     ReselectionThreshold                    p_ThreshX_High := 2,
+                                                                     ReselectionThreshold                    p_ThreshX_Low  := 1,
+                                                                     Q_RxLevMin                              p_Q_RxLevMin   := -40,
+                                                                     P_MaxUTRA_FDD                           p_P_MaxUTRA    := 21) :=
+  { /* @status    APPROVED */
+    carrierFreq             := p_ARFCN_ValueUTRA,
+    cellReselectionPriority := p_CellReselectionPriority,
+    threshX_High            := p_ThreshX_High,
+    threshX_Low             := p_ThreshX_Low,
+    q_RxLevMin              := p_Q_RxLevMin,
+    p_MaxUTRA               := p_P_MaxUTRA
+  };
+
+  template (value) CarrierFreqUTRA_FDD cs_CarrierFreqUTRA_FDD_CRPrio(ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                     template (omit) CellReselectionPriority p_CellReselectionPriority) :=
+  /* @status    APPROVED */
+    cs_CarrierFreqUTRA_FDD_Common(p_ARFCN_ValueUTRA, p_CellReselectionPriority);
+
+  template (value) CarrierFreqUTRA_FDD cs_CarrierFreqUTRA_FDD_CRPrio_PMax(ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                          template (omit) CellReselectionPriority p_CellReselectionPriority,
+                                                                          P_MaxUTRA_FDD                           p_P_MaxUTRA) :=
+  /* @status    APPROVED */
+    cs_CarrierFreqUTRA_FDD_Common(p_ARFCN_ValueUTRA, p_CellReselectionPriority, -, -, -, p_P_MaxUTRA); //@sic R5s110168 sic@
+
+  template (value) CarrierFreqUTRA_TDD cs_CarrierFreqUTRA_TDD_CRPrio_PMax(ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                          template (omit) CellReselectionPriority p_CellReselectionPriority,
+                                                                          P_MaxUTRA_FDD                           p_P_MaxUTRA) :=
+  /* @status    APPROVED */
+    cs_CarrierFreqUTRA_TDD_Common(p_ARFCN_ValueUTRA, p_CellReselectionPriority, -, -, -, p_P_MaxUTRA);
+
+  template (value) CarrierFreqUTRA_TDD cs_CarrierFreqUTRA_TDD_CRPrio(ARFCN_ValueUTRA                         p_ARFCN_ValueUTRA,
+                                                                     template (omit) CellReselectionPriority p_CellReselectionPriority) :=
+  /* @status    APPROVED */
+    cs_CarrierFreqUTRA_TDD_Common(p_ARFCN_ValueUTRA, p_CellReselectionPriority);
+
+  template (value) CarrierFreqUTRA_FDD cs_CarrierFreqUTRA_FDD_ReselectionThreshold(ARFCN_ValueUTRA      p_ARFCN_ValueUTRA,
+                                                                                   ReselectionThreshold p_ReselectionThreshold) :=
+  /* @status    APPROVED */
+    cs_CarrierFreqUTRA_FDD_Common(p_ARFCN_ValueUTRA, -, p_ReselectionThreshold, p_ReselectionThreshold);
+
+  template (value) CarrierFreqUTRA_TDD cs_CarrierFreqUTRA_TDD_ReselectionThreshold(ARFCN_ValueUTRA      p_ARFCN_ValueUTRA,
+                                                                                   ReselectionThreshold p_ReselectionThreshold) :=
+  /* @status    APPROVED */
+    cs_CarrierFreqUTRA_TDD_Common(p_ARFCN_ValueUTRA, -, p_ReselectionThreshold, p_ReselectionThreshold);
+
+  template (value) PhysCellIdRange cs_PhysCellIdRange(PhysCellId p_Start,
+                                                      template (omit) PhysCellIdRange_Type p_Range) :=
+  { /* @status    APPROVED */
+    start_ := p_Start,
+    range := p_Range
+  };
+
+  template (value) SystemInformationBlockType4 cs_SIB4_AllParameters(template (omit) IntraFreqNeighCellList p_IntraFreqNeighCellList,
+                                                                     template (omit) IntraFreqBlackCellList p_IntraFreqBlackCellList,
+                                                                     template (omit) PhysCellIdRange        p_PhysCellIdRange) :=
+  { /* @status    APPROVED */
+    intraFreqNeighCellList := p_IntraFreqNeighCellList,
+    intraFreqBlackCellList := p_IntraFreqBlackCellList,
+    csg_PhysCellIdRange    := p_PhysCellIdRange,
+    lateNonCriticalExtension := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformationBlockType4 cs_SIB4_Csg_PhysCellIdRange_StartOnly(PhysCellId p_Start) :=
+  /* @status    APPROVED */
+    cs_SIB4_AllParameters (omit, omit, cs_PhysCellIdRange(p_Start, omit));
+
+  template (value) SystemInformationBlockType4 cs_SIB4_NeighCellList(template (value) IntraFreqNeighCellList p_IntraFreqNeighCellList) :=
+  /* @status    APPROVED */
+    cs_SIB4_AllParameters (p_IntraFreqNeighCellList, omit, omit);
+
+  template (value) SystemInformationBlockType4 cs_SIB4_Neigh_BlackCellList_1Entry(template (value) IntraFreqNeighCellList p_IntraFreqNeighCellList,
+                                                                                  template (value) IntraFreqBlackCellList p_IntraFreqBlackCellList) :=
+  /* @status    APPROVED */
+    cs_SIB4_AllParameters (p_IntraFreqNeighCellList, p_IntraFreqBlackCellList, omit);
+
+  function f_EUTRA_IdleMode_TAU(EUTRA_CellId_Type p_CellId,
+                                template (present) EstablishmentCause p_EstablishmentCause := ?) //@sic R5-110062 sic@
+    runs on EUTRA_PTC
+  {
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+
+    t_IdleMode_GenericTimer.start;
+    f_EUTRA_508CheckCampOnNewEutraCell(p_CellId, -, p_EstablishmentCause); //@sic R5-110062 sic@
+    t_IdleMode_GenericTimer.stop;
+  }
+
+  function f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT(EUTRA_CellId_Type p_CellId,
+                                                          boolean p_CSInOtherRAT,
+                                                          boolean p_PDPContext,
+                                                          boolean p_PreambleOnLTE,
+                                                          template (omit) octetstring p_EUTRA_Cap,   // @sic R5-123734 sic@
+                                                          EUTRA_ATTACH_Type p_ForcedAttach := NORMAL) runs on EUTRA_PTC
+  { /* @sic R5-110746 sic@ */
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+    
+    t_IdleMode_GenericTimer.start;
+    f_EUTRA_508CheckCampOnNewEutraCellUponMobilityFromAnotherRAT(p_CellId, p_CSInOtherRAT, p_PDPContext, p_PreambleOnLTE, p_EUTRA_Cap, p_ForcedAttach); // @sic R5s110176 sic@
+    t_IdleMode_GenericTimer.stop;
+  }
+
+  function f_EUTRA_TrackingAreaUpdate_WithoutRelease(EUTRA_CellId_Type         p_CellId,
+                                                     RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                                     EUTRA_ATTACH_Type         p_ForcedAttach := NORMAL) runs on EUTRA_PTC
+  { /* @sic R5s100707 additional MCC160 comments sic@ */
+    var EstablishmentCause v_EstablishmentCause := mo_Signalling;
+    f_EUTRA_TrackingAreaUpdate_Step1_5(p_CellId, p_RRC_TI, p_ForcedAttach, v_EstablishmentCause);
+  }
+
+  function f_EUTRA_TrackingAreaUpdate_WithoutRrcConnReq(EUTRA_CellId_Type         p_CellId,
+                                                        RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                                        EUTRA_ATTACH_Type         p_ForcedAttach := NORMAL,
+                                                        integer                   p_SelectedPlmnId := 1) runs on EUTRA_PTC //@sic R5s110511 change 3 sic@
+  { /* @sic R5s100707 additional MCC160 comments sic@ */
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_KsiValue v_KsiValue := f_EUTRA_SecurityKSIasme_Get();
+    var GutiParameters_Type v_GutiParams:= f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var B3_Type v_EpsUpdate_TypeValue := f_GetEPSTAUType (p_ForcedAttach); // @sic R5s110176 sic@
+    var template (omit) EPS_BearerContextStatus v_EPS_ContextStatus; // @sic R5s100608 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType_Expected := f_GetAdditionalUpdateType (p_ForcedAttach); // @sic R5s110176 sic@
+
+    //Step 2: Send RRC Connection Setup on SRB0 (CCCH) and switch on UL grant assignments:
+    f_EUTRA_RRC_ConnectionSetup_Def(p_CellId, -, p_RRC_TI);
+    
+    // UE shall establish SRB1 acc. to 36.331 cl. 5.3.3.4 and 5.3.9
+    // UE enters RRC_CONNECTED state
+    // SRB1 is established: no ciphering, no integrity protection for NAS/RRC
+    
+    //Step 3: Receive RRCConnectionSetupComplete which includes a TRACKING AREA UPDATE REQUEST message
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(p_CellId,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete (p_RRC_TI, ?, -, p_SelectedPlmnId), //@sic R5s110511 change 3 sic@
+                                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                         cr_508_TAU_Request(v_EpsUpdate_TypeValue,
+                                                                                            v_KsiValue,
+                                                                                            cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                                            v_AdditionalUpdateType_Expected)));
+    v_EPS_ContextStatus := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus; // Send this back in the Accept
+    
+    /* Step 4 - 5: send TAU ACCEPT and receive TAU COMPLETE; @sic R5s110078 sic@ */
+    f_EUTRA_TrackingAreaUpdate_Accept_Complete(p_CellId, v_GutiParams, v_EpsUpdate_TypeValue, v_EPS_ContextStatus, v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType, p_ForcedAttach);
+
+    //Step 6: Release RRC connection
+    f_EUTRA_RRC_ConnectionRelease(p_CellId, p_RRC_TI);
+  }
+
+  function f_EUTRA_TrackingAreaUpdate_WithEplmn(EUTRA_CellId_Type          p_CellId,
+                                                RRC_TransactionIdentifier  p_RRC_TI,
+                                                template (value) PLMN_List p_EPLMNlist,
+                                                EUTRA_ATTACH_Type p_ForcedAttach := NORMAL) runs on EUTRA_PTC
+  {
+    var template (present) EstablishmentCause v_EstablishmentCause := cr_EstablishmentCause_MoSignalling;
+    
+    /* Step 1..5: */
+    f_EUTRA_TrackingAreaUpdate_Step1_5(p_CellId, p_RRC_TI, p_ForcedAttach, v_EstablishmentCause, p_EPLMNlist);
+    
+    //* @verdict pass UE transmits a TRACKING AREA UPDATE COMPLETE
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "UE transmits a TRACKING AREA UPDATE COMPLETE");
+
+    //Step 6: Release RRC connection
+    f_EUTRA_RRC_ConnectionRelease(p_CellId, p_RRC_TI);
+  }
+
+  function f_EUTRA_IdleUpdated_WithEplmn(EUTRA_CellId_Type          p_CellId,
+                                         IDLEUPDATED_Type           p_Type,
+                                         template (value) PLMN_List p_EPLMNlist,
+                                         EUTRA_ATTACH_Type          p_ForcedAttach := NORMAL) runs on EUTRA_PTC
+  { /* @sic R5-120234, R5-120541, R5-120542 sic@ */
+    var NAS_MSG_Indication_Type v_NasInd;
+    
+    v_NasInd := f_EUTRA_IdleUpdated_Step1_4(p_CellId, p_Type, p_ForcedAttach); // @sic R5s110176, R5s100780 sic@
+    
+    f_EUTRA_IdleUpdated_Step5_15(p_CellId, // @sic R5s100780 sic@
+                                 STATE2_IDLEUPDATE,
+                                 p_ForcedAttach,
+                                 v_NasInd,
+                                 -,
+                                 cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                 -,
+                                 -,
+                                 p_EPLMNlist);
+    
+    f_EUTRA_IdleUpdated_Step16_17(p_CellId,                       // @sic R5s100780 sic@
+                                  true);
+  }
+
+  function f_EUTRA_IdleUpdated_WithoutRRCConnReq(EUTRA_CellId_Type      p_CellId,
+                                                 IDLEUPDATED_STATE_Type p_State,
+                                                 EUTRA_ATTACH_Type      p_ForcedAttach := NORMAL,
+                                                 template (present) SecurityHeaderType p_AttReqSecurityHeader := tsc_SHT_IntegrityProtected) //@sic R5s110371 Change 4 sic@
+    runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_AttDetValue_Type v_AttachType :=f_GetEAttachType(p_ForcedAttach); // @sic R5s110176, R5-103673 : Removed paramater sic@
+    var B3_Type v_PDNType := f_GetPdnType();
+    var NAS_MSG_Indication_Type v_NasInd;
+    //v_AdditionalUpdateType defined to follow TTCN3 v411 standard
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (p_ForcedAttach); // @sic R5s110176,  R5-103681 sic@
+    
+    // send RRC Connection Setup on SRB0 (CCCH) and switch on UL grant assignments:
+    f_EUTRA_RRC_ConnectionSetup_Def (p_CellId);
+    
+    // UE shall establish SRB1 acc. to 36.331 cl. 5.3.3.4 and 5.3.9
+    // UE enters RRC_CONNECTED state
+    // SRB1 is established: no ciphering, no integrity protection for NAS/RRC
+    
+    // receive RRC Connection Setup Complete with piggy-backed NAS message on SRB1 (DCCH):
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(p_CellId,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(v_RRC_TI, ?),
+                                                       cr_NAS_IndicationWithPiggybacking(p_AttReqSecurityHeader, //@sic R5s110371 Change 4 sic@
+                                                                                         cr_508_ATTACH_REQUEST(v_AttachType,
+                                                                                                               v_AdditionalUpdateType),//@sic R5-103681 sic@
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNType)));
+    f_EUTRA_IdleUpdated_Step5_17 (p_CellId, p_State, p_ForcedAttach, v_NasInd);
+  }
+
+  function f_EUTRA_SetSIB5_InterFreqCarrierFreqList_F1(EUTRA_CellId_Type p_CellId,
+                                                       template (value) InterFreqCarrierFreqInfo p_InterFreqCarrierFreqInfo)  runs on EUTRA_PTC
+  {
+    var template (value) SystemInformationBlockType5 v_SIB5;
+    var Frequency_fList_Type v_Frequency_PrimaryBand := f_EUTRA_InitFrequency_f1Tof4(px_ePrimaryFrequencyBand,
+                                                                                     px_ePrimaryBandChannelBandwidth,
+                                                                                     f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    var ChannelBandwidthDependency_Type v_PrimaryChannelBandwidthDependency := f_EUTRA_BandDependentParam(px_ePrimaryBandChannelBandwidth,
+                                                                                                          f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    
+    select (p_CellId) {
+      case (eutra_Cell1, eutra_Cell2, eutra_Cell4, eutra_Cell11) {
+        // For cell frequency of f1: v_Frequency_PrimaryBand.f1
+        // SIB5 contents: f2, f3, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        FatalError (__FILE__, __LINE__, "f1 is not included in SIB5 interFreqCarrierFreqList because cell is on f1");
+      }
+      case (eutra_Cell3, eutra_Cell23) {
+        // For cell frequency of f2: v_Frequency_PrimaryBand.f2
+        // SIB5 contents: f1, f3, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {   // f3 is defined for the Band px_ePrimaryFrequencyBand
+          v_SIB5 := cs_508_SystemInformationBlockType5_Def({ p_InterFreqCarrierFreqInfo, //f1
+                                                             cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f3,//f3
+                                                                                      v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth) });
+        }
+        else {  //f3 not defined (e.g. band 6, 13, 14, 17 & 38)
+          v_SIB5 := cs_508_SystemInformationBlockType5_Def({ p_InterFreqCarrierFreqInfo });  //f1
+        }
+      }
+      case (eutra_Cell6) {
+        // For cell frequency of f3: v_Frequency_PrimaryBand.f3
+        // SIB5 contents: f1, f2, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        if (v_Frequency_PrimaryBand.f2.dl_CarrierFreq != tsc_DummyFrequency) {   // f2 is defined for the Band px_ePrimaryFrequencyBand
+          v_SIB5 := cs_508_SystemInformationBlockType5_Def({ p_InterFreqCarrierFreqInfo, //f1
+                                                             cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f2,//f2
+                                                                                      v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth) });
+        }
+        else {  //f2 not defined (e.g. band 13)
+          v_SIB5 := cs_508_SystemInformationBlockType5_Def({ p_InterFreqCarrierFreqInfo }); //f1
+        }
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value Cell Id for SIB5 intialisation");
+      }
+    }
+    f_EUTRA_CellInfo_SetSIB5(p_CellId, v_SIB5);
+  }
+
+  function f_EUTRA_SetSIB5_InterFreqCarrierFreqList_F2(EUTRA_CellId_Type p_CellId,
+                                                       template (value) InterFreqCarrierFreqInfo p_InterFreqCarrierFreqInfo)  runs on EUTRA_PTC
+  {
+    var template (value) SystemInformationBlockType5 v_SIB5;
+    var Frequency_fList_Type v_Frequency_PrimaryBand := f_EUTRA_InitFrequency_f1Tof4(px_ePrimaryFrequencyBand,
+                                                                                     px_ePrimaryBandChannelBandwidth,
+                                                                                     f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    var ChannelBandwidthDependency_Type v_PrimaryChannelBandwidthDependency := f_EUTRA_BandDependentParam(px_ePrimaryBandChannelBandwidth,
+                                                                                                          f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    
+    select (p_CellId) {
+      case (eutra_Cell1, eutra_Cell2, eutra_Cell4, eutra_Cell11) {
+        // For cell frequency of f1: v_Frequency_PrimaryBand.f1
+        // SIB5 contents: f2, f3, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        if (v_Frequency_PrimaryBand.f2.dl_CarrierFreq != tsc_DummyFrequency) {   // f2 is defined for the Band px_ePrimaryFrequencyBand
+          if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) { // f3 is defined for the Band px_ePrimaryFrequencyBand
+            v_SIB5 := cs_508_SystemInformationBlockType5_Def({ p_InterFreqCarrierFreqInfo,
+                                                               cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f3,//f3
+                                                                                        v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth) });
+          }
+          else {  // f2 defined but f3 not defined for the band (e.g. band 6, 14, 17 & 38)
+            v_SIB5 := cs_508_SystemInformationBlockType5_Def({ p_InterFreqCarrierFreqInfo });
+          }
+        }
+        else {  //f2 (and f3) not defined (e.g. band 13)
+          FatalError (__FILE__, __LINE__, "Test case can not run on then chosen band");
+        }
+      }
+      case (eutra_Cell3, eutra_Cell23) {
+        // For cell frequency of f2: v_Frequency_PrimaryBand.f2
+        // SIB5 contents: f1, f3, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        FatalError (__FILE__, __LINE__, "f2 is not included in SIB5 interFreqCarrierFreqList because cell is on f2");
+      }
+      case (eutra_Cell6) {
+        // For cell frequency of f3: v_Frequency_PrimaryBand.f3
+        // SIB5 contents: f1, f2, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        if (v_Frequency_PrimaryBand.f2.dl_CarrierFreq != tsc_DummyFrequency) {   // f2 is defined for the Band px_ePrimaryFrequencyBand
+          v_SIB5 := cs_508_SystemInformationBlockType5_Def({ cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1,//f1
+                                                                                      v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),
+                                                             p_InterFreqCarrierFreqInfo }); //f2
+        }
+        else {  //f2 (and f3) not defined (e.g. band 13)
+          FatalError (__FILE__, __LINE__, "index for f2 can not be set since f2 is not defined for this band");
+        }
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value Cell Id for SIB5 intialisation");
+      }
+    }
+    f_EUTRA_CellInfo_SetSIB5(p_CellId, v_SIB5);
+  }
+
+  function f_EUTRA_SetSIB5_InterFreqCarrierFreqList_F3(EUTRA_CellId_Type p_CellId,
+                                                       template (value) InterFreqCarrierFreqInfo p_InterFreqCarrierFreqInfo) runs on EUTRA_PTC
+  {
+    var template (value) SystemInformationBlockType5 v_SIB5;
+    var Frequency_fList_Type v_Frequency_PrimaryBand := f_EUTRA_InitFrequency_f1Tof4(px_ePrimaryFrequencyBand,
+                                                                                     px_ePrimaryBandChannelBandwidth,
+                                                                                     f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    var ChannelBandwidthDependency_Type v_PrimaryChannelBandwidthDependency := f_EUTRA_BandDependentParam(px_ePrimaryBandChannelBandwidth,
+                                                                                                          f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    
+    select (p_CellId) {
+      case (eutra_Cell1, eutra_Cell2, eutra_Cell4, eutra_Cell11) {
+        // For cell frequency of f1: v_Frequency_PrimaryBand.f1
+        // SIB5 contents: f2, f3, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        if (v_Frequency_PrimaryBand.f2.dl_CarrierFreq != tsc_DummyFrequency) {   // f2 is defined for the Band px_ePrimaryFrequencyBand
+          if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) { // f3 is defined for the Band px_ePrimaryFrequencyBand
+            v_SIB5 := cs_508_SystemInformationBlockType5_Def({ cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, //f2
+                                                                                        v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),
+                                                               p_InterFreqCarrierFreqInfo }); //f3
+          }
+          else {  // f2 defined but f3 not defined for the band (e.g. band 6, 14, 17 & 38)
+            FatalError (__FILE__, __LINE__, "f3 is not defined for this band and index can not be set");
+          }
+        }
+        else {  //f2 (and f3) not defined (e.g. band 13)
+          FatalError (__FILE__, __LINE__, "Test case can not run on the chosen band");
+        }
+      }
+      case (eutra_Cell3, eutra_Cell23) {
+        // For cell frequency of f2: v_Frequency_PrimaryBand.f2
+        // SIB5 contents: f1, f3, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {   // f3 is defined for the Band px_ePrimaryFrequencyBand
+          v_SIB5 := cs_508_SystemInformationBlockType5_Def({ cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1,//f1
+                                                                                     v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),
+                                                             p_InterFreqCarrierFreqInfo }); //f3
+        }
+        else {  //f3 not defined (e.g. band 6, 13, 14, 17 & 38)
+          FatalError (__FILE__, __LINE__, "index for f3 can not be set since f3 is not defined for this band");
+        }
+      }
+      case (eutra_Cell6) {
+        // For cell frequency of f3: v_Frequency_PrimaryBand.f3
+        // SIB5 contents: f1, f2, f5 (f1 in secondary band)
+        // However, f5 (f1 in secondary band) is not present in this case since f5 as part
+        // of inter-frequency list is applicable only in case of multi-band scenarios (ref: 36.508 Table 6.3.1.2-1 Note 3).
+        FatalError (__FILE__, __LINE__, "f3 is not included in SIB5 interFreqCarrierFreqList because cell is on f3");
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value Cell Id for SIB5 intialisation");
+      }
+    }
+    f_EUTRA_CellInfo_SetSIB5(p_CellId, v_SIB5);
+  }
+
+  function f_EUTRA_SetSIB6_InterFreqCarrierFreqList_F8(EUTRA_CellId_Type p_CellId,
+                                                       template (omit) CarrierFreqUTRA_FDD p_CarrierFreqUTRA_FDD := omit, //@sic R5s110062 sic@
+                                                       template (omit) CarrierFreqUTRA_TDD p_CarrierFreqUTRA_TDD := omit) //@sic R5s110062 sic@
+    runs on EUTRA_PTC
+  {
+    var template (value) SystemInformationBlockType6 v_Sib6 := f_EUTRA_CellInfo_GetSib6 (p_CellId); //@sic R5s110062 sic@
+    
+    if (f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD) {// @sic R5-115770 sic@
+      if (isvalue(p_CarrierFreqUTRA_FDD) and
+          ispresent(v_Sib6.carrierFreqListUTRA_FDD)){ //@sic R5s110062 sic@
+        v_Sib6.carrierFreqListUTRA_FDD[0] := p_CarrierFreqUTRA_FDD; //@sic R5s110062 sic@
+      }
+      else{
+        FatalError (__FILE__, __LINE__, "FDD template for frequency f8 cannot be set"); //@sic R5s110062 sic@
+      }
+    }
+    else {
+      if(isvalue(p_CarrierFreqUTRA_TDD) and
+         ispresent(v_Sib6.carrierFreqListUTRA_TDD)){ //@sic R5s110062 sic@
+        v_Sib6.carrierFreqListUTRA_TDD[0] := p_CarrierFreqUTRA_TDD; //@sic R5s110062 sic@
+      }
+      else{
+        FatalError (__FILE__, __LINE__, "TDD template for frequency f8 cannot be set"); //@sic R5s110062 sic@
+      }
+    }
+    f_EUTRA_CellInfo_SetSIB6 (p_CellId, v_Sib6); //@sic R5s110062 sic@
+  }
+
+}

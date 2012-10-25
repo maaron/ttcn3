@@ -1,0 +1,1898 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 16:12:01 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7263 $
+/******************************************************************************/
+
+module UTRAN_RRC_Templates {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_Parameters all;
+  import from UTRAN_RRC_CommonTemplates all;
+
+  template (value) PLMN_Identity cs_UTRAN_HPLMN_Def :=
+  { /* This is the same as the EUTRA template, but using a different ASN.1 definition */
+    /* @status    APPROVED */
+    mcc := {0,0,1},
+    mnc := {0,1}
+  };
+
+  template (value) RRCConnectionRelease_v4d0NonCriticalExtensions_Type cs_RRCConnectionRelease_NonCriticalExtensions_EutraReDirection(template (value) EUTRA_TargetFreqInfoList p_EUTRA_TargetFreqInfoList) :=
+  { /* @status    APPROVED */
+    rrcConnectionRelease_r4_add_ext := omit,
+    v690NonCriticalExtensions := {
+      rrcConnectionRelease_v690ext := {
+        redirectionInfo_v690ext := omit
+      },
+      v770NonCriticalExtensions := {
+        rrcConnectionRelease_v770ext := {
+          ueMobilityStateIndicator := omit
+        },
+        v860NonCriticalExtensions := {
+          rrcConnectionRelease_v860ext := {
+            redirectionInfo := {
+              interRATInfo := {
+                eutra := {
+                  eutra_TargetFreqInfoList := p_EUTRA_TargetFreqInfoList
+                }
+              }
+            }
+          },
+          va40NonCriticalExtensions := omit      /* @sic R5s120178 BASELINE MOVING 2012 (nonCriticalExtensions renamed to va40NonCriticalExtensions) sic@ */
+        }
+      }
+    }
+  };
+
+  template (value) EUTRA_TargetFreqInfo cs_EUTRA_TargetFreqInfo ( EARFCN p_DlEUTRACarrierFreq ) :=
+  { /* @status    APPROVED */
+    dlEUTRACarrierFreq := p_DlEUTRACarrierFreq,
+    eutraBlacklistedCellPerFreqList := omit
+  };
+
+  template (value) FrequencyInfo cs_FreqInfo_FDD(UARFCN p_UarfcnDL) :=
+  { /* Absence of the UL UARFCN is equivalent to applying the default duplex distance defined for the operating frequency.
+       According to RAN2 only default duplex distance is used */
+    /* @status    APPROVED */
+    modeSpecificInfo := {
+      fdd := {
+        uarfcn_UL := omit,
+        uarfcn_DL := p_UarfcnDL
+      }
+    }
+  };
+
+  template (value) FrequencyInfo cs_FreqInfo_TDD(UARFCN p_UarfcnNt) :=
+  { /* Absence of the UL UARFCN is equivalent to applying the default duplex distance defined for the operating frequency.
+       According to RAN2 only default duplex distance is used */
+    /* @status    APPROVED */
+    modeSpecificInfo := {
+      tdd := {
+        uarfcn_Nt := p_UarfcnNt
+      }
+    }
+  };
+
+  template (value) U_RNTI cs_U_RNTI_Def :=
+  { /* Default U_RNTI identity */
+    /* @status    APPROVED */
+    srnc_Identity := px_SRNC_Id,
+    s_RNTI := px_SRNTI
+  };
+
+  template (value) RB_ActivationTimeInfoList cs_RB_ActTimeInfoListSRBs(RLC_SequenceNumber p_RLC_SN1,
+                                                                       RLC_SequenceNumber p_RLC_SN2,
+                                                                       RLC_SequenceNumber p_RLC_SN3,
+                                                                       RLC_SequenceNumber p_RLC_SN4) :=
+  { /* @status    APPROVED */
+    cs_RB_ActTimeInfo( tsc_RB1, p_RLC_SN1 ),
+    cs_RB_ActTimeInfo( tsc_RB2, p_RLC_SN2 ),
+    cs_RB_ActTimeInfo( tsc_RB3, p_RLC_SN3 ),
+    cs_RB_ActTimeInfo( tsc_RB4, p_RLC_SN4 )
+  };
+
+  template (value) RB_ActivationTimeInfoList cs_RB_ActTimeInfoListSRBs_20(RLC_SequenceNumber p_RLC_SN1,
+                                                                          RLC_SequenceNumber p_RLC_SN2,
+                                                                          RLC_SequenceNumber p_RLC_SN3,
+                                                                          RLC_SequenceNumber p_RLC_SN4,
+                                                                          RLC_SequenceNumber p_RLC_SN20) :=
+  { /* @status    APPROVED */
+    cs_RB_ActTimeInfo( tsc_RB1, p_RLC_SN1 ),
+    cs_RB_ActTimeInfo( tsc_RB2, p_RLC_SN2 ),
+    cs_RB_ActTimeInfo( tsc_RB3, p_RLC_SN3 ),
+    cs_RB_ActTimeInfo( tsc_RB4, p_RLC_SN4 ),
+    cs_RB_ActTimeInfo( tsc_RB20, p_RLC_SN20 )
+  };
+
+  template (value) RB_ActivationTimeInfoList cs_RB_ActTimeInfoListSRBs_25(RLC_SequenceNumber p_RLC_SN1,
+                                                                          RLC_SequenceNumber p_RLC_SN2,
+                                                                          RLC_SequenceNumber p_RLC_SN3,
+                                                                          RLC_SequenceNumber p_RLC_SN4,
+                                                                          RLC_SequenceNumber p_RLC_SN25) :=
+  { /* @status    APPROVED */
+    cs_RB_ActTimeInfo( tsc_RB1, p_RLC_SN1 ),
+    cs_RB_ActTimeInfo( tsc_RB2, p_RLC_SN2 ),
+    cs_RB_ActTimeInfo( tsc_RB3, p_RLC_SN3 ),
+    cs_RB_ActTimeInfo( tsc_RB4, p_RLC_SN4 ),
+    cs_RB_ActTimeInfo( tsc_RB25, p_RLC_SN25 )
+  };
+
+  template (value) RB_ActivationTimeInfoList cs_RB_ActTimeInfoList25 ( RLC_SequenceNumber p_RLC_SN25 ) :=
+  { /* @status    APPROVED */
+    cs_RB_ActTimeInfo( tsc_RB25, p_RLC_SN25 )
+  };
+
+  template (value) RB_ActivationTimeInfoList cs_RB_ActTimeInfoList20 ( RLC_SequenceNumber p_RLC_SN20 ) :=
+  { /* @status    APPROVED */
+    cs_RB_ActTimeInfo( tsc_RB20, p_RLC_SN20 )
+  };
+
+  template (value) IntegrityProtectionModeInfo_r7 cs_IntegrityProtectStart(bitstring p_Integrityprotnumber,
+                                                                           IntegrityProtectionAlgorithm_r7 p_Alg) :=
+  { /* @status    APPROVED */
+    integrityProtectionModeCommand := {
+      startIntegrityProtection := {
+        integrityProtInitNumber := p_Integrityprotnumber
+      }
+    },
+    integrityProtectionAlgorithm := p_Alg
+  };
+
+  template (value) CipheringModeCommand_r7 cs_CipheringModeCmdOn(CipheringAlgorithm_r7 p_CipheringAlgorithm) :=
+  { /* @status    APPROVED */
+    startRestart := p_CipheringAlgorithm
+  };
+
+  template (value) IntegrityCheckInfo cs_IntegrityCheckInfo0 :=
+  { /* @status    APPROVED */
+    messageAuthenticationCode := '00000000000000000000000000000000'B,
+    rrc_MessageSequenceNumber := 0
+  };
+
+  template (value) PICH_Info cs_PichInfo_FDD :=
+  { /* @status    APPROVED */
+    fdd := {
+      channelisationCode256 := tsc_PICH1_ChC,
+      pi_CountPerFrame := e18,
+      sttd_Indicator := false
+    }
+  };
+
+  template (value) UL_DPCH_PowerControlInfo_r7 cs_UL_DPCH_PowerControlInfo_r7_FDD(template (omit) DeltaACK p_DeltaACK := omit,
+                                                                                  template (omit) DeltaNACK p_DeltaNACK := omit,
+                                                                                  template (omit) ACK_NACK_repetitionFactor p_ACK_NACK_RepetitionFactor := omit) :=
+  { /* @status    APPROVED */
+    fdd := {
+      dpcch_PowerOffset := tsc_DPCCH_PowerOffset,
+      pc_Preamble := 1,
+      sRB_delay := 7,
+      powerControlAlgorithm := {
+        algorithm1 := tsc_TpcStepSize_FDD
+      },
+      deltaACK := p_DeltaACK,
+      deltaNACK := p_DeltaNACK,
+      ack_NACK_repetition_factor := p_ACK_NACK_RepetitionFactor,
+      harq_Preamble_Mode := 0
+    }
+  };
+
+  template (value) UL_DPCH_PowerControlInfo_r7 cs_UL_DPCH_PowerControlInfo_r7_TDD128(UL_TargetSIR p_UL_TargetSIR := tsc_UL_TargetSIR) :=
+  { /* @status    APPROVED */
+    tdd := {
+      ul_TargetSIR := p_UL_TargetSIR,
+      ul_OL_PC_Signalling := {
+        individuallySignalled := {
+          tddOption := {
+            tdd128 := {
+              beaconPLEst := omit,
+              tpc_StepSize := tsc_TPC_StepSize_TDD  // 1
+            }
+          },
+          primaryCCPCH_TX_Power := tsc_PrimaryCCPCH_TX_Power  // 12
+        }
+      }
+    }
+  };
+
+  template (value) UL_TimingAdvanceControl_r7 cs_TDD_UL_TimingAdvanceControl_r7 :=
+  { /* @status    APPROVED */
+    enabled := {
+      tddOption := {
+        tdd128 := {
+          ul_SynchronisationParameters := {
+            stepSize := tsc_SS_StepSize_TDD,
+            frequency  := tsc_SS_Frequency
+          },
+          synchronisationParameters := omit
+        }
+      }
+    }
+  };
+
+  template (value) UL_CCTrCH_r7_TddOption_Type cs_CommonTimeslotInfo_TDD128(TimeslotNumber_LCR_r4 p_TimeslotNumber_UL,
+                                                                            integer p_MidambleConfiguration := 4,
+                                                                            UL_TS_ChannelisationCode p_UL_TS_ChannelisationCode := tsc_UL_DPCH1_ChC_64k_PS) :=
+  { /* @status    APPROVED */
+    tdd128 := {
+      ul_CCTrCH_TimeslotsCodes := {
+        dynamicSFusage := false,
+        firstIndividualTimeslotInfo := {
+          timeslotNumber := p_TimeslotNumber_UL,
+          tfci_Existence := true,
+          midambleShiftAndBurstType := {
+            midambleAllocationMode := {defaultMidamble := NULL},
+            midambleConfiguration := p_MidambleConfiguration
+          },
+          modulation := mod_QPSK,
+          ss_TPC_Symbols := one,
+          additionalSS_TPC_Symbols := omit
+        },
+        ul_TS_ChannelisationCodeList := {
+          {
+            ul_TS_Channelisation_Code := p_UL_TS_ChannelisationCode,
+            plcch_info := omit
+        }
+        },
+        moreTimeslots  := { noMore := NULL }
+      }
+    }
+  };
+
+  template (value) UL_CCTrCH_r7 cs_UL_CCTrCH_TDD_r7(TFCS_IdentityPlain p_TFCS_ID := 1,
+                                                    UL_TargetSIR p_UL_TargetSIR,
+                                                    template (omit) ActivationTime p_ActivationTime,
+                                                    TFCI_Coding p_TFCI_Coding,
+                                                    PuncturingLimit p_PuncturingLimit,
+                                                    template (value) UL_CCTrCH_r7_TddOption_Type p_TddOption) :=
+  { /* @status    APPROVED */
+    tfcs_ID := p_TFCS_ID,
+    ul_TargetSIR := p_UL_TargetSIR,
+    timeInfo := {
+      activationTime := p_ActivationTime,
+      durationTimeInfo := omit
+    },
+    commonTimeslotInfo := {
+      secondInterleavingMode := frameRelated,
+      tfci_Coding := p_TFCI_Coding,
+      puncturingLimit := p_PuncturingLimit,
+      repetitionPeriodAndLength := {repetitionPeriod1:= NULL}
+    },
+    tddOption := p_TddOption ///cs_CommonTimeslotInfo_TDD128(p_TimeslotNumber_UL, -, p_UL_TS_ChannelisationCode)
+  };
+
+  template (value) UL_DPCH_Info_r7 cs_UL_DPCH_Info_FDD(SpreadingFactor   p_SprdFct,
+                                                       PuncturingLimit   p_PuncLimit,
+                                                       UL_ScramblingCode p_UL_ScramblingCode) :=
+  { /* According to condition A3 in TS 34.108 clause 9.1.1: Uplink DPCH info */
+    /* @status    APPROVED */
+    /* @sic R5-123750 sic@ */
+    ul_DPCH_PowerControlInfo := cs_UL_DPCH_PowerControlInfo_r7_FDD,
+    modeSpecificInfo := {
+      fdd := {
+        scramblingCodeType := longSC,
+        scramblingCode := p_UL_ScramblingCode,
+        dpdchPresence := {
+          present_ := {
+            numberOfDPDCH := omit,    // DEFAULT: 1
+            spreadingFactor := p_SprdFct,
+            tfci_Existence := true,
+            numberOfFBI_Bits := omit,
+            numberOfTPC_Bits := omit,
+            puncturingLimit := p_PuncLimit
+          }
+        }
+      }
+    }
+  };
+
+  template (value) UL_DPCH_Info_r7 cs_UL_DPCH_13_6_StandAlone_FDD(UL_ScramblingCode p_UL_ScramblingCode) := cs_UL_DPCH_Info_FDD(tsc_UL_DPDCH_SF_SRB, pl1, p_UL_ScramblingCode); /* @status    APPROVED */
+
+  template (value) UL_DPCH_Info_r7 cs_UL_DPCH_13_6_StandAlone_TDD := cs_UL_DPCH_Info_1TS_TDD (1, 0, tfci_bits_8, pl0_64,1, tsc_UL_DPCH1_ChC_SRB_13_6);  /* @status    APPROVED */
+
+  template (value) UL_DPCH_Info_r7 cs_UL_DPCH_Info_1TS_TDD(TFCS_IdentityPlain p_TFCS_ID,
+                                                           ActivationTime p_ActivationTime,
+                                                           TFCI_Coding p_TFCI_Coding,
+                                                           PuncturingLimit p_PuncturingLimit,
+                                                           TimeslotNumber_LCR_r4 p_TimeslotNumber_UL,
+                                                           UL_TS_ChannelisationCode p_UL_TS_ChannelisationCode ) :=
+  { /* @status    APPROVED */
+    /* @sic R5-123750 sic@ */
+    ul_DPCH_PowerControlInfo := cs_UL_DPCH_PowerControlInfo_r7_TDD128(tsc_UL_TargetSIR),
+    modeSpecificInfo := {
+      tdd := {
+        ul_TimingAdvance := cs_TDD_UL_TimingAdvanceControl_r7,
+        ul_CCTrCHList := {
+          cs_UL_CCTrCH_TDD_r7(p_TFCS_ID, tsc_UL_TargetSIR, p_ActivationTime, p_TFCI_Coding, p_PuncturingLimit, cs_CommonTimeslotInfo_TDD128(p_TimeslotNumber_UL, -, p_UL_TS_ChannelisationCode))
+        },
+        ul_CCTrCHListToRemove := omit
+      }
+    }
+  };
+
+  template (value) UL_CommonTransChInfo_r4 cs_UL_CommTrChInfoDCCH_Common_FDD(template (value) TFCS p_UL_TFCS) :=
+  { /* @status    APPROVED */
+    tfc_Subset := omit,
+    prach_TFCS := omit,
+    modeSpecificInfo := {
+      fdd := {
+        ul_TFCS := p_UL_TFCS
+      }
+    },
+    tfc_SubsetList := omit
+  };
+
+  template (value) UL_CommonTransChInfo_r4 cs_UL_CommTrChInfoDCCH_13_6k_r4_FDD := cs_UL_CommTrChInfoDCCH_Common_FDD(cs_TFCS_Cmpl0_1_Tx_FDD(cs_PowerOffsetInfoBelow64k));  /* @status    APPROVED */
+
+  template (value) UL_CommonTransChInfo_r4 cs_UL_CommTrChInfoDCCH_Common_TDD(template (value) TFCS p_UL_TFCS) :=
+  { /* @status    APPROVED */
+    tfc_Subset := omit,
+    prach_TFCS := omit,
+    modeSpecificInfo := {
+      tdd := {
+        individualUL_CCTrCH_InfoList := {
+          {
+            ul_TFCS_Identity := {
+              tfcs_ID := 1,
+              sharedChannelIndicator := false
+            },
+            ul_TFCS := p_UL_TFCS,
+            tfc_Subset := {fullTFCS := NULL}
+          }
+        }
+      }
+    },
+    tfc_SubsetList := omit
+  };
+
+  template (value) UL_CommonTransChInfo_r4 cs_UL_CommTrChInfoDCCH_13_6k_r4_TDD := cs_UL_CommTrChInfoDCCH_Common_TDD(cs_TFCS_Cmpl0_1_Tx_TDD);  /* @status    APPROVED */
+
+  template (value) UL_AddReconfTransChInformation_r8 cs_UL_AddReconfTransChInfoDCCH(integer p_TransportChannelId,
+                                                                                    template (value) DedicatedTransChTFS p_DedicatedTransChTFS) :=
+  { /* @status    APPROVED */
+    dch_usch := {
+      ul_TransportChannelType := dch,
+      transportChannelIdentity := p_TransportChannelId,
+      transportFormatSet := {
+        dedicatedTransChTFS := p_DedicatedTransChTFS
+      }
+    }
+  };
+
+  template (value) UL_AddReconfTransChInfoList_r8 cs_UL_AddReconfTransChInfoListDCCH_3_4k_r8 :=
+  { /* @status    APPROVED */
+    cs_UL_AddReconfTransChInfoDCCH(tsc_UL_DCH5, cs_DCH_148_TFS_UE_UL)
+  };
+
+  template (value) UL_AddReconfTransChInfoList_r8 cs_UL_AddReconfTransChInfoListDCCH_13_6k_r8 :=
+  { /* @status    APPROVED */
+    cs_UL_AddReconfTransChInfoDCCH(tsc_UL_DCH5, cs_DCH_148_TTI_10_TFS_UE)
+  };
+
+  template (value) DL_CommonTransChInfo_r4 cs_DL_CommonTransChInfoSameAsUL_r4_FDD :=
+  { /* @status    APPROVED */
+    sccpch_TFCS := omit,
+    modeSpecificInfo := {
+      fdd := {
+        dl_Parameters := {
+          sameAsUL := NULL
+        }
+      }
+    }
+  };
+
+  template (value) DL_CommonTransChInfo_r4 cs_DL_CommonTransChInfoDCH_FDD ( template (value) TFCS p_Tfcs ) :=
+  { /* Values according to condition A3 in TS 34.108 clause 9.1.1: DL Transport channel information common for all transport channel */
+    /* @status    APPROVED */
+    sccpch_TFCS := omit,
+    modeSpecificInfo := {
+      fdd := {
+        dl_Parameters := {
+          dl_DCH_TFCS := {
+            tfcs := p_Tfcs
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_CommonTransChInfo_r4 cs_DL_CommonTransChInfoSameAsUL_r4_TDD :=
+  { /* Values according to condition A3 in TS 34.108 clause 9.1.1: DL Transport channel information common for all transport channel */
+    /* @status    APPROVED */
+    sccpch_TFCS := omit,
+    modeSpecificInfo := {
+      tdd := {
+        individualDL_CCTrCH_InfoList := {
+          {
+            dl_TFCS_Identity := {
+              tfcs_ID := 1,
+              sharedChannelIndicator := false
+            },
+            tfcs_SignallingMode := {
+              sameAsUL := {
+                tfcs_ID := 1,
+                sharedChannelIndicator := false
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_CommonTransChInfo_r4 cs_DL_CommonTransChInfoDCH_TDD ( template (value) TFCS p_Tfcs ) :=
+  { /* Values according to condition A3 in TS 34.108 clause 9.1.1: DL Transport channel information common for all transport channel */
+    /* @status    APPROVED */
+    sccpch_TFCS := omit,
+    modeSpecificInfo := {
+      tdd := {
+        individualDL_CCTrCH_InfoList := {{
+            dl_TFCS_Identity := {
+              tfcs_ID := 1,
+              sharedChannelIndicator := false
+            },
+            tfcs_SignallingMode := {
+              explicit_config := p_Tfcs
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) QualityTarget cs_QualityTarget(BLER_QualityValue p_QualityValue := -20) :=
+  { /* @status    APPROVED */
+    bler_QualityValue := p_QualityValue      // Actual Value = IE Value * 0.1
+  };
+
+  template (value) DL_AddReconfTransChInformation_r7 cs_DL_AddReconfTransChInfo_r7(TransportChannelIdentity p_DlTrChId,
+                                                                                   TransportChannelIdentity p_UlTrChId,
+                                                                                   template (omit) QualityTarget p_QualityTarget := cs_QualityTarget) :=
+  { /* @status    APPROVED */
+    dl_TransportChannelType := {
+      dch := p_DlTrChId
+    },
+    tfs_SignallingMode := {
+      sameAsULTrCH := {
+        ul_TransportChannelType := dch,
+        ul_TransportChannelIdentity := p_UlTrChId
+      }
+    },
+    dch_QualityTarget := p_QualityTarget
+  };
+
+  template (value) DL_AddReconfTransChInfoList_r7 cs_DL_AddReconfTransChInfoListDCCH_SRB_r7 :=
+  { /* @status    APPROVED */
+    cs_DL_AddReconfTransChInfo_r7(tsc_DL_DCH5, tsc_UL_DCH5)
+  };
+
+  template (value) RB_MappingOption_r8 cs_RB_MappingOptionSRB_DCH_DCH_r8(LogicalChannelIdentity p_LogicalChannelIdUL,
+                                                                         MAC_LogicalChannelPriority p_LogicalChannelPriority,
+                                                                         LogicalChannelIdentity p_LogicalChannelIdDL) :=
+  { /* @status    APPROVED */
+    ul_LogicalChannelMappings := {
+      oneLogicalChannel := {
+        ul_TrCH_Type := {
+          dch_rach_usch := {
+            ul_TransportChannelType := {
+              dch := tsc_UL_DCH5
+            },
+            logicalChannelIdentity := p_LogicalChannelIdUL,
+            rlc_SizeList := {
+              configured := NULL
+            }
+          }
+        },
+        mac_LogicalChannelPriority := p_LogicalChannelPriority
+      }
+    },
+    dl_LogicalChannelMappingList := {
+      {
+        dl_TransportChannelType := {
+          dch := tsc_DL_DCH5
+        },
+        logicalChannelIdentity := p_LogicalChannelIdDL
+      }
+    }
+  };
+
+  template (value) RB_MappingOption_r8 cs_RB_MappingOptionSRB_RACH_FACH_r8(LogicalChannelIdentity p_LogicalChannelIdUL,
+                                                                           MAC_LogicalChannelPriority p_LogicalChannelPriority,
+                                                                           LogicalChannelIdentity p_LogicalChannelIdDL) :=
+  { /* @status    APPROVED */
+    ul_LogicalChannelMappings := {
+      oneLogicalChannel := {
+        ul_TrCH_Type := {
+          dch_rach_usch := {
+            ul_TransportChannelType := {
+              rach := NULL
+            },
+            logicalChannelIdentity := p_LogicalChannelIdUL,
+            rlc_SizeList := {
+              explicitList := {
+                {
+                  rlc_SizeIndex := 1
+                }
+              }
+            }
+          }
+        },
+        mac_LogicalChannelPriority := p_LogicalChannelPriority
+      }
+    },
+    dl_LogicalChannelMappingList := {
+      {
+        dl_TransportChannelType := {
+          fach := NULL
+        },
+        logicalChannelIdentity := p_LogicalChannelIdDL
+      }
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r7 cs_DL_InformationPerRL_r7_FDD ( PrimaryScramblingCode   p_ScrmbCode,
+                                                                               SF512_AndCodeNumber     p_Sf,
+                                                                               SecondaryScramblingCode p_SecondaryScramblingCode ) :=
+  { /* According to condition A3 in TS 34.108 clause 9.1.1: Downlink information for each radio link list */
+    /* @status    APPROVED */
+    {
+      modeSpecificInfo := {
+        fdd := {
+          primaryCPICH_Info := {
+            primaryScramblingCode := p_ScrmbCode
+          },
+          servingHSDSCH_RL_indicator := false,
+          servingEDCH_RL_indicator := false
+        }
+      },
+      dl_dpchInfo := {
+        dl_DPCH_InfoPerRL := cs_DL_DPCH_InfoPerRL_SRB_FDD(p_Sf, p_SecondaryScramblingCode)
+      },
+      e_AGCH_Information := omit,
+      modeSpecificInfo2 := {
+        fdd := {
+          e_HICH_Info := omit,
+          e_RGCH_Info := omit
+        }
+      },
+      cell_id := omit
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r7 cds_DL_InfoPerRL_HSDPA_r7_FDD ( PrimaryScramblingCode   p_ScrmbCode,
+                                                                               SF512_AndCodeNumber     p_Sf,
+                                                                               SecondaryScramblingCode p_SecondaryScramblingCode )
+    modifies cs_DL_InformationPerRL_r7_FDD :=
+  { /* @status    APPROVED */
+    [0] := {
+      modeSpecificInfo := {
+        fdd := {
+          servingHSDSCH_RL_indicator := true
+        }
+      }
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r7 cs_DL_InformationPerRL_r7_TDD ( CellParametersID                      p_CellParametersID,
+                                                                               template (value) DL_DPCH_InfoPerRL_r7 p_DL_DPCH_InfoPerRL_r7 ) :=
+  { /* According to condition A3 in TS 34.108 clause 9.1.1: Downlink information for each radio link list */
+    /* @status    APPROVED */
+    {
+      modeSpecificInfo := {
+        tdd := {
+          tdd := {
+            tddOption := {
+              tdd128 := {
+                tstd_Indicator := false
+              }
+            },
+            cellParametersID := p_CellParametersID,
+            sctd_Indicator := false
+          }
+        }
+      },
+      dl_dpchInfo := {
+        dl_DPCH_InfoPerRL := p_DL_DPCH_InfoPerRL_r7
+      },
+      e_AGCH_Information := omit,
+      modeSpecificInfo2 := {
+        tdd := {
+          tdd128 := {
+            e_HICH_Info := omit
+          }
+        }
+      },
+      cell_id := omit
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r8 cs_DL_InformationPerRL_r8_FDD(PrimaryScramblingCode   p_PrimaryScramblingCode,
+                                                                             SF512_AndCodeNumber     p_Sf,
+                                                                             SecondaryScramblingCode p_SecondaryScramblingCode) :=
+  { /* @status    APPROVED */
+    {
+      modeSpecificInfo := {
+        fdd := {
+          primaryCPICH_Info := {
+            primaryScramblingCode := p_PrimaryScramblingCode
+          },
+          servingHSDSCH_RL_indicator := false,
+          servingEDCH_RL_indicator := false
+        }
+      },
+      dl_dpchInfo := {
+        dl_DPCH_InfoPerRL := cs_DL_DPCH_InfoPerRL_SRB_FDD(p_Sf, p_SecondaryScramblingCode)
+      },
+      e_AGCH_Information := omit,
+      modeSpecificInfo2 := {
+        fdd := {
+          e_HICH_Info := omit,
+          e_RGCH_Info := omit
+        }
+      },
+      cell_id := omit
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r8 cds_DL_InfoPerRL_HSDPA_r8_FDD(PrimaryScramblingCode   p_PrimaryScramblingCode,
+                                                                             SF512_AndCodeNumber     p_Sf,
+                                                                             SecondaryScramblingCode p_SecondaryScramblingCode)
+    modifies cs_DL_InformationPerRL_r8_FDD :=
+  { /* @status    APPROVED */
+    [0] := {
+      modeSpecificInfo := {
+        fdd := {
+          servingHSDSCH_RL_indicator := true
+        }
+      }
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r8 cs_DL_InformationPerRL_r8_TDD ( CellParametersID                      p_CellParametersID,
+                                                                               template (value) DL_DPCH_InfoPerRL_r7 p_DL_DPCH_InfoPerRL_r7 ) :=
+  { /* According to condition A3 in TS 34.108 clause 9.1.1: Downlink information for each radio link list */
+    /* @status    APPROVED */
+    {
+      modeSpecificInfo := {
+        tdd := {
+          tdd := {
+            tddOption := {
+              tdd128 := {
+                tstd_Indicator := false
+              }
+            },
+            cellParametersID := p_CellParametersID,
+            sctd_Indicator := false
+          }
+        }
+      },
+      dl_dpchInfo := {
+        dl_DPCH_InfoPerRL := p_DL_DPCH_InfoPerRL_r7
+      },
+      e_AGCH_Information := omit,
+      modeSpecificInfo2 := {
+        tdd := {
+          tdd128 := {
+            e_HICH_Info := omit
+          }
+        }
+      },
+      cell_id := omit
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgNoSegment :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,
+      payload := {noSegment := NULL}
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgCmpl (SIB_Type p_SIBType,
+                                                    bitstring p_SIBData ) :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,
+      payload := {
+        completeSIB := {
+          sib_Type := p_SIBType,
+          sib_Data_fixed := p_SIBData
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgCmplList1 (SIB_Type p_SIBType,
+                                                         SIB_Data_variable p_SIBData ) :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,
+      payload := {
+        completeSIB_List := {
+          {
+            sib_Type := p_SIBType,
+            sib_Data_variable := p_SIBData
+          }
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgCmplList2 (SIB_Type p_SIBType1,
+                                                         SIB_Data_variable p_SIBData1,
+                                                         SIB_Type p_SIBType2,
+                                                         SIB_Data_variable p_SIBData2 ) :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,
+      payload := {
+        completeSIB_List := {
+          {
+            sib_Type := p_SIBType1,
+            sib_Data_variable := p_SIBData1
+          },
+          {
+            sib_Type := p_SIBType2,
+            sib_Data_variable := p_SIBData2
+          }
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgLast (SIB_Type p_SIBType,
+                                                    integer p_SegIndex,
+                                                    SIB_Data_fixed p_SIBData) :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,
+      payload := {
+        lastSegment := {
+          sib_Type := p_SIBType,
+          segmentIndex := p_SegIndex,
+          sib_Data_fixed := p_SIBData
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgLastShort (SIB_Type p_SIBType,
+                                                         integer p_SegIndex,
+                                                         SIB_Data_variable p_SIBData ) :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,
+      payload := {
+        lastSegmentShort := {
+          sib_Type := p_SIBType,
+          segmentIndex := p_SegIndex,
+          sib_Data_variable := p_SIBData
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgFirst(SIB_Type p_SIBType,
+                                                    integer p_SegCount,
+                                                    SIB_Data_fixed p_SIBData) :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,  // place holder
+      payload := {
+        firstSegment := {
+          sib_Type := p_SIBType,
+          seg_Count := p_SegCount,
+          sib_Data_fixed := p_SIBData
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_BCH_Message cs_SIB_MsgSubsequent(SIB_Type p_SIBType,
+                                                         integer p_SegIndex,
+                                                         SIB_Data_fixed p_SIBData) :=
+  { /* @status    APPROVED */
+    message_ := {
+      sfn_Prime := 0,
+      payload := {
+        subsequentSegment := {
+          sib_Type := p_SIBType,
+          segmentIndex := p_SegIndex,
+          sib_Data_fixed := p_SIBData
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_FACH_Message cs_SysInfoChangeInd(MIB_ValueTag p_MIB_ValueTag) :=
+  { /* @status    APPROVED */
+    message_ := {
+      systemInformationChangeIndication := {
+        // System Information Change Indication
+        bcch_ModificationInfo := {
+          mib_ValueTag := p_MIB_ValueTag,
+          bcch_ModificationTime := omit     // 0
+        },
+        laterNonCriticalExtensions := omit
+      }
+    }
+  };
+
+  template (value) InterRAT_UE_SecurityCapList cs_UE_SysSpecCap(bitstring p_SysSpecCap) :=
+  { /* @status    APPROVED */
+    {
+      gsm := {
+        gsmSecurityCapability := p_SysSpecCap
+      }
+    }
+  };
+
+  template (value) CipheringModeInfo_r7 cs_CipheringModeInfo_r7(CipheringModeCommand_r7 p_CipheringModeCommand,
+                                                                template (value) RB_ActivationTimeInfoList p_RB_ActivationTimeInfoList,
+                                                                template (omit) integer p_ActTimeDPCH) :=
+  { /* @status    APPROVED */
+    cipheringModeCommand := p_CipheringModeCommand,
+    activationTimeForDPCH := p_ActTimeDPCH,
+    rb_DL_CiphActivationTimeInfo := p_RB_ActivationTimeInfoList
+  };
+
+  template (value) SecurityModeCommand cs_RRC_SecModeCmd(RRC_TransactionIdentifier p_RRC_Ti,
+                                                         bitstring p_SecurityCapability,
+                                                         bitstring p_IntegrProtAlgCap,
+                                                         template (omit) CipheringModeInfo_r7 p_CipheringModeInfo,
+                                                         template (omit) IntegrityProtectionModeInfo_r7 p_IntegrityMode,
+                                                         CN_DomainIdentity p_CN_Domain,
+                                                         template (omit) InterRAT_UE_SecurityCapList p_SystemSpecCap) :=
+  { /* @status    APPROVED */
+    /* @sic R5s110382 additional changes: Merge of cs_RRC_SecModeCmdInt and cs_RRC_SecModeCmdCiphInt sic@ */
+    later_than_r3 := {
+      rrc_TransactionIdentifier := p_RRC_Ti,
+      criticalExtensions := {
+        r7 := {
+          securityModeCommand_r7 := {
+            securityCapability := {
+              cipheringAlgorithmCap := p_SecurityCapability,
+              integrityProtectionAlgorithmCap := p_IntegrProtAlgCap
+            },
+            cipheringModeInfo := p_CipheringModeInfo,
+            integrityProtectionModeInfo := p_IntegrityMode,
+            cn_DomainIdentity := p_CN_Domain,
+            ue_SystemSpecificSecurityCap := p_SystemSpecCap
+          },
+          securityModeCommand_r7_add_ext := omit,
+          nonCriticalExtensions := omit
+        }
+      }
+    }
+  };
+
+  template (value) DL_DCCH_Message cs_108_RRC_SecModeCmd(IntegrityCheckInfo p_IntegrityCheckInfo,
+                                                         template (value) SecurityModeCommand p_SecModeCmd) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := p_IntegrityCheckInfo,
+    message_ := {
+      securityModeCommand := p_SecModeCmd
+    }
+  };
+
+  template UL_DCCH_Message cr_108_RRC_SecModeCmpl(RRC_TransactionIdentifier p_RRC_Ti,
+                                                  template RB_ActivationTimeInfoList p_RB_ActivationTimeInfoList) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_:= {
+      securityModeComplete := {
+        rrc_TransactionIdentifier := p_RRC_Ti,
+        ul_IntegProtActivationInfo := ?,
+        rb_UL_CiphActivationTimeInfo := p_RB_ActivationTimeInfoList,
+        laterNonCriticalExtensions := *
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_108_SecModeFail(RRC_TransactionIdentifier p_RRC_Ti,
+                                              template FailureCauseWithProtErr p_FailureCauseWithProtErr) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      securityModeFailure := {
+        rrc_TransactionIdentifier := p_RRC_Ti,
+        failureCause := p_FailureCauseWithProtErr,
+        laterNonCriticalExtensions := *
+      }
+    }
+  };
+
+  template UL_CCCH_Message cr_108_RRC_ConnReq_r8(template (present) EstablishmentCause p_EstCause := ?) :=
+  { /* @status    APPROVED */
+  // @sic R5-120756 sic@
+    integrityCheckInfo := omit,
+    message_ := {
+      rrcConnectionRequest := {
+        initialUE_Identity := ({imsi := ?}, {tmsi_and_LAI := ?}, {p_TMSI_and_RAI := ?}, {imei := ?}),
+        establishmentCause := p_EstCause,
+        protocolErrorIndicator := noError,
+        measuredResultsOnRACH := *,
+        v3d0NonCriticalExtensions := *
+      }
+    }
+  };
+
+  template UL_CCCH_Message cdr_RRC_ConnReqWith_v860ext(template (present) EstablishmentCause p_EstCause := ?,
+                                                       template RRCConnectionRequest_v860ext_IEs p_V860ext_IEs,
+                                                       template RRCConnectionRequest_v690ext_IEs p_RRCConnectionRequest_v690ext_IEs := ?)
+    modifies cr_108_RRC_ConnReq_r8 :=
+  { /* @status    APPROVED */
+   // @sic R5-120756 sic@
+    message_ := {
+      rrcConnectionRequest := {
+        v3d0NonCriticalExtensions := {
+          rRCConnectionRequest_v3d0ext := ?,
+          v4b0NonCriticalExtensions := {
+            rrcConnectionRequest_v4b0ext := {
+              accessStratumReleaseIndicator := ?
+            },
+            v590NonCriticalExtensions :=           {
+              rrcConnectionRequest_v590ext := ?,
+              v690NonCriticalExtensions := {
+                rrcConnectionRequest_v690ext := p_RRCConnectionRequest_v690ext_IEs,
+                v6b0NonCriticalExtensions := {
+                  rrcConnectionRequest_v6b0ext := ?,
+                  v6e0NonCriticalExtensions := {
+                    rrcConnectionRequest_v6e0ext := ?,
+                    v770NonCriticalExtensions := {
+                      rrcConnectionRequest_v770ext := ?,
+                      v7b0NonCriticalExtensions := {
+                        rrcConnectionRequest_v7b0ext := ?,
+                        v860NonCriticalExtensions := {
+                          rrcConnectionRequest_v860ext := p_V860ext_IEs,
+                          v7e0NonCriticalExtensions := * // @sic R5s120294 sic@
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template UE_RadioAccessCapability_v860ext_IEs cr_UE_RadioAccessCapMultiRATCap (template (present) MultiModeRAT_Capability_v860ext p_UE_MultiModeRAT_Capability) :=
+  /* @status    APPROVED */
+    cr_UE_RadioAccessCap(*, ?, p_UE_MultiModeRAT_Capability, ?, *, *, *);
+
+  template UE_RadioAccessCapability_v860ext_IEs cr_UE_RadioAccessCap (template RF_Capability_v860ext p_RF_Capability_v860ext,
+                                                                      template (present) PhysicalChannelCapability_v860ext p_PhysicalChannelCapability_v860ext,
+                                                                      template (present) MultiModeRAT_Capability_v860ext p_MultiModeRAT_Capability_v860ext,
+                                                                      template (present) UE_PositioningCapability_v860ext p_UE_PositioningCapability_v860ext,
+                                                                      template MeasurementCapability_v860ext p_MeasurementCapability_v860ext,
+                                                                      template MeasurementCapabilityTDD p_MeasurementCapabilityTDD,
+                                                                      template UE_RadioAccessCapabBandFDDList3 p_UE_RadioAccessCapabBandFDDList3) :=
+  { /* @status    APPROVED */
+    rf_Capability                   :=  p_RF_Capability_v860ext,
+    physicalChannelCapability       :=  p_PhysicalChannelCapability_v860ext,
+    multiModeRAT_Capability         :=  p_MultiModeRAT_Capability_v860ext,
+    ue_PositioningCapability        :=  p_UE_PositioningCapability_v860ext,
+    measurementCapability           :=  p_MeasurementCapability_v860ext,
+    measurementCapabilityTDD        :=  p_MeasurementCapabilityTDD,
+    supportOfCommonEDCH             :=  *,
+    supportOfMACiis                 :=  *,
+    supportOfSPSOperation           :=  *,
+    supportOfControlChannelDRXOperation := *,
+    supportOfCSG                    :=  *,
+    ue_RadioAccessCapabBandFDDList3 :=  p_UE_RadioAccessCapabBandFDDList3
+  };
+
+  template MultiModeRAT_Capability_v860ext cr_MultiModeRATCap_NotSupportEUTRA :=
+  { /* @status    APPROVED */
+    supportOfEUTRAFDD                   := omit,
+    supportOfInterRATHOToEUTRAFDD       := omit,
+    supportOfEUTRATDD                   := omit,
+    supportOfInterRATHOToEUTRATDD       := omit,
+    eutraFeatureGroupIndicators         := omit
+  };
+
+  template RRCConnectionRequest_v860ext_IEs cr_RRCConnReq_v860ext ( template (present) boolean p_SupportEUTRA_FDD := ?,
+                                                                    template (present) boolean p_SupportEUTRA_TDD := ? ) :=
+  { /* @status    APPROVED */
+    supportOfCommonEDCH   := *,
+    multiCellSupport      := *,
+    pre_redirectionInfo   := {
+      supportEUTRA_FDD := p_SupportEUTRA_FDD,
+      supportEUTRA_TDD := p_SupportEUTRA_TDD
+    },
+    supportOfMACiis       := *,
+    supportOfSPSOperation := * // @sic R5s120068 sic@
+  };
+
+  template RRCConnectionRequest_v860ext_IEs cdr_RRCConnReq_v860ext_OptionalEUTRA ( template (present) boolean p_SupportEUTRA_FDD := ?,
+                                                                                   template (present) boolean p_SupportEUTRA_TDD := ? )
+    modifies cr_RRCConnReq_v860ext:=
+  { // This is different to cr_RRCConnReq_v860ext because here, the IE pre_redirectionInfo itself is optional
+    /* @status    APPROVED */
+    pre_redirectionInfo   := {
+      supportEUTRA_FDD := p_SupportEUTRA_FDD,
+      supportEUTRA_TDD := p_SupportEUTRA_TDD
+    } ifpresent
+  };
+
+  template UL_CCCH_Message cr_RRC_RrcConnReqAny :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := omit,
+    message_ := {
+      rrcConnectionRequest := {
+        initialUE_Identity := ?,
+        establishmentCause := ?,
+        protocolErrorIndicator := noError,
+        measuredResultsOnRACH := *,
+        v3d0NonCriticalExtensions := *
+      }
+    }
+  };
+
+  template RRCConnectionRequest_v690ext_IEs cr_RRCConnReq_v690ext_PSDomain :=
+  { /* @status    APPROVED */
+    ueCapabilityIndication := *,
+    measuredResultsOnRACHinterFreq := *,
+    domainIndicator := {
+      ps_domain := NULL
+    }
+  };
+
+  template (value) DL_CCCH_Message cs_RRCConnReject (IntegrityCheckInfo p_IntegrityCheckInfo,
+                                                     InitialUE_Identity  p_InitialUEId,
+                                                     integer            p_WaitTime := 0,
+                                                     RRC_TransactionIdentifier p_RRC_Ti := tsc_RRC_TI) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := p_IntegrityCheckInfo,
+    message_ := {
+      rrcConnectionReject := {
+        r3 := {
+          rrcConnectionReject_r3 := {
+            initialUE_Identity := p_InitialUEId,
+            rrc_TransactionIdentifier := p_RRC_Ti,
+            rejectionCause := unspecified,
+            waitTime := p_WaitTime,
+            redirectionInfo := omit
+          },
+          laterNonCriticalExtensions := omit
+        }
+      }
+    }
+  };
+
+  template (value) SRB_InformationSetup_r8 cs_SRB_InfoSetupAM_DCH_r8(LogicalChannelIdentity p_LogicalChannelIdUL,
+                                                                     MAC_LogicalChannelPriority p_LogicalChannelPriorityDCH,
+                                                                     MAC_LogicalChannelPriority p_LogicalChannelPriorityRACH,
+                                                                     LogicalChannelIdentity p_LogicalChannelIdDL) :=
+  { /* @status    APPROVED */
+    rb_Identity := omit,
+    rlc_InfoChoice := {
+      rlc_Info := cs_RLC_InfoAM_Common(cds_UL_AM_RLC_SRB, cds_DL_AM_RLC_SRB_r7)
+    },
+    rb_MappingInfo := {
+      cs_RB_MappingOptionSRB_DCH_DCH_r8(p_LogicalChannelIdUL, p_LogicalChannelPriorityDCH, p_LogicalChannelIdDL),
+      cs_RB_MappingOptionSRB_RACH_FACH_r8(p_LogicalChannelIdUL, p_LogicalChannelPriorityRACH, p_LogicalChannelIdDL)
+    }
+  };
+
+  template (value) SRB_InformationSetup_r8 cs_SRB_InfoSetupUM_DCH_r8(LogicalChannelIdentity p_LogicalChannelIdUL,
+                                                                     MAC_LogicalChannelPriority p_LogicalChannelPriorityDCH,
+                                                                     MAC_LogicalChannelPriority p_LogicalChannelPriorityRACH,
+                                                                     LogicalChannelIdentity p_LogicalChannelIdDL) :=
+  { /* @status    APPROVED */
+    rb_Identity := omit,
+    rlc_InfoChoice := {
+      rlc_Info := {
+        ul_RLC_Mode := {
+          ul_UM_RLC_Mode := {
+            transmissionRLC_Discard := omit
+          }
+        },
+        dl_RLC_Mode := {
+          dl_UM_RLC_Mode := {
+            dl_UM_RLC_LI_size := size7,
+            dl_Reception_Window_Size := size32
+          }
+        },
+        rlc_OneSidedReEst := false,
+        altE_bitInterpretation := omit,
+        useSpecialValueOfHEField := omit
+      }
+    },
+    rb_MappingInfo := {
+      cs_RB_MappingOptionSRB_DCH_DCH_r8( p_LogicalChannelIdUL, p_LogicalChannelPriorityDCH, p_LogicalChannelIdDL),
+      cs_RB_MappingOptionSRB_RACH_FACH_r8( p_LogicalChannelIdUL, p_LogicalChannelPriorityRACH, p_LogicalChannelIdDL)
+    }
+  };
+
+  template (value) SRB_InformationSetup_r8 cs_SRB_InfoSetupAM_FACH_r8(template (omit) RB_Identity p_RB_Id,
+                                                                      LogicalChannelIdentity p_LogicalChannelIdUL,
+                                                                      MAC_LogicalChannelPriority p_LogicalChannelPriorityDCH,
+                                                                      MAC_LogicalChannelPriority p_LogicalChannelPriorityRACH,
+                                                                      LogicalChannelIdentity p_LogicalChannelIdDL) :=
+  { /* @status    APPROVED */
+    rb_Identity := p_RB_Id,
+    rlc_InfoChoice := {
+      rlc_Info := cs_RLC_InfoAM_Common(cds_UL_AM_RLC_SRB, cds_DL_AM_RLC_SRB_r7)
+    },
+    rb_MappingInfo := {
+      cs_RB_MappingOptionSRB_RACH_FACH_r8(p_LogicalChannelIdUL, p_LogicalChannelPriorityRACH, p_LogicalChannelIdDL),
+      cs_RB_MappingOptionSRB_DCH_DCH_r8  (p_LogicalChannelIdUL, p_LogicalChannelPriorityDCH,  p_LogicalChannelIdDL)
+    }
+  };
+
+  template (value) SRB_InformationSetup_r8 cs_SRB_InfoSetupUM_FACH_r8(template (omit) RB_Identity p_RB_Id,
+                                                                      LogicalChannelIdentity p_LogicalChannelIdUL,
+                                                                      MAC_LogicalChannelPriority p_LogicalChannelPriorityDCH,
+                                                                      MAC_LogicalChannelPriority p_LogicalChannelPriorityRACH,
+                                                                      LogicalChannelIdentity p_LogicalChannelIdDL ) :=
+  { /* @status    APPROVED */
+    rb_Identity := p_RB_Id,
+    rlc_InfoChoice := {
+      rlc_Info := cs_RLC_InfoUM_Common(cs_UL_UM_RLC_Mode(cs_TransmissionRLC_Discard_TimerBasedNoExplicit))
+    },
+    rb_MappingInfo := {
+      cs_RB_MappingOptionSRB_RACH_FACH_r8(p_LogicalChannelIdUL, p_LogicalChannelPriorityRACH, p_LogicalChannelIdDL),
+      cs_RB_MappingOptionSRB_DCH_DCH_r8  (p_LogicalChannelIdUL, p_LogicalChannelPriorityDCH,  p_LogicalChannelIdDL)
+    }
+  };
+
+  template (value) UTRAN_DRX_CycleLengthCoefficient_r7 cs_UTRAN_DRX_CycleLengthCoefficient_r7(UTRAN_DRX_CycleLengthCoefficient_r7.drx_CycleLengthCoefficient p_DRX_CycleLengthCoefficient := 9) :=
+  { /* @status    APPROVED */
+    drx_CycleLengthCoefficient := p_DRX_CycleLengthCoefficient,
+    drx_CycleLengthCoefficient2 := omit,
+    timeForDRXCycle2 := omit
+  };
+
+  template (value) CapabilityUpdateRequirement_r8 cs_CapabilityUpdateRequirement_r8_FDD :=
+  { /* @status    APPROVED */
+    ue_RadioCapabilityFDDUpdateRequirement_FDD := true,
+    ue_RadioCapabilityTDDUpdateRequirement_TDD384 := false,
+    ue_RadioCapabilityTDDUpdateRequirement_TDD768 := false,
+    ue_RadioCapabilityTDDUpdateRequirement_TDD128 := false,
+    systemSpecificCapUpdateReqList := {
+      gsm
+    }
+  };
+
+  template (value) CapabilityUpdateRequirement_r8 cds_CapabilityUpdateRequirement_r8_TDD modifies cs_CapabilityUpdateRequirement_r8_FDD :=
+  { /* @status    APPROVED */
+    ue_RadioCapabilityFDDUpdateRequirement_FDD := false,
+    ue_RadioCapabilityTDDUpdateRequirement_TDD128 := true
+  };
+
+  template (value) SRB_InformationSetupList2_r8 cs_SRB_InformationSetupList2_r8_FACH :=
+  { /* @status    APPROVED */
+    cs_SRB_InfoSetupUM_FACH_r8(omit, tsc_UL_DCCH1, 1, 1, tsc_DL_DCCH1),
+    cs_SRB_InfoSetupAM_FACH_r8(omit, tsc_UL_DCCH2, 2, 2, tsc_DL_DCCH2),
+    cs_SRB_InfoSetupAM_FACH_r8(omit, tsc_UL_DCCH3, 3, 3, tsc_DL_DCCH3),
+    cs_SRB_InfoSetupAM_FACH_r8(omit, tsc_UL_DCCH4, 4, 4, tsc_DL_DCCH4)
+  };
+
+  template (value) SRB_InformationSetupList2_r8 cs_SRB_InformationSetupList2_r8_DCH :=
+  { /* @status    APPROVED */
+    cs_SRB_InfoSetupUM_DCH_r8( tsc_UL_DCCH1, 1, 1, tsc_DL_DCCH1),
+    cs_SRB_InfoSetupAM_DCH_r8( tsc_UL_DCCH2, 2, 2, tsc_DL_DCCH2),
+    cs_SRB_InfoSetupAM_DCH_r8( tsc_UL_DCCH3, 3, 3, tsc_DL_DCCH3),
+    cs_SRB_InfoSetupAM_DCH_r8( tsc_UL_DCCH4, 4, 4, tsc_DL_DCCH4)
+  };
+
+  template (value) RRCConnectionSetup_r8_IEs cs_RRCConnectionSetup_r8_IEs_FACH_FDD(U_RNTI p_U_RNTI_New,
+                                                                                   C_RNTI p_CRNTI_New) :=
+  { /* @status    APPROVED */
+    activationTime := omit,
+    new_U_RNTI := p_U_RNTI_New,
+    new_c_RNTI := p_CRNTI_New,
+    new_H_RNTI := omit,
+    newPrimary_E_RNTI := omit,
+    newSecondary_E_RNTI := omit,
+    rrc_StateIndicator := cell_FACH,
+    utran_DRX_CycleLengthCoeff := cs_UTRAN_DRX_CycleLengthCoefficient_r7,
+    capabilityUpdateRequirement := cs_CapabilityUpdateRequirement_r8_FDD,
+    supportForChangeOfUE_Capability := false,
+    dummy := omit,       /* @sic R5s120178 BASELINE MOVING 2012 (defaultConfigForCellFACH renamed to dummy) sic@ */
+    specificationMode := {
+      complete := {
+        srb_InformationSetupList := cs_SRB_InformationSetupList2_r8_FACH,
+        ul_CommonTransChInfo := cs_UL_CommTrChInfoDCCH_13_6k_r4_FDD,
+        ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCCH_3_4k_r8,
+        dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_FDD,
+        dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCCH_SRB_r7
+      }
+    },
+    frequencyInfo := omit,
+    multi_frequencyInfo := omit,
+    dtx_drx_TimingInfo := omit,
+    dtx_drx_Info := omit,
+    hs_scch_LessInfo := omit,
+    maxAllowedUL_TX_Power := omit,
+    ul_DPCH_Info := omit,
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := omit,
+    dl_InformationPerRL_List := omit,
+    dl_SecondaryCellInfoFDD := omit,
+    sps_Information_TDD128 := omit
+  };
+
+  template (value) RRCConnectionSetup_r8_IEs cs_RRCConnectionSetup_r8_IEs_DCH_FDD(PrimaryScramblingCode p_PrmbScrmCode,
+                                                                                  U_RNTI p_U_RNTI_New,
+                                                                                  UL_ScramblingCode p_UL_ScramblingCode) :=
+  { /* @status    APPROVED */
+    activationTime := omit,
+    new_U_RNTI := p_U_RNTI_New,
+    new_c_RNTI := omit,
+    new_H_RNTI := omit,
+    newPrimary_E_RNTI := omit,
+    newSecondary_E_RNTI := omit,
+    rrc_StateIndicator := cell_DCH,
+    utran_DRX_CycleLengthCoeff := cs_UTRAN_DRX_CycleLengthCoefficient_r7,
+    capabilityUpdateRequirement := cs_CapabilityUpdateRequirement_r8_FDD,
+    supportForChangeOfUE_Capability := false,
+    dummy := omit,       /* @sic R5s120178 BASELINE MOVING 2012 (defaultConfigForCellFACH renamed to dummy) sic@ */
+    specificationMode := {
+      complete := {
+        srb_InformationSetupList := cs_SRB_InformationSetupList2_r8_DCH,
+        ul_CommonTransChInfo := cs_UL_CommTrChInfoDCCH_13_6k_r4_FDD,
+        ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCCH_13_6k_r8,
+        dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_FDD,
+        dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCCH_SRB_r7
+      }
+    },
+    frequencyInfo := omit,
+    multi_frequencyInfo := omit,
+    dtx_drx_TimingInfo := omit,
+    dtx_drx_Info := omit,
+    hs_scch_LessInfo := omit,
+    maxAllowedUL_TX_Power := omit,
+    ul_DPCH_Info := cs_UL_DPCH_13_6_StandAlone_FDD(p_UL_ScramblingCode),
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := cs_DL_CommonInfoDCH_SRB_FDD(tsc_DL_DPCH1_SFP_SRB, fixed, false),
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r8_FDD(p_PrmbScrmCode, tsc_DL_DPCH1_ChC_SRB, tsc_DL_DPCH1_2ndScrC),
+    dl_SecondaryCellInfoFDD := omit,
+    sps_Information_TDD128 := omit
+  };
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetup_r8(template (value) InitialUE_Identity p_InitUEId,
+                                                           RRC_TransactionIdentifier p_RRC_Ti,
+                                                           template (value) RRCConnectionSetup_r8_IEs p_RRCConnectionSetup_r8_IEs) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := omit,
+    message_ := {
+      rrcConnectionSetup := {
+        later_than_r3 := {
+          initialUE_Identity := p_InitUEId,
+          rrc_TransactionIdentifier := p_RRC_Ti,
+          criticalExtensions := {
+            criticalExtensions := {
+              criticalExtensions := {
+                criticalExtensions := {
+                  criticalExtensions := {
+                    r8 := {
+                      rrcConnectionSetup_r8 := p_RRCConnectionSetup_r8_IEs,
+                      rrcConnectionSetup_r8_add_ext := omit,
+                      v7d0NonCriticalExtensions := omit
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetupFACH_r8_FDD(template (value) InitialUE_Identity p_InitUEId,
+                                                                   RRC_TransactionIdentifier p_RRC_Ti,
+                                                                   U_RNTI p_U_RNTI_New,
+                                                                   C_RNTI p_CRNTI_New) :=
+    /* @status    APPROVED */
+    cs_108_RRC_ConnSetup_r8(p_InitUEId, p_RRC_Ti, cs_RRCConnectionSetup_r8_IEs_FACH_FDD(p_U_RNTI_New, p_CRNTI_New));
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetupDCH_r8_FDD(template (value) InitialUE_Identity p_InitUEId,
+                                                                  RRC_TransactionIdentifier p_RRC_Ti,
+                                                                  PrimaryScramblingCode p_PrmbScrmCode,
+                                                                  U_RNTI p_U_RNTI_New,
+                                                                  UL_ScramblingCode p_UL_ScramblingCode) :=
+    /* @status    APPROVED */
+    cs_108_RRC_ConnSetup_r8(p_InitUEId, p_RRC_Ti, cs_RRCConnectionSetup_r8_IEs_DCH_FDD(p_PrmbScrmCode, p_U_RNTI_New, p_UL_ScramblingCode));
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnRelCCCH_r5(template (value) U_RNTI p_U_rnti,
+                                                             RRC_TransactionIdentifier p_RRC_Ti) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := omit,
+    message_ := {
+      rrcConnectionRelease := {
+        later_than_r3 := {
+          u_RNTI := p_U_rnti,
+          rrc_TransactionIdentifier := p_RRC_Ti,
+          criticalExtensions := {
+            criticalExtensions := {
+              groupIdentity := omit,
+              criticalExtensions := {
+                r5 := {
+                  rrcConnectionRelease_CCCH_r5 := {
+                    rrcConnectionRelease := {
+                      n_308 := omit,
+                      releaseCause := normalEvent,
+                      rplmn_information := omit
+                    }
+                  },
+                  rrcConnectionRelease_CCCH_r5_add_ext := omit, // ??
+                  v690NonCriticalExtensions := omit
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_DCCH_Message cs_108_RRC_ConnRelDCCH_r4(IntegrityCheckInfo p_IntegrityCheckInfo,
+                                                             RRC_TransactionIdentifier p_RRC_Ti,
+                                                             template (omit) integer p_N308 := omit,
+                                                             template (omit) ReleaseCause p_ReleaseCause := normalEvent,
+                                                             template (omit) RRCConnectionRelease_v4d0NonCriticalExtensions_Type p_NonCriticalExtensions := omit) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := p_IntegrityCheckInfo,
+    message_ := {
+      rrcConnectionRelease := {
+        later_than_r3 := {
+          rrc_TransactionIdentifier := p_RRC_Ti,
+          criticalExtensions := {
+            r4 := {
+              rrcConnectionRelease_r4 := {
+                n_308 := p_N308,
+                releaseCause := p_ReleaseCause,
+                rplmn_information := omit
+              },
+              v4d0NonCriticalExtensions := p_NonCriticalExtensions
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_108_RRC_ConnRelCmpl(RRC_TransactionIdentifier p_RRC_Ti) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      rrcConnectionReleaseComplete := {
+        rrc_TransactionIdentifier := p_RRC_Ti,
+        errorIndication := *,
+        laterNonCriticalExtensions := *
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_RRC_ConnSetupCmpl_Common (template (present) RRC_TransactionIdentifier   p_RRC_TI := tsc_RRC_TI,
+                                                        template (present) STARTList                   p_STARTList,
+                                                        template UE_RadioAccessCapability              p_UE_RadioAccessCapability,
+                                                        template InterRAT_UE_RadioAccessCapabilityList p_InterRAT_UE_RadioAccessCapabilityList,
+                                                        template RRCConnSetupCmpl_v370NonCritExt_Type  p_V370NonCriticalExtensions) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := omit,
+    message_ := {
+      rrcConnectionSetupComplete := {
+        rrc_TransactionIdentifier := p_RRC_TI,
+        startList := p_STARTList,
+        ue_RadioAccessCapability := p_UE_RadioAccessCapability,
+        ue_RATSpecificCapability := p_InterRAT_UE_RadioAccessCapabilityList,
+        v370NonCriticalExtensions := p_V370NonCriticalExtensions
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_108_RRC_ConnSetupCmpl ( RRC_TransactionIdentifier p_RRC_Ti,
+                                                      template (present) STARTList p_STARTList) :=
+    /* @status    APPROVED */
+    cr_RRC_ConnSetupCmpl_Common (p_RRC_Ti, p_STARTList, *, *, *);
+
+  template (value) PCCH_Message cs_RRC_PagingType1_ModifySI(MIB_ValueTag p_MIB_ValueTag) :=
+  { /* @status    APPROVED */
+    message_ := {
+      pagingType1 := {
+        pagingRecordList := omit,
+        bcch_ModificationInfo := {
+          mib_ValueTag := p_MIB_ValueTag,
+          bcch_ModificationTime := omit     // changed immediately
+        },
+        laterNonCriticalExtensions := omit
+      }
+    }
+  };
+
+  template (value) PCCH_Message cs_RRC_PagingType1_PTMSI (PagingCause p_PagCause,
+                                                          bitstring p_P_tmsi,
+                                                          CN_DomainIdentity p_Domain) :=
+  { /* @status    APPROVED */
+    message_ := {
+      pagingType1 := cs_PagingType1_P_TMSI(p_PagCause, p_P_tmsi, p_Domain)
+    }
+  };
+
+  template (value) PagingType1 cs_PagingType1_P_TMSI (PagingCause p_PagCause,
+                                                      bitstring p_P_Tmsi,
+                                                      CN_DomainIdentity p_Domain) :=
+  { /* @status    APPROVED */
+    pagingRecordList := {
+      {
+        cn_Identity := {
+          pagingCause := p_PagCause,
+          cn_DomainIdentity := p_Domain,
+          cn_pagedUE_Identity := {
+            p_TMSI_GSM_MAP := p_P_Tmsi
+          }
+        }
+      }
+    },
+    bcch_ModificationInfo := omit,
+    laterNonCriticalExtensions := omit
+  };
+
+  template (value) PCCH_Message cs_RRC_PagingType1_TMSI (PagingCause p_PagCause,
+                                                         bitstring p_P_tmsi,
+                                                         CN_DomainIdentity p_Domain) :=
+  { /* @status    APPROVED */
+    message_ := {
+      pagingType1 := cs_PagingType1_TMSI(p_PagCause, p_P_tmsi, p_Domain)
+    }
+  };
+
+  template (value) PagingType1 cs_PagingType1_TMSI (PagingCause p_PagCause,
+                                                    bitstring p_Tmsi,
+                                                    CN_DomainIdentity p_Domain) :=
+  { /* @status    APPROVED */
+    pagingRecordList := {
+      {
+        cn_Identity := {
+          pagingCause := p_PagCause,
+          cn_DomainIdentity := p_Domain,
+          cn_pagedUE_Identity := {
+            tmsi_GSM_MAP := p_Tmsi
+          }
+        }
+      }
+    },
+    bcch_ModificationInfo := omit,
+    laterNonCriticalExtensions := omit
+  };
+
+  template (value) UE_ConnTimersAndConstants_r5 cs_UEConnTimersConst :=
+  { /* @status    APPROVED */
+    t_301 := ms2000,
+    n_301 :=  2,
+    t_302 :=  ms4000,
+    n_302 :=  3,
+    t_304 :=  ms1000,
+    n_304 :=  3,
+    t_305 :=  m60,
+    t_307 :=  s50,
+    t_308 :=  ms320,
+    t_309 :=  8,
+    t_310 :=  ms320,
+    n_310 :=  5,
+    t_311 :=  ms500,
+    t_312 :=  5,
+    n_312 :=  s200,
+    t_313 :=  10,
+    n_313 :=  s200,
+    t_314 :=  s20,
+    t_315 :=  s30,
+    n_315 :=  s200,
+    t_316 :=  s50,
+    t_317 :=  infinity7
+  };
+
+  template (value) DL_DCCH_Message cs_RRC_UtranMobilityInfo ( IntegrityCheckInfo                                     p_IntegrityCheckInfo,
+                                                              RRC_TransactionIdentifier                              p_RRC_Ti,
+                                                              template (omit) IntegrityProtectionModeInfo_r7         p_IntegrProtModeInfo,
+                                                              template (omit) CipheringModeInfo_r7                   p_CipherModeInfo,
+                                                              U_RNTI                                                 p_URNTI,
+                                                              C_RNTI                                                 p_CRNTI,
+                                                              template (omit) H_RNTI                                 p_HRNTI,
+                                                              template (omit) UE_ConnTimersAndConstants_r5           p_UEConnTimersConst,
+                                                              template (omit) CN_InformationInfoFull                 p_CNInfo,
+                                                              template (omit) PLMN_Identity                          p_PLMNId,
+                                                              template (omit) URA_Identity                           p_URAId,
+                                                              template (omit) boolean                                p_SupportChangeUECapab,
+                                                              template (omit) DL_CounterSynchronisationInfo_r5       p_DlCounterSyncInfo,
+                                                              template (omit) bitstring                              p_UtranMobilityInformation_r7_add_ext,
+                                                              template (omit) UTRANMobilityInformation_v860ext2_Type p_UtranMobilityInformation_v860ext2_Type ) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := p_IntegrityCheckInfo,
+    message_ := {
+      utranMobilityInformation := {
+        later_than_r3 := {
+          rrc_TransactionIdentifier := p_RRC_Ti,
+          criticalExtensions := {
+            criticalExtensions:= {
+              r7 := {
+                utranMobilityInformation_r7 := {
+                  integrityProtectionModeInfo := p_IntegrProtModeInfo,
+                  cipheringModeInfo := p_CipherModeInfo,
+                  new_U_RNTI := p_URNTI,
+                  new_C_RNTI := p_CRNTI,
+                  new_H_RNTI := p_HRNTI,
+                  ue_ConnTimersAndConstants := p_UEConnTimersConst,
+                  cn_InformationInfo := p_CNInfo,
+                  primary_plmn_Identity := p_PLMNId,
+                  ura_Identity := p_URAId ,
+                  supportForChangeOfUE_Capability := p_SupportChangeUECapab,
+                  dl_CounterSynchronisationInfo := p_DlCounterSyncInfo
+                },
+                utranMobilityInformation_r7_add_ext := p_UtranMobilityInformation_r7_add_ext,
+                v860NonCriticalExtensions := p_UtranMobilityInformation_v860ext2_Type
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) MeasurementReportingMode cs_MeasurementReportingMode :=
+  { /* @status    APPROVED */
+    measurementReportTransferMode := acknowledgedModeRLC,
+    periodicalOrEventTrigger := eventTrigger
+  };
+
+  template (value) DPCH_CompressedModeStatusInfo cs_DPCH_CompressedModeStatusInfo(TGPS_Reconfiguration_CFN p_Tgps_Reconfiguration_CFN,
+                                                                                  TGCFN p_TGCFN) :=
+  { /* @status    APPROVED */
+    tgps_Reconfiguration_CFN := p_Tgps_Reconfiguration_CFN,
+    tgp_SequenceShortList := {
+      {
+        tgpsi := 1,
+        tgps_Status := {
+          activate_ := {
+            tgcfn := p_TGCFN
+          }
+        }
+      }
+    }
+  };
+
+  template (value) EUTRA_FrequencyInfo cs_EUTRA_FrequencyInfo(integer p_EutraCell_ARFCN,
+                                                              EUTRA_MeasurementBandwidth p_EutraCell_MeasBandwidth) :=
+  { /* @status    APPROVED */
+    earfcn := p_EutraCell_ARFCN,
+    measurementBandwidth := p_EutraCell_MeasBandwidth,
+    eutra_blackListedCellList := omit
+  };
+
+  template (value) EUTRA_FrequencyInfoList cs_EUTRA_FrequencyInfoList_1Entry(integer p_EutraCell_ARFCN,
+                                                                             EUTRA_MeasurementBandwidth p_EutraCell_MeasBandwidth) :=
+  { /* @status    APPROVED */
+    cs_EUTRA_FrequencyInfo(p_EutraCell_ARFCN, p_EutraCell_MeasBandwidth)
+  };
+
+  template (value) InterRATMeasQuantity_r8 cs_InterRATMeasQuantity_r8(IntraFreqMeasQuantity_FDD p_IntraFreqMeasQuantity_FDD := cpich_Ec_N0,
+                                                                      MeasurementQuantityEUTRA p_MeasurementQuantityEUTRA := rsrq) :=
+  { /* @status    APPROVED */
+    measQuantityUTRAN_QualityEstimate := {
+      filterCoefficient := fc0,
+      modeSpecificInfo := {
+        fdd := {
+          intraFreqMeasQuantity_FDD := p_IntraFreqMeasQuantity_FDD
+        }
+      }
+    },
+    ratSpecificInfo := {
+      e_UTRA := {
+        measurementQuantity := p_MeasurementQuantityEUTRA,
+        filterCoefficient := fc0
+      }
+    }
+  };
+
+  template (value) InterRATReportingQuantity_r8 cs_InterRATReportingQuantity_r8 :=
+  { /* @status    APPROVED */
+    utran_EstimatedQuality := false,
+    ratSpecificInfo := {
+      eutra := {
+        reportingQuantity := both
+      }
+    }
+  };
+
+  template (value) MeasurementCommand_r8 cs_MeasurementCommand_SetupInterRatEutra_r8(template (value) EUTRA_FrequencyInfoList p_EUTRA_FrequencyInfoList,
+                                                                                     template (omit)  InterRATMeasQuantity_r8 p_InterRATMeasQuantity,
+                                                                                     template (omit)  InterRATReportingQuantity_r8 p_InterRATReportingQuantity,
+                                                                                     template (value) InterRATEventList p_InterRATEventList) :=
+  { /* @status    APPROVED */
+    setup := {
+      interRATMeasurement := {
+        interRATMeasurementObjects := {
+          eutra_FrequencyList := {
+            eutraFrequencyRemoval := {
+              removeNoFrequencies := NULL
+            },
+            eutraNewFrequencies := p_EUTRA_FrequencyInfoList
+          }
+        },
+        interRATMeasQuantity := p_InterRATMeasQuantity,
+        interRATReportingQuantity := p_InterRATReportingQuantity,
+        reportCriteria := {
+          interRATReportingCriteria := {
+            interRATEventList := p_InterRATEventList
+          }
+        },
+        idleIntervalInfo := omit
+      }
+    }
+  };
+
+  template (value) DL_DCCH_Message cs_MeasurementControl_r8(IntegrityCheckInfo p_Integrityinfo,
+                                                            MeasurementIdentity p_MeasurementIdentity,
+                                                            template (value) MeasurementCommand_r8 p_MeasurementCommand,
+                                                            template (omit) DPCH_CompressedModeStatusInfo p_DPCH_CompressedModeStatusInfo,
+                                                            RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := p_Integrityinfo,
+    message_ := {
+      measurementControl := {
+        later_than_r3 := {
+          rrc_TransactionIdentifier := p_RRC_TI,
+          criticalExtensions := {
+            later_than_r4 := {
+              rrc_TransactionIdentifier_MSP := p_RRC_TI,
+              criticalExtensions := {
+                criticalExtensions := {
+                  criticalExtensions := {
+                    r8  := {
+                      measurementControl_r8 := {
+                        measurementIdentity := p_MeasurementIdentity,
+                        measurementCommand := p_MeasurementCommand,
+                        measurementReportingMode := cs_MeasurementReportingMode,
+                        additionalMeasurementList := omit,
+                        dpch_CompressedModeStatusInfo := p_DPCH_CompressedModeStatusInfo
+                      },
+                      measurementControl_r8_add_ext := omit,
+                      v8a0NonCriticalExtensions := omit                /* @sic R5s110176 Baseline Moving sic@ */
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_DCCH_Message cs_MeasurementControl_InterRATMeasurement_InterRATEventList(IntegrityCheckInfo                 p_Integrityinfo,
+                                                                                               integer                            p_EutraCell_ARFCN,
+                                                                                               EUTRA_MeasurementBandwidth         p_EutraCell_MeasBandwidth,
+                                                                                               template (value) InterRATEventList p_InterRATEventList,
+                                                                                               TGPS_Reconfiguration_CFN           p_Tgps_Reconfiguration_CFN,
+                                                                                               TGCFN                              p_TGCFN,
+                                                                                               RRC_TransactionIdentifier          p_RRC_TI := tsc_RRC_TI) :=
+    /* @status    APPROVED */
+    cs_MeasurementControl_r8(p_Integrityinfo,
+                             3,
+                             cs_MeasurementCommand_SetupInterRatEutra_r8(cs_EUTRA_FrequencyInfoList_1Entry(p_EutraCell_ARFCN, p_EutraCell_MeasBandwidth),
+                                                                         cs_InterRATMeasQuantity_r8(-, rrsp), // @sic R5s120565 sic@
+                                                                         cs_InterRATReportingQuantity_r8,
+                                                                         p_InterRATEventList),
+                             cs_DPCH_CompressedModeStatusInfo(p_Tgps_Reconfiguration_CFN, p_TGCFN),
+                             p_RRC_TI);
+
+  template (value) InterRATEvent cs_InterRATEvent3a_Def :=
+  { // Default values according to 36.508 Table 4.7B.1-3: MEASUREMENT CONTROL for Inter-RAT
+    /* @status    APPROVED */
+    event3a := {
+      thresholdOwnSystem    :=  -66,
+      w                     :=    0,
+      thresholdOtherSystem  :=  -80,
+      hysteresis            :=    0,
+      timeToTrigger         :=   ttt10,
+      reportingCellStatus   := {
+        withinActSetOrVirtualActSet_InterRATcells := e2
+      }
+    }
+  };
+
+  template (value) DL_DCCH_Message cs_MeasurementControl_InterRATMeasurement (IntegrityCheckInfo         p_Integrityinfo,
+                                                                              RRC_TransactionIdentifier  p_RRC_TI,
+                                                                              integer                    p_EutraCell_ARFCN,
+                                                                              EUTRA_MeasurementBandwidth p_EutraCell_MeasBandwidth,
+                                                                              TGPS_Reconfiguration_CFN   p_Tgps_Reconfiguration_CFN,
+                                                                              TGCFN                      p_TGCFN) :=
+    // Default values according to 36.508 Table 4.7B.1-3: MEASUREMENT CONTROL for Inter-RAT
+    /* @status    APPROVED */
+    cs_MeasurementControl_InterRATMeasurement_InterRATEventList(p_Integrityinfo,
+                                                                p_EutraCell_ARFCN,
+                                                                p_EutraCell_MeasBandwidth,
+                                                                {cs_InterRATEvent3a_Def},
+                                                                p_Tgps_Reconfiguration_CFN,
+                                                                p_TGCFN,
+                                                                p_RRC_TI );
+
+  template UL_DCCH_Message cr_MeasurementReport :=
+  { // 36.508 Table 4.7B.1-4: MEASUREMENT REPORT
+    /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      measurementReport := {
+        measurementIdentity := 3,
+        measuredResults := omit,
+        measuredResultsOnRACH := omit,
+        additionalMeasuredResults := omit,
+        eventResults := omit,
+        v390nonCriticalExtensions  := *
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_108_UTRAN_MobilityInfoCnf ( RRC_TransactionIdentifier p_RRC_Ti ) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      utranMobilityInformationConfirm := {
+        rrc_TransactionIdentifier := p_RRC_Ti,
+        ul_IntegProtActivationInfo := *,
+        count_C_ActivationTime := *,
+        dummy := *,
+        ul_CounterSynchronisationInfo := *,
+        laterNonCriticalExtensions := *
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_HandoverToUTRANComplete :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      handoverToUTRANComplete := {
+        startList := *,
+        count_C_ActivationTime := *,
+        laterNonCriticalExtensions := *
+      }
+    }
+  };
+
+  template InitialDirectTransfer_v590ext cr_InitialDirectTransfer_v590ext (template EstablishmentCause p_EstablishmentCause := omit) :=
+  { /* @status    APPROVED */
+    establishmentCause  :=  p_EstablishmentCause
+  };
+
+  template InitialDirectTransfer_v690ext_IEs cr_InitialDirectTransfer_v690ext (template PLMN_Identity p_PLMN_Id := *,
+                                                                               template MeasuredResultsOnRACHinterFreq p_MeasuredResultsOnRACHinterFreq := *,
+                                                                               template MBMS_JoinedInformation_r6 p_MBMS_JoinedInformation := omit) :=
+  { /* @status    APPROVED */
+    plmn_Identity                  := p_PLMN_Id,
+    measuredResultsOnRACHinterFreq := p_MeasuredResultsOnRACHinterFreq,
+    mbms_JoinedInformation         := p_MBMS_JoinedInformation
+  };
+
+  template UL_DCCH_Message cr_InitDirectTransfer_All ( template RoutingParameter p_RoutParameter,
+                                                       CN_DomainIdentity p_CN_DomainId := ps_domain,
+                                                       template (present) START_Value p_StartValue := ?, // @sic R5s110801 sic@
+                                                       template EstablishmentCause p_EstCause := omit,
+                                                       template PLMN_Identity p_PLMN_Id := *,
+                                                       template MeasuredResultsOnRACHinterFreq p_MeasuredResultsOnRACHinterFreq := *,
+                                                       template MBMS_JoinedInformation_r6 p_MBMS_JoinedInformation := omit) := // @sic R5s110801 sic@
+     /* @status    APPROVED */
+     cr_InitDirectTransfer_Common (p_RoutParameter,
+                                   p_CN_DomainId,
+                                   p_StartValue,
+                                   cr_InitialDirectTransfer_v590ext (p_EstCause),
+                                   cr_InitialDirectTransfer_v690ext (p_PLMN_Id, p_MeasuredResultsOnRACHinterFreq, p_MBMS_JoinedInformation));
+
+  template UL_DCCH_Message cr_InitDirectTransfer_Common ( template RoutingParameter p_RoutParameter,
+                                                          CN_DomainIdentity p_CN_DomainId := ps_domain,
+                                                          template (present) START_Value p_StartValue := ?, // @sic R5s110801 sic@
+                                                          template InitialDirectTransfer_v590ext p_InitialDirectTransfer_v590ext,
+                                                          template InitialDirectTransfer_v690ext_IEs p_InitialDirectTransfer_v690ext) := // @sic R5s110801 sic@
+  { /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      initialDirectTransfer := {
+        cn_DomainIdentity := p_CN_DomainId,
+        intraDomainNasNodeSelector := {
+          version := {
+            release99 := {
+              cn_Type := {
+                gsm_Map_IDNNS := {
+                  routingbasis := {
+                    localPTMSI := {
+                      routingparameter := p_RoutParameter
+                    }
+                  },
+                  dummy := ?
+                }
+              }
+            }
+          }
+        },
+        nas_Message := ?,
+        measuredResultsOnRACH := *,
+        v3a0NonCriticalExtensions := {
+          initialDirectTransfer_v3a0ext := {
+            start_Value := p_StartValue // @sic R5s110801 sic@
+          },
+          laterNonCriticalExtensions := {
+            initialDirectTransfer_r3_add_ext := *,
+            v590NonCriticalExtensions := {
+              initialDirectTransfer_v590ext := p_InitialDirectTransfer_v590ext,
+              v690NonCriticalExtensions := {
+                initialDirectTransfer_v690ext := p_InitialDirectTransfer_v690ext,
+                v770NonCriticalExtensions := *
+              } ifpresent
+            } ifpresent
+          } ifpresent
+        }
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_108_RB_SetUpCmpl ( RRC_TransactionIdentifier p_RRC_Ti,
+                                                 template START_Value p_StartValue:= ?) :=
+  { /* ASN.1 PDU Constraint defined in TS 34.108 clause 9 */
+    /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      radioBearerSetupComplete := {
+        rrc_TransactionIdentifier := p_RRC_Ti,
+        ul_IntegProtActivationInfo := *,
+        ul_TimingAdvance := *,
+        start_Value := p_StartValue,
+        count_C_ActivationTime := *,
+        dummy := *,
+        ul_CounterSynchronisationInfo := *,
+        laterNonCriticalExtensions := ({  // @sic R5s110210 sic@
+          radioBearerSetupComplete_r3_add_ext := *,
+          v770NonCriticalExtensions := ({  // @sic R5s110210 sic@
+            radioBearerSetupComplete_v770ext := {
+              ext_UL_TimingAdvance := *,
+              deferredMeasurementControlReading := omit },
+            nonCriticalExtensions := * // @sic R5s110210 sic@
+            }
+            , omit)  // @sic R5s110210 sic@
+          }
+        , omit)  // @sic R5s110210 sic@
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_PhysicalChannelReconfigurationComplete ( RRC_TransactionIdentifier p_RRC_TI ) :=
+  { /* Values according to 36.508 Table 4.7B.1-6: PHYSICAL CHANNEL RECONFIGURATION COMPLETE */
+    /* @status    APPROVED */
+    integrityCheckInfo := *,
+    message_ := {
+      physicalChannelReconfigurationComplete := {
+        rrc_TransactionIdentifier  := p_RRC_TI,
+        ul_IntegProtActivationInfo := *,
+        ul_TimingAdvance           := *,
+        count_C_ActivationTime     := *,
+        dummy                      := *,
+        ul_CounterSynchronisationInfo := *,
+        laterNonCriticalExtensions    := ({ // @sic R5s110210 sic@
+          physicalChannelReconfigurationComplete_r3_add_ext   := *,
+          v770NonCriticalExtensions := ({ // @sic R5s110210 sic@
+            physicalChannelReconfigurationComplete_v770ext := {
+              ext_UL_TimingAdvance := *,  // @sic R5s110210 sic@
+              deferredMeasurementControlReading := omit },
+            nonCriticalExtensions := *} // @sic R5s110210 sic@
+            , omit )  // @sic R5s110210 sic@
+          }
+        , omit )  // @sic R5s110210 sic@
+      }
+    }
+  };
+
+}

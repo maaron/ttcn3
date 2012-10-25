@@ -1,0 +1,442 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module InterRat_CellReSelection_EtoC_CDMA2000 {
+
+  import from CDMA2000_CommonDefs all;
+  import from CDMA2000_CommonFunctions all;
+  import from CDMA2000_Component all;
+  import from CommonIratDefs all;
+
+  function f_TC_6_2_2_3_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT Cell selection / From E-UTRA RRC_IDLE to HRPD Idle / Serving cell becomes non-suitable (SServingCell<0) */
+    
+    const  PowerIor_Type tsc_Cell15_Ior := -60; //@sic R5-104718 sic@
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 );
+    // Set MAX reference power corresponding to Ior/Ioc =-5 and -20 for cell 15 and 16 respectively
+    // Note as cell 15 and 16 are on different frequency the
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell15, -55, tsc_Cell15_Ior, omit);    //Ioc =-55, Ior/Ioc=-5, Pilot offset =0
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell15 );
+    
+    //First Trigger: to Change cell power according to T0 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    //------------------------------------------------
+    //Start TestBody
+    //@siclog "Step 1" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, tsc_Cell15_Ior );
+    
+    //@siclog "Step 3" siclog@
+    f_CDMA2000_RegisterHRPDCell (cdma2000_Cell15);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on HRPD cell");
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    // send coordination message for end of test case
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_HRPD_Postamble (cdma2000_Cell15);    // UE is active and connected state
+    
+  }; //end of testcase 6.2.2.3
+
+  function f_TC_6_2_3_7_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle / HRPD cell is higher reselection priority than E-UTRA */
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell15, -75, -75,omit);    //Ioc =-75, Ior/Ioc=0, Ior=-75, Pilot offset =0
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell15 );
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+
+    //------------------------------------------------
+    //Start TestBody
+    //@siclog "Step 1 void siclog@
+    //@siclog "Step 2 siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -95 ); //i.e attenuation of 20, Ior =-95 , Ioc=-75, results in Pilot Ec/Io = -20
+    //@sic R5s120403 sic@
+    
+    //@siclog "step 3-4
+    f_CDMA2000_CheckUEDoesNotCamponHRPDCell(cdma2000_Cell15);  //wait timer of default 60 seconds
+
+    //@siclog "Step 5" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -75 ); //i.e attenuation of 0, Ior =-75 , Ioc=-75, results in Pilot Ec/Io = -3
+
+    //@siclog "step 6" siclog@
+    f_CDMA2000_RegisterHRPDCell (cdma2000_Cell15);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on HRPD cell");
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    // Swith off/power off and release cells
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_HRPD_Postamble (cdma2000_Cell15);       //UE is active and connected state
+    
+  } //end of testcase 6.2.3.7
+
+  function f_TC_6_2_3_8_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle / HRPD cell is Lower reselection priority than E-UTRA */
+
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    // Note as cell 15 and 16 are on different frequency the
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell15, -55, -55, omit);    //Ioc =-55, Ior/Ioc=0, Ior=-55, Pilot offset =-0
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell15 );
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+
+    //@siclog "Step 1" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -75 ); //i.e attenuation of 20, Ior =-75 , Ioc=-55, results in Pilot Ec/Io = -20
+    //@sic R5s120243 sic@
+    
+    //@siclog "step 3-4"
+    f_CDMA2000_CheckUEDoesNotCamponHRPDCell(cdma2000_Cell15); //wait timer of default 60 seconds
+                                            
+    //@siclog "Step 5" siclog@
+    // send co-ordination message so that power level as per T2 can be configured
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -60 ); //i.e attenuation of 5, Ior =-60 , Ioc=-55, results in Pilot Ec/Io = -6
+    //@sic R5s120243 sic@
+    //@siclog "step 6" siclog@
+    f_CDMA2000_RegisterHRPDCell (cdma2000_Cell15);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on HRPD cell");
+    
+    f_CDMA2000_TestBody_Set ( false );
+    // send co-ordination message to indicate end of test body
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger ); //@sic R5s110496 sic@
+
+    // Swith off/power off and release cells
+    f_HRPD_Postamble (cdma2000_Cell15);   //UE is active and connected state
+    
+  } //end of testcase 6.2.3.8
+
+  function f_TC_6_2_2_4_CDMA2000 () runs on CDMA2000_PTC
+  { // Inter-RAT cell selection / From E-UTRA RRC_IDLE to 1xRTT Dormant / Serving cell becomes non-suitable (SServingCell<0)
+    
+    const  PowerIor_Type tsc_Cell19_Ior := -75; // Ior at T1/T2 = 0 + (-75) =-75
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000, type1XRTT );
+    // Set MAX reference power corresponding to Ior/Ioc = 0 and -15 for cell 19 and 20 respectively
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell19, -75, -75, omit); //Ioc = -75, Ior/Ioc = 0, Pilot offset = -7
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell19 );
+    
+    //First Trigger: to Change cell power according to T0 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    
+    f_CDMA2000_TestBody_Set( true );
+    //------------------------------------------------
+    //Start TestBody
+    //@siclog "Step 1" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell19,tsc_Cell19_Ior);
+    
+    //@siclog "Step 3" siclog@
+    f_CDMA2000_RegisterRTT1XCell (cdma2000_Cell19);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on 1XRTT cell");
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    // send coordination message for end of test case
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_RTT1X_Postamble (cdma2000_Cell19);
+    
+  } //end of testcase 6.2.2.4
+
+  function f_TC_6_2_3_9_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell is higher reselection priority than E-UTRA */
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000, type1XRTT );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    // Note as cell 15 and 16 are on different frequency the
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell19, -75, -75, omit);    //Ioc =-75, Ior/Ioc=0, Ior=-75, Pilot offset =-7
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell19 );
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 1-2" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -90 ); //i.e attenuation of 15, Ior =-90 , Ioc=-75, results in Pilot Ec/Io = -22
+    
+    //@siclog "step 3"
+    f_CDMA2000_CheckUEDoesNotCamponRTT1XCell(cdma2000_Cell19); //wait timer of default 60 seconds
+
+    //@siclog "Step 4" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -75 ); //i.e attenuation of 0, Ior =-75 , Ioc=-75, results in Pilot Ec/Io = -10
+
+    //@siclog "step 5" siclog@
+    f_CDMA2000_RegisterRTT1XCell (cdma2000_Cell19);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on 1XRTT cell");
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    // Swith off/power off and release cells
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_RTT1X_Postamble (cdma2000_Cell19);
+    
+  } //end of testcase 6.2.3.9
+
+  function f_TC_6_2_3_10_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell is lower reselection priority than E-UTRA */
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 , type1XRTT );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 19
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell19, -75, -75, omit);    //Ioc =-55, Ior/Ioc=0, Ior=-55, Pilot offset =-7
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell19 ); //@sic R5s120029 sic@
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 1" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -90 ); //i.e attenuation of 15, Ior =-90 , Ioc=-75, results in Pilot Ec/Io = -22
+    
+    //@siclog "step 2-3"
+    f_CDMA2000_CheckUEDoesNotCamponRTT1XCell(cdma2000_Cell19); //wait timer of default 60 seconds
+    
+    //@siclog "Step 4" siclog@
+    // send co-ordination message so that power level as per T2 can be configured
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -75 ); //i.e attenuation of 0, Ior =-75 , Ioc=-75, results in Pilot Ec/Io = -10
+
+    //@siclog "step 5" siclog@
+    f_CDMA2000_RegisterRTT1XCell (cdma2000_Cell19);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on 1XRTT cell");
+        
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );//@sic R5s120029 sic@
+    // Swith off/power off and release cells
+    
+    f_RTT1X_Postamble (cdma2000_Cell19);
+    
+  } //end of testcase 6.2.3.10
+
+  function f_TC_6_2_3_7a_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle / HRPD cell is higher reselection priority than E-UTRA (Srxlev > ThreshHRPD, HighP) */
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell15, -75, -75, omit);    //Ioc =-75, Ior/Ioc=0, Ior=-75, Pilot offset =0
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell15 );
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    //@siclog "Step 1 siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -95 ); //i.e attenuation of 20, Ior =-95 , Ioc=-75, results in Pilot Ec/Io = -20
+    //@sic R5s120436 sic@
+    
+    //@siclog "step 2-3
+    f_CDMA2000_CheckUEDoesNotCamponHRPDCell(cdma2000_Cell15); //wait timer of default 60 seconds
+    
+    //@siclog "Step 4" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -75 ); //i.e attenuation of 0, Ior =-75 , Ioc=-75, results in Pilot Ec/Io = -3
+    
+    //@siclog "step 5" siclog@
+    f_CDMA2000_RegisterHRPDCell (cdma2000_Cell15);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on HRPD cell");
+    
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    // Swith off/power off and release cells
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_HRPD_Postamble (cdma2000_Cell15 );
+    //UE is active and connected state
+    
+  }
+
+  function f_TC_6_2_3_8a_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle / HRPD cell is lower reselection priority than E-UTRA (Squal < ThreshServing, LowQ and Srxlev > ThreshHRPD, LowP */
+
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    // Note as cell 15 and 16 are on different frequency the
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell15, -55, -55, omit);    //Ioc =-55, Ior/Ioc=0, Ior=-55, Pilot offset =-0
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell15 );
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -75 ); //i.e attenuation of 20, Ior =-75 , Ioc=-55, results in Pilot Ec/Io = -20
+    //@sic R5s120554 sic@
+    //@siclog "step 3-4"
+    f_CDMA2000_CheckUEDoesNotCamponHRPDCell(cdma2000_Cell15); //wait timer of default 60 seconds
+    
+    //@siclog "Step 5" siclog@
+    // send co-ordination message so that power level as per T2 can be configured
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -60 ); //i.e attenuation of 5, Ior =-60 , Ioc=-55, results in Pilot Ec/Io = -6
+    //@sic R5s120554 sic@
+    //@siclog "step 6" siclog@
+    f_CDMA2000_RegisterHRPDCell (cdma2000_Cell15);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on HRPD cell");
+    
+    f_CDMA2000_TestBody_Set ( false );
+    // send co-ordination message to indicate end of test body
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+
+    // Swith off/power off and release cells
+    f_HRPD_Postamble (cdma2000_Cell15);   //UE is active and connected state
+    
+  }
+
+  function f_TC_6_2_3_9a_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell is higher reselection priority than E-UTRA */
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000, type1XRTT );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    // Note as cell 15 and 16 are on different frequency the
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell19, -75, -75, omit);    //Ioc =-75, Ior/Ioc=0, Ior=-75, Pilot offset =-7
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell19 );
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 1" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -90 ); //i.e attenuation of 15, Ior =-90 , Ioc=-75, results in Pilot Ec/Io = -22
+    
+    //@siclog "step 2-3"
+    f_CDMA2000_CheckUEDoesNotCamponRTT1XCell(cdma2000_Cell19 //wait timer of default 60 seconds
+                                             );
+    //@siclog "Step 4" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -75 ); //i.e attenuation of 0, Ior =-75 , Ioc=-75, results in Pilot Ec/Io = -10
+    
+    //@siclog "step 5" siclog@
+    f_CDMA2000_RegisterRTT1XCell (cdma2000_Cell19);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on 1XRTT cell");
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set ( false );
+    // Swith off/power off and release cells
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_RTT1X_Postamble (cdma2000_Cell19 );
+    
+  } //end of testcase 6.2.3.9a
+
+  function f_TC_6_2_3_10a_CDMA2000 () runs on CDMA2000_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell
+     * is lower reselection priority than E-UTRA (Squal < ThreshServing, LowQ and Srxlev > Thresh1xRTT, LowP) */
+    
+    //Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000, type1XRTT );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 19
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell19, -75, -75,omit);    //Ioc =-55, Ior/Ioc=0, Ior=-55, Pilot offset =-7
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell19 );
+    
+    //First Trigger: to Change cell power according to T1 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    
+    //------------------------------------------------
+    //Start TestBody
+    
+    //@siclog "Step 1" siclog@
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -90 ); //i.e attenuation of 15, Ior =-90 , Ioc=-75, results in Pilot Ec/Io = -22
+    
+    //@siclog "step 2-3"
+    f_CDMA2000_CheckUEDoesNotCamponRTT1XCell(cdma2000_Cell19); //wait timer of default 60 seconds
+    
+    //@siclog "Step 4" siclog@
+    // send co-ordination message so that power level as per T2 can be configured
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger);
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -75 ); //i.e attenuation of 0, Ior =-75 , Ioc=-75, results in Pilot Ec/Io = -10
+    
+    //@siclog "step 5" siclog@
+    f_CDMA2000_RegisterRTT1XCell(cdma2000_Cell19);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on 1XRTT cell");
+    
+    //End TestBody
+    //------------------------------------------------
+    f_CDMA2000_TestBody_Set(false);
+    // Swith off/power off and release cells
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger);
+    
+    f_RTT1X_Postamble(cdma2000_Cell19);
+    
+  } //end of testcase 6.2.3.10a
+
+}

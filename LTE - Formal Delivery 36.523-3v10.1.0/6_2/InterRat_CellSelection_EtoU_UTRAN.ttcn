@@ -1,0 +1,325 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:49:20 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7317 $
+/******************************************************************************/
+module InterRat_CellSelection_EtoU_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_NAS_PDU_Templates all;
+  import from UTRAN_RAB_Functions all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TTCN_ASP_Templates all;
+  import from UTRAN_TypeDefs all;
+  import from UpperTesterFunctions all;
+
+  template (value) AccessClassBarredList cs_AllAccessClassesBarred_NotBarred :=
+  { /* @status    APPROVED */
+    notBarred,//Access Class Barred0
+    notBarred,//Access Class Barred1
+    notBarred,//Access Class Barred2
+    notBarred,//Access Class Barred3
+    notBarred,//Access Class Barred4
+    notBarred,//Access Class Barred5
+    notBarred,//Access Class Barred6
+    notBarred,//Access Class Barred7
+    notBarred,//Access Class Barred8
+    notBarred,//Access Class Barred9
+    notBarred,//Access Class Barred10
+    notBarred,//Access Class Barred11
+    notBarred,//Access Class Barred12
+    notBarred,//Access Class Barred13
+    notBarred,//Access Class Barred14
+    notBarred //Access Class Barred15
+  };
+
+  template (value) CellBarred cs_CellBarred :=
+  { /* @status    APPROVED */
+    barred := {
+      intraFreqCellReselectionInd := notAllowed,//FFS - Prose needs updating
+      t_Barred := s1280                         //FFS - Prose needs updating
+    }
+  };
+
+  template (value) CellAccessRestriction cs_CellAccessRestriction_CellBarred(template (value) CellBarred p_CellBarred) :=
+    /* @status    APPROVED */
+    cs_CellAccessRestriction_Common(p_CellBarred, notReserved, notReserved, cs_AllAccessClassesBarred_NotBarred);
+
+  function f_TC_6_2_2_1_UTRAN ( ) runs on UTRAN_PTC {
+
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+
+    //Create and configure Cell 5.
+    //Cell started switched on with default cell power level and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Since UE starts in EUTRA wait for EUTRA PTC to send the Auth Params
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+
+    f_UTRAN_TestBody_Set(true);
+
+    //@siclog "Step 1" siclog@
+    //Set cell power level according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, -70, -72);
+
+    //@siclog "Step 2" siclog@
+    //Check if UE camps on Cell 5
+    f_UTRAN_IdleMode_RAU ( utran_Cell5 );
+
+    //@siclog "Step 3" siclog@
+    //Set power level according T2
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA); //@sic R5s110168 : Auth params have been updated in RAU so these need to be transferred sic@
+    f_UTRAN_SetCellPower ( utran_Cell5, tsc_AttenuationCellOFF );
+
+    //@siclog "Step 6" siclog@
+    //Set Cell 5 power level according to T3
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_SetCellPower(utran_Cell5, -70, -72);
+
+    //@siclog "Step 7" siclog@
+    //Check if UE camps on Cell 5
+    f_UTRAN_IdleMode_RAU ( utran_Cell5 );
+
+    //Tell the EUTRA component that the test is over
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+
+    f_UTRAN_TestBody_Set ( false );
+
+    //Switch/Power off and detach UE
+    f_UTRAN_Postamble ( utran_Cell5, U1_IDLE );
+  }
+
+  function f_TC_6_2_2_5_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD;
+    var UTRAN_CellInfo_Type_TDD v_CellInfoTDD;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var InitialUE_Identity v_InitialUE_Id;
+    var U_RNTI v_U_RNTI;
+    var template (value) TI v_TI_R, v_TI_S;
+    var RRC_DATA_IND v_RRC_DataInd;
+    var integer v_T0_CPICH_Cell5 := -75;
+    var integer v_T0_PCCPCH_Cell5 := -77;
+    var template (present) EstablishmentCause v_EstCause := emergencyCall;
+    var START_Value v_START_Value := '00000000000000000000'B;
+    var KeySeq v_KeySeq := '111'B; //cipher key sequence number IE: no key is available
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Get cell specific parameters
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD ( utran_Cell5 );
+    v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI ( utran_Cell5 );
+    
+    //Get FDD/TDD specific information
+    if( v_FDD_TDD_Mode == UTRAN_FDD ) {
+      v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific (utran_Cell5);
+    }
+    else {
+      v_CellInfoTDD := f_UTRAN_CellInfo_GetTDDSpecific (utran_Cell5);
+    }
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH ( utran_Cell5 );
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo ( utran_Cell5 );
+    
+    //Set cell power level for test
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    f_UTRAN_SetCellPower(utran_Cell5, v_T0_CPICH_Cell5, v_T0_PCCPCH_Cell5);
+    
+    //Bring UE to initial state
+    f_UT_USIM_Remove ( UT );
+
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    //Switch on the UE
+    f_UT_SwitchOnUE ( UT, false );
+    
+    //@siclog "Step 2" siclog@
+    //Wait 60s for UE to complete cell selection
+    f_Delay ( 60.0 );
+    
+    //@siclog "Step 3" siclog@
+    //Make the initate an Emergency call
+    f_UT_RequestCSCall ( UT, px_EmergencyCallNumber );
+    
+    //@siclog "Step 4" siclog@
+    //Receive RRC Connection Request on Cell 5
+    U_TM.receive ( car_RRC_ConnReq ( utran_Cell5,
+                                     tsc_RB0,
+                                     cr_108_RRC_ConnReq_r8 ( v_EstCause ) ) ) -> value v_RLC_TR_DATA_IND;
+    f_UTRAN_CheckReleaseIndicator ( utran_Cell5, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+    //* @verdict pass UE transmits RRC Connection Request
+    f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Test case 6.2.2.5 Step 4");
+    v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+    
+    //@siclog "Step 5" siclog@
+    //Transmit RRC Connection Setup
+    //@siclog "Step 6" siclog@
+    //Receive RRC Connection Setup Complete
+    // @sic R5-123750 sic@
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq  (utran_Cell5,v_InitialUE_Id );
+   
+    //@siclog "Step 7" siclog@
+    //Receive an INITIAL DIRECT TRANSFER message on Cell 5. This message includes a CM SERVICE REQUEST.
+    U_Dc.receive ( car_InitDirectTransfer ( utran_CellDedicated,
+                                            tsc_RB3,
+                                            cr_U_ServReqAny ( v_KeySeq ) ) ) -> value v_RRC_DataInd;
+    
+    v_START_Value := v_RRC_DataInd.ttcn_start;
+    f_UTRAN_SS_SecurityDownloadStart ( cs_domain, v_START_Value );
+    
+    //@siclog "Step 8" siclog@
+    //Transmit CM Service Accept
+    U_Dc.send ( cas_DataReq_CS ( utran_CellDedicated,
+                                 tsc_RB3,
+                                 cs_U_CM_ServAcc ) );
+    
+    //@siclog "Step 9" siclog@
+    //Receive Emergency Setup message
+    U_Dc.receive ( car_UplinkDirectTransfer ( utran_CellDedicated,
+                                              tsc_RB3,
+                                              cr_U_ESetup ( cr_ESetup ( cr_BcapSpeechMO ))))
+      -> value v_RRC_DataInd;
+    v_TI_R := v_RRC_DataInd.msg.esetup.ti;
+    v_TI_S := v_TI_R;
+    v_TI_S.tiFlag := '1'B;
+    
+    //@siclog "Step 10" siclog@
+    //Transmit Call Proceeding message
+    U_Dc.send ( cas_DataReq_CS ( utran_CellDedicated,
+                                 tsc_RB3,
+                                 cs_U_CallProc ( v_TI_S )));
+    
+    //@siclog "Step 11 - 12" siclog@
+    //Transmit Radio Bearer Setup message and Receive Radio Bearer Setup Complete message
+    f_UTRAN_RB_SetUp_Speech ( utran_Cell5, false );  /* @sic R5s120139 - Additional Changes sic@ */
+    
+    //@siclog "Step 13" siclog@
+    //Transmit Alerting message
+    U_Dc.send ( cas_DataReq_CS ( utran_CellDedicated,
+                                 tsc_RB3,
+                                 cs_U_Alert ( v_TI_S )));
+    
+    //@siclog "Step 14" siclog@
+    //Transmit Connect message
+    U_Dc.send ( cas_DataReq_CS ( utran_CellDedicated,
+                                 tsc_RB3,
+                                 cs_U_Connect ( v_TI_S )));
+    
+    //@siclog "Step 15" siclog@
+    //Receive Connect Acknowledge message
+    U_Dc.receive ( car_UplinkDirectTransfer ( utran_CellDedicated,
+                                              tsc_RB3,
+                                              cr_U_ConnAck ( v_TI_R ) ) );
+    
+    //Tell EUTRA component test case is over
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    
+    f_UTRAN_TestBody_Set ( false );
+    
+    //Disconnect the active CC call
+    f_UTRAN_CC_Disconnect ( utran_Cell5, v_TI_S );
+    
+    //Release RRC connection
+    f_UTRAN_RRC_ConnRel( utran_Cell5, cell_Dch );
+    
+    //Switch/power off UE
+    f_UTRAN_Postamble( utran_Cell5, U6_DEREGISTERED );
+  }
+
+  function f_TC_6_2_2_8_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var template (value) SysInfoType3 v_SIB3;
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    f_UTRAN_SetReferenceCellPower (utran_Cell5, -50, -52);  // Initialise reference power to -50 for FDD/-52 for TDD @sic R5s120122 sic@
+
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell5);
+    
+    //Bring UE to initial state
+    f_UTRAN_Preamble (utran_Cell5);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_OctetData(f_UTRAN_MobileInfo_EUTRACapability_Get())); // @sic R5-123734 sic@
+    
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //Set power level to "T1"
+    f_UTRAN_SetCellPower(utran_Cell5, -90, -92);
+    
+    //@siclog "Step 3" siclog@
+    //Receive updated auth parameters and set power level to "T2"
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_SetCellPower(utran_Cell5, -60, -62);
+    
+    //@siclog "Step 4" siclog@
+    //Perform generic test procedure in TS 36.508 subclause 6.4.2.8
+    f_UTRAN_RRC_ConnEst (utran_Cell5);
+    f_UTRAN_GMM_RAU_MappedContext (utran_Cell5);
+    f_UTRAN_RRC_ConnRel (utran_Cell5, cell_Fach_Dcch);
+    
+    //@siclog "Step 5" siclog@
+    //Send updated auth params, set power level to "T3" and update SIB3 of cell 5
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell5, -50, -52);
+    //Set SIB3 of cell 5 according to Table 6.2.2.8.3.3-3
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (utran_Cell5);
+    if (v_FDD_TDD_Mode == UTRAN_FDD) {
+      v_SIB3 := cds_SIB3_Barred(f_UTRAN_GetCellIndentity(utran_Cell5),
+                                cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_4_ModeSpecificInfo_FDD, 21),
+                                cs_CellAccessRestriction_CellBarred(cs_CellBarred),
+                                omit);
+    }
+    else {//TDD
+      v_SIB3 := cds_SIB3_Barred(f_UTRAN_GetCellIndentity(utran_Cell5),
+                                cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_ModeSpecificInfo_TDD, 30),
+                                cs_CellAccessRestriction_CellBarred(cs_CellBarred),
+                                omit);
+    }
+    f_UTRAN_SysInfoModifySIB3(utran_Cell5, v_SIB3);
+    
+    f_UTRAN_TestBody_Set (false);
+    
+    //Release cell 5 when test case is over
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_ReleaseCell (utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) );
+  }
+
+}

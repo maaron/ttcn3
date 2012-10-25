@@ -1,0 +1,1519 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-24 06:20:43 +0200 (Tue, 24 Apr 2012) $
+// $Rev: 6537 $
+/******************************************************************************/
+module MAC_712 {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_Measurement_Templates all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_SysInfo_Templates all;
+  import from EUTRA_Timing all;
+  import from L2_CommonFunctions all;
+  import from L2_CommonTemplates all;
+  import from MAC_Functions all;
+  import from MAC_Templates all;
+
+  group LocalFunctions {
+
+  function fl_TC_7_1_2_3_Step1_8 (integer p_T300_ms,
+                                  template (present) RachPreamble_Type p_RachPreamble) runs on EUTRA_PTC
+  {
+    var float v_T300Val := f_EUTRA_SetTimerToleranceMax ( eutra_Cell1, rrcTimer, int2float(p_T300_ms) / 1000.0 );
+    
+    timer t_Watchdog := 5.0; // General purpose wait timer
+    timer t_T300;
+    
+    //@siclog "Step 1" siclog@
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+    //@siclog "Step 2" siclog@
+    t_Watchdog.start;
+    alt {
+      []SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, p_RachPreamble))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+          t_Watchdog.stop;
+        }
+    };
+    
+    t_T300.start(v_T300Val);// JKS NOTE: 1st PRACH Premble afer paging is already received T300 can be used
+    //@siclog "Step 3" siclog@
+    alt {
+      [] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, p_RachPreamble))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+        }
+    };
+    
+    //@siclog "Step 4" siclog@
+    alt {
+      [] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, p_RachPreamble))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+        }
+    };
+    //@siclog "Step 5" siclog@
+    // Automatically taken care due to preconfiguration of RACH Response
+    // Note Racing should not be between steps 6 and 7 as UE has to wait for mac-ContentionResolutionTimer  which is 48 ms
+    // before initiating the next PRACH procedure.
+    
+    //@siclog "Step 6" siclog@
+    alt {
+      [] SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) )
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+        }
+    };
+    
+    //@siclog "Step 7" siclog@
+    alt {
+      [] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, p_RachPreamble))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+        }
+    };
+    //@siclog "Step 8" siclog@
+    alt {
+      [] t_T300.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+        }
+      [] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, p_RachPreamble))
+        {
+          repeat;
+          // do nothing
+        }
+    };
+  };
+
+  } // end of group LocalFunctions
+
+  function f_TC_7_1_2_1_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+     * 7.1.2.1 : Correct Selection of RACH parameters / Random Access Preamble and
+     * PRACH resource explicitly signalled to the UE by RRC [Non Contention Based Random Access Procedure]
+     */
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var template (omit) SRB_COMMON_IND v_SrbIndByRef:=omit;    // not used (needed when other information of the RRC message needs to be access)
+    var template (omit) SYSTEM_IND v_SysIndByRef:=omit;        // to store SYSTEM_IND if it takes over the RRC message
+    var Frequency_IE_Type v_Frequency_IE_Cell2;
+    var PhysCellId v_PhysicalCellIdentity_Cell2;
+    var ChannelBandwidthDependency_Type v_ChBandDependency;
+    var template (value) CellPowerList_Type  v_CellPowerList_AtT1  := {
+      cs_CellPower ( eutra_Cell2, -85 )
+    };
+    v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell2, -79 )
+    };
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    // Modify SIB's for test case Specific values.
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1, n10);
+    //f_EUTRA_CellInfo_SetSysInfo_T300 (eutra_Cell1,ms2000);
+    f_EUTRA_CellInfo_SetMAC_ContResTimer(eutra_Cell1, sf64);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 ); //@sic R5s100189 sic@
+    f_EUTRA_CellConfig_Def(eutra_Cell2);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    // Bring UE to state 3
+    f_EUTRA_RbEst_Def(eutra_Cell1);
+
+    // Bring up cell 2
+
+    f_EUTRA_SetCellPower(eutra_Cell2, tsc_SuitableCellRS_EPRE);
+    // preconfig for RACH procedure
+    f_EUTRA_SS_ConfigRachProcedure(eutra_Cell2, tsc_C_RNTI_Def2, cs_RachProcedureConfig_CRNTI_Dedicated(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell2),
+                                                                 f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell2) ));// @sic R5-103846 sic@
+    // config for PReamble reception indication
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell2, tsc_L1Mac_IndicationMode_Enable); //@sic R5s100138 sic@
+    // Auto PUCCH sync needs to be avoided until UE starts camping in the cell
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell2, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def); //@sic R5s100138 R5s100538 sic@
+    //@sic R5s100520 sic@
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    //@sic R5-102235 sic@
+    v_Frequency_IE_Cell2 := f_EUTRA_CellInfo_GetFrequencyIEs ( eutra_Cell2 );
+    v_ChBandDependency:= f_EUTRA_BandDependentParam ( v_Frequency_IE_Cell2.DL_ChBandwidth,
+                                                      v_Frequency_IE_Cell2.UL_ChBandwidth );
+
+    v_PhysicalCellIdentity_Cell2 := f_EUTRA_CellInfo_GetPhyCellId ( eutra_Cell2 );
+    //@siclog "Step 0A-0B" siclog@
+    //Transmit RRC Connection reconfiguration
+    // Receive RRCConnectionReconfigurationComplete
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig( eutra_Cell1,
+                                                     cs_508_RRCConnectionReconfiguration_ConditionMEAS ( tsc_RRC_TI_Def,
+                                                                                         cs_Measurement_Config_A3 ( v_Frequency_IE_Cell2.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                                    v_ChBandDependency.AllowedMeasBandwidth ) ));
+    //@siclog "Step 0C" siclog@
+    // Set cell settings according to T1
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+
+    //@siclog "Step 0D" siclog@
+    // Receive MasurementReport
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_MeasurementReport ( 1,//Meas id
+                                                                            ?,//RSRP result
+                                                                            ?,//RSRQ result
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell2,
+                                                                                                                                 omit,//CGI info
+                                                                                                                                 ?,//RSRP result
+                                                                                                                                 ? ) ) ) );//RSRQ result
+    
+    //@sic R5s100138 sic@
+    // Derive security parameters for cell 2;
+    v_Auth_Params := f_EUTRA_Security_Get();
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest(eutra_Cell2, v_Auth_Params, 0); //NOTE 2
+    f_EUTRA_Security_Set(v_Auth_Params);
+    //@siclog "Step 1" siclog@
+    //@sic R5s100692  sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverInit_REQ(eutra_Cell1, eutra_Cell2));
+         // stop periodic TA on source cell  @sic R5s100692  R5s100879 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                       eutra_Cell2,
+                                                       f_Generate_cs_MobilityControlInfo_HO_RACH ( eutra_Cell2,
+                                                                                                omit,
+                                                                                                cs_RACH_ConfigDedicated ));
+                                                       
+    //@siclog "Step 2" siclog@
+    f_EUTRA_RacingCond_AwaitSysIndBeforeSrbMsg(car_PRACH_Preamble_IND(eutra_Cell2, ?),
+                                               v_SrbIndByRef,
+                                               v_SysIndByRef ); /* @sic R5s100138 Change 1 Note 5 sic@ */
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    //@siclog "Step 3" siclog@
+    // Automatically taken care of due to SS preconfiguration
+    //@siclog "Step 4" siclog@
+    f_EUTRA_RacingCond_MatchRrcMsg(v_SrbIndByRef, car_SRB1_RrcPdu_IND (eutra_Cell2, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ))); /* @sic R5s100138 Change 1 Note 5 sic@ */
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverComplete_REQ(eutra_Cell2)); // @sic R5s100692   sic@
+
+    //PUCCH Syn need to be started now
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell2);//@sic R5s100520 sic@
+    // configure RACH procedure for target cell back to default    @sic R5s100692  sic@
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell2);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    // config for PReamble reception indication disable
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell2, tsc_L1Mac_IndicationMode_Disable);
+    //@siclog "Step 5" siclog@
+    f_EUTRA_508Check_ConnectedState (eutra_Cell2);
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //@sic R5s100485 change 4, removal of RACH configuration sic@
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell2, E2_CONNECTED );//@sic R5-103875 sic@
+    
+    //Remove the cell1, non camping
+    //@sic R5-103847 taken care in postamble now sic@
+    
+  };
+
+  function f_TC_7_1_2_2_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+       7.1.2.2 : Correct Selection of RACH parameters / Random Access Preamble and
+       PRACH resource explicitly signalled to the UE in PDCCH Order [Non Contention Based Random Access Procedure]
+    */
+    var integer j:=0;
+    var SYSTEM_IND v_PRACH_Preamble_IND_Dedicated;
+    var SystemFrameNumber_Type v_SFN := 0;//To avoid compiler warning for uninitialised value
+    var SubFrameNumber_Type v_SubFrameNumber;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Mode;
+    
+    timer t_Watchdog := 5.0; // General purpose wait timer
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    // Modify SIB's for test case Specific values.
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD(eutra_Cell1);
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1, n4);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE);
+    // Bring UE to state 3
+    f_EUTRA_RbEst_Def(eutra_Cell1);
+    
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, tsc_C_RNTI_Def, cs_RachProcedureConfig_CRNTI_7_1_2_2_1(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                 f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1) ));// @sic R5-103846 sic@
+    // config for PReamble reception indication
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    //@siclog "Step 1" siclog@
+    f_Send_PDCCH_Order(eutra_Cell1, cs_TimingInfo_Now, cs_RA_PDCCH_Order(tsc_EUTRA_PrachPreambleIndex_Dedicated_Def)); /* @sic R5s100138 change 5: additional comments sic@ */
+    
+    if (v_EUTRA_FDD_TDD_Mode == FDD) {
+      v_SubFrameNumber := 1;  //36.508 Table 4.6.3-7 and 36.211 table 5.7.1-2
+    }
+    else if (v_EUTRA_FDD_TDD_Mode == TDD) {//@sic R5s100204 sic@
+      v_SubFrameNumber := 1;  //36.508 Table 4.6.3-7 and 36.211 table 5.7.1-4
+                              // Default UL-DL config =1, Special Sub frame config =6 UpPts=4096Ts
+                              //Preamble starts the [random access preamble format 4]4832 Ts before the end of the UpPTS at the UE
+    }
+    //@siclog "Steps 2 - 3 - 4 - 5" siclog@
+    t_Watchdog.start;
+    for (j := 0; j < 4; j := j+1)
+      {
+        alt {
+          [j==0] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, cr_TimingInfo(?, v_SubFrameNumber) ) )
+            -> value v_PRACH_Preamble_IND_Dedicated
+            {
+              f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+              v_SFN := v_PRACH_Preamble_IND_Dedicated.Common.TimingInfo.SubFrame.SFN.Number;
+            }
+          [j!=0] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, cr_TimingInfo((v_SFN+2) mod 1024, v_SubFrameNumber)))
+            -> value v_PRACH_Preamble_IND_Dedicated
+            {
+              f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Steps 3 - 4 - 5");
+              v_SFN := v_PRACH_Preamble_IND_Dedicated.Common.TimingInfo.SubFrame.SFN.Number;
+            }
+        }; // end of alt
+      } // end of for loop
+    t_Watchdog.stop;
+    //@siclog "Step 6" siclog@
+    // Automatically taken care off
+    f_Delay(0.100);
+    /* In principle delays should be atleast 500 ms, but it is accepted as an exception,
+    as the time needed is only 10ms [the timeSS shall respond to PRACH preamble with a valid RAR
+    within ra-ResponseWindowSize =10 sub frames] */
+    //@siclog "Step 7" siclog@
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    // Configure SS to disable report of  PRACH preamble reception
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_CRNTI(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                                    f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1)) );// @sic R5-103846 sic@
+    // Preconfigures SS for RACH response for default RAR and contention resolution
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED );//@sic R5-103875 sic@
+
+  };
+
+  function f_TC_7_1_2_3_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+       7.1.2.3 : Correct selection of RACH parameters, selected by MAC itself [Contention Based Random Access Procedure]
+    */
+    var octetstring v_EncodedRlcPdu;
+    var octetstring v_EncodedPdcpPdu;
+    var octetstring v_EncodedPdcpPdu_Poll;
+    var template (value) EUTRA_CellInfo_Type v_CellInfo;
+    var Dl_Bandwidth_Type v_DlBandwidth;  /* @sic R5s100073, R5s100291: add. change sic@ */
+    var integer v_RBAllocation := 75; // for 5 MHz// @sic R5-103846 sic@
+    
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    v_DlBandwidth := f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1);  // @sic R5s100073, R5s100291: add. change sic@
+    // Modify SIB's for test case Specific values.
+    // @sic R5-094707 f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1, n3); sic@
+    v_CellInfo := f_EUTRA_CellInfo_Get(eutra_Cell1);
+    f_EUTRA_CellInfo_SetSysInfo_T300(eutra_Cell1, ms2000);
+    f_EUTRA_CellInfo_SetPreambleGroup(eutra_Cell1, cs_PreamblesGroupAConfig (b208));
+    f_EUTRA_CellConfig_Def(eutra_Cell1);
+    f_EUTRA_Preamble(eutra_Cell1, STATE2A_TESTLOOP_ModeA );
+    // creates cell and performs registration
+    f_EUTRA_AS_CipheringAlgorithm_Set(eea0); // set null AS ciphering algorithm
+    
+    f_EUTRA_SS_ConfigRachProcedure(eutra_Cell1, omit, cs_RachProcedureConfig_7123(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                                  v_DlBandwidth ));// @sic R5-103846, R5s100291: add. change sic@
+    // Preconfigures SS for RACH response for RAR and contention resolution
+    
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    // Configure SS to enable report of PRACH preamble reception
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true,layer2); // @sic R5-101050 sic@
+    // Test body starts
+    //@siclog "Steps 1 - 2 - 3 - 4 - 5 - 6 - 7 - 8" siclog@
+    fl_TC_7_1_2_3_Step1_8(f_EUTRA_CellInfo_GetT300(eutra_Cell1), cr_PRACH_Preamble_IND_Rapid0_27);
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    // Configure SS to disable report of PRACH preamble reception
+    //@siclog "Step 9" siclog@
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    // Preconfigures SS for RACH response for default RAR and contention resolution
+    f_EUTRA_LoopBackActivation_State4_7123();
+    //@sic R5s100073, R5s100291: add. change sic@
+    select (v_DlBandwidth) {
+      case (n50) {  // 10 mhz
+        v_RBAllocation := 150;
+      }
+      case (n100) { // 20 mhz
+        v_RBAllocation := 300;
+      }
+      case else {   // 5mhz
+        v_RBAllocation := 75;
+      }
+    }
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_Dedicated_7123( v_RBAllocation,6,f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                                              v_DlBandwidth));//@sic R5s100189, R5s100291: add. change sic@
+    
+    // // RAR Grant to be grant to be 392 bits
+    //RIV = 75/150/300 => RBstart =0, Nprb =4
+    //Imcs =6 => Itbs =6
+    // Preconfigures SS for RACH response for RAR and contention resolution
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1, cs_MAC_TestMode_NoHeaderManipulationDL_UL);
+    // to Configure SS in MAC Test mode with DL in no header manipulation mode
+    f_EUTRA_StopULGrantTransmission_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now);
+    //@siclog "Step 10" siclog@
+    v_EncodedPdcpPdu := f_PDCP_PDU_Encvalue(cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN (tsc_B12_SQN0, crs_PDCP_SDU_40B)));
+    v_EncodedRlcPdu := f_RLC_PDU_Encvalue(cs_RLC_AMD_1PDU(tsc_NoPoll, int2bit(0, 10), v_EncodedPdcpPdu));
+    v_EncodedPdcpPdu_Poll := f_RLC_PDU_Encvalue(cs_RLC_AMD_1PDU(tsc_Poll, int2bit(0, 10), v_EncodedPdcpPdu));
+    
+    // 320 bits PDCP SDU+ 16 bit PDCP Header + 16 bit RLC Header + 1 Byte MAC header+ 2 B 376 bitsPadding =
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_1SubHeader_2Padding_RLCPDU(tsc_LchId_DRB1, v_EncodedRlcPdu))));
+    //@siclog "Steps 11 - 12" siclog@
+    // Taken care of by SS
+    //@siclog "Step 13" siclog@
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    // Configure SS to enable report of PRACH preamble reception
+    
+    t_Watchdog.start;
+    alt {
+      [] SYSIND.receive ( car_PRACH_Preamble_IND(eutra_Cell1, ?, cr_PRACH_Preamble_IND_Rapid28_63))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 13");
+        }
+    };
+    
+    //@siclog "Step 14" siclog@
+    alt {
+      [] SYSIND.receive ( car_PRACH_Preamble_IND(eutra_Cell1, ?, cr_PRACH_Preamble_IND_Rapid28_63))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 14");
+        }
+    };
+    
+    //@siclog "Step 15" siclog@
+    alt {
+      [] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, cr_PRACH_Preamble_IND_Rapid28_63))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 15");
+        }
+    };
+    //@siclog "Step 16" siclog@
+    // Automatically taken care due to preconfiguration of RACH Response
+    // Note: Racing should not be between steps 17 and 19 as UE has to wait for mac-ContentionResolutionTimer  which is 48 ms
+    //      before initiating the next PRACH procedure.
+    //@siclog "Step 17" siclog@
+    alt {
+      [] DRB.receive (car_DRB_COMMON_IND_MAC (eutra_Cell1, tsc_RbId_DRB1, cr_TimingInfo_Any,
+                                              {cr_MAC_PDU_CRNTI_CNTRLElem_1Padding_RLCPDU(v_CellInfo.RNTI.C_RNTI,
+                                                                                          tsc_LchId_DRB1,
+                                                                                          (v_EncodedRlcPdu,v_EncodedPdcpPdu_Poll))}))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 17");
+        }
+    };
+    
+    //@siclog "Step 18" siclog@
+    // Automatically taken care of
+    //@siclog "Step 19" siclog@
+    alt {
+      [] SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, cr_PRACH_Preamble_IND_Rapid28_63))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 19");
+        }
+    };
+    //@siclog "Step 20" siclog@
+    // Automatically taken care of
+    //@siclog "Step 21" siclog@
+    alt {
+      [] DRB.receive (car_DRB_COMMON_IND_MAC (eutra_Cell1, tsc_RbId_DRB1, cr_TimingInfo_Any,
+                                              {cr_MAC_PDU_CRNTI_CNTRLElem_1Padding_RLCPDU(v_CellInfo.RNTI.C_RNTI,
+                                                                                          tsc_LchId_DRB1,
+                                                                                          (v_EncodedRlcPdu,v_EncodedPdcpPdu_Poll))}))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 21");
+
+        }
+    };
+    // to send RLC Status PDU
+    f_RLC_Status_PDU_Tx(tsc_LchId_DRB1, 1);
+    //@siclog "Step 22" siclog@
+    // Automatically taken care of
+    // Due to Grant allocation UE will send a MAC PDU which needs to be dequeued
+    DRB.receive (car_DRB_COMMON_IND_MAC (eutra_Cell1,
+                                         tsc_RbId_DRB1,
+                                         cr_TimingInfo_Any,
+                                         {cr_MAC_PDU_Any}));
+    
+    t_Watchdog.stop;
+    
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    // Configure SS to disable report of  PRACH preamble reception
+    // SS is already configured for RACH C-RNTI based in test body @sic R5s100189 sic@
+    //f_EUTRA_SS_ConfigRachProcedure(eutra_Cell1, omit, cs_RachProcedureConfig_CRNTI(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+    //                                                                                v_DlBandwidth));// @sic R5-103846 sic@
+    // Preconfigures SS for RACH response for default RAR and contention resolution
+    //wk34 comment anite
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1, cs_MAC_TestMode_NormalMode); //@sic R5s100272 sic@
+    // configure SS in normal grant transmission
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble(eutra_Cell1, E3_TESTMODE );//@sic R5-103875 sic@
+  }; // end of 7.1.2.3
+
+  function f_TC_7_1_2_4_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+     * 7.1.2.4 : Random Access Procedure: Successful
+     */
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Mode ;
+    var integer v_FrameNum := 0;
+    var template (present) integer v_SubFrameNum := 0;
+    var SYSTEM_IND v_ReceivedSYSIND;
+    var NAS_MSG_Indication_Type v_NasInd; //@sic R5s100457 sic@
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD(eutra_Cell1);
+    // Modify SIB's for test case Specific values.
+    f_EUTRA_CellInfo_SetMAC_ContResTimer(eutra_Cell1, sf48);         //@sic R5-095164 R5-104147 sic@
+    f_EUTRA_CellInfo_SetRa_ResponseWindowSize(eutra_Cell1, sf10);    //@sic R5-095164 sic@
+    //@sic R5-095164 f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1,n3 ); sic@
+    //@sic R5-095164 f_EUTRA_CellInfo_SetSysInfo_T300 (eutra_Cell1,ms2000); sic@
+
+    if (v_EUTRA_FDD_TDD_Mode == FDD)
+      {
+        f_EUTRA_CellInfo_SetPRACH_ConfigurationIndex(eutra_Cell1, 10); // Value for FDD @sic R5-095164 sic@
+        v_SubFrameNum := (2,5,8);
+      }
+    else if (v_EUTRA_FDD_TDD_Mode == TDD)
+      {
+        f_EUTRA_CellInfo_SetPRACH_ConfigurationIndex(eutra_Cell1, 9); // Value for TDD @sic R5-095164 sic@
+        v_SubFrameNum := (2,3,8);
+      }
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    // creates cell and performs registration
+    //@sic R5-102177 sic@
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1,
+                                    omit,
+                                    cs_RachProcedureConfig_7124_1(f_RRC_DL_CCCH_Encvalue (f_EUTRA_508_RRCConnectionSetup(eutra_Cell1)),   /* @sic R5-120721 change 3 sic@ */
+                                                                  f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                  f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1)));                      // @sic R5-103846 sic@
+    // Preconfigures SS for RACH response for RAR and contention resolution
+
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    // Configure SS to enable report of PRACH preamble reception
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    // preconfigure SS for allocating grant for RRC Connection complete
+    // Auto PUCCH sync needs to be avoided as it can interfere with contention resolution
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1,cs_TimingInfo_Now ,cs_DciInfo_CcchDcchDtchUL_Def  );
+    //@sic R5s100457 sic@
+    // Test body starts
+    //@siclog "Step 1" siclog@
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+    //@siclog "Step 2" siclog@
+    t_Watchdog.start; //wk34 comment anite
+    alt {
+      []SYSIND.receive (car_PRACH_Preamble_IND_Any (eutra_Cell1, cr_TimingInfo(?, v_SubFrameNum))) -> value v_ReceivedSYSIND
+        {
+          v_FrameNum := v_ReceivedSYSIND.Common.TimingInfo.SubFrame.SFN.Number;
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+        }
+    };
+    //@siclog "Step 3" siclog@
+    alt {
+      []SYSIND.receive (car_PRACH_Preamble_IND_Any (eutra_Cell1, cr_TimingInfo((v_FrameNum+1, v_FrameNum+2), v_SubFrameNum)))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+        }
+    }
+    //@siclog "Step 4" siclog@
+    alt {
+      []SYSIND.receive (car_PRACH_Preamble_IND_Any (eutra_Cell1, cr_TimingInfo((v_FrameNum+2, v_FrameNum+3, v_FrameNum+4), v_SubFrameNum)))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+        }
+    }
+    //@siclog "Step 5" siclog@
+    // Taken care by SS preconfig
+    //@siclog "Step 6" siclog@
+    alt {
+      []SYSIND.receive (car_PRACH_Preamble_IND_Any (eutra_Cell1, cr_TimingInfo((v_FrameNum+4, v_FrameNum+5, v_FrameNum+6), v_SubFrameNum)))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+        }
+    }
+    
+    //@siclog "Step 7" siclog@
+    // Taken care automatically, by default The UL delay bit in the UL grant field is set to 0
+    
+    // Note Racing should not be between steps 8 and 11 as UE has to wait for mac-ContentionResolutionTimer  which is 48 ms
+    //      before initiating the next PRACH procedure.
+    //@siclog "Step 8" siclog@
+    alt {
+      []SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) )
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+          t_Watchdog.stop;
+        }
+    };
+    //@siclog "Step 9" siclog@
+    // The SS ignores the RRCConnectionRequest message and does not send any response
+    //@siclog "Step 10" siclog@
+    // UE waits for mac-ContentResolutionTimer expire
+    
+    // TI is hard coded as 1.
+    //@siclog "Step 11" siclog@
+    v_Auth_Params := f_EUTRA_Security_Get();
+    alt {
+      []SYSIND.receive (car_PRACH_Preamble_IND_Any (eutra_Cell1, cr_TimingInfo (?, v_SubFrameNum)))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 11");
+        }
+    }
+    //@siclog "Step 12" siclog@
+    // Taken care automatically
+    
+    //@siclog "Step 13" siclog@
+    t_Watchdog.start;
+    alt {
+      []SRB.receive ( car_SRB0_RrcPdu_IND (eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) )
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 13");
+          t_Watchdog.stop;
+        }
+    };
+    //@siclog "Step 14" siclog@
+    // Taken care automatically.
+    
+    //@siclog "Step 15" siclog@
+    t_Watchdog.start;
+
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete ( tsc_RRC_TI_Def, ? ), // Transction identifier hardcoded as 1
+                                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                         cr_508_SERVICE_REQUEST(v_Auth_Params.KSIasme)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 15");
+    t_Watchdog.stop;
+
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    //@sic R5s100457 sic@
+    //@siclog "Steps 16 - 17 - 18 - 19" siclog@
+    // Steps 6 to 9 of the generic radio bearer establishment procedure (TS 36.508 5.4.3.3-1) are executed
+    // to successfully complete the service request procedure
+    f_EUTRA_ServiceReqPostamble_508Steps6_9 (eutra_Cell1, v_NasInd);
+    
+    f_EUTRA_TestBody_Set(false); //@sic R4s100522 sic@
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    // Configure SS to disable report of  PRACH preamble reception
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_CRNTI(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                                    f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1)));// @sic R5-103846 sic@
+    // Preconfigures SS for RACH response for default RAR and contention resolution
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E2_CONNECTED );//@sic R5-103875 sic@
+
+  }; // end of 7.1.2.4
+
+  function f_TC_7_1_2_5_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+     * 7.1.2.5 : Random Access Procedure: MAC PDU containing Multiple RAR?s
+     * @sic R5s090353 sic@
+     */
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var NAS_MSG_Indication_Type v_NasInd; //@sic R5-102180 sic@
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_7125(f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1)));// @sic R5-103846 sic@
+    // Preconfigures SS for RACH response for RAR and contention resolution
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    // Configure SS to enable report of  PRACH preamble reception
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    v_Auth_Params := f_EUTRA_Security_Get();
+    // Test body starts
+    //@siclog "Step 1" siclog@
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+    //@siclog "Step 2" siclog@
+    t_Watchdog.start;
+    alt {
+      []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1, ?))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+        }
+    };
+    //@siclog "Step 3" siclog@
+    // Automatically taken care of
+    //@siclog "Step 4" siclog@
+    // And parallel behaviour
+    alt {
+      []SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) )
+        {
+          t_Watchdog.stop;
+          f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "");
+          // end test
+        }
+      []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1, ?))
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+        }
+    };
+    //@siclog "Step 5" siclog@
+    // Automatically taken care of
+    //@siclog "Step 6" siclog@
+    alt {
+      []SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) )
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+          t_Watchdog.stop;
+        }
+    };
+    //@siclog "Step 7" siclog@
+    // Automatically taken care of
+    
+    // Transmit RRC Connection Setup
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_Cell1);
+    // Receive RRC Connection Setup Complete
+    t_Watchdog.start;
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                         cr_508_SERVICE_REQUEST(v_Auth_Params.KSIasme)));
+    t_Watchdog.stop;
+    //@siclog "Steps 16 - 17 - 18 - 19" siclog@
+    // Steps 6 to 9 of the generic radio bearer establishment procedure (TS 36.508 5.4.3.3-1) are executed
+    // to successfully complete the service request procedure
+    f_EUTRA_ServiceReqPostamble_508Steps6_9 (eutra_Cell1, v_NasInd);  //@sic R5s100189 sic@
+
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    // Configure SS to disable report of  PRACH preamble reception:
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+
+    // Preconfigures SS for RACH response for default RAR and contention resolution:
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED );//@sic R5-103875 sic@
+
+  }; // end of 7.1.2.5
+
+  function f_TC_7_1_2_6_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+     * 7.1.2.6 : Maintenance of Uplink Time Alignment
+     */
+    var SYSTEM_IND     v_SYSTEM_IND;     //JKS: used to check timing requirements at step 8,9,10
+    var SubFrameTiming_Type v_SubFrameTimingTX;
+    var SubFrameTiming_Type v_SubFrameTimingRX;
+    var Dl_Bandwidth_Type v_DlBandwidth;
+    var integer v_RBAllocation;
+    var RACH_TimingAdvance_Type v_RAR_TA := 600;  // acc. to the test prose (see table 7.1.2.6.3.2-1 Note 2 for FDD)
+     var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode ;
+    
+    timer t_Watchdog := 5.0; // General purpose wait timer
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    if (v_EUTRA_FDD_TDD_Mode == TDD) {
+      v_RAR_TA := 160;  // @sic R5-120125 sic@
+      // acc. to the test prose (see table 7.1.2.6.3.2-1 Note 2 for TDD)
+    }
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+    v_DlBandwidth := f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1);
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1, -, cs_RACH_ConfigCommon_r8(cs_508_RACH_ConfigCommon_Default), v_RAR_TA);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    // Preconfigures SS for RACH response for RAR and contention resolution
+    f_EUTRA_AS_CipheringAlgorithm_Set(eea0); // set null AS ciphering algorithm
+    // step to configure SS RLC/PDCP and MAC in No header manipulation mode on SS Side for DRB
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1, cs_MAC_TestMode_NoHeaderManipulationDLOnly);
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2); // @sic R5-101050 sic@
+    // note ideally l2 behaviour needs to be enabled after entering state 4;
+    
+    //@siclog "Steps 1 - 2 - 3 - 4 - 5 - 6 - 7" siclog@
+    f_EUTRA_LoopBackActivation_State4_DSR_TransMax(eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_1DRB(0, tsc_DRB1));
+    
+    // Configures SS DRB1 in MAC test mode.
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    // Configure SS to enable report of PRACH preamble reception
+    f_SS_ConfigSchedulingRequestIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    // Configure SS to enable report of Scheduling Request reception
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_CRNTI(v_RAR_TA, v_DlBandwidth));  /* @sic R5-103846 R5s100291 sic@ */
+
+    // Preconfig SS
+    // JKS NOTE: SS does not send any subsequent alignments
+    f_EUTRA_StopULGrantTransmission_No_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now);
+    
+    //@siclog "Step 8" siclog@
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU(eutra_Cell1,tsc_RbId_DRB1, cs_TimingInfo_Now, cs_MAC_PDUList_1 (cs_MAC_PDU_TimingAdvance_0)));
+    
+    v_SubFrameTimingTX := f_EUTRA_GetNextSendOccasion (eutra_Cell1, 600); // 80% of time alignment timer = 750 sub frames = 600 ms.
+
+    //@siclog "Step 9" siclog@
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          {SubFrame := v_SubFrameTimingTX},
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB1,
+                                                                                             f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                                                                                                 int2bit (0,10),
+                                                                                                                                 f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0,
+                                                                                                                                                                                                crs_PDCP_SDU_17B)))))))));//@sic R5s110057 sic@
+    // PDCP PDU = 2H+ 17 Payload= 19B.
+    // RLC PDU = 2H+ 19 Payload =21B
+    // MAC PDU = 1H+ 21 Payload = 22B = 176 bits which is allowed TB size i.e Padding =0
+    //@siclog "Steps 10 - 11" siclog@
+    t_Watchdog.start ;
+    // remaining time of the timer with 10% timer tolerance =150+75
+    alt {
+      [] SYSIND.receive ( car_SchedulingReq_IND (eutra_Cell1, ?)) -> value v_SYSTEM_IND
+        {
+          v_SubFrameTimingRX := v_SYSTEM_IND.Common.TimingInfo.SubFrame;
+          if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTimingTX, v_SubFrameTimingRX) < 0.225) {
+            f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+          }
+          else
+            {
+              f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 10: TP2 failed, UE didn't send SR while Timer_1 is running");
+            }
+        }
+      [] t_Watchdog.timeout
+        {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 10: TP2 failed, UE didn't send SR");
+        }
+      
+    };
+    //@siclog "Step 12" siclog@
+    // And any further Scheduling Requests
+    alt {
+      [] SYSIND.receive (car_SchedulingReq_IND (eutra_Cell1, ?))
+        {
+          repeat;
+          // do nothing
+        }
+      [] SYSIND.receive (car_PRACH_Preamble_IND_Any (eutra_Cell1, ?)) -> value v_SYSTEM_IND
+        {
+          v_SubFrameTimingRX := v_SYSTEM_IND.Common.TimingInfo.SubFrame;
+          if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTimingTX, v_SubFrameTimingRX) <= 0.225)
+            {
+              f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 12");
+            }
+          else
+            {
+              f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 12: TP2 failed, UE didn't send PRACH Preamble after Timer_1 is running");
+            }
+          t_Watchdog.stop;
+        }
+    };
+    
+    //@siclog "Step 13" siclog@
+    // Automatically taken care of due to RACH preconfig
+    //@siclog "Step 14" siclog@
+    t_Watchdog.start;
+    alt {
+      []DRB.receive (car_DRB_COMMON_IND_RLC_PDUList (eutra_Cell1, tsc_RbId_DRB1, ?, {cr_RLC_Status_1PDU(1)})) // received UL RLC Status PDU
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 14");
+          t_Watchdog.stop;
+        }
+    };
+    //@siclog "Step 15" siclog@
+    //Automatically taken care of due to RACH preconfig
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+   
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    // Configure SS to disable report of  PRACH preamble reception
+    f_SS_ConfigSchedulingRequestIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    // Configure SS to disable report of  Scheduling Request reception
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode); //@sic R5s100354 sic@
+    select (v_DlBandwidth) {
+      case (n50) {  // 10 mhz
+        v_RBAllocation := 150;
+      }
+      case (n100) { // 20 mhz
+        v_RBAllocation := 300;
+      }
+      case else {   // 5 mhz
+        v_RBAllocation := 75;
+      }
+    }
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_CRNTI(v_RAR_TA, //@sic R5s110168 change 1 sic@
+                                                                                    v_DlBandwidth,
+                                                                                    v_RBAllocation,
+                                                                                    6 )); //@sic R5s100291 sic@
+    
+    // Preconfigures SS for RACH response for default RAR and contention resolution
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble(eutra_Cell1, E3_TESTMODE);//@sic R5-103875 sic@
+  }; // End of 7.1.2.6
+
+  altstep a_TC_7_1_2_7_ParallelBehaviour() runs on EUTRA_PTC
+  {
+    [] SRB.receive ( car_SRB1_RrcNasPdu_IND ( eutra_Cell1,
+                                              cr_508_RRCConnectionSetupComplete ( tsc_RRC_TI_Def, ? ),
+                                              cr_NAS_Indication ( ?, ?) ) )
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected RRCConnectionSetupComplete");
+      }
+  }
+
+  function fl_TC_7_1_2_7_Step4_5_Step6_7() runs on EUTRA_PTC
+  { /* Note:
+     * in step 4/5 and step 6/7 due to the tight timing and the fact that the PRACH preamble and
+     * the RRC connection request are receive on two different ports
+     * the PRACH preamble may take over the RRC connection request */
+    // @sic R5-101050 verdict assignment sic@
+    var template (omit) SRB_COMMON_IND v_SrbIndByRef := omit;
+    var template (omit) SYSTEM_IND     v_SysIndByRef := omit;
+   // var SYSTEM_IND v_SysInd;
+    
+    //@siclog "Steps 4 - 6" siclog@
+    alt {
+      [] a_EUTRA_RacingCond_AwaitRrcMessageAndSysInd(RrcMsgBeforeSysInd,
+                                                     v_SrbIndByRef,
+                                                     v_SysIndByRef,
+                                                     car_SRB0_RrcPdu_IND(eutra_Cell1, cr_RRCConnectionRequest(?))); /* @sic R5s100138 Change 1 Note 5 sic@ */
+      [] a_TC_7_1_2_7_ParallelBehaviour();
+    }
+    
+    //@siclog "Steps 5 - 7" siclog@
+    // SS sends MAC PDU (contention resolutions) as reaction on Msg3 (RRC connection request) as defined per cs_RachProcedureConfig_7127
+    // @sic R5s100189 sic@
+    if (not match(valueof(v_SysIndByRef), car_PRACH_Preamble_IND_Any (eutra_Cell1, ?))) {
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "Steps 4 - 6: SYSTEM_IND does not match expected PRACH Preamble");
+    }
+  }
+
+  function f_TC_7_1_2_7_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+       7.1.2.7 : MAC-Contention Resolution [Temporary C-RNTI]
+    */
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var SRB_COMMON_IND v_SRB_COMMON_IND;
+    var SYSTEM_IND     v_SYSTEM_IND;
+    var SubFrameTiming_Type v_SubFrameTiming1;
+    var SubFrameTiming_Type v_SubFrameTiming2;
+    var float v_ContentionResolutionWindowSize;
+    var octetstring v_EncodedRRCConnectionSetup;
+    var template (value) RachProcedureConfig_Type v_RachProcedureConfig;
+    var NAS_MSG_Indication_Type v_NasInd; //@sic R5-102180 sic@
+    timer t_Watchdog:=5.0; // General purpose wait timer
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    // initialise FDD TDD parmeters
+    // Modify SIB's for test case Specific values.
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1, n10);
+    //f_EUTRA_CellInfo_SetSysInfo_T300 (eutra_Cell1,ms2000);
+    f_EUTRA_CellInfo_SetMAC_ContResTimer(eutra_Cell1, sf64);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE);
+
+    // Preconfigures SS for RACH response for RAR and contention resolution:
+    v_EncodedRRCConnectionSetup := f_RRC_DL_CCCH_Encvalue (f_EUTRA_508_RRCConnectionSetup(eutra_Cell1));   /* @sic R5-120721 change 3 sic@ */
+
+    //@sic R5-102177 sic@
+    v_RachProcedureConfig := cs_RachProcedureConfig_7127(v_EncodedRRCConnectionSetup,
+                                                         f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                         f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1));// @sic R5-103846 sic@
+                                                                                                    /* cs_RachProcedureConfig_7127 has four entries:
+                                                                                                     *   - normal RAR & no Contention Resolution at all
+                                                                                                     *   - normal RAR & no Contention Resolution at all
+                                                                                                     *     (but there is an explicit RRCConnectionSetup)
+                                                                                                     *   - normal RAR & Contention Resolution Id not matching
+                                                                                                     *   - normal RAR & Contention Resolution Id matching (normal case) */
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, v_RachProcedureConfig);
+    
+    // Configure SS to enable report of PRACH preamble reception:
+    f_EUTRA_SS_ConfigRachPreambleIndMode ( eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    v_Auth_Params := f_EUTRA_Security_Get();
+    // preconfigure SS for allocating grant for RRC Connection complete
+    // Auto PUCCH sync needs to be avoided as it can interfere with contention resolution
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1,cs_TimingInfo_Now ,cs_DciInfo_CcchDcchDtchUL_Def);
+    //@sic R5s100448 sic@
+    // Test body starts
+    //@siclog "Step 1" siclog@
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 );     // NOTE: function in general returns before the paging has been sent out
+    t_Watchdog.start;
+    
+    SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1, ?));    // get the 1st PRACH preamble => 1st entry of cs_RachProcedureConfig_7127 used by SS
+    //@siclog "Step 2" siclog@
+    alt {
+      [] SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) ) -> value v_SRB_COMMON_IND
+        {
+          v_SubFrameTiming1 := v_SRB_COMMON_IND.Common.TimingInfo.SubFrame;      // store timestamp when RRCConnectionRequest has been received
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+        }
+    };
+    
+    //@siclog "Step 3" siclog@
+    // Check that UE does not send a PRACH preamble within Contention Resolution Window
+    // If suucesful PRACH preamble received that of before step 4 [not specified in Prose]
+    alt {
+      []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1, ?)) -> value v_SYSTEM_IND
+        { // get the 2nd PRACH preamble => 2nd entry of cs_RachProcedureConfig_7127 used by SS
+          v_SubFrameTiming2 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;                         // timestamp when PRACH preamble has been received
+          v_ContentionResolutionWindowSize := f_EUTRA_SetTimerToleranceMin(eutra_Cell1,l2Timer, 0.064); // NOTE: 64ms corresponding to sf64 as configured above
+          if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTiming1, v_SubFrameTiming2) < v_ContentionResolutionWindowSize) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 3: TP2 failed, UE responded in contention resolution window");
+          }
+        }
+    }
+    
+    //@siclog "Step 4" siclog@
+    // RRCConnectionRequest
+    // SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) );        // NOTE: expiry of t_Watchdog is covered by the default behaviour
+    
+    //@siclog "Step 5" siclog@
+    //RRC Connection Setup
+    //JKS NOTE: Sending of RRC_ConnectionSetup taken care by Preconfiguration of SS for RACH
+
+    //@siclog "Steps 4 - 5" siclog@
+    fl_TC_7_1_2_7_Step4_5_Step6_7();      /* Step 4: UE->SS RRCConnectionRequest
+                                           * Step 5: SS->UE RRC Connection Setup but no contention resolution id
+                                           *                (acc. to 2nd entry of cs_RachProcedureConfig_7127)
+                                           *                (done by SS due to preconfiguration of SS for RACH)
+                                           * -> Contention resolution is not successful
+                                           * => UE sends another PRACH preamble corresponding to 3rd entry of cs_RachProcedureConfig_7127 */
+    
+    //@siclog "Steps 6 - 7" siclog@
+    fl_TC_7_1_2_7_Step4_5_Step6_7();      /* Step 6: UE->SS RRCConnectionRequest
+                                           * Step 7: SS->UE Contention resolution not matching
+                                           *                (acc. to 3rd entry of cs_RachProcedureConfig_7127)
+                                           *                (done by SS due to preconfiguration of SS for RACH)
+                                           * -> Contention resolution is not successful
+                                           * => UE sends another PRACH preamble corresponding to 4th entry of cs_RachProcedureConfig_7127 */
+    //@siclog "Step 8" siclog@
+    alt {
+      [] SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) )
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+        }
+      [] a_TC_7_1_2_7_ParallelBehaviour();
+    };
+    t_Watchdog.stop;
+    
+    //@siclog "Step 9" siclog@
+    // Automatically taken care due to preconfig of RACH
+    // NOTE: 4th entry of cs_RachProcedureConfig_7127: MAC PDU with matching Contention Resolution Id and RRC Connection Setup
+    
+    //@siclog "Step 10" siclog@
+    t_Watchdog.start;
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                       cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                         cr_508_SERVICE_REQUEST(v_Auth_Params.KSIasme)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+    t_Watchdog.stop;
+
+    //@siclog "Steps 11 - 12 - 13 - 14" siclog@
+    //@sic R5s100448 sic@
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    // Steps 6 to 9 of the generic radio bearer establishment procedure (TS 36.508 5.4.3.3-1) are executed
+    // to successfully complete the service request procedure
+    f_EUTRA_ServiceReqPostamble_508Steps6_9 (eutra_Cell1, v_NasInd); //@sic R5s100189 sic@
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    // Configure SS to disable report of  PRACH preamble reception:
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+
+    // Preconfigures SS for RACH response for default RAR and contention resolution:
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E2_CONNECTED );//@sic R5-103875 sic@
+  }
+
+  function f_TC_7_1_2_8_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+       7.1.2.8 : MAC-Contention Resolution [ C-RNTI ]
+    */
+    var SubFrameTiming_Type v_SubFrameTiming1;
+    var SubFrameTiming_Type v_SubFrameTiming2;
+    var float v_ContentionResolutionWindowSize;
+    var SRB_COMMON_IND v_SRB_COMMON_IND;
+    //@sic R5s100525 sic@
+    var SYSTEM_IND  v_SYSTEM_IND;
+    var template (value) CellPowerList_Type  v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell2, -79 )
+    };
+    var EUTRA_SecurityParams_Type v_Auth_Params; //@sic R5s100525 sic@
+    
+    timer t_Watchdog := 5.0; // General purpose wait timer
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    // Modify SIB's for test case Specific values.
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1,n10 );
+    //f_EUTRA_CellInfo_SetSysInfo_T300 (eutra_Cell1,ms2000);
+    f_EUTRA_CellInfo_SetMAC_ContResTimer (eutra_Cell1,sf64);
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 );    //@sic R5s100525 sic@
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    // Bring up cell 2
+    f_EUTRA_CellConfig_Def(eutra_Cell2);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    
+    // Bring UE to state 3
+    f_EUTRA_RbEst_Def(eutra_Cell1);
+
+    // bring up cell 2.
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );    //@sic R5s100525 sic@
+    
+    // preconfig for RACH procedure
+    
+    //Save new C-RNTI in cell configuration for cell 2
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell2, tsc_C_RNTI_Def2); //@sic R5s100525 sic@
+    // config for PReamble reception indication
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell2, tsc_L1Mac_IndicationMode_Enable);
+    // precofig for C-RNTI MAC control element reception indication
+    f_SS_ConfigC_RNTI_IndMode(eutra_Cell2, tsc_L1Mac_IndicationMode_Enable);
+    // activate reception of PRACH preamble in default
+    //v_MyDefaultVar := activate(a_EUTRA_MAC_PRACH_Preamble(eutra_Cell2));//JKS NOTE: MAC review comment
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    f_SS_RB_Reconfig_NotAck_NextPDU(eutra_Cell2, tsc_RbId_SRB1);         // configure SRB1 on cell 2 to not ack first PDU containing RRCConnectionRecofiguration
+    f_SS_ConfigRLCPDU_Discard(eutra_Cell2, tsc_RbId_SRB1, -, enable);    // to enable reporting of Discarded RLC PDU SQN
+    f_SS_RB_Reconfig_NotAck_NextPDU(eutra_Cell2, tsc_RbId_DRB1);         // configure DRB1 on cell 2 to not ack first PDU containing RRCConnectionRecofiguration
+    //@sic R5s100384 sic@
+    // Tell the SS about the HO    @sic R5w100212 sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverInit_REQ(eutra_Cell1, eutra_Cell2)); // @sic R5s100556 sic@
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell2,
+                                    tsc_C_RNTI_Def2,
+                                    cs_RachProcedureConfig_CRNTI_7_1_2_8(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell2),
+                                                                         f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1))); // @sic R5-103846 sic@
+    //@sic R5s100525 sic@
+    v_Auth_Params := f_EUTRA_Security_Get();
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest(eutra_Cell2, v_Auth_Params, 0);
+    f_EUTRA_Security_Set ( v_Auth_Params );
+     // stop periodic TA on source cell   @sic R5s100520 change 10 R5s100879 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+
+    // configure UL grant configuration on target cell    @sic R5s100515 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_ULGrantAllocation_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def, cs_PUCCH_Synch_None, cs_UL_GrantConfig_Def));
+
+    
+    
+    //@siclog "Step 1" siclog@
+    /* The SS transmits an RRCConnectionReconfiguration containing a radioResourceConfigDedicated with mobility info */
+    //@sic R5s100240 sic@
+    f_EUTRA_508RRC_ConnReconfigHO_IntraLTE(eutra_Cell1, eutra_Cell2);
+    SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell2, ?));    // get the 1st PRACH preamble => 1st entry of cs_RachProcedureConfig_CRNTI_7_1_2_8 used by SS
+ 
+    //@siclog "Step 2" siclog@
+    // Check: does the UE transmit a RRCConnectionReconfigurationComplete message to confirm the reconfiguration of the radio resources?
+    t_Watchdog.start;
+    interleave {   // @sic R5s100525: Additional MCC 160 changes sic@
+      [] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell2, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) ) -> value v_SRB_COMMON_IND
+        {
+          v_SubFrameTiming1 := v_SRB_COMMON_IND.Common.TimingInfo.SubFrame;
+        }
+      [] SYSIND.receive ( car_C_RNTI_MAC_CntrlElem_IND (eutra_Cell2, cr_TimingInfo_Any, tsc_C_RNTI_Def2 )) -> value v_SYSTEM_IND
+        {
+          v_SubFrameTiming2 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;
+        }
+    }
+    if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTiming1, v_SubFrameTiming2) == 0.0)
+      {
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+      }
+    else
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 2: C-RNTI MAC control element isn't received in the same MAC PDU");
+      }
+    t_Watchdog.stop;
+    
+    //@siclog "Step 3" siclog@
+    // Taken care automatically due to RACH preconfig
+    //@siclog "Step 4" siclog@
+    alt {
+      [] SYSIND.receive (car_PRACH_Preamble_IND_Any(eutra_Cell2, ?))-> value v_SYSTEM_IND
+        {
+          v_SubFrameTiming2 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;//JKS NOTE: store time stamp of PRACH_Preamble reception
+          v_ContentionResolutionWindowSize := f_EUTRA_SetTimerToleranceMin(eutra_Cell1, l2Timer,0.064); // JKS NOTE: 64ms corresponding to sf64 as configured above
+          if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTiming1, v_SubFrameTiming2) < v_ContentionResolutionWindowSize) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 4: TP1 failed, UE responded in contention resolution window");
+          }
+          else {
+            f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+          }
+        }
+    };
+    //@siclog "Step 5" siclog@
+    t_Watchdog.start;
+    interleave {   // @sic R5s100525: Additional MCC 160 changes sic@
+      [] SYSIND.receive ( car_RlcDiscard_IND(eutra_Cell2, cr_TimingInfo_Any, 0 ))  -> value v_SYSTEM_IND
+        {
+          v_SubFrameTiming1 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;
+        }
+      [] SYSIND.receive ( car_C_RNTI_MAC_CntrlElem_IND (eutra_Cell2, cr_TimingInfo_Any, tsc_C_RNTI_Def2 ))  -> value v_SYSTEM_IND
+        {
+          v_SubFrameTiming2 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;
+        }
+    }
+    if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTiming1, v_SubFrameTiming2) == 0.0)
+      {
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+      }
+    else
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 5");
+      }
+    t_Watchdog.stop;
+    
+    //@siclog "Step 6" siclog@
+    // Automatically taken care off due to RACH preconfig
+    //@sic R5s100525 sic@
+    // Tell the SS about the HO    @sic R5w100212 sic @
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverComplete_REQ(eutra_Cell2)); // @sic R5s100556 sic@
+    
+    // configure periodic TA on target cell    @sic R5s100525 change 1.3 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_PUCCH_Synch_Config_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+    
+    // configure RACH procedure for target cell back to default    @sic R5s100520 change 11 sic@
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell2);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    //@siclog "Step 7" siclog@
+    t_Watchdog.start(f_EUTRA_SetTimerToleranceMin(eutra_Cell2, nonProtocolTimer, 2.0));
+    alt {
+      [] t_Watchdog.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+          t_Watchdog.stop;
+        }
+      //@sic R5s100525 sic@
+      [] SYSIND.receive ( car_RlcDiscard_IND ( eutra_Cell2, ?, 0) )
+        {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 7: TP2 Failed, Step 7 ");
+          t_Watchdog.stop;
+        }
+    };
+    
+    // config for PReamble reception indication disable
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell2, tsc_L1Mac_IndicationMode_Disable); //@sic R5s100525 sic@
+    // precofig for C-RNTI MAC control element reception indication disable
+    f_SS_ConfigC_RNTI_IndMode(eutra_Cell2, tsc_L1Mac_IndicationMode_Disable);
+    // to disable reporting of Discarded RLC PDU SQN
+    f_SS_ConfigRLCPDU_Discard(eutra_Cell2, tsc_RbId_SRB1, -, disable); // to disable reporting of Discarded RLC PDU SQN
+    //@siclog "Step 8" siclog@
+    f_EUTRA_508Check_ConnectedState (eutra_Cell2);
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    // Configure SS to disable report of  PRACH preamble reception:
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell2, tsc_L1Mac_IndicationMode_Disable);
+
+    // Preconfigures SS for RACH response for default RAR and contention resolution:
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell2);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble ( eutra_Cell2, E2_CONNECTED );   //@sic R5-103875 sic@
+    
+    //Remove the cell1, non camping
+    //@sic R5-103847 taken care in postamble now sic@
+  };
+
+  function f_TC_7_1_2_9_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.2
+     * 7.1.2.9 : MAC-Backoff Indicator
+     */
+    var integer j;
+    var float v_BI;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Mode;
+    var SYSTEM_IND     v_SYSTEM_IND;              // JKS: variable to implement timing checks
+    var SubFrameTiming_Type v_SubFrameTiming1;    // JKS: variable to implement timing checks
+    var SubFrameTiming_Type v_SubFrameTiming2;    // JKS: variable to implement timing checks
+    // variables for handling racing problem
+
+    var template (omit) SRB_COMMON_IND v_SrbIndByRef ;
+    var template (omit) SYSTEM_IND v_SysIndByRef ;        // to store SYSTEM_IND if it takes over the RRC message
+    var octetstring v_EncodedRRCConnectionSetup;
+    var NAS_MSG_Indication_Type v_NasInd; //@sic R5-102180 sic@
+    var EUTRA_SecurityParams_Type v_Auth_Params ;
+    
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellInfo_SetSysInfo_T300 (eutra_Cell1, ms1500);   //@sic R5s110115 sic@
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE );
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+
+    v_EncodedRRCConnectionSetup := f_RRC_DL_CCCH_Encvalue (f_EUTRA_508_RRCConnectionSetup(eutra_Cell1));   /* @sic R5-120721 change 3 sic@ */
+    f_EUTRA_SS_ConfigRachPreambleIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);       // Configure SS to enable report of  PRACH preamble reception
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    // Test body starts
+    for (j :=1; j <= 15; j:= j+1) //@sic R5s110223 additional comments sic@
+      // repeat steps 1 to 5e for for BI Index 0 to 15
+      {
+        f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_7129_1 (j,
+                                                                                          v_EncodedRRCConnectionSetup,
+                                                                                          f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                                          f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1)));// @sic R5-103846 sic@
+        // Preconfigures SS for RACH response for RAR and contention resolution
+        f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def);
+        //@sic R5s090357 R5s100068 sic@
+        // To pre config SS for DL grants
+        v_BI := f_BI_IndexToValueMap(j);
+        // add an additional delay of 0.02 for 2 frames
+        //for FDD/TDD, UE sends PRACH Preamble in sub frame 1,  as per 36.321 the Ra-window is 13 frames including sub frame 1
+        //i.e. ends in SFN+1, Sub frame 3. But it has to wait till SFN+2 and subframe 1. Hence 20 subframes extra delay to be added
+        v_BI := v_BI + 0.021;
+        //@siclog "Step 1" siclog@
+        f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+        //@siclog "Step 2" siclog@
+        t_Watchdog.start;
+        alt {
+          []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1, ?)) -> value v_SYSTEM_IND
+            {
+              v_SubFrameTiming1 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;// JKS: store timestamp when 1st PRACH_Preamble has been received
+              f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+              t_Watchdog.stop;
+            }
+        };
+        //@siclog "Step 3" siclog@
+        // Automatically taken care of
+        //@siclog "Step 4" siclog@
+        alt {
+          []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1, ?)) -> value v_SYSTEM_IND
+            {
+              v_SubFrameTiming2 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;// JKS: store timestamp when 2nd PRACH_Preamble has been received
+              if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTiming1, v_SubFrameTiming2) < v_BI) {
+                f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+              }
+              else {
+                f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 4: UE not retransmiting the preamble within Back off indicator timer expiry");
+              }
+            }
+        }
+        //@siclog "Step 5" siclog@
+        // Automatically taken due to SS preconfiguration
+        // @sic R5-096401 sic@
+        //@siclog "Step 5A" siclog@
+        t_Watchdog.start;
+        f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);   /* @sic R5-120721 change 3 sic@ */
+        //@siclog "Step 5B" siclog@
+        // Automatically taken due to SS preconfiguration
+        //@siclog "Step 5C" siclog@
+        f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1, cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?), ?);     // @sic R5s120121 MCC160 implementation sic@
+        t_Watchdog.stop;
+        
+        //@siclog "Step 5D" siclog@
+        //Send Service Reject with cause Congestion
+        SRB.send ( cas_SRB1_NasPdu_REQ ( eutra_Cell1,
+                                         cs_TimingInfo_Now,
+                                         cs_NAS_Request ( tsc_SHT_NoSecurityProtection,
+                                                          cs_508_SERVICE_REJECT ( tsc_Cause_Congestion ) ) ) );
+        //@siclog "Step 5E" siclog@
+        f_EUTRA_RRC_ConnectionRelease(eutra_Cell1);
+        
+      }// end of for loop
+      v_Auth_Params := f_EUTRA_Security_Get();// @sic R5-102180 sic@
+    
+    for (j :=1; j<= 15; j:= j+1)//@sic R5s110223 additional comments sic@
+      // repeat steps 6 to 19 for BI Index 0 to 15
+      {
+        f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_7129_2 (j, v_EncodedRRCConnectionSetup,
+                                                                                          f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                                          f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1)));// @sic R5-103846 sic@
+        // Preconfigures SS for RACH response for RAR and contention resolution
+        f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync  (eutra_Cell1, cs_TimingInfo_Now,cs_DciInfo_CcchDcchDtchUL_Def );
+        //@sic R5s090357 R5s100068 sic@
+        // To pre config SS for DL grants
+        v_BI := f_BI_IndexToValueMap(j);
+        // claculate wait timer corresponding to Back off index
+        // add an additional delay of 0.05 for 5 frames
+        //for FDD/TDD, UE sends RACH procedure message 3 in an UL Sub frame,  Then within contention resolution window [48 ms]
+        // SS shall schedul message 4 for contention failure. UE then can send PRACH preamble after BI expiry in the first sub frame 1 available
+        // hence a worst case delay of 48 + 10 =58 ms is added.
+        v_BI := v_BI + 0.058; //@sic R5s110060 sic@
+        //@siclog "Step 6" siclog@
+        f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+        //@siclog "Step 7" siclog@
+        t_Watchdog.start;
+        alt {
+          []SYSIND.receive (car_PRACH_Preamble_IND_Any (eutra_Cell1, ?))
+            { //@sic R5-104796 sic@
+              t_Watchdog.stop;
+            }
+        };
+        //@siclog "Step 8" siclog@
+        // Automatically taken care of
+        //@siclog "Step 9" siclog@
+        // step 9 and possibly step 11.
+        // Automatically taken care off
+        
+        f_EUTRA_RacingCond_AwaitRrcMessageBeforeSysInd(car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ),
+                                                       v_SrbIndByRef,
+                                                       v_SysIndByRef ); /* @sic R5s100138 Change 1 Note 5 sic@ */
+        v_SubFrameTiming1 := valueof(v_SrbIndByRef.Common.TimingInfo.SubFrame); // valueof cannot be avoided
+        
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9");
+        
+        // If step 11 not received then receive else to match
+        
+        f_EUTRA_RacingCond_MatchSysInd(v_SysIndByRef, car_PRACH_Preamble_IND_Any (eutra_Cell1, ?)); /* @sic R5s100138 Change 1 Note 5 sic@ */
+        v_SubFrameTiming2 := valueof(v_SysIndByRef.Common.TimingInfo.SubFrame); // valueof cannot be avoided
+        //store timestamp when 2nd PRACH_Preamble has been received
+        
+        
+        if (f_EUTRA_SubFrameTimingDuration_Float(v_SubFrameTiming1, v_SubFrameTiming2) < v_BI) {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 11");
+        }
+        else {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE not retransmiting the preamble within Back off indicator timer expiry");
+        }
+        
+        //@siclog "Step 12" siclog@
+        // Automatically taken due to SS preconfiguration
+        // @sic R5-096401 sic@
+        //@siclog "Step 13" siclog@
+        t_Watchdog.start;
+        f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);   /* @sic R5-120721 change 3 sic@ */
+        //@siclog "Step 14" siclog@
+        // Automatically taken due to SS preconfiguration
+        //@siclog "Step 15" siclog@
+        v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                           cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?),
+                                                           cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                             cr_508_SERVICE_REQUEST(v_Auth_Params.KSIasme)));
+        t_Watchdog.stop;
+        // switch on UL grant assignments with PUCCH synchronisations
+        //@sic R5s110223 sic@
+        f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+        //@siclog "Steps 16 - 17 - 18 - 19" siclog@ @sic R5-102180 sic@
+        // Steps 6 to 9 of the generic radio bearer establishment procedure (TS 36.508 5.4.3.3-1) are executed
+        // to successfully complete the service request procedure
+        f_EUTRA_ServiceReqPostamble_508Steps6_9 (eutra_Cell1, v_NasInd);  //@sic R5s100189 sic@
+        f_EUTRA_RRC_ConnectionRelease(eutra_Cell1);   // @sic R5s100189 sic@
+        
+      }// end of for loop
+    
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+
+    // Configure SS to disable report of  PRACH preamble reception:
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    
+    // Preconfigures SS for RACH response for default RAR and contention resolution:
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE );//@sic R5-103875 sic@
+  }
+
+}

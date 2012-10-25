@@ -1,0 +1,735 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module L2_CommonTemplates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_RRC_Templates all;
+
+group L2_CommonTypesAndConstants {
+
+const B2_Type  tsc_B2_Reserved := '00'B;                      /* @status    APPROVED */
+
+const B3_Type  tsc_B3_Reserved := '000'B;                     /* @status    APPROVED */
+
+const integer         tsc_AM_SN_Size := 10;             /* @status   APPROVED */
+
+const integer         tsc_UM_SN_Size_5 := 5;            /* @desc     The number of bits used to represent a 5 bits UM sequence number.
+                                                         *           Ref 3G TS 25.322 clause 6.2.2.3
+                                                         * @status   APPROVED */
+
+const integer         tsc_UM_SN_Size_10 := 10;          /* @desc     The number of bits used to represent a 10 bits UM sequence number.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.3
+                                                         * @status   APPROVED */
+
+const B1_Type         tsc_D_C_Control:= '0'B;           /* @desc     Value for D/C field within an AMD Control PDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.9
+                                                         * @status   APPROVED */
+
+const B3_Type         tsc_CPT_STATUSPDU := '000'B;      /* @desc     Value for CPT field to indicate that RLC Control PDU is a STATUS PDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.13
+                                                         * @status   APPROVED */
+
+const B1_Type         tsc_E1_NoNACK_Follows := '0'B;    /* @desc     Value to indicate that a set of NACK_SN, E1 and E2 does not follow.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.15
+                                                         * @status   APPROVED */
+
+const B1_Type         tsc_E_Data := '0'B;               /* @desc     Value for ExtBit in UMDPDU/AMDPDU/AMDPDUsegment when the next field is data.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.4
+                                                         * @status   APPROVED */
+
+const RLC_FramingInfo_Type tsc_FI_FullSDU := '00'B;     /* @desc     Value to indicate that PDU contains a complete SDU. Ref 3G TS
+                                                         *           36.322 clause 6.2.2.6
+                                                         * @status   APPROVED */
+
+const B1_Type         tsc_D_C_CtrlPDU := '0'B;          /* @desc    Value for D/C field within an PDCP Control PDU.
+                                                         *          Ref 3G TS 36.323 clause 6.3.7
+                                                         * @status  APPROVED */
+
+const B1_Type         tsc_D_C_DataPDU := '1'B;          /* @desc    Value for D/C field within an PDCP Data PDU.
+                                                         *          Ref 3G TS 36.323 clause 6.3.7
+                                                         * @status  APPROVED */
+
+const B1_Type         tsc_R_Bit := '0'B;                /* @desc    Value for R field within an PDCP Data PDU.
+                                                         *          Ref 3G TS 36.323 clause 6.3.6
+                                                         * @status  APPROVED */
+
+const integer         tsc_PDCP_SN_Size_12 := 12;        /* @desc    The number of bits used to represent a PDCP sequence number.
+                                                         *          Ref 3G TS 36.323 clause 6.2.2.3
+                                                         * @status  APPROVED */
+
+const integer         tsc_PDCP_SN_Size_7 := 7;          /* @desc    The number of bits used to represent a PDCP sequence number.
+                                                         *          Ref 3G TS 36.323 clause 6.2.2.3
+                                                         * @status  APPROVED */
+
+const integer         tsc_Maximum_PDCP_SN_12 := 4095;   /* @status  APPROVED */
+
+const integer         tsc_Maximum_PDCP_SN_7 := 127;     /* @status  APPROVED */
+
+const integer         tsc_Maximum_PDCP_SN_5 := 31;      /* @status  APPROVED */
+
+const B3_Type         tsc_PDU_Type_StatusRep := '000'B; /* @desc    Value for PDU type field to indicate that Control PDU is a STATUS REPORT
+                                                         *          Ref 3G TS 36.323 clause 6.3.8
+                                                         * @status  APPROVED */
+
+template (value) PDCP_SDU_Type crs_PDCP_SDU_16B   := f_GetN_OctetsFromPRBS(0,16);     /* @status    APPROVED */
+
+template (value) PDCP_SDU_Type crs_PDCP_SDU_17B   := f_GetN_OctetsFromPRBS(0,17);     /* @status    APPROVED */
+
+} // end of group L2_CommonTypesAndConstants
+
+group Layer2_CommonTemplates {
+
+template (value) PDCP_Configuration_Type cs_PDCP_Configuration_None :=
+{ /* @status    APPROVED */
+  None  := true  //PDCP layer is not configured for the RB
+};
+
+template (value) HarqProcessAssignment_Type cs_HarqProcessAssignment_Specific(HarqProcessId_Type p_HarqProcessId := 0) :=
+{ /* @status    APPROVED */
+  Id := p_HarqProcessId
+};
+
+template (value) DRB_COMMON_REQ cas_DRB_PDCP_PDU_Req(EUTRA_CellId_Type p_CellId,
+                                                     template (value) TimingInfo_Type p_TimingInfo,
+                                                     RadioBearerId_Type p_RB_Id,
+                                                     template (value) PDCP_PDU_Type p_PDU) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_RB (p_CellId, p_RB_Id, p_TimingInfo),
+  U_Plane := {
+    SubframeDataList := {
+      {
+        SubframeOffset := 0,
+        HarqProcess := {Automatic := true},
+        PduSduList := { PdcpPdu := {p_PDU}}
+      }
+    }
+  }, // U_Plane
+  SuppressPdcchForC_RNTI := omit
+}; // cas_PDCPDataReq
+
+template (value) DRB_COMMON_REQ cas_DRB_COMMON_REQ_SubframeDataList(EUTRA_CellId_Type p_CellId,
+                                                                    RadioBearerId_Type p_RB_Id,
+                                                                    template (value) TimingInfo_Type p_TimingInfo,
+                                                                    template (value) DRB_DataPerSubframeList_DL_Type p_DataPerSubframeList) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_RB(p_CellId, p_RB_Id, p_TimingInfo),
+  U_Plane := {
+    SubframeDataList := p_DataPerSubframeList
+  },
+  SuppressPdcchForC_RNTI := omit
+};
+
+template DRB_COMMON_IND car_DRB_PDCP_PDU_Ind(EUTRA_CellId_Type p_CellId,
+                                             RadioBearerId_Type p_RB_Id,
+                                             template (present) PDCP_PDU_Type p_PDU) :=
+{ /* @status    APPROVED */
+  Common := cr_IndAspCommonPart_RB (p_CellId, p_RB_Id),
+  U_Plane := {
+    SubframeData := {
+      PduSduList := { PdcpPdu := {p_PDU}},
+      NoOfTTIs := 1
+      // @sic R5w100222 slide 4 - RedundancyVersion removed sic@
+    }
+  } // U_Plane
+}; // car_PDCPDataInd
+
+template (value) PDCP_SDUList_Type cs_PDCP_SDUList_1 (template (value) PDCP_SDU_Type p_PDCP_SDU) :=
+{ /* @status    APPROVED */
+  p_PDCP_SDU
+};
+
+template (value) PDCP_SDUList_Type cs_PDCP_SDUList_2 (template (value) PDCP_SDU_Type p_PDCP_SDU1,
+                                                      template (value) PDCP_SDU_Type p_PDCP_SDU2) :=
+{ /* @status    APPROVED */
+  p_PDCP_SDU1,
+  p_PDCP_SDU2
+};
+
+template  PDCP_SDUList_Type cr_PDCP_SDUList_1 (template (present) PDCP_SDU_Type p_PDCP_SDU) :=
+{ /* @status    APPROVED */
+  p_PDCP_SDU
+};
+
+template  PDCP_SDUList_Type cr_PDCP_SDUList_2 (template (present) PDCP_SDU_Type p_PDCP_SDU1,
+                                               template (present) PDCP_SDU_Type p_PDCP_SDU2) :=
+{ /* @status    APPROVED */
+  p_PDCP_SDU1,
+  p_PDCP_SDU2
+};
+
+template (value) PDCP_PDU_Type cs_PDCP_PDU_LongSN (template (value) PDCP_DataPdu_LongSN_Type p_PDCPPDU_LongSN):=
+{ /* @status    APPROVED */
+  DataLongSN  := p_PDCPPDU_LongSN
+};
+
+template (value) PDCP_DataPdu_LongSN_Type cs_PDCP_DataPdu_LongSN(B12_Type p_PDCP_SN_12B,
+                                                                 template (value) PDCP_SDU_Type p_PDCP_SDU) :=
+{ /* @status    APPROVED */
+  D_C             := tsc_D_C_DataPDU,         /* * 1 .......... Data PDU */
+  Reserved        := tsc_B3_Reserved,
+  SequenceNumber  := p_PDCP_SN_12B,           /* 12 bit sequence number */
+  SDU             := p_PDCP_SDU               /* content (octetstring) */
+};
+
+template (value) PDCP_PDU_Type cs_PDCP_DataLongSN ( integer p_SN,
+                                                    PDCP_SDU_Type p_PdcpSdu) :=
+  /* @desc Template used for sending a PDCP PDU with long SN */
+  /* @status    APPROVED */
+  cs_PDCP_PDU_LongSN ( cs_PDCP_DataPdu_LongSN(int2bit(p_SN, 12), p_PdcpSdu) );
+
+template (value) PDCP_PDU_Type cs_PDCP_DataShortSN ( integer p_SN,
+                                                     PDCP_SDU_Type p_PdcpSdu) :=
+{ /* @desc Template used for sending a PDCP PDU with short SN */
+  /* @status    APPROVED */
+  DataShortSN := {
+    D_C := tsc_D_C_DataPDU,
+    SequenceNumber := int2bit(p_SN, tsc_PDCP_SN_Size_7),
+    SDU := p_PdcpSdu
+  }
+};
+
+template PDCP_PDU_Type cr_PDCP_DataLongSN ( template (present) B12_Type p_SN,
+                                            template (present) octetstring p_PdcpSdu) :=
+{ /* @desc Template used for receiving a PDCP PDU with long SN */
+  /* @status    APPROVED */
+  DataLongSN := {
+    D_C := tsc_D_C_DataPDU,
+    Reserved := tsc_R_Bit & tsc_R_Bit & tsc_R_Bit,
+    SequenceNumber := p_SN,
+    SDU := p_PdcpSdu
+  }
+};
+
+template SYSTEM_IND car_SchedulingReq_IND (EUTRA_CellId_Type p_CellId,
+                                           template (present) TimingInfo_Type p_TimingInfo) :=
+{ /* @status    APPROVED */
+  Common        := cr_IndAspCommonPart_SysInd (p_CellId,p_TimingInfo ),
+  Indication    := {
+    SchedReq := true
+  }
+};
+
+template (value) DciDlInfoExplicit_Type cs_DciDlInfoExplicit_MIMO(template (value) Imcs_Type p_Imcs1,
+                                                                  template (value) Imcs_Type p_Imcs2,
+                                                                  PdcchDciFormat_Type p_Format,
+                                                                  PdcchResourceAllocation_Type p_ResourceAllocType,
+                                                                  integer p_Nprb,
+                                                                  integer p_FirstRbIndex := 0,
+                                                                  template (value) RedundancyVersionListDL_Type p_RedundancyVersionList := cs_RedundancyVersionListDL_Def,
+                                                                  B1_Type p_CodeWordSwapFlag := '0'B,
+                                                                  template (value) MIMO_PrecodingBits_Type p_PrecodingBits := cs_MIMO_PrecodingBits_None) :=
+{ /* @status    APPROVED */
+  Imcs_1stCW := p_Imcs1,
+  Imcs_2ndCW := p_Imcs2,
+  Format := p_Format,
+  ResourceAllocType := p_ResourceAllocType,
+  FreqDomainSchedul := cs_FreqDomainSchedulExplicit(p_FirstRbIndex, p_Nprb),   //index of the first resource block in frequency domain set to 0
+  RedundancyVersionList := p_RedundancyVersionList,
+  MimoInfo := cs_MIMO_DciDlInfo(p_CodeWordSwapFlag, p_PrecodingBits)                                                // @sic R5-104109, R5w100215 sic@
+};
+
+template (value) MIMO_PrecodingBits_Type cs_MIMO_PrecodingBits_None :=
+{ /* @status    APPROVED */
+  None := true    /* DCI 2A: 2 antenna ports at eNodeB (table 5.3.3.1.5A-1) */
+};
+
+template (value) Imcs_Type  cs_Imcs_Value (ImcsValue_Type p_Imcs):=
+{ /* @status    APPROVED */
+  Value := p_Imcs
+};
+
+template (value)  MIMO_DciDlInfo_Type  cs_MIMO_DciDlInfo(B1_Type p_CodeWordSwapFlag := '0'B,
+                                                         template (value) MIMO_PrecodingBits_Type p_PrecodingBits := cs_MIMO_PrecodingBits_None) :=
+{ /* @status    APPROVED */
+  RedundancyVersionList_2ndCW  := omit,   /* omit, for the 2nd CW the same RedundancyVersionList shall be applied as for the 1st CW */
+  CodeWordSwapFlag             := p_CodeWordSwapFlag,       /* transport block to codeword mapping acc. to TS 36.212 Table 5.3.3.1.5-1 */
+  PrecodingBits                := p_PrecodingBits         /* precoding information acc. TS 36.212, table 5.3.3.1.5-3 and 5.3.3.1.5A-1 */
+};
+
+} // end of group Layer2_CommonTemplates
+
+group MAC_Constraints {
+
+template (value) L1Mac_IndicationControl_Type cs_EnableSR_Req(L1Mac_IndicationMode_Type p_SR_Mode) :=
+{ /* @status    APPROVED */
+  RachPreamble := omit,
+  SchedReq  := p_SR_Mode,       /* To enable/disable reporting of Scheduling Request received. */
+  BSR       := omit,
+  UL_HARQ   := omit,
+  C_RNTI    := omit,
+  PHR       := omit,
+  HarqError := omit,
+  PeriodicRI := omit
+};
+
+template (value) SYSTEM_CTRL_REQ cas_SchedulingReqIndConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                                L1Mac_IndicationMode_Type p_SR_Mode) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_CellCfg(p_CellId, cs_TimingInfo_Now),
+  Request := {
+    L1MacIndCtrl := cs_EnableSR_Req ( p_SR_Mode)
+  }
+};
+
+} // end of group MAC_Constraints
+
+group UL_Grant_DL_Allocation {
+
+template (value) ULGrant_Period_Type cs_ULGrant_Period_Duration (integer p_Period) :=
+{ /* @desc      Configured UL Grant transmission periodic */
+  /* @status    APPROVED */
+  Duration := p_Period     /* duration of the grant period (TTI=1ms) */
+};
+
+template (value) ULGrant_Period_Type cs_ULGrant_OneTime :=
+{ /* @status    APPROVED */
+  OnlyOnce := true
+};
+
+template (value) TransmissionRepetition_Type cs_TransmissionRepetitionContinous :=
+{ /* @status    APPROVED */
+  Continuous := true
+};
+
+template (value) TransmissionRepetition_Type cs_TransmissionRepetitionCyclic(integer p_Cycles) :=
+{ /* @status    APPROVED */
+  NumOfCycles := p_Cycles
+};
+
+template (value) TransmissionRepetition_Type cs_TransmissionCycleOneTime := cs_TransmissionRepetitionCyclic(1); /* @status    APPROVED */
+
+template (value) UL_GrantConfig_Type cs_UL_GrantConfig_OneTime  :=
+{ /* @status    APPROVED */
+  Periodic := {
+    Period          := cs_ULGrant_OneTime,
+    NoOfRepetitions := cs_TransmissionCycleOneTime
+  }
+};
+
+template (value) UL_GrantConfig_Type cs_UL_GrantConfig_ContPeriodic(integer p_Period)  :=
+{ /* @status    APPROVED */
+  Periodic := {
+    Period          := cs_ULGrant_Period_Duration(p_Period),
+    NoOfRepetitions := cs_TransmissionRepetitionContinous
+  }
+};
+
+template (value) UL_GrantConfig_Type cs_UL_GrantConfig_NoOfGrants (integer p_Period,
+                                                                   integer p_Number) :=
+{ /* @status    APPROVED */
+  Periodic := {
+    Period          := cs_ULGrant_Period_Duration(p_Period),
+    NoOfRepetitions := cs_TransmissionRepetitionCyclic(p_Number)
+  }
+};
+
+} // end of group UL_Grant_DL_Allocation
+
+group RLC_CommonTemplates {
+
+template (value) RLC_AM_StatusPDU_Type cs_RLC_AM_StatusPDU_ACK_SN (integer p_AckSN) :=
+{ /* @desc      serves to transmit one STATUS PDU without NackList */
+  /* @status    APPROVED */
+  D_C           :=  tsc_D_C_Control,            /* 0 .......... Control PDU
+                                                 * 1 .......... Data PDU */
+  Type          :=  tsc_CPT_STATUSPDU,          /* 000 ........ STATUS PDU
+                                                 * 001-111 .... Reserved (=> PDU to be discarded by the receiving entity
+                                                 *                           for this release of the protocol) */
+  Ack           := {
+    ACK_SN      := int2bit (p_AckSN, tsc_AM_SN_Size),
+    Extn1       := tsc_E1_NoNACK_Follows
+  },
+  NackList := omit,                       /* presence depends on Extn1 bit of Ack filed (RLC_Status_ACK_Type) */
+  Padding := '1'B                         /* 1..7 bit padding if needed for octet alignment */
+};
+
+template RLC_AM_StatusPDU_Type cr_RLC_AM_StatusPDU_ACK_SN_Bit (template (present) B10_Type p_AckSN_Bits) :=
+{ /* @desc      serves to receive one STATUS PDU without NackList and Padding */
+  /* @status    APPROVED */
+  D_C           :=  tsc_D_C_Control,            /* 0 .......... Control PDU
+                                                 * 1 .......... Data PDU */
+  Type          :=  tsc_CPT_STATUSPDU,          /* 000 ........ STATUS PDU
+                                                 * 001-111 .... Reserved (=> PDU to be discarded by the receiving entity
+                                                 *                           for this release of the protocol) */
+  Ack           := {
+    ACK_SN      := p_AckSN_Bits,
+    Extn1       := tsc_E1_NoNACK_Follows
+  },
+  NackList := omit,
+  Padding := '?'B
+};
+
+template RLC_AM_StatusPDU_Type cr_RLC_AM_StatusPDU_ACK_SN (integer p_AckSN) :=
+  /* @status    APPROVED */
+  cr_RLC_AM_StatusPDU_ACK_SN_Bit (int2bit (p_AckSN, tsc_AM_SN_Size));
+
+template (value) UL_AM_RLC cds_TX_AM_RLC_t_PollRetransmit (T_PollRetransmit p_T_PollRetransmit)
+  modifies cs_508_DRB_UL_AM_RLC :=
+{ /* @status    APPROVED */
+  t_PollRetransmit := p_T_PollRetransmit
+};
+
+} // end of group RLC_CommonTemplates
+
+group DRB_UM {
+
+template (value) PDCP_Config cds_DRB_PDCP_Conf_UM_ModifyDiscardTime (PDCP_Config.discardTimer p_DiscardTimer)
+modifies cs_508_PDCP_Config_DRB_UM :=
+{ /* @status    APPROVED */
+  discardTimer := p_DiscardTimer
+};
+
+template (value) DRB_ToAddMod cs_508_DRB_ToAddMod_UM_DiscardTimer_300ms (DRB_Identity p_DRB_Id) :=
+  /* According to 36.508 cl. 4.8.2.1.7 Table 4.8.2.1.7-1 (using condition UM) */
+  /* @status    APPROVED */
+  cs_508_DRB_ToAddMod_Common(p_DRB_Id,
+                             cds_DRB_PDCP_Conf_UM_ModifyDiscardTime(ms300),
+                             cs_508_RLC_Config_DRB_UM,
+                             cs_508_LogicalChannelConfig_DRB_UM);
+
+template (value) RadioBearer_Type cs_DRB2_ConfigUM_TM_Mode_SN10 :=
+{ /* @status    APPROVED */
+  Id := {
+    Drb := tsc_DRB2
+  },
+  Config := {
+    AddOrReconfigure := {
+      Pdcp := cs_PDCP_Configuration_None,
+      Rlc := {
+        Rb := {
+          TM := true
+        },
+        TestMode := {
+          Info := {
+            TransparentMode_UMDwith10BitSN := true   // @sic R5w100002r1 sic@
+          }
+        }
+      },
+      LogicalChannelId := tsc_DRB2+2,
+      Mac := cs_MAC_Configuration_UM,       // @sic R5s090314: Additional comments sic@
+      DiscardULData := omit                 // @sic RAN5 #55 sidebar meeting sic@
+    }
+  }
+};
+
+template (value) RadioBearer_Type cds_DRB2_ConfigUM_TM_Mode_SN5 modifies cs_DRB2_ConfigUM_TM_Mode_SN10 :=
+{ /* @status    APPROVED */
+  Config := {
+    AddOrReconfigure := {
+      Rlc := {
+        TestMode := {
+          Info := {
+            TransparentMode_UMDwith5BitSN := true   // @sic R5w100002r1 sic@
+          }
+        }
+      }
+    }
+  }
+};
+
+template (value) PDCP_Config cds_PDCP_Config_DRB_UM_SN7
+modifies cs_508_PDCP_Config_DRB_UM :=
+{ /* @status    APPROVED */
+  /* @sic R5s100302 sic@ */
+  rlc_UM := {
+    pdcp_SN_Size := len7bits
+  }
+};
+
+template (value) UL_UM_RLC cds_TX_UM_RLC_DRB_SN5 modifies cs_508_DRB_UL_UM_RLC :=
+{ /* for the UE the tx direction is the UL, for SS it is the DL */
+  /* @status    APPROVED */
+  sn_FieldLength := size5
+};
+
+template (value) DL_UM_RLC cds_RX_UM_RLC_DRB_SN5 modifies cs_508_DRB_DL_UM_RLC :=
+{ /* for the UE the rx direction is the DL, for SS it is the UL */
+  /* @status    APPROVED */
+  sn_FieldLength := size5
+};
+
+template (value) RLC_UMD_PDU_Type cs_UMD_PDU_NoLIs_SN10(integer p_SN,
+                                                        RLC_FramingInfo_Type p_FramingInfo,
+                                                        RLC_DataFieldList_Type p_Data) :=
+{ /* serves to transmit one UMD PDU without Length Indicators */
+  /* @status    APPROVED */
+  LongSN := {
+    Header := {
+      FixPart := {
+        Reserved := tsc_B3_Reserved,
+        FramingInfo :=  p_FramingInfo,
+        Extension := tsc_E_Data,
+        SequenceNumber := int2bit (p_SN, tsc_UM_SN_Size_10)
+      },
+      FlexPart := omit
+    },
+    Data := p_Data
+  }
+};
+
+template (value) RLC_UMD_PDU_Type cs_UMD_PDUoneSDU_SN10(integer p_SN,
+                                                        RLC_DataFieldList_Type p_RLC_SduData) :=
+  /* serves to transmit one SDU in one UMD PDU */
+  /* @status    APPROVED */
+  cs_UMD_PDU_NoLIs_SN10(p_SN, tsc_FI_FullSDU, p_RLC_SduData);
+
+template RLC_UMD_PDU_Type cr_UMD_PDU_SN10 (integer p_SN,
+                                           template RLC_FramingInfo_Type p_FI,
+                                           template RLC_DataFieldList_Type p_RLC_SduData) :=
+{ /* @status    APPROVED */
+  LongSN := {
+    Header := {
+      FixPart := {
+        Reserved := tsc_B3_Reserved,
+        FramingInfo :=  p_FI,
+        Extension := tsc_E_Data,
+        SequenceNumber := int2bit (p_SN, tsc_UM_SN_Size_10)
+      },
+      FlexPart := omit
+    },
+    Data := p_RLC_SduData
+  }
+};
+
+template (value) DRB_ToAddMod cs_DRB_ToAddMod_RLC_UM (DRB_Identity p_DRB_Id,
+                                                      template (value) PDCP_Config  p_PDCP_Config,
+                                                      template (value) UL_UM_RLC p_UL_UM_RLC,
+                                                      template (value) DL_UM_RLC p_DL_UM_RLC) :=
+  /* According to 36.508 cl. 4.8.2.1.7 Table 4.8.2.1.7-1 (using condition AM) */
+  /* @status    APPROVED */
+  cs_508_DRB_ToAddMod_Common(p_DRB_Id,
+                             p_PDCP_Config,
+                             cs_RLC_Config_DRB_UM (p_UL_UM_RLC,
+                                                   p_DL_UM_RLC),
+                             cs_508_LogicalChannelConfig_DRB_UM);
+
+template (value) RLC_Config cs_RLC_Config_DRB_UM (template (value) UL_UM_RLC p_UL_UM_RLC,
+                                                  template (value) DL_UM_RLC p_DL_UM_RLC):=
+{ /* @status    APPROVED */
+  um_Bi_Directional := {
+    ul_UM_RLC := p_UL_UM_RLC,
+    dl_UM_RLC := p_DL_UM_RLC
+  }
+};
+
+} // end of group DRB_UM
+
+group L1_MAC_Indication {
+
+template (value) L1Mac_IndicationControl_Type cs_EnableBSR_Req(L1Mac_IndicationMode_Type p_BSR_Mode) :=
+{ /* @status    APPROVED */
+  RachPreamble := omit,
+  SchedReq     := omit,       /* To enable/disable reporting of Scheduling Request received. */
+  BSR          := p_BSR_Mode,
+  UL_HARQ      := omit,
+  C_RNTI       := omit,
+  PHR          := omit,
+  HarqError    := omit,
+  PeriodicRI := omit
+};
+
+template (value) SYSTEM_CTRL_REQ cas_BSR_IndConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                       L1Mac_IndicationMode_Type p_BSR_Mode,
+                                                       template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo),
+  Request := {
+    L1MacIndCtrl := cs_EnableBSR_Req(p_BSR_Mode)
+  }
+};
+
+template (value) SYSTEM_CTRL_REQ cas_PHR_IndConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                       L1Mac_IndicationMode_Type p_PHR_Mode) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_CellCfg(p_CellId, cs_TimingInfo_Now),
+  Request := {
+    L1MacIndCtrl := cs_EnablePHR_Req ( p_PHR_Mode)
+  }
+};
+
+template (value) SYSTEM_CTRL_REQ cas_UL_HARQ_IndConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                           L1Mac_IndicationMode_Type p_UL_HARQ_Mode,
+                                                           template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,   //@sic R5s120024 sic@
+                                                           template (omit) boolean p_CnfFlag := omit) :=
+{ /* @status    APPROVED */
+  /* @sic R5s120201: parameter p_CnfFlag sic@ */
+  Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+  Request := {
+    L1MacIndCtrl := cs_EnableUL_HARQ_Req ( p_UL_HARQ_Mode)
+  }
+};
+
+template (value) L1Mac_IndicationControl_Type cs_EnableUL_HARQ_Req(L1Mac_IndicationMode_Type p_HARQ_Mode) :=
+{ /* @status    APPROVED */
+  RachPreamble := omit,
+  SchedReq  := omit,
+  BSR       := omit,
+  UL_HARQ   := p_HARQ_Mode,
+  C_RNTI    := omit,
+  PHR       := omit,
+  HarqError := omit,
+  PeriodicRI := omit
+};
+
+template (value) L1Mac_IndicationControl_Type cs_EnablePHR_Req(L1Mac_IndicationMode_Type p_PHR_Mode) :=
+{ /* @status    APPROVED */
+  RachPreamble := omit,
+  SchedReq  := omit,
+  BSR       := omit,
+  UL_HARQ   := omit,
+  C_RNTI    := omit,
+  PHR       := p_PHR_Mode,
+  HarqError := omit,
+  PeriodicRI := omit
+};
+
+template BSR_Type cr_LongBSR_Ind ( template (present) integer p_BS1,
+                                   template (present) integer p_BS2,
+                                   template (present) integer p_BS3,
+                                   template (present) integer p_BS4) :=
+{ /* @status    APPROVED */
+  Long :={
+    Value_LCG1 := p_BS1,             /* BSR value for LCG 1 */
+    Value_LCG2 := p_BS2,             /* BSR value for LCG 2 */
+    Value_LCG3 := p_BS3,             /* BSR value for LCG 3 */
+    Value_LCG4 := p_BS4              /* BSR value for LCG 4 */
+  }
+};
+
+template BSR_Type cr_ShortBSR_Ind ( template (present) integer p_LCG,
+                                      template (present) integer p_BSR_Value) :=
+  { /* @status    APPROVED */
+    Short := {
+      LCG  :=  p_LCG,          /* Logical channel Group */
+      Value := p_BSR_Value     /* BSR value */
+    }
+  };
+
+template SYSTEM_IND car_BSR_IND(EUTRA_CellId_Type p_CellId,
+                                template (present) TimingInfo_Type p_TimingInfo,
+                                template (present) BSR_Type p_BSR_Type) :=
+{ /* @status    APPROVED */
+  Common := cr_IndAspCommonPart_SysInd (p_CellId,p_TimingInfo ),
+  Indication := {
+    BSR := p_BSR_Type
+  }
+};
+
+template SYSTEM_IND car_UL_HARQ_IND(EUTRA_CellId_Type p_CellId,
+                                    template (present) TimingInfo_Type p_TimingInfo,
+                                    template (present)  HARQ_Type p_HARQ_Type) :=
+{ /* @status    APPROVED */
+  Common        := cr_IndAspCommonPart_SysInd (p_CellId, p_TimingInfo),
+  Indication    := {
+    UL_HARQ := p_HARQ_Type
+  }
+};
+
+} // end of group L1_MAC_Indication
+
+group Generic_L2_RRC_ReconfigTemplates {
+
+template (value) MAC_MainConfig_Type cs_508_MAC_MainConfig_Explicit_RBC_DrxL_DisableBSR_PHR :=
+  /* @status    APPROVED */
+  /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  cs_MAC_MainConfig_Explicit_DisableBSR_ReleasePHR(f_GetUeDrxConfig(DRX_L));
+
+template (value) MAC_MainConfig_Type cs_508_MAC_MainConfig_Explicit_RBC_DrxS_DisableBSR_PHR :=
+  /* @status    APPROVED */
+  /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  cs_MAC_MainConfig_Explicit_DisableBSR_ReleasePHR(f_GetUeDrxConfig(DRX_S));
+
+} // end of group Generic_L2_RRC_ReconfigTemplates
+
+template (value) PhysicalConfigDedicated cs_PhysicalConfigDedicated_Default_RBC_Dsr_TransMax(template (omit) CQI_ReportPeriodic p_CQI_ReportingPeriodic,
+                                                                                             template (omit) SoundingRS_UL_ConfigDedicated p_SoundingRsUl_ConfigDedicated,
+                                                                                             template (value) PhysicalConfigDedicated_AntennaInfo_Type p_AntennaInfo,
+                                                                                             SR_PUCCH_ResourceIndex_Type      p_SR_PUCCH_ResourceIndex,
+                                                                                             SR_ConfigIndex_Type p_SR_ConfigIndex,
+                                                                                             Dsr_TransMax_Type p_Dsr_TransMax := n64) :=
+/* @status    APPROVED */
+/* @sic R5-102177 R5-104798 R5s100473: additional changes sic@ */
+  cs_508_PhysicalConfigDedicated_Default_RBC(p_CQI_ReportingPeriodic,
+                                             p_SoundingRsUl_ConfigDedicated,
+                                             p_AntennaInfo,
+                                             cs_508_SchedulingRequest_Config_Default (p_SR_PUCCH_ResourceIndex, p_SR_ConfigIndex, p_Dsr_TransMax));
+
+template (value) PDCP_Config cds_508_PDCP_Config_DRB_AM_NoStatusRep modifies cs_508_PDCP_Config_DRB_AM:=
+{ /* Default values according to 36.508 cl. 4.8.2.1.2.2 Table 4.8.2.1.2.2-1
+     except Status Required is set as  false*/
+  /* @status    APPROVED */
+  //@sic R5-103816 PDCP Status report made as false sic@
+  rlc_AM := {
+    statusReportRequired := false
+  }
+};
+
+template (value) DRB_ToAddMod cs_508_DRB_ToAddMod_AM_NoStatusRep (DRB_Identity p_DRB_Id) :=
+/* According to 36.508 cl. 4.8.2.1.7 Table 4.8.2.1.7-1 (using condition AM)
+   except Status Required is set as  false*/
+/* @status    APPROVED */
+//@sic R5-103816 PDCP Status report made as false sic@
+  cs_508_DRB_ToAddMod_Common(p_DRB_Id,
+                             cds_508_PDCP_Config_DRB_AM_NoStatusRep,
+                             cs_508_RLC_Config_DRB_AM,
+                             cs_508_LogicalChannelConfig_DRB_AM);
+
+template (value) DciDlInfo_Type  cs_DciDLInfo_Explicit (template (value) DciDlInfoExplicit_Type p_DciDlInfoExplicit) :=
+{ /* @status    APPROVED */
+  Explicit := p_DciDlInfoExplicit
+};
+
+template (value) DciDlInfo_Type  cs_DciDLInfo_Auto (template (value) DciDlInfoCommon_Type p_DciDlInfoCommon) :=
+{ /* @status    APPROVED */
+  Auto := p_DciDlInfoCommon
+};
+
+template (value) SYSTEM_CTRL_REQ cas_CcchDcchDtchDL_Config_REQ(EUTRA_CellId_Type p_CellId,
+                                                               template (value) TimingInfo_Type p_TimingInfo,
+                                                               template (omit) DciDlInfo_Type p_DciDlInfo := omit,
+                                                               template (omit) AntennaInfoDedicated_Type p_AntennaInfoDedicated := omit,
+                                                               template (omit) HarqProcessConfigDL_Type p_HarqProcessConfigDL:= omit) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo),
+  Request := {
+    Cell := {
+      AddOrReconfigure := {
+        Basic := omit,
+        Active := {
+          C_RNTI := omit,
+          PhysicalLayerConfigUL := omit,
+          RachProcedureConfig := omit,
+          CcchDcchDtchConfig := {
+            MeasGapCtrl := omit,
+            DL := {
+              DciInfo := p_DciDlInfo,
+              AntennaInfo := p_AntennaInfoDedicated,
+              HarqProcessConfig := p_HarqProcessConfigDL
+            },
+            UL := omit,
+            DrxCtrl := omit,
+            TtiBundling := omit
+          }
+        }
+      }
+    }
+  }
+};
+
+}

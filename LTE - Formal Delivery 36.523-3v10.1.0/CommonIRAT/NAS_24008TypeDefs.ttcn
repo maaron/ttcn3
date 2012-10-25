@@ -1,0 +1,2003 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-25 17:02:09 +0200 (Wed, 25 Apr 2012) $
+// $Rev: 6567 $
+/******************************************************************************/
+
+module NAS_24008TypeDefs {
+  /* Module containing type definitions for UTRAN and/or GERAN as defined in 24.008 */
+  import from CommonDefs all;
+  import from NAS_CommonTypeDefs all;
+
+// =============================================================================
+// Simple Type Definitions
+// -----------------------------------------------------------------------------
+type O1_Type         PktFlowId;                              // This can take values as per 24.008, section 10.5.6.11
+type octetstring     AddressInfo length(0..16);              // Address information, this is the DNS server name.
+                                                             // this will be converted into
+type O1_Type         CauseValue;                             // SM Cause Value
+type B8_Type         CLIR_Invocation ('10100010'B);          // CLIR invocation
+                                                             // 3G TS 24.008 cl. 10.5.4.11b
+type B8_Type         CLIR_Suppression ('10100001'B);         // CLIR suppression
+                                                             // 3G TS 24.008 cl. 10.5.4.11a
+type B4_Type         CMServType;                             // CM Service Type
+                                                             //  3G TS 24.008 cl. 10.5.3.3
+type IEI8_Type       CTSPerm;                                // CTSPerm
+                                                             // 3G TS 24.008 cl. 10.5.3.10
+                                                             // value "10100010"B
+type IEI8_Type       FollowOnProceed;                        // Follow On Proceed
+                                                             // 3G TS 24.008 cl. 10.5.3.7
+                                                             // value "10100001"B
+type B32_Type        Fresh;
+type B64_Type        GSM_CipheringKey;
+type B128_Type       IntegrityKey;
+type charstring      LogicChGERAN;                           // Logical channel (used for Interworking with GERAN)
+type B128_Type       MM_RAND;                                // Authentication parameter RAND
+                                                             // 3G TS 24.008 cl. 10.5.3.1
+type O1_Type         PDP_TypeNo;                             // PDP Type number, this will take values
+                                                             // 00000001: PDP Type PPP
+                                                             // 00000010: PDP Type IHOSS
+                                                             // 01000001: IPv5
+                                                             // 01010111: IPv6
+                                                             // This can take values as per 24.008, clause 10.5.6.4
+type O1_Type         RejCau;                                 // Reject Cause
+                                                             // 3G TS 24.008 cl. 10.5.3.6
+type O1_Type         SapId;                                  // SAP Identifier
+                                                             // ??? defined in several places
+                                                             // GERAN 04.06 and 3G TS 24.008 as bitstring[2] ?
+type charstring      Services ("Telephony", "EmergencyCall", "31kHz",  "V110",  "V120",   "PIAFS",  "FTM", "X31",  "BTM", "3G324M_Call", "Alternate Speech/Facsimile","3G324M_SpeechPreferred"  );
+                                                             // 3G TS 24.008 cl. 10.3.1
+type bitstring       Redial ('10100011'B);                   // Redial
+                                                             // 3G TS 24.008 cl. 10.5.4.34
+type octetstring     MBMS_ProtoIdContents length(1..251);    // 3G TS 24.008 cl. 10.5.6.15
+type integer         CellId;
+type O1_Type         EstMode;                                // establish mode
+type B3_Type         GPRS_CipherAlg;                         // 3GPP TS 24.008 section 10.5.5.3
+type B6_Type         RLCMessageType;                         // message type for GPRS RLC/MAC control messages. 3GPP TS 44.060 clause 11.2.0
+type O1_Type         NCCPermitted;                           // ncc permitted
+type integer         PAGING_GROUP;                           // see 3GPP TS 45.002 clause 6.5.2 and 6.5.6
+type integer         SAPI;                                   // Service access point of GERAN L2 or GERAN LLC
+type integer         PhysicalChId (0..31);                   // Physical channel identifier in GERAN emulator
+type integer         SubChannelNumber;                       // Subchannel number for TCH/H, FACCH/H, SACCH/TH, SDCCH/4. SDCCH/C4, SDCCH/8 and SDCCH/C8.
+                                                             // For TCH/H, FACCH/H and SACCH/TH value is (0..1);
+                                                             // For SDCCH/8 and SACCH/C8 value is (0..7);
+                                                             // For SDCCH/4 and SACCH/C4 value is (0..3).
+type B3_Type         TSC;                                    // Training sequence code,GSM 04.08 10.5.2.5
+type O4_Type         TLLI;
+type B3_Type         TN;                                     // time slot number
+type integer         TX_Power;                               // transmission power level of a physical channel. the unit is dBuVemf
+type octetstring     XID_Info;                               // may be defined as a structured type in the future
+type integer         LLMEId;                                 // Logical Layer Management Entity Id
+type octetstring     UE_TestLoopMode length(1);              // UETestLoopMode
+                                                             // 3G TS 34.109 cl. 6.2
+// =============================================================================
+// Structured Type Definition
+// Cipher Algorithm
+// 3GPP 24.008 /  10.5.5.19
+// -----------------------------------------------------------------------------
+type record AC_ReferenceNumber {
+  B4_Type              aCValue
+};
+
+
+// =============================================================================
+// Structured Type Definition
+// Alerting pattern (used for NIA )
+// 3G TS 24.008 cl. 10.5.4.26
+// -----------------------------------------------------------------------------
+type record AlertPattern {
+  IEI8_Type            iei,                   // '00011001'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // @sic R5s110420 sic@
+  B4_Type              spare4,                // 4 spare bits
+  B4_Type              alertPatternValue      // alerting pattern value
+};
+
+// =============================================================================
+// Structured Type Definition
+// Attach result
+// 3GPP 24.008 / 10.5.5.1
+// -----------------------------------------------------------------------------
+type record AttachResult {
+  B1_Type              fOP,                   // Follow-on Proceed
+  B3_Type              result                 // Attach result
+};
+
+// =============================================================================
+// Structured Type Definition
+// Attach type
+// 3GPP 24.008 / 10.5.5.2
+// -----------------------------------------------------------------------------
+type record AttachType {
+  B1_Type              forValue,              // Follow-on request
+  B3_Type              attachType             // Type of attach
+};
+
+// =============================================================================
+// Structured Type Definition
+// Authentication Response parameter  (extension)
+// 3G TS 24.008 cl. 10.5.3.2.1
+// -----------------------------------------------------------------------------
+type record AuthRspExt {
+  IEI8_Type            iei,                   // '00100001'B for MM (21 hex)  @sic R5s110420 sic@
+                                              // '00101001'B for GMM (29 hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                    // @sic R5s110420 sic@
+  bitstring            rES length(1..96)        // Authentication Parameter RES
+};
+
+// =============================================================================
+// Structured Type Definition
+// Authentication Response parameter (TV, 5 octets)
+// 3G TS 24.008 cl. 10.5.3.2
+// -----------------------------------------------------------------------------
+type record AuthRsp {
+  IEI8_Type      iei  optional,                   // '00100010'B (22 hex)
+  B32_Type       rES  // Authentication Parameter RES
+};
+
+// =============================================================================
+// Structured Type Definition
+// Backup Bearer capability
+// 3G TS 24.008 cl. 10.5.4.4a
+// -----------------------------------------------------------------------------
+type record BuBcap {
+  IEI8_Type            iei,                   // '01000001'B (41 hex)
+  Type4Length_Type     iel,                   // length
+  B1_Type              extBit3,               // extension bit
+  B2_Type              radioChRequire,        // radio channel requirements  ue->n, GSM, octet 3
+  B1_Type              codingStd,             // coding standard, '0'B,  octet 3
+  B1_Type              transferMode,          // transfer mode octet 3
+  B3_Type              itc,                   // information transfer capability,  octet 3
+  B1_Type              extBit4  optional,               // extension bit, octet 4
+  B1_Type              compress  optional,              // compression, ue->network,  octet 4
+  B2_Type              structure  optional,             // structure, '0, 3',  octet 4
+  B1_Type              duplexMode  optional,            // duplex mode,  '1'B, octet 4
+  B1_Type              cfg  optional,                   // configuration, '0'B,  octet 4
+  B1_Type              nirr  optional,                  // negotiation of intermediate rate requested,  GSM, octet 4
+  B1_Type              establish  optional,             // establishment, '0'B,  octet 4
+  B1_Type              extBit5  optional,               // extension bit, octet 5
+  B2_Type              accessId  optional,              // access identify, '00'B,  octet 5
+  B2_Type              rateAdapt  optional,             // rate adaption,  octet 5
+  B3_Type              sacp  optional,                  // signalling access protocol, '1 - 6',  octet 5
+  B1_Type              extBit5a  optional,              // extension bit, octet 5a
+  B2_Type              OherItc  optional,               // Other ITC , octet 5a
+  B2_Type              OtherRateAdapt  optional,        // Other Rate adaptation, octet5a
+  B3_Type              spare3  optional,                // spare bits - 3 bits
+  B1_Type              extBit6  optional,               // extension bit,  octet 6
+  B2_Type              layer1Id  optional,              // Layer 1 identity, '01'B,  octet 6
+  B4_Type              userInfoLayer1  optional,        // user information Layer 1 protocol, '0000'B, octet 6
+  B1_Type              syncAsync  optional,             // synchronous bit,  octet 6
+  B1_Type              extBit6a  optional,              // extension bit, octet 6a
+  B1_Type              numStopBits  optional,           // number of stop bits,  octet 6a
+  B1_Type              negotiation  optional,                  // negotiation bit,  '0'B, octet 6a
+  B1_Type              numDataBits  optional,           // number of data bits,  octet 6a
+  B4_Type              userRate   optional,              // user rate, GSM, octet 6a
+  B1_Type              extBit6b  optional,              // extension bit,  octet 6b
+  B2_Type              intermRate  optional,            // intermediate rate,  octet 6b
+  B1_Type              nicTx  optional,                 // network independent clock on transmission,  GSM, octet 6b
+  B1_Type              nicRx  optional,                 // network independent clock on reception,  GSM, octet 6b
+  B3_Type              parity  optional,                // parity information,   octet 6b
+  B1_Type              extBit6c  optional,              // extension bit,  octet 6c
+  B2_Type              connectElem  optional,           // connection element,  octet 6c
+  B5_Type              modemType  optional,             // modem type, octet 6c
+  B1_Type              extBit6d  optional,              // extension bit,  octet 6d
+  B2_Type              OtherModemType  optional,        // Other Modem type, octet 6d
+  B5_Type              FixedNtwUserRate  optional,      // Fixed Network user rate, octet 6d
+  B1_Type              extBit6e  optional,              // extension bit,  octet 6e
+  B4_Type              acceptChCoding  optional,        // acceptable channel coding, octet 6e
+  B3_Type              maxNumTrafficCh  optional,       // maximum number of traffic channel, octet 6e
+  B1_Type              extBit6f  optional,              // extension bit,  octet 6f
+  B3_Type              uIMI  optional,                  // User initiated modification indication, octet 6f
+  B4_Type              wAIUR  optional,                 // wanted air interface user rate, octet 6f
+  B1_Type              extBit6g  optional,              // extension bit,  octet 6g
+  B3_Type              acceptChCodingExt  optional,     // acceptable channel coding extended, octet 6g
+  B2_Type              asymInd  optional,               // asymmetry indication, octet 6g
+  B2_Type              spare2  optional,                // spare 2 bits , octet 6g
+  B1_Type              extBit7  optional,               // extension bit,  octet 7
+  B2_Type              layer2id  optional,              // L2 identity, octet 7
+  B5_Type              userInfoLayer2  optional         // user information L2 protocol, octet 7
+};
+
+// =============================================================================
+// Structured Type Definition
+// Cause of no CLI information elemnt
+// 3G TS 24.008 cl. 10.5.4.30
+// -----------------------------------------------------------------------------
+type record CauNoCLI {
+  IEI8_Type            iei,                   // '00111010'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B8_Type              causeNoCLI               // cause of no CLI
+};
+
+// =============================================================================
+// Structured Type Definition
+// Calling party BCD number (CC information element)
+// 3G TS 24.008 cl. 10.5.4.9
+// -----------------------------------------------------------------------------
+type record CGPN {
+  IEI8_Type              iei,                   // '01011100'B @sic R5s110420 sic@
+  Type4Length_Type       iel,                   // length
+  TypeOfNumPlan          typeOfNumPlan,         // type of number and numbering plan identification
+  PresentIndScreeningInd presentIndScreeningInd, // Presentation indicator & screening indicator
+  octetstring            digits length(0..10)   // numbers
+};
+
+// =============================================================================
+// Structured Type Definition
+// Cell notification
+// 3GPP 24.008 / 10.5.5.21
+// -----------------------------------------------------------------------------
+type record CellNotification {
+  IEI8_Type            iei                    // '10001100'B (8C hex)
+};
+
+// =============================================================================
+// Structured Type Definition
+// Cipher Algorithm
+// 3GPP 24.008 /  10.5.5.3
+// -----------------------------------------------------------------------------
+type record CiphAlgorithm {
+  B1_Type              spare1,
+  B3_Type              algorithm
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008, section 10.5.5.27
+// -----------------------------------------------------------------------------
+type record EUTRAN_HO_Info {
+  IEI8_Type            iei,  // @sic R5s110420 sic@
+  Type4Length_Type     iel, // @sic R5s110420 sic@
+  octetstring          info length(1..255)   // Inter RAT Handover Information Container @sic R5s110176 sic@
+};
+
+// =============================================================================
+// Structured Type Definition
+// Force to standby
+// 3GPP 24.008 / 10.5.5.7
+// -----------------------------------------------------------------------------
+type record ForceToStandby {
+  B1_Type              spare,
+  B3_Type              forceToStandbyValue             // Force to standby value
+};
+
+// =============================================================================
+// Structured Type Definition
+// GMM cause
+// 3GPP 24.008 / 10.5.5.14
+// -----------------------------------------------------------------------------
+type record GMM_Cause {
+  IEI8_Type            iei  optional,                   // '00100101'B (25 hex)
+  B8_Type              gmmCauseValue               // Cause  value
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008, section 10.5.5.24
+// -----------------------------------------------------------------------------
+type record InterRAT_HO_Info {
+  IEI8_Type            iei,                   // '00100111'B (27 hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // @sic R5s110420 sic@
+  octetstring          info length(1..248)   // Inter RAT Handover Information Container @sic R5s110176 sic@
+};
+
+// =============================================================================
+// Structured Type Definition
+// Location Updating Type
+//  3G TS 24.008 cl. 10.5.3.5
+// -----------------------------------------------------------------------------
+type record LocUpdType {
+  B1_Type              fOR,                   // Follow-On Request
+  B1_Type              spare1,
+  B2_Type              lUT                    // Location Updating Type
+};
+
+// =============================================================================
+// Structured Type Definition
+// MBMS_ContextStatus
+// 3G TS 24.008 cl. 10.5.7.6
+// -----------------------------------------------------------------------------
+type record MBMS_ContextStatus {
+  IEI8_Type            iei,                   // '00110101'B (35 hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   //  @sic R5s110420 sic@
+  bitstring            nSAPI length(0..128)     // NSAPI(x)
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008 cl. 10.5.6.15
+// -----------------------------------------------------------------------------
+type record MBMS_ProtoCfgOpt {
+  IEI8_Type            iei,                   // '00110101'B (35hex)  @sic R5s110420 sic@
+  Type4Length_Type     iel,                  //  @sic R5s110420 sic@
+  MBMS_ProtoIdContents protocolIdContents   // information related to additional external protocols
+};
+
+// =============================================================================
+// Structured Type Definition
+// MS radio access capability
+// 3GPP 24.008 /  10.5.5.12a
+// -----------------------------------------------------------------------------
+type record MSRadioAccessCap {
+  Type4Length_Type   iel  optional,
+  octetstring        msRadioAccessCapValue length(0..50)   // MS radio access capability value (CSN.1 coding)
+};
+
+// =============================================================================
+// Structured Type Definition
+// Mobile Station Classmark 1
+// 3G TS 24.008 cl. 10.5.1.5
+// -----------------------------------------------------------------------------
+type record MS_Clsmk1 {
+  B1_Type              spare1,                // Spare bit
+  B2_Type              revLvl,                // Revision Level
+  B1_Type              eSIND,                 // Early Sending Indication
+  B1_Type              a5_1,                  // Algorithm A5/1 supported
+  B3_Type              rFPwrCap               // RF Power Capability
+};
+
+// =============================================================================
+// Structured Type Definition
+// Network Feature Support
+// 3G TS 24.008 cl. 10.5.5.23
+// -----------------------------------------------------------------------------
+type record NtwFeatureSupport {
+  IEI4_Type            iei,                   // '1011'B (B- hex)
+  B1_Type              lCS_MOLR,
+  B1_Type              mBMS,
+  B1_Type              imsVoPS,  // @sic R5s100135 sic@
+  B1_Type              emcbs     // @sic R5s110176 Baseline Moving sic@
+};
+
+// =============================================================================
+// Structured Type Definition
+// PDP_ContextStatus
+// 3G TS 24.008 cl. 10.5.7.1
+// -----------------------------------------------------------------------------
+type record PDP_ContextStatus {
+  IEI8_Type            iei,                   // '00110010'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // @sic R5s110420 sic@
+  B16_Type             nSAPI
+};
+
+// =============================================================================
+// Structured Type Definition
+// PS LCS Capability
+// 3GPP 24.008 / 10.5.5.22
+// -----------------------------------------------------------------------------
+type record PS_LCS_Capability {
+  IEI8_Type            iei,                   // '00110011'B (33 hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // '01'O  @sic R5s110420 sic@
+  B2_Type              spare,
+  B1_Type              aPC,
+  B1_Type              oTD_A,
+  B1_Type              oTD_B,
+  B1_Type              gPS_A,
+  B1_Type              gPS_B,
+  B1_Type              gPS_C
+};
+
+// =============================================================================
+// Structured Type Definition
+// Requested MS Information
+//  3G TS 24.008 cl. 10.5.5.25
+// -----------------------------------------------------------------------------
+type record RequestedMS_Info {
+  IEI4_Type            iei,       // '1010'B (A- hex)
+  B1_Type              l_RAT,     // Inter RAT information container IE requested
+  B1_Type              l_RAT2,    // E-UTRAN Inter RAT information container IE requested
+  B2_Type              spare2
+};
+
+// =============================================================================
+// Structured Type Definition
+// Ref 24.008, 10.5.6.6
+// -----------------------------------------------------------------------------
+type record SM_Cause {
+  CauseValue      causeValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// Ref 24.008, 10.5.6.6A
+// -----------------------------------------------------------------------------
+type record SM_Cause2 {
+  IEI8_Type            iei,   // @sic R5s110420 sic@
+  Type4Length_Type     iel,   // @sic R5s110420 sic@
+  CauseValue      causeValue
+};
+
+
+// =============================================================================
+// Structured Type Definition
+// Service type
+// 3GPP 24.008 / 10.5.5.20
+// -----------------------------------------------------------------------------
+type record ServiceType {
+  B1_Type              spare1,
+  B3_Type              serviceType               // type
+};
+
+// =============================================================================
+// Structured Type Definition
+// Ref 24.008, clause 10.5.6.10
+// -----------------------------------------------------------------------------
+type record TearDwnInd {
+  IEI4_Type       iei,                  // '1001'B (9 hex)
+  B3_Type         spare,
+  B1_Type         tdiflag                  // TDI Flag
+};
+
+// =============================================================================
+// Structured Type Definition
+// Update result
+// 3GPP 24.008 / 10.5.5.18
+// -----------------------------------------------------------------------------
+type record UpdateType {
+  B1_Type              followOnReq,              // Follow-on request
+  B3_Type              updateValue              // Update type value
+};
+
+// =============================================================================
+// Structured Type Definition
+// Allowed actions
+// 3G TS 24.008 cl. 10.5.4.27
+// -----------------------------------------------------------------------------
+type record AllowedAction {
+  IEI8_Type            iei,                   // '01111011'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // Type4Length_Type @sic R5s110420 sic@
+  B1_Type              cCBS_Act,              // CCBS Activation
+  B7_Type              spare7                   // 7 spare bits
+};
+
+// =============================================================================
+// Structured Type Definition
+// Bearer capability (CC information element)
+// 3G TS 24.008 cl. 10.5.4.5
+// -----------------------------------------------------------------------------
+type record Bcap {
+  IEI8_Type            iei,              // @sic R5s110420 sic@
+  Type4Length_Type     iel,              // @sic R5s110420 sic@
+  B1_Type         extBit3,               // extension bit
+  B2_Type         radioChRequirement,          // radio channel requirements  ue->n, GSM,
+                                                   // octet 3
+  B1_Type         codingStd,             // coding standard, '0'B,  octet 3
+  B1_Type         transferMode,          // transfer mode octet 3
+  B3_Type         itc,                   // information transfer capability,  octet 3
+  Bcap3aEtc       bcap3aEtc1  optional,            // octet 3a etc no.1
+  Bcap3aEtc       bcap3aEtc2  optional,            // octet 3a etc no.2
+  Bcap3aEtc       bcap3aEtc3  optional,            // octet 3a etc no.3
+  Bcap3aEtc       bcap3aEtc4  optional,            // octet 3a etc no.4
+  Bcap3aEtc       bcap3aEtc5  optional,            // octet 3a etc no.5
+  Bcap3aEtc       bcap3aEtc6  optional,            // octet 3a etc no.6
+  B1_Type              extBit4  optional,               // extension bit, octet 4
+  B1_Type              compress  optional,              // compression, ue->network,  octet 4
+  B2_Type              structure  optional,             // structure, '0, 3',  octet 4
+  B1_Type              duplexMode  optional,            // duplex mode,  '1'B, octet 4
+  B1_Type              cfg  optional,                   // configuration, '0'B,  octet 4
+  B1_Type              nirr  optional,                  // negotiation of intermediate rate requested,  GSM, octet 4
+  B1_Type              establish  optional,             // establishment, '0'B,  octet 4
+  B1_Type              extBit5  optional,               // extension bit, octet 5
+  B2_Type              accessId  optional,              // access identify, '00'B,  octet 5
+  B2_Type              rateAdapt  optional,             // rate adaption,  octet 5
+  B3_Type              sacp  optional,                  // signalling access protocol, '1 - 6',  octet 5
+  B1_Type              extBit5a  optional,              // extension bit, octet 5a
+  B2_Type              OherItc  optional,               // Other ITC , octet 5a
+  B2_Type              OtherRateAdapt  optional,        // Other Rate adaptation, octet5a
+  B3_Type              spare3  optional,                // spare bits - 3 bits
+  B1_Type              extBit5b  optional,              // extension bit, '1'B,  octet 5b
+  B1_Type              rateAdaptHeader  optional,       // rate adaptation header,  octet 5b
+  B1_Type              multiFrame  optional,            // Multi frame,  octet 5b
+  B1_Type              mode  optional,                  // Mode of operation, octet 5b
+  B1_Type              logLinkId  optional,             // logical link identifier negotiation, octet 5b
+  B1_Type              assignorAssignee  optional,      // assignor/assignee, octet 5b
+  B1_Type              inBandOutBand  optional,         // in band/out band negotiation, octet 5b
+  B1_Type              spare1  optional,                // sapre bit - 1 bit
+  B1_Type              extBit6  optional,               // extension bit,  octet 6
+  B2_Type              layer1Id  optional,              // Layter 1 identity, '01'B,  octet 6
+  B4_Type              userInfoLayer1  optional,        // user information Layer 1 protocol, '0000'B, octet 6
+  B1_Type              syncAsync  optional,             // synchronous bit,  octet 6
+  B1_Type              extBit6a  optional,              // extension bit, octet 6a
+  B1_Type              numStopBits  optional,           // number of stop bits,  octet 6a
+  B1_Type              negotiation  optional,           // negotiation bit,  '0'B, octet 6a
+  B1_Type              numDataBits  optional,           // number of data bits,  octet 6a
+  B4_Type              userRate  optional,              // user rate, GSM, octet 6a
+  B1_Type              extBit6b  optional,              // extension bit,  octet 6b
+  B2_Type              intermRate  optional,            // intermediate rate,  octet 6b
+  B1_Type              nicTx  optional,                 // network independent clock on transmission,  GSM, octet 6b
+  B1_Type              nicRx  optional,                 // network independent clock on reception,  GSM, octet 6b
+  B3_Type              parity  optional,                // parity information,   octet 6b
+  B1_Type              extBit6c  optional,              // extension bit,  octet 6c
+  B2_Type              connectElem  optional,           // connection element,  octet 6c
+  B5_Type              modemType  optional,             // modem type, octet 6c
+  B1_Type              extBit6d  optional,              // extension bit,  octet 6d
+  B2_Type              OtherModemType  optional,        // Other Modem type, octet 6d
+  B5_Type              FixedNtwUserRate  optional,      // Fixed Network user rate, octet 6d
+  B1_Type              extBit6e  optional,              // extension bit,  octet 6e
+  B4_Type              acceptChCoding  optional,        // acceptable channel coding, octet 6e
+  B3_Type              maxNumTrafficCh  optional,       // maximum number of traffic channel, octet 6e
+  B1_Type              extBit6f  optional,              // extension bit,  octet 6f
+  B3_Type              uIMI  optional,                  // User initiated modification indication, octet 6f
+  B4_Type              wAIUR  optional,                 // wanted air interface user rate, octet 6f
+  B1_Type              extBit6g  optional,              // extension bit,  octet 6g
+  B3_Type              acceptChCodingExt  optional,     // acceptable channel coding extended, octet 6g
+  B2_Type              asymInd  optional,               // asymmetry indication, octet 6g
+  B2_Type              spare2  optional,                // spare 2 bits , octet 6g
+  B1_Type              extBit7  optional,               // extension bit,  octet 7
+  B2_Type              layer2id  optional,              // L2 identity, octet 7
+  B5_Type              userInfoLayer2  optional         // user information L2 protocol, octet 7
+};
+
+// =============================================================================
+// Structured Type Definition
+// Speech Versions preferences as supported by the EFR mobile - see 3G TS 24.008 cl. 10.5.4.5/octet 3a etc/"speech version indication"
+// -----------------------------------------------------------------------------
+type record Bcap3aEtc {
+  B1_Type              extBit,                // extension bit ('0'B)
+  B1_Type              coding,                // Octet a1, Coding ('0'B)
+  B2_Type              spare2,                // Octet a1, Spare bits ('00'B)
+  B4_Type              speechVersion           // Octet a1, Speech version indication
+};
+
+// =============================================================================
+// Structured Type Definition
+// Call Control Capabilities
+// 3G TS 24.008 cl. 10.5.4.5a
+// -----------------------------------------------------------------------------
+type record CC_Capabilities {
+  IEI8_Type            iei,                  // '00010101'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                  // length
+  B4_Type              maxNumBearer,         // maximum number o fudpported bearer
+  B1_Type              mcat,                 // MCAT
+  B1_Type              enicm,                // ENICM
+  B1_Type              pcp,                  // PCP
+  B1_Type              dtmf,                 // indication of supporting DTMF
+  B4_Type              spare4,               // spare bits
+  B4_Type              maxNumSpeechBearer    // maximum number of speech bearers
+};
+
+// =============================================================================
+// Structured Type Definition
+// Called party BCD number (CC information element)
+// 3G TS 24.008 cl. 10.5.4.7
+// -----------------------------------------------------------------------------
+type record CDPN {
+  IEI8_Type            iei,              // '01011110'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length
+  TypeOfNumPlan        typeOfNumPlan,         // type of number and numbering plan identification
+  octetstring          digits length(0..40) optional  // BCD numbers
+};
+
+// =============================================================================
+// Structured Type Definition
+// Called party subaddress (CC information element)
+// 3G TS cl. 10.5.4.8
+// -----------------------------------------------------------------------------
+type record CDPS {
+  IEI8_Type            iei,              // '01101101'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length
+  Subadrs              subadrs                  // Subaddress
+};
+
+// =============================================================================
+// Structured Type Definition
+// Calling party subaddress (CC information element)
+// 3G TS 24.008 cl. 10.5.4.10
+// -----------------------------------------------------------------------------
+type record CGPS {
+  IEI8_Type            iei  optional,              // '01011101'B
+  Type4Length_Type     iel  optional,                   // length
+  Subadrs              subadrs                  // Subaddress
+};
+
+// =============================================================================
+// Structured Type Definition
+// Cause (CC information element)
+// 3G TS 24.008 cl. 10.5.4.11
+// -----------------------------------------------------------------------------
+type record Cau {
+  IEI8_Type            iei  optional,                   // information element identifier '00001000'B
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B1_Type              extBit3,               // extension bit, octet 3
+  B2_Type              codingStd,             // coding standard
+  B1_Type              spare1,                // spare bit
+  B4_Type              location,              // location
+  B1_Type              extBit3a   optional,   // extension bit, '1'B, octet 3a
+  B7_Type              recommend  optional,   // recommendation
+  B1_Type              extBit4,               // extension bit, '1'B
+  B7_Type              cauValue,              // cause value
+  octetstring          diagnostic length(0..27)  optional// Diagnostics
+};
+
+// =============================================================================
+// Structured Type Definition
+// Connected number (CC information element)
+// 3G TS 24.008 cl. 10.5.4.13
+// -----------------------------------------------------------------------------
+type record ConnectedNum {
+  IEI8_Type              iei,              // '01001100'B @sic R5s110420 sic@
+  Type4Length_Type       iel,                   // length @sic R5s110420 sic@
+  TypeOfNumPlan          typeOfNumPlan,         // type of number and numbering plan identification
+  PresentIndScreeningInd presentIndScreeningInd, // Presentation indicator & screening indicator
+  octetstring            digits length(0..10)    // numbers
+};
+
+// =============================================================================
+// Structured Type Definition
+// Connected subaddress
+// 3G TS 24.008 cl. 10.5.4.14
+// -----------------------------------------------------------------------------
+type record ConnectedSubAdrs {
+  IEI8_Type            iei,              // '01001101'B @sic R5s110420 sic@
+  Type4Length_Type     iel,              // length @sic R5s110420 sic@
+  Subadrs              subadrs           // Subaddress
+};
+
+// =============================================================================
+// Structured Type Definition
+// High layer compatibility (CC information element)
+// 3G TS 24.008 cl. 10.5.4.16, ITU Q.931
+// -----------------------------------------------------------------------------
+type record HLC {
+  IEI8_Type            iei,              // '01111101'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B1_Type              extBit3 optional,               // extension bit ('1'B)
+  B2_Type              codingStd optional,             // coding standard
+  B3_Type              interpretation optional,        // interpretation
+  B2_Type              presentModeProtocolProfile optional, // presentation method of protocol profile
+  B1_Type              extBit4 optional,               // extension bit,  octet 4
+  B7_Type              hlcId optional,                 // high layer characteristics identification
+  B1_Type              extBit4a optional,              // extension bit, '1'B,  octet 4a
+  B7_Type              exteHlcId optional              // extended high layer characteristics identification
+};
+
+// =============================================================================
+// Structured Type Definition
+// Low layer compatibility (CC information element)
+// 3G TS 24.008 cl. 10.5.4.18 and ETS DE/SPS-5034-1 (update of ETS 300 102-1)
+// -----------------------------------------------------------------------------
+type record LLC {
+  IEI8_Type            iei,              // '01111100'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B1_Type              extBit3 optional,               // extension bit
+  B2_Type              codingStd optional,             // coding standard, octet 3
+  B5_Type              itc optional,                   // information transfer capability,  octet 3
+  B1_Type              extBit3a optional,              // extension bit, octet 3a
+  B1_Type              negoInd optional,               // negotiation indicator, octet 3a
+  B6_Type              spare6 optional,                // 6 spare bits
+  B1_Type              extBit4 optional,               // extension bit, octet 4
+  B2_Type              transferMode optional,          // transfer mode
+  B5_Type              infoTransferRate optional,      // information transfer rate,  octet 4
+  B1_Type              extBit4_1 optional,             // extension bit, octet 4.1
+  B7_Type              rateMultiplier optional,       // rate multiplier, octet 4.1
+  B1_Type              extBit5 optional,               // extension bit, octet 5
+  B2_Type              layer1Id  optional,              // Layter 1 identity, '01'B, octet 5
+  B5_Type              userInfoLayer1  optional,        // user information Layer 1 protocol, '0000'B, octet 5
+  B1_Type              extBit5a  optional,              // extension bit, octet 5a
+  B1_Type              syncAsync  optional,             // synchronous bit, octet 5a
+  B1_Type              negotiation  optional,           // negotiation bit,  octet 5a
+  B5_Type              userRate  optional,              // user rate, octet 5a
+  B1_Type              extBit5b1  optional,             // extension bit, octet 5B1_Type
+  B2_Type              intermRate  optional,            // intermediate rate,  octet 5B1_Type
+  B1_Type              nicTx  optional,                 // network independent clock on transmission,  octet 5B1_Type
+  B1_Type              nicRx  optional,                 // network independent clock on reception,  octet 5B1_Type
+  B1_Type              flowCtrlTx  optional,            // flow control on transmission,  octet 5B1_Type
+  B1_Type              flowCtrlRx  optional,            // flow control on reception,  octet 5B1_Type
+  B1_Type              spare1  optional,                // 1 spare bit, '0'B, octet 5B1_Type
+  B1_Type              extBit5b2  optional,             // extension bit,  octet 5b2
+  B1_Type              rateAdaptHeader  optional,       // rate adaptation header,  octet 5b2
+  B1_Type              multiFrame  optional,            // Multi frame,  octet 5b2
+  B1_Type              mode  optional,                  // Mode of operation, octet 5b2
+  B1_Type              logLinkId  optional,             // logical link identifier negotiation, octet 5b2
+  B1_Type              assignorAssignee  optional,      // assignor/assignee, octet 5b2
+  B1_Type              inBandOutBand  optional,         // in band/out band negotiation, octet 5b2
+  B1_Type              spare1_5b2  optional,            // sapre bit - 1 bit, octet 5b2
+  B1_Type              extBit5c  optional,              // extension bit,  octet 5c
+  B2_Type              numStopBits  optional,           // number of stop bits,  octet 5c
+  B2_Type              numDataBits  optional,           // number of data bits,  octet 5c
+  B3_Type              parity  optional,                // parity, octet 5c
+  B1_Type              extBit5d  optional,              // extension bit, octet 5d
+  B1_Type              duplexMode  optional,            // duplex mode,  octet 5d
+  B6_Type              modemType  optional,             // modem type, octet 5d
+  B1_Type              extBit6  optional,               // extension bit,  octet 6
+  B2_Type              layer2id  optional,              // L2 identity, octet 6
+  B5_Type              userInfoLayer2  optional,        // user information L2 protocol, octet 6
+  B1_Type              extBit6a1  optional,             // extension bit,   octet 6a1
+  B2_Type              modeLayer2  optional,            // mode, octet 6a1
+  B3_Type              spare3  optional,                // spare bits , '000'B, octet 6a1
+  B2_Type              q933  optional,                  // Q.933 use, octet 6a1
+  B1_Type              extBit6a2  optional,             // extension bit,  octet 6a2
+  B7_Type              userSpecifLayer2  optional,      // user specified layer 2 protocol information, octet 6a2
+  B1_Type              extBit6b  optional,              // extension bit, octet 6b
+  B7_Type              windowSize  optional,            // window size, octet 6b
+  B1_Type              extBit7  optional,               // extension bit,  octet 7
+  B2_Type              layer3id  optional,              // L3 identity, octet 7
+  B5_Type              userInfoLayer3  optional,        // user information L3 protocol, octet 7
+  B1_Type              extBit7a1  optional,             // extension bit, octet 7a2
+  B7_Type              OptionUserSpecifLayer3  optional, // user specified layer 3 protocol information, octet 7a2
+  B1_Type              extBit7a2  optional,             // extension bit, '1'B, octet 7a2
+  B2_Type              modeLayer3  optional,            // mode, octet 7a2
+  B5_Type              spare5  optional,                // spare bits , '00000'B, octet 7a2
+  B1_Type              extb7b1  optional,               // extension bit, octet 7b
+  B3_Type              spare3_7b1  optional,            // spare bits , '000'B, octet 7b
+  B4_Type              defaultPacketSize  optional,     // default packet size, octet 7b
+  B1_Type              extBit7c  optional,              // extension bit, '1'B,  octet 7c
+  B7_Type              packetWindowSize  optional,      // packet window size, octet 7bc
+  B1_Type              extBit7a3  optional,             // extension bit, octet 7a3
+  B3_Type              spare3_7a3  optional,            // 3 spare bits
+  B4_Type              addLayer3ProtocolInfo  optional, // additional layer 3 protocol information (most significant bits), octet 7a3
+  B1_Type              extBit7b2  optional,             // extension bit, octet 7a4
+  B3_Type              spare3_7b2  optional,            // 3 spare bits
+  B4_Type              addLayer3ProtocolInfoL  optional // additional layer 3 protocol information (least significant bits), octet 7a4
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008 cl. 10.5.5.30
+// -----------------------------------------------------------------------------
+type record LocAreaId2{        /* @sic R5s110178 Baseline Moving sic@*/
+  IEI8_Type                   iei,
+  Type4Length_Type            iel,
+  NAS_PlmnId  plmn,        // MCC  + MNC 3 digits each
+  NAS_Lac     lac          // LAC
+};
+
+// =============================================================================
+// Structured Type Definition
+// MM timer
+// 3GPP 24.008 / 10.5.3.16
+// -----------------------------------------------------------------------------
+type record MM_Timer {                                       /* 24.008 cl. 10.5.3.16 */
+  IEI8_Type                   iei,
+  Type4Length_Type            iel,
+  O1_Type                     timerValue
+};
+
+type record MS_RadioAccessCap_LV {
+  Type4Length_Type      iel,
+  MS_RadioAccessCap_V   valuePart // @sic R5s110176 Baseline Moving sic@
+};
+
+type record MS_RadioAccessCap_V {  // @sic R5s110176 Baseline Moving sic@
+  record of MS_RadioAccessCapList listofValues,
+  bitstring       sparebits   optional
+};
+
+type record MS_RadioAccessCapList {
+  MS_RadioAccessCap   raCapability,
+  B1_Type             repeatCap // this structure repeats itself, so need to indicate whether to go round again @sic R5s100135 sic@
+};
+
+type record MS_RadioAccessCap {
+  B4_Type         accessTechType,
+  SingleAccessCap singleAccess    optional,  // only present if accessTechType != 1111
+  B7_Type         addLength       optional,  // only present if accessTechType = 1111
+  AddMS_RadioAccessCapList addAccess optional,   // only present if accessTechType = 1111
+  bitstring       sparebits   optional
+};
+
+type record SingleAccessCap { // 24.008, 10.5.5.12a
+  B7_Type  accLength,
+  B3_Type  rfPwrCap,
+  B1_Type  mask1,
+  B1_Type  a5_1      optional,  // not present if mask1 = 0
+  B1_Type  a5_2      optional,  // not present if mask1 = 0
+  B1_Type  a5_3      optional,  // not present if mask1 = 0
+  B1_Type  a5_4      optional,  // not present if mask1 = 0
+  B1_Type  a5_5      optional,  // not present if mask1 = 0
+  B1_Type  a5_6      optional,  // not present if mask1 = 0
+  B1_Type  a5_7      optional,  // not present if mask1 = 0
+  B1_Type  esInd,
+  B1_Type  pS,
+  B1_Type  vGCS,
+  B1_Type  vBS,
+  B1_Type  mask2,
+  MultiSlotCap  multiSlotCap  optional, // not present if mask2 = 0
+  B1_Type  mask3,
+  B2_Type  psk8PwrCap optional,  // not present if mask3 = 0
+  B1_Type  compactIFMeas,
+  B1_Type  revLev,
+  B1_Type  fddRATCap,
+  B1_Type  tdd384RATCap,
+  B1_Type  cdma2000RATCap,
+  B1_Type  tdd128RATCap,
+  B1_Type  gERANFeatPkge1,
+  B1_Type  mask4,
+  B2_Type  extDTMGPRSMultiSlotClass optional, // not present if mask4 = 0
+  B2_Type  extDTMEGPRSMultiSlotClass optional, // not present if mask4 = 0
+  B1_Type  modulationBasedMultiSlot,
+  B1_Type  mask5,
+  B2_Type  highMultislotCap optional, // not present if mask5 = 0
+  B1_Type  mask6,
+  B4_Type  gERANIuModeCapLength optional, // not present if mask6 = 0
+  B1_Type  fLOIuCap    optional, // not present if mask6 = 0
+  B2_Type  gmskMultislotPwrProfile,
+  B2_Type  psk8MultislotPwrProfile,
+  B1_Type  multiTBFCap,
+  B2_Type  dlAdvRxPerformance,
+  B1_Type  extRLCMACCtrlCap,
+  B1_Type  dTMEnhCap,
+  B1_Type  mask7,
+  B3_Type  dTMGPRSHighClass optional,  // not present if mask7 = 0
+  B1_Type  mask8        optional,  // not present if mask7 = 0
+  B3_Type  dTMEGPRSHighClass optional, // not present if mask7 or mask8 = 0
+  B1_Type  pSHOCap,
+  B1_Type  dTMHOCap,
+  B1_Type  mask9,
+  B3_Type  multislotCapDlDualCarrier  optional, // not present if mask9 = 0
+  B1_Type  dlDualCarrierDTMCap   optional, // not present if mask9 = 0
+  B1_Type  flexTimeslotAssign,
+  B1_Type  gANPSHOCap,
+  B1_Type  rLCNonPersistentMode,
+  B1_Type  reducedLatencyCap,
+  B2_Type  ulEGPRS2,
+  B2_Type  dlEGPRS2,
+  B1_Type  eutraFDD,
+  B1_Type  eutraTDD,
+  B2_Type  geran2EutraSupport,  // @sic R5s100135 sic@
+  B1_Type  priorityBasedReselection,
+  B1_Type  mask10 optional, // @sic R5s110176 Baseline Moving, not present for Rel-8 R5s110242 sic@
+  B4_Type  altEFTAMultislotClass optional, // not present if mask10 = 0
+  B3_Type  eftaMultislotCapRedforDDC optional, // not present if mask10 = 0
+  B1_Type  upperLayerPDUStartCapforRLCUMInd optional,  // @sic R5s110176 Baseline Moving not present for Rel-8 sic@
+  B1_Type  emstCap optional, // @sic R5s110176 Baseline Moving not present for Rel-8 sic@
+  B1_Type  mttiCap optional, // @sic R5s110176 Baseline Moving not present for Rel-8 sic@
+  B1_Type  utraCSGCellsReporting optional, // @sic R5s110176 Baseline Moving not present for Rel-8 sic@
+  B1_Type  eutraCSGCellsReporting optional, // @sic R5s110176 Baseline Moving not present for Rel-8 sic@
+  B1_Type  dtrCap optional, // @sic R5s120178 Baseline Moving sic@
+  B1_Type  emsrCap optional, // @sic R5s120178 Baseline Moving sic@
+  B1_Type  fastDLFreqSwitchingCap optional, // @sic R5s120178 Baseline Moving sic@
+  B2_Type  tighterCap optional // @sic R5s120178 Baseline Moving sic@
+};
+
+type record MultiSlotCap {
+  B1_Type  mask1,
+  B5_Type  hSCSDClass   optional, // not present if mask1 = 0
+  B1_Type  mask2,
+  B5_Type  gPRSClass   optional, // not present if mask2 = 0
+  B1_Type  gPRSExtDynAllocCap optional, // not present if mask2 = 0
+  B1_Type  mask3,
+  B4_Type  sMSValue   optional, // not present if mask3 = 0
+  B4_Type  sMValue    optional, // not present if mask3 = 0
+  B1_Type  mask4,
+  B5_Type  eCSDClass   optional, // not present if mask4 = 0
+  B1_Type  mask5,
+  B5_Type  eGPRSClass   optional, // not present if mask5 = 0
+  B1_Type  eGPRSExtDynAllocCap optional, // not present if mask5 = 0
+  B1_Type  mask6,
+  B2_Type  dTMGPRSClass   optional, // not present if mask6 = 0
+  B1_Type  singleSlotDTM  optional, // not present if mask6 = 0
+  B1_Type  mask7          optional, // not present if mask6 = 0
+  B2_Type  dtmEGPRSClass  optional // not present if mask6 or mask7 = 0
+};
+
+type record of AddMS_RadioAccessCap AddMS_RadioAccessCapList;
+
+type record AddMS_RadioAccessCap {
+  B1_Type   prefix,
+  B4_Type   addTechType    optional,  // not present if prefix = 0
+  B3_Type   powerClassGMSK optional,  // not present if prefix = 0
+  B2_Type   powerClass8PSK optional   // not present if prefix = 0
+};
+
+// =============================================================================
+// Structured Type Definition
+// 24.007, clause 10.5.6.2
+// -----------------------------------------------------------------------------
+type record NSAPI {
+  B4_Type              spare,
+  B4_Type              nSAPI_Value            // NSAPI value
+};
+
+
+// =============================================================================
+// Structured Type Definition
+// Network Call Control Capabilities
+// 3G TS 24.008 cl. 10.5.4.29
+// -----------------------------------------------------------------------------
+type record NtwCCCapabilities {
+  IEI8_Type            iei,              // '00101111'B @sic R5s1100420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B7_Type              spare7,                  // spare
+  B1_Type              mCS                      // MCS
+};
+
+// =============================================================================
+// Structured Type Definition
+// Presentation indicator & screening indicator
+// 3G TS 24.008 cl. 10.5.4.9, 10.5.4.13
+// -----------------------------------------------------------------------------
+type record PresentIndScreeningInd {
+  B1_Type              extBit,                // extension bit
+  B2_Type              presentInd,            // presentation indicator
+  B3_Type              spare3,                // 3 spare bits
+  B2_Type              screeningInd           // screening indicator
+};
+
+// =============================================================================
+// Structured Type Definition
+// 24.008, clause 10.5.6.4
+// -----------------------------------------------------------------------------
+type record PktDataProtoAddr {
+  IEI8_Type            iei  optional,                   // '00101011'B (2Bhex))
+  Type4Length_Type     iel,
+  B4_Type              spare,
+  B4_Type              pDP_TypeOrg,           // PDP type organisation
+  PDP_TypeNo           pDP_TypeNo,            // PDP type number
+  AddressInfo          addrInfo optional      // Address Information, @sic R5-110667 sic@
+};
+
+// =============================================================================
+// Structured Type Definition
+// Priority Level
+// 3G TS 24.008 cl. 10.5.1.11
+// -----------------------------------------------------------------------------
+type record PriorityLvl {
+  IEI4_Type            iei  optional,                   // '1000'B
+  B1_Type              spare1,
+  B3_Type              callPrio                // Call Priority
+};
+
+// =============================================================================
+// Structured Type Definition
+// Progress indicator information element
+// 3G TS 24.008 cl. 10.5.4.21
+// -----------------------------------------------------------------------------
+type record ProgInd {
+  IEI8_Type            iei,              // '00011110'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B1_Type              extBit3,               // extension bit
+  B2_Type              codingStd,             // coding standard
+  B1_Type              spare,                 // spare bit
+  B4_Type              location,              // location
+  B1_Type              extBit4,               // extension bit
+  B7_Type              progressDescr          // progress description
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008 cl. 10.5.5.29
+// -----------------------------------------------------------------------------
+type record PTMSI_Type{        /* @sic R5s110178 Baseline Moving sic@*/
+  IEI4_Type                   iei,
+  B3_Type                     spare,
+  B1_Type                     ptmsiType
+};
+
+// =============================================================================
+// Structured Type Definition
+// Receive N-PDU Numbers list
+// 3GPP 24.008 /  10.5.5.11
+// -----------------------------------------------------------------------------
+type record ReceiveN_PDU_Numbers {
+  IEI8_Type            iei,                   // '00100110'B (hex 26) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // @sic R5s110420 sic@
+  octetstring          numberList length(0..17)   // MS network capability value (CSN.1 coding)
+};
+
+// =============================================================================
+// Structured Type Definition
+// Redirecting party BCD number
+// 3G TS 24.008 cl. 10.5.4.21b
+// -----------------------------------------------------------------------------
+type record RedirectingPN {
+  IEI8_Type              iei  optional,              // '01110100'B (74hex)
+  Type4Length_Type       iel  optional,                   // length
+  TypeOfNumPlan          typeOfNumPlan,         // type of number and numbering plan identification
+  PresentIndScreeningInd presentIndScreeningInd, // Presentation indicator & screening indicator
+  octetstring            digits length(0..15)    // numbers
+};
+
+// =============================================================================
+// Structured Type Definition
+// redirecting party subaddress
+// 3G TS 24.008 cl. 10.5.4.21c
+// -----------------------------------------------------------------------------
+type record RedirectingPS {
+  IEI8_Type            iei,              // '01110101'B (75hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  Subadrs              subadrs                  // Subaddress
+};
+
+// =============================================================================
+// Structured Type Definition
+// Repeat indicator
+//  3G TS 24.008 cl. 10.5.4.22
+// -----------------------------------------------------------------------------
+type record RepeatInd {
+  IEI4_Type       iei  optional,
+  B4_Type         repeatInd
+};
+
+// =============================================================================
+// Structured Type Definition
+// Request Type
+//  3G TS 24.008 cl. 10.5.6.17
+// -----------------------------------------------------------------------------
+type record RequestType {
+  IEI4_Type       iei  optional,
+  B1_Type         spare,
+  B3_Type         requestTypeValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// Routing Area Identification 2
+//  3G TS 24.008 cl. 10.5.5.15a
+// -----------------------------------------------------------------------------
+type record RoutingAreaId2 {
+  IEI8_Type        iei,                 // @sic R5s110420 sic@
+  Type4Length_Type iel,                 // @sic R5s110420 sic@
+  O6_Type          routingAreaId2
+};
+
+// =============================================================================
+// Structured Type Definition
+// Service Category
+// 3GPP 24.008 / 10.5.4.33
+// -----------------------------------------------------------------------------
+type record ServCategory {
+  IEI8_Type            iei,                   // '00101110'B (2E hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // '01'O @sic R5s110420 sic@
+  EmergServCat         emergServCat             // Emergency Service Category
+};
+
+// =============================================================================
+// Structured Type Definition
+// Signal information element
+// 3G TS 24.008 cl. 10.5.4.23
+// -----------------------------------------------------------------------------
+type record Signal {
+  IEI8_Type            iei  optional,                   // information element identifier '00110100'B
+  B8_Type              signalValue                      // Value
+};
+
+// =============================================================================
+// Structured Type Definition
+// stream identifier
+// 3G TS 24.008 cl. 10.5.4.28
+// -----------------------------------------------------------------------------
+type record StreamId {
+  IEI8_Type            iei,              // '00101101'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B8_Type              streamIndValue                   // stream identifier value
+};
+
+// =============================================================================
+// Structured Type Definition
+// Subaddress
+// 3G TS 24.008 cl. 10.5.4.8, 10.5.4.10, 10.5.4.14
+// -----------------------------------------------------------------------------
+type record Subadrs {
+  B1_Type              extBit,                // extension bit
+  B3_Type              typrOfSubadrs,         // Type of subaddress
+  B1_Type              oddEven,               // odd/even indicator
+  B3_Type              spare3,                // 3 spare bits
+  octetstring     subadrsInfo length(0..20) optional// subaddress information
+};
+
+// =============================================================================
+// Structured Type Definition
+// Type of number and numbering plan
+// 3G TS 24.008 cl.10.5.4.7, 10.5.4.9, 10.5.4.13
+// -----------------------------------------------------------------------------
+type record TypeOfNumPlan {
+  B1_Type              extBit,                // extension bit
+  B3_Type              typeOfNum,             // Type of number
+  B4_Type              numbPlanId             // Numbering plan id.
+};
+
+// =============================================================================
+// Structured Type Definition
+// Update result
+// 3GPP 24.008 / 10.5.5.17
+// -----------------------------------------------------------------------------
+type record UpdateResult {
+  B1_Type              fOP,                   // Follow-on Proceed
+  B3_Type              ttcn_value               // Update result value
+};
+
+// =============================================================================
+// Structured Type Definition
+// Uplink Data Status
+// 3GPP 24.008 / 10.5.7.7
+// -----------------------------------------------------------------------------
+type record UplinkDataStatus {
+  IEI8_Type            iei,           //  @sic R5s110420 sic@
+  Type4Length_Type     iel,           // length  @sic R5s110420 sic@
+  O2_Type              nsapiUplinkStatus
+};
+
+// =============================================================================
+// Structured Type Definition
+// User-user
+// 3G TS 24.008 cl. 10.5.4.25
+// In SETUP, ALERTING, CONNECT, DISCONNECT, RELEASE and RELEASE COMPLETE messages the userUserInfo length is of 0 - 32 bytes.
+// In USER INFORMATION messages the userUserInfo length is of 1 - 128.
+// -----------------------------------------------------------------------------
+type record UserUser {
+  IEI8_Type            iei,              // 01111110'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  B8_Type              userUserProtocolDiscr, // user-user protocol discriminator
+  octetstring          userUserInfo length(1..128) optional // user user information
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.2  (GMM message)
+// -----------------------------------------------------------------------------
+type record ATTACHACCEPT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type BITSTRING [8]
+  ForceToStandby  forceToStandby,        // 1/2 octet
+  AttachResult    attachResult,          // 1/2 octet
+  GPRS_Timer      periodicRAupdateTimer, // 1 octet
+  RadioPriority   radioPrioTOM8,        // 1/2 octet
+  RadioPriority   radioPrioSMS,          // 1/2 octet
+  RoutingAreaId   rai,                   // Routing Area Identification 6 octets
+  PTMSI_Signature ptmsiSignature  optional,// O 4 octets, TV IEI = 19
+  GPRS_Timer      negReadyTimer  optional, // O 2 octets, TV IEI = 17
+  MobileIdentity  allocatedPTMSI  optional,// O 7 octets, TLV IEI = 18
+  MobileIdentity  msIdentity  optional,   // O 7-10 octets, TLV IEI = 23
+  GMM_Cause       gmmCause  optional,     // O 2 octets, TV IEI = 25
+  GPRS_Timer2     t3302Value  optional,   // O 3 octets, TLV IEI = 2A
+  CellNotification cellNotification  optional,// O 1 octet, T IEI = 8C
+  PLMN_List       equivalentPLMN  optional,// O 5-17 octets, TLV IEI = 4A
+  NtwFeatureSupport ntwFeatureSupport  optional, // O 1 octet, TV IEI = B-
+  EmergNumList    emergNumList  optional,  // O 5-50 octets TLV IEI = 34
+  RequestedMS_Info requestedMS_Info  optional,   // O 1 octet TV IEI = A-
+  GPRS_Timer2     t3319Value  optional,   // O 3 octets TLV IEI = 37
+  GPRS_Timer2     t3323Value  optional,   // O 3 octets TLV IEI = 38
+  GPRS_Timer3     t3312ExtdValue  optional   /* cl. 10.5.7.4a O TLV 3 IEI=0x39 @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.3  (GMM message)
+// -----------------------------------------------------------------------------
+type record ATTACHCOMPLETE {
+  SkipIndicator     skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType       msgType,               // '0000 0011'B BITSTRING [8]
+  InterRAT_HO_Info  interRAT_HO_Info  optional,      // O TLV 3-25 octets IEI = 27
+  EUTRAN_HO_Info    eutranInterRAT_HO_Info  optional // O TLV 3_25 octets IEI = 2B
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.4 (GMM message)
+// -----------------------------------------------------------------------------
+type record ATTACHREJECT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator '1000'
+  MessageType     msgType,               // Message Type '0000 0100'
+  RejCau          gmmCause,             // 1 octet
+  GPRS_Timer2     t3302Value  optional,  // O TLV 3 octets IEI = 2A
+  GPRS_Timer2     t3346Value  optional   /* cl. 10.5.7.4 O TLV 3     IEI=0x3A @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.1 (GMM message)
+// -----------------------------------------------------------------------------
+type record ATTACHREQUEST {
+  SkipIndicator   skipIndicator,         // Skip Indicator M BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator '1000'
+  MessageType     msgType,               // Message Type '0000 0001'
+  MS_NetworkCap   msNetworkCap,         // MS network capability M, LV 3-9 octets
+  CiphKeySeqNum   gprsCiphKeySeqNo,      // Ciphering key sequence number M BITSTRING[4]
+  AttachType      attachType,            // Attach Type M BITSTRING [4]
+  DRXparameter    drxParameter,          // M 2 octets
+  MobileIdentity  mobileIdentity,        // Mobile Identity M. LV 6-9 octets  @sic R5s110176 Baseline Moving sic@
+  RoutingAreaId   oldRAI,                // Routing Area Identification M 6 octets
+  MS_RadioAccessCap_LV msRadioAccessCap,  // M, LV 6-51 octets @sic R5s110176 Baseline Moving sic@
+  PTMSI_Signature oldPTMSI_Signature  optional,   // O 4 octets TV IEI = 19
+  GPRS_Timer      readyTimer  optional,           // O 2 octets TV IEI = 17
+  TMSI_Status     tmsiStatus  optional,           // O 1 octet TV IEI = 9-
+  PS_LCS_Capability pS_LCS_Capability  optional,  // O TLV 3 octets IEI = 33
+  MS_Clsmk2       msClassmark2         optional, //  O TLV 5 IEI= 11
+  MS_Clsmk3       msClassmark3         optional, // O TLV 2-34 IEI= 20
+  CodecList       supportedCodecList   optional, // O TLV 5-n IEI= 40
+  UE_NetworkCap   ueNetworkCapability  optional, // O TLV 4-15 IEI = 58
+  MobileIdentity  addMobileId  optional,         // O TLV 6-10 IEI = 1A
+  RoutingAreaId2  addOldRAI    optional,         // O TLV 8 IEI = 1B
+  VoiceDomainPref voiceDomainPref optional,      // O TLV 3 IEI = 5D  @sic R5s110176 Baseline Moving sic@
+  DeviceProperties deviceProperties  optional,  /* cl. 10.5.7.8 O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+  PTMSI_Type      ptmsiType  optional,  /* cl. 10.5.5.29 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+  MS_NetworkFeatureSupport msNetworkFeatureSupport optional,   /* cl. 10.5.1.15 O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+  LocAreaId2      oldLAI  optional  /* cl. 10.5.5.30 O TLV 7 IEI=0x14 @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.9  (GMM message)
+// -----------------------------------------------------------------------------
+type record AUTHENTICATIONANDCIPHERINGREQUEST {
+  SkipIndicator    skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator BITSTRING [4]
+  MessageType      msgType,               // '0001 0010'B
+  IMEISV_Request   imeisvReq,             // M BITSTRING[4]
+  CiphAlgorithm    ciphAlgorithm,         // Ciphering algorithm BITSTRING[4]
+  AC_ReferenceNumber acRefNo,            // M BITSTRING [4]
+  ForceToStandby   forceToStandby,        // M BITSTRING
+  RAND             authRand  optional,   // O, TV 17 octets IEI = 21
+  CiphKeySeqNum    gprsCiphKeySeqNo  optional,  // O, TV, 1 IEI = 8-
+  AUTN             aUTN  optional                   // O, TLV, 18 IEI = 28
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.10  (GMM message)
+// -----------------------------------------------------------------------------
+type record AUTHENTICATIONANDCIPHERINGRESPONSE {
+  SkipIndicator    skipIndicator,         // Skip Indicator M BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator M BITSTRING [4]
+  MessageType      msgType,               // '0001 0011'B M BITSTRING [8]
+  B4_Type          spare4  ,
+  AC_ReferenceNumber acRefNo  ,            // M BITSTRING [4]
+  AuthRsp          authRsp  optional,      // O, TV 5 octets IEI = 22
+  MobileIdentity   imeisv  optional,       // O TLV, 11 octets IEI = 23
+  AuthRspExt       authRspExt  optional    // O TLV, 3-14 octets IEI = 29
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM AUTHENTICATION FAILURE ue -> n
+// 3G TS 24.008 cl. 9.2.3a
+// -----------------------------------------------------------------------------
+type record AUTHENTICATIONFAILURE {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type (1) BITSTRING [8]
+  RejCau          rejCau,                // Reject Cause BITSTRING [8]
+  AuthenticationFailureParameter authFailParam  optional // O TLV 16 octets IEI = 22
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM AUTHENTICATION REQUEST n -> ms
+// 3G TS 24.008 cl. 9.2.2
+// -----------------------------------------------------------------------------
+type record AUTHENTICATIONREQUEST {
+  SkipIndicator   skipIndicator,         //
+  ProtocolDiscriminator mMProtocolDiscriminator, //
+  MessageType     msgType,               //
+  B4_Type         spare4,               //
+  CiphKeySeqNum   ciphKeySeqNum,         //
+  MM_RAND         rAND,                  //
+  AUTN            aUTN  optional         // O AUTN TLV 18 octets IEI = 20
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM AUTHENTICATION RESPONSE ue -> n
+// 3G TS 24.008 cl. 9.2.3
+// -----------------------------------------------------------------------------
+type record AUTHENTICATIONRESPONSE {
+  SkipIndicator   skipIndicator,         //
+  ProtocolDiscriminator mMProtocolDiscriminator, //
+  MessageType     msgType,               //
+  AuthRsp         authRsp,               //
+  AuthRspExt      authRspExt  optional   // O TLV 3-14 octets IEI = 21
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.10a  (GMM message)
+// -----------------------------------------------------------------------------
+type record AUTHENTICATION_AND_CIPHERING_FAILURE {
+  SkipIndicator   skipIndicator,         //
+  ProtocolDiscriminator gMMProtocolDiscriminator, //
+  MessageType     msgType,               // '0001 1100'B
+  RejCau          gmmCause,              // M 1 octet
+  AuthenticationFailureParameter authFailurePar  optional // O TLV, 16 IEI = 30
+};
+
+// =============================================================================
+// PDU Type Definition
+// Deactivate PDP Context Request
+// n <=> ue
+// 24.008,  9.5.14
+// -----------------------------------------------------------------------------
+type record DEACTIVATEPDPCONTEXTREQUEST {
+  TI            ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator sM_ProtocolDiscriminator, // protocol discriminator BITSTRING [4]
+  MessageType   msgType,               //  BITSTRING [8]
+  SM_Cause      sM_Cause,              // V OCTETSTRING [1]
+  TearDwnInd    tearDwnInd  optional,  // O TV 1 octets IEI = 9-
+  ProtocolConfigOptions protocolConfOpts  optional,  // O TLV 3-253 IEI = 27
+  MBMS_ProtoCfgOpt mBMS_ProtocolConfOpts  optional // O TLV 3-253 IEI = 35
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.5.2  (Mobile originating detach, GMM message)
+// -----------------------------------------------------------------------------
+type record DETACHREQUESTMO {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type BITSTRING [8]
+  B4_Type         spare4,                // M 1/2 octet
+  DetachType      detachType,            // M 1/2 octet
+  MobileIdentity  ptmsi  optional,  // O TLV 7 octets IEI = 18
+  PTMSI_Signature ptmsiSignature  optional // O TLV 5 octets IEI = 19
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM LOCATION UPDATING ACCEPT n -> ms
+// 3G TS 24.008  cl. 9.2.13
+// -----------------------------------------------------------------------------
+type record LOCATIONUPDATINGACCEPT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type
+  LocAreaId       locAreaId,             // V (5 octets)
+  MobileIdentity  mobileId  optional,    // O (3-10) TLV IEI = 17
+  FollowOnProceed followOnProceed  optional,// O 1 octet T IEI = A1
+  CTSPerm         cTSPerm  optional,     // O 1 octet T IEI = A2
+  PLMN_List       equivalentPLMN  optional,// O 5-47 octets TLV IEI = 4A
+  EmergNumList    emergNumList  optional, // O TLV 5-50 octets IEI = 34
+  GPRS_Timer3     perMST3212    optional   /* cl. 10.5.7.4a O TLV 3     IEI=0x35 @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM LOCATION UPDATING REQUEST ue -> n
+// 3G TS 24.008 cl. 9.2.15
+// -----------------------------------------------------------------------------
+type record LOCATIONUPDATINGREQUEST {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type BITSTRING [8]
+  CiphKeySeqNum   ciphKeySeqNum,         // BITSTRING [4]
+  LocUpdType      locUpdType,            // BITSTRING [4]
+  LocAreaId       locAreaId,             // V LocAreaId (5 octets)
+  MS_Clsmk1       mSClsmk1,              // M 1 octet
+  MobileIdentity  mobileId,              // LV MobileId (2-9 octets)
+  MS_Clsmk2       mSClsmk2  optional,    // TLV O 5 octets
+  AddUpdateParams addUpdateParams optional, // TV O 1 octet IEI=C @sic R5s110176 Baseline Moving sic@
+  DeviceProperties deviceProperties  optional,  /* cl. 10.5.7.8 O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+  MS_NetworkFeatureSupport msNetworkFeatureSupport optional   /* cl. 10.5.1.15 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// ROUTING AREA UPDATE REQUEST
+// 3GPP 24.008 clause 9.4.14 (GMM message)
+// -----------------------------------------------------------------------------
+type record ROUTINGAREAUPDATEREQUEST {
+  SkipIndicator     skipIndicator,         // Skip Indicator M BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator '1000' M BITSTRING [4]
+  MessageType       msgType,               // Message Type '0000 1000'
+  CiphKeySeqNum     gprsCiphKeySeqNo,      // Ciphering key sequence number M BITSTRING[4]
+  UpdateType        updateType,            // Update Type M BITSTRING [4]
+  RoutingAreaId     oldRAI,                // Routing Area Identification M 6 octets
+  MS_RadioAccessCap_LV  msRadioAccessCap,  // M 6-51 octets LV
+  PTMSI_Signature   oldPTMSI_Signature  optional, // O 4 octets TV IEI = 19
+  GPRS_Timer        readyTimer  optional,         // O 2 octets TV IEI  = 17
+  DRXparameter      drxParameter  optional,       // O, TV 3 octets IEI = 27
+  TMSI_Status       tmsiStatus  optional,         // O 1 octet TV IEI = 9-
+  MobileIdentity    ptmsi  optional,              // O, TLV 7 octets IEI = 18
+  MS_NetworkCap     msNetworkCap  optional,       // O, TLV 4-10 octets IEI = 31
+  PDP_ContextStatus pDP_ContextStatus  optional,  // O 4 octets TLV IEI = 32
+  PS_LCS_Capability pS_LCS_Capability  optional,  // O TLV 3 octets IEI = 33
+  MBMS_ContextStatus mBMS_ContextStatus  optional, // O TLV 2-18 octets IEI = 35
+  UE_NetworkCap     ueNetworkCapability  optional, // O TLV 4-15 IEI = 58
+  MobileIdentity    addMobileId  optional,         // O TLV 6-10 IEI = 1A
+  RoutingAreaId2    addOldRAI    optional,         // O TLV 8 IEI = 1B
+  MS_Clsmk2         msClassmark2         optional, //  O TLV 5 IEI= 11
+  MS_Clsmk3         msClassmark3         optional, // O TLV 2-34 IEI= 20
+  CodecList         supportedCodecList   optional, // O TLV 5-n IEI= 40
+  VoiceDomainPref   voiceDomainPref        optional, // O TLV 3 IEI = 5D @sic R5s110176 Baseline Moving sic@
+  PTMSI_Type        ptmsiType  optional,  /* cl. 10.5.5.29 O TV 1 IEI=0xE- @sic R5s120178 Baseline Moving sic@*/
+  DeviceProperties  deviceProperties  optional,  /* cl. 10.5.7.8 O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+  MS_NetworkFeatureSupport msNetworkFeatureSupport optional,   /* cl. 10.5.1.15 O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+  LocAreaId2        oldLAI  optional  /* cl. 10.5.5.30 O TLV 7 IEI=0x14 @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.20 (GMM message)
+// -----------------------------------------------------------------------------
+type record SERVICEREQUEST {
+  SkipIndicator   skipIndicator,          // Skip IndicatorBITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type BITSTRING [8]
+  ServiceType     serviceType,           // Service type M BITSTRING[4]
+  CiphKeySeqNum   ciphKeySeqNo,          // Ciphering key sequence number M BITSTRING[4]
+  MobileIdentity  ptmsi,                 // Mobile Identity M 6 octets
+  PDP_ContextStatus pDP_ContextStatus  optional,   // O 4 octets TLV IEI = 32
+  MBMS_ContextStatus mBMS_ContextStatus  optional, // O TLV 2-18 octets IEI = 35
+  UplinkDataStatus uplinkDataStatus  optional,  // O TLV 4 octets IEI = 36
+  DeviceProperties  deviceProperties  optional  /* cl. 10.5.7.8 O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM TMSI REALLOCATION COMPLETE ue -> n
+// 3G TS 24.008 cl. 9.2.18
+// -----------------------------------------------------------------------------
+type record TMSIREALLOCATIONCOMPLETE {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType                // Message Type (1)
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM TMSI REALLOCATION COMMAND n -> ue
+// 3G TS 24.008 cl. 9.2.17
+// -----------------------------------------------------------------------------
+type record TMSIREALLOCATIONCOMMAND {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,                // Message Type (1)
+  LocAreaId       locAreaId,             // V LocAreaId (5 octets)
+  MobileIdentity  mobileId              // LV MobileId (2-9 octets)
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.18  (GMM message)
+// -----------------------------------------------------------------------------
+type record GMM_STATUS {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type BITSTRING [8]
+  RejCau          cause                  // Cause M 1 octet
+};
+
+// =============================================================================
+// PDU Type Definition
+// Activate PDP Context Request
+// ue -> n
+// 3GPP 24.008 clause, 9.5.1
+// -----------------------------------------------------------------------------
+type record ACTIVATEPDPCONTEXTREQUESTul {
+  TI               ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator sM_ProtocolDiscriminator, // protocol discriminator BITSTRING [4]
+  MessageType      msgType,               // message type
+  NSAPI            requestedNSAPI,        // M V
+  LLC_SAPI         requestedLLC_SAPI,     // M V
+  QualityOfService requestedQoS,      // M LV [13-15]
+  PktDataProtoAddr pDP_Address,       // M LV [3-23]
+  AccessPointName  accessPtName  optional,  // O TLV  [3-102] IEI = 28
+  ProtocolConfigOptions  protocolConfOpts  optional,  // O TLV [3-253] IEI = 27
+  RequestType      requestType  optional,  // O TV [1] IEI = A-
+  DeviceProperties deviceProperties  optional  /* cl. 10.5.7.8 O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// ACTIVATE RB TEST MODE n -> ue 3G TS 34.109 V3.0.0 cl. 6.6
+// -----------------------------------------------------------------------------
+type record ACTIVATERBTESTMODE {
+  SkipIndicator   skipIndicator,         // Skip Indicator M BITSTRING [4]
+  ProtocolDiscriminator tCProtocolDiscriminator, // TC Protocol Discriminator M BITSTRING [4]
+  MessageType     msgType                // Message Type M BITSTRING [8]
+};
+
+// =============================================================================
+// PDU Type Definition
+// ACTIVATE RB TEST MODE COMPLETE ue -> n 3G TS 34.109 V3.0.0 cl. 6.7
+// -----------------------------------------------------------------------------
+type record ACTIVATERBTESTMODECOMPLETE {
+  SkipIndicator   skipIndicator,         // Skip Indicator M BITSTRING [4]
+  ProtocolDiscriminator tCProtocolDiscriminator, // TC Protocol Discriminator M BITSTRING [4]
+  MessageType     msgType                // Message Type M BITSTRING [8]
+};
+
+// =============================================================================
+// PDU Type Definition
+// CM SERVICE ACCEPT n -> ue
+// 3G TS 24.008 cl. 9.2.5
+// -----------------------------------------------------------------------------
+type record CMSERVICEACCEPT {
+  SkipIndicator   skipIndicator,         // Skip IndicatorBITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType                // Message Type BITSTRING [8]
+};
+
+// =============================================================================
+// PDU Type Definition
+// CM SERVICE REQUEST ue -> n
+// 3G TS 24.008 cl. 9.2.9
+// -----------------------------------------------------------------------------
+type record CMSERVICEREQUEST {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type  BITSTRING [8]
+  CiphKeySeqNum   ciphKeySeqNum,         //  BITSTRING [4]
+  CMServType      cMServType,            //  BITSTRING [4]
+  MS_Clsmk2       mSClsmk2,              // LV (4 octets)
+  MobileIdentity  mobileId,              // LV (2-9 octets)
+  PriorityLvl     priorityLvl  optional, //  TV O 1 octet IEI = 8-
+  AddUpdateParams addUpdateParams optional,  /* cl. 10.3.14 O TV 1 IEI=0xC- @sic R5s120178 Baseline Moving sic@*/
+  DeviceProperties deviceProperties optional  /* cl. 10.5.7.8 O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// CM SERVICE REJECT n -> ue
+// 3G TS 24.008 cl. 9.2.6
+// -----------------------------------------------------------------------------
+type record CMSERVICEREJECT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type  BITSTRING [8]
+  RejCau          rejCau,                // Reject Cause M BITSTRING [8]
+  MM_Timer        t3246        optional  // T3246 Value O TLV 3 IEI=36 @sic R5s120178 BaselineMoving sic@
+};
+
+// =============================================================================
+// PDU Type Definition
+// Deactivate PDP Context Accept
+// n <=> ue
+// 3GPP 24.008 , 9.5.15
+// -----------------------------------------------------------------------------
+type record DEACTIVATEPDPCONTEXTACCEPT {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator sM_ProtocolDiscriminator, // protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type   BITSTRING [8]
+  ProtocolConfigOptions protocolConfOpts  optional, // O TLV [3-253] IEI = 27
+  MBMS_ProtoCfgOpt mBMS_ProtocolConfOpts  optional // O TLV [3-253] IEI = 35
+};
+
+// =============================================================================
+// PDU Type Definition
+// DEACTIVATE RB TEST MODE n -> ue 3G TS 34.109 V3.0.0  cl. 6.8
+// -----------------------------------------------------------------------------
+type record DEACTIVATERBTESTMODE {
+  SkipIndicator   skipIndicator,         // Skip Indicator M BITSTRING [4]
+  ProtocolDiscriminator tCProtocolDiscriminator, // TC Protocol Discriminator M BITSTRING [4]
+  MessageType     msgType                // Message Type M BITSTRING [8]
+};
+
+// =============================================================================
+// PDU Type Definition
+// DEACTIVATE RB TEST MODE COMPLETE ue -> n 3G TS 34.109  cl. 6.9
+// -----------------------------------------------------------------------------
+type record DEACTIVATERBTESTMODECOMPLETE {
+  SkipIndicator   skipIndicator,         // Skip Indicator M BITSTRING [4]
+  ProtocolDiscriminator tCProtocolDiscriminator, // TC Protocol Discriminator M BITSTRING [4]
+  MessageType     msgType                // Message Type M BITSTRING [8]
+};
+
+  type record DISCONNECTdl {
+    TI                    Ti,
+    ProtocolDiscriminator cC_ProtocolDiscriminator,
+    MessageType           msgType,
+    Cau                   cau,
+    FacilityIE            facility      optional,
+    ProgInd               progInd       optional,
+    UserUser              userUser      optional,
+    AllowedAction         allowedAction optional
+  }
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.6.2  (DETACH ACCEPT mobile originated detach)
+// -----------------------------------------------------------------------------
+type record DETACHACCEPTMO {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type '000 0110'
+  B4_Type         spare,                 // M 1/2 octet
+  ForceToStandby  forceToStandby         // M 1/2 octet
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM IMSI DETACH INDICATION ue -> n
+// 3G TS 24.008 cl. 9.2.12
+// -----------------------------------------------------------------------------
+type record IMSIDETACHINDICATION {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type  BITSTRING [8]
+  MS_Clsmk1       mSClsmk1,              // Mobile Station Classmark 1 (1 octet)
+  MobileIdentity  mobileId               // Mobile Identity LV (2-10 octets)
+};
+
+// =============================================================================
+// PDU Type Definition
+// MM LOCATION UPDATING REJECT n -> ms
+// 3G TS 24.008 cl. 9.2.14
+// -----------------------------------------------------------------------------
+type record LOCATIONUPDATINGREJECT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator mMProtocolDiscriminator, // MM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type  BITSTRING [8]
+  RejCau          rejCau,                // Reject Cause M BITSTRING [8]
+  MM_Timer        t3246        optional  // T3246 Value O TLV 3 IEI=36 @sic R5s120178 BaselineMoving sic@
+};
+
+// =============================================================================
+// PDU Type Definition
+// PAGINGRESPONSE ue -> n
+// GSM 04.18   cl. 9.1.25
+// -----------------------------------------------------------------------------
+type record PAGINGRESPONSE {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator rRProtocolDiscriminator, // RR Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type BITSTRING [8]
+  B4_Type         spare4,                // Spare half octet M
+  CiphKeySeqNum   ciphKeySeqNum,         // Ciphering Key Sequence Number M BITSTRING [4]
+  MS_Clsmk2       mSClsmk2,              // Mobile Station Classmark 2 M (4 octets)
+  MobileIdentity  mobileId               // Mobile Identity LV M (2-10 octets)
+};
+
+  // =============================================================================
+  // PDU Type Definition
+  // Supplementary Services RELEASE COMPLETE  n -> ue or ue -> n
+  // 3G TS 24.080 cl. 2.5 / 24.008 cl. 9.3.19.1 / 2
+  // -----------------------------------------------------------------------------
+  type record RELEASECOMPLETE {
+    TI              ti,                      // transaction identifier BITSTRING [4]
+    ProtocolDiscriminator protocolDiscriminator, // CC or SS BITSTRING [4]
+    MessageType     msgType,                 // message type BITSTRING [8]
+    Cau             cau  optional,           // cause O [4..32] TLV IEI = 08
+    FacilityIE      facility  optional,      // facility O, TLV IEI = 1C BER enconded ASN.1 object
+    UserUser        userUser  optional,     // user-user O [3..131] TLV IEI = 7E
+    SS_VersionInd   sS_VersionInd  optional  // O [2..3] TLV IEI = 7F
+  };
+
+// =============================================================================
+// PDU Type Definition
+// CC RELEASE  n <- ue
+// 3G TS 24.008 cl. 9.3.18.2
+// -----------------------------------------------------------------------------
+type record RELEASEul {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  Cau             cau  optional,        // cause O [4..32] TLV IEI = 08
+  Cau             cau2  optional,       // cause O [4..32] TLV IEI = 08
+  FacilityIE      facility  optional,   // O [2-] TLV IEI = 1C
+  UserUser        userUser  optional,   // O [3..131] TLV IEI = 7E
+  SS_VersionInd   sS_VersionInd  optional  // O [2..3] TLV IEI = 7F
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.15 (GMM message)
+// -----------------------------------------------------------------------------
+type record ROUTINGAREAUPDATEACCEPT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator '1000' BITSTRING [4]
+  MessageType     msgType,               // Message Type '0000 1001' BITSTRING [8]
+  UpdateResult    updateResult,          // Update result M, 1/2 octet
+  ForceToStandby  forceToStandby,        // M 1/2 octet
+  GPRS_Timer      periodicRAupdateTimer, // M 1 octet
+  RoutingAreaId   rai,                   // Routing Area Identification M 6 octets
+  PTMSI_Signature ptmsiSignature  optional,       // O [4] TV IEI = 19
+  MobileIdentity  allocatedPTMSI  optional,       // O [7] TLV IEI = 18
+  MobileIdentity   msIdentity  optional,          // O [7-10] TLV IEI = 23
+  ReceiveN_PDU_Numbers listNPDUnumbers  optional, // O, TLV [4-19] IEI = 26
+  GPRS_Timer       readyTimer  optional,          // O [2] TV IEI = 17
+  GMM_Cause        gmmCause  optional,            // O [2] TV IEI = 25
+  GPRS_Timer2      t3302Value  optional,          // O TLV [3] IEI = 2A
+  CellNotification cellNotification  optional,    // O, T, [1] IEI = 8C
+  PLMN_List        equivalentPLMN  optional,      // O [5-17] TLV IEI = 4A
+  PDP_ContextStatus pDP_ContextStatus  optional,  // O [4] TLV IEI = 32
+  NtwFeatureSupport ntwFeatureSupport  optional,  // O TV [1] IEI = B-
+  EmergNumList     emergNumList  optional,        // O TLV [5-50] IEI = 34
+  MBMS_ContextStatus mBMS_ContextStatus  optional, // O TLV [2-18] IEI = 35
+  RequestedMS_Info requestedMS_Info  optional,     // O TV [1] IEI = A-
+  GPRS_Timer2      t3319Value  optional,          // O TLV [3] IEI = 37
+  GPRS_Timer2      t3323Value  optional,          // O TLV [3] IEI = 38
+  GPRS_Timer3     t3312ExtdValue  optional   /* cl. 10.5.7.4a O TLV 3 IEI=0x39 @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.16 (GMM message)
+// -----------------------------------------------------------------------------
+type record ROUTING_AREA_UPDATE_COMPLETE {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator '1000'
+  MessageType     msgType,               // Message Type '0000 1010'
+  ReceiveN_PDU_Numbers listNPDUnumbers  optional, // O, TLV 4-19 IEI = 26
+  InterRAT_HO_Info interRAT_HO_Info  optional,    // O TLV 3-40 IEI = 27
+  EUTRAN_HO_Info   eutranInterRAT_HO_Info  optional // O TLV 3-25  IEI = 2B
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.17 (GMM message)
+// -----------------------------------------------------------------------------
+type record ROUTINGAREAUPDATEREJECT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator '1000' BITSTRING [4]
+  MessageType     msgType,               // Message Type '0000 1011' BITSTRING [8]
+  GMM_Cause       gmmCause,              // GMM Cause M, 1 octet
+  ForceToStandby  forceToStandby,        // Force To Standby M, 1/2 octet  @sic R5s110718 sic@
+  B4_Type         spare,                 // Spare Half Octet M, 1/2 octet
+  GPRS_Timer2      t3302Value  optional,  // O TLV [3] IEI = 2A
+  GPRS_Timer2      t3346Value  optional  // O TLV [3] IEI = 3A  @sic R5s120178 Baseline Moving sic@
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008, clause 9.4.21 (GMM Message)
+// -----------------------------------------------------------------------------
+type record SERVICEACCEPT {
+  SkipIndicator     skipIndicator,
+  ProtocolDiscriminator gMMProtocolDiscriminator,
+  MessageType       msgType,
+  PDP_ContextStatus pDP_ContextStatus  optional,   // O 4 TLV IEI = 32
+  MBMS_ContextStatus mBMS_ContextStatus  optional  // O TLV 2-18 IEI = 35
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC SETUP   n <- ue
+// 3G TS 24.008 cl. 9.3.23.2
+// -----------------------------------------------------------------------------
+type record SETUPul {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type
+  RepeatInd       repeatInd  optional,   // C [1] TV IEI = D-
+  Bcap            bcap1,                 //M [3..16] TLV IEI = 04
+  Bcap            bcap2  optional,       // O  [3..16] TLV IEI = 04
+  FacilityIE      facility  optional,    //  O [2-] TLV IEI = 1C
+  CGPS            cgps  optional,        // O  [2..23] TLV IEI = 5D
+  CDPN            cdpn,                  // M [3..43] TLV IEI = 5E
+  CDPS            cdps  optional,        // O  [2..23] TLV IEI = 6D
+  RepeatInd       llcRepeatInd  optional,// O  [1] TV IEI = D-
+  LLC             llc1  optional,        // O  [2..18] TLV IEI = 7C
+  LLC             llc2  optional,        //  O  [2..18] TLV IEI = 7C
+  RepeatInd       hlcRepeatInd  optional,//  O  [1] TV IEI = D-
+  HLC             hlc1  optional,        //  O  [2..5] TLV IEI = 7D
+  HLC             hlc2  optional,        //  O  [2..5] TLV IEI = 7D
+  UserUser        userUser  optional,    //  O  [3..131] TLV IEI = 7E
+  SS_VersionInd   sS_VersionInd  optional, //  O  [2..3] TLV IEI = 7F
+  CLIR_Suppression cLIR_Suppression  optional,//  C [1] T IEI = A1
+  CLIR_Invocation cLIR_Invocation  optional,//  O [1] T IEI = A2
+  CC_Capabilities cC_Capabilities  optional,//  O [4] TLV IEI = 15
+  FacilityIE      facilityCCBS_AdvRecall  optional, // O [2-] TLV IEI = 1D
+  FacilityIE      facilityCCBS_RecallAlign  optional, // O [2-] TLV = 1B
+  StreamId        streamId  optional,     // O [3] TLV IEI = 2D
+  CodecList       supportedCodecs  optional,// O [5-n] TLV IEI = 40
+  Redial          redial  optional        // O [1] T IEI = A3
+};
+
+// =============================================================================
+// PDU Type Definition
+// Modify PDP Context Accept
+// ue -> n
+// 3GPP 24.008 clause,  9.5.11
+// -----------------------------------------------------------------------------
+type record MODIFYPDPCONTEXTACCEPT_ul {
+  TI                    ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator sM_ProtocolDiscriminator, // protocol discriminator BITSTRING [4]
+  MessageType            msgType,               // message type
+  ProtocolConfigOptions  protocolConfOpts  optional  // O TLV [3-253] IEI = 27
+};
+
+// =============================================================================
+// PDU Type Definition
+// Modify PDP Context Request
+// n -> ue
+// 24.008 , 9.5.9
+// -----------------------------------------------------------------------------
+type record MODIFYPDPCONTEXTREQUEST_dl {
+  TI               ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator sM_ProtocolDiscriminator, // protocol discriminator BITSTRING [4]
+  MessageType      msgType,               // message type BITSTRING [8]
+  B4_Type          spare,                 // Spare M V BITSTRING [4]
+  RadioPriority    radioPriority,         //  M V BITSTRING [4]
+  LLC_SAPI         requestedLLC_SAPI,     // M V BITSTRING [8]
+  QualityOfService newQoS,                //  M LV  [13-15]
+  PktDataProtoAddr pDP_Addr  optional,    //  O TLV [4-20] IEI = 2B
+  PacketFlowIdentifier pKT_FlowIdentifier  optional,  // O TLV [3] IEI = 34
+  ProtocolConfigOptions  protocolConfOpts  optional,  // O TLV  [3-253] IEI = 27
+  TrafficFlowTemplate tft optional        // O TLV [3-257] IEI = 36
+};
+
+// =============================================================================
+// PDU Type Definition
+// Activate PDP Context Accept
+// n -> ue
+// Reference 3G PP 24.008 clause, 9.5.2
+// -----------------------------------------------------------------------------
+type record ACTIVATEPDPCONTEXTACCEPTdl {
+  TI               ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator sM_ProtocolDiscriminator, // protocol discriminator BITSTRING [4]
+  MessageType      msgType,               // message type  BITSTRING [8]
+  LLC_SAPI         negiotiatedLLC_SAPI,   // M V BITSTRING [8]
+  QualityOfService negiotiatedQoS,    //  M LV [13-15]
+  B4_Type          spare,                 //  M V BITSTRING [4]
+  RadioPriority    radioPriority,         //  M V BITSTRING [4]
+  PktDataProtoAddr pDP_Address  optional, //  O TLV  [4-24] IEI = 2B
+  ProtocolConfigOptions  protocolConfOpts  optional, // O TLV  [3-253] IEI = 27
+  PacketFlowIdentifier  pktFlowID  optional,         // O TLV  [3] IEI = 34
+  SM_Cause2         smCause  optional,     // O TLV  [3] IEI = 39
+  ConnectivityType  connectivityType optional  /* cl. 10.5.6.19 O TV 1 IEI=0xB- @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC ALERTING  downlink n -> ue
+// 3G TS 24.008 cl. 9.3.1.1
+// -----------------------------------------------------------------------------
+type record ALERTINGdl {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  FacilityIE      facility  optional,    //  O [2-] TLV IEI = 1C
+  ProgInd         progInd  optional,     // O  [4] TLV IEI = 1E
+  UserUser        userUser  optional     // O  [3..131] TLV IEI= 7E
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC ALERTING  uplink ue -> n
+// 3G TS 24.008 cl. 9.3.1.2
+// -----------------------------------------------------------------------------
+type record ALERTINGul {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  FacilityIE      facility  optional,    //  O [2-] TLV IEI = 1C
+  UserUser        userUser  optional,     // O  [3..131] TLV IEI = 7E
+  SS_VersionInd   sS_VersionInd  optional // O  [2..3] TLV IEI= 7F
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC CALL CONFIRMED  ue -> n
+// 3G TS 24.008 cl. 9.3.2
+// -----------------------------------------------------------------------------
+type record CALLCONFIRMED {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  RepeatInd       repeatInd  optional,   // C BITSTRING[8] TV IEI = D-
+  Bcap            bcap1  optional,       // O  [3..16] TLV IEI = 04
+  Bcap            bcap2  optional,       // O  [3..16] TLV IEI = 04
+  Cau             cau  optional,         // O  [4..32] TLV IEI = 08
+  CC_Capabilities cC_Capabilities  optional,  // O [3] TLV IEI = 15
+  StreamId        streamId  optional,    // O [3] TLV IEI = 2D
+  CodecList       supportedCodecs  optional  // O [5-n] TLV IEI = 40
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC CALL PROCEEDING   n -> ue
+// 3G TS 24.008 cl. 9.3.3
+// -----------------------------------------------------------------------------
+type record CALLPROCEEDING {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  RepeatInd       repeatInd  optional,   // C BITSTRING[8] TV IEI = D-
+  Bcap            bcap1  optional,       // O [3..16] TLV IEI = 04
+  Bcap            bcap2  optional,      //  O  [3..16] TLV IEI = 04
+  FacilityIE      facility  optional,   //  O [2-] TLV IEI = 1C
+  ProgInd         progInd  optional,    // O  [4] TLV IEI = 1E
+  PriorityLvl     priorityGranted  optional,  //  O [1] TV IEI = 8-
+  NtwCCCapabilities ntwCC_Capabilities  optional  // O [3] TLV IEI = 2F
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC CONNECT ACKNOWLEDGE  ue <-> n
+// 3G TS 24.008 cl. 9.3.6
+// -----------------------------------------------------------------------------
+type record CONNECTACKNOWLEDGE {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType                // message type BITSTRING [8]
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC CONNECT   n -> ue
+// 3G TS 24.008 cl. 9.3.5.1
+// -----------------------------------------------------------------------------
+type record CONNECTdl {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  FacilityIE      facility  optional,    // O [2-] TLV IEI = 1C
+  ProgInd         progInd  optional,     // O  [4] TLV IEI = 1E
+  ConnectedNum    connectedNum  optional, // O  [3..14] TLV IEI = 4C
+  ConnectedSubAdrs connectedSubAdrs  optional, // O  [2..23] TLV IEI = 4D
+  UserUser        userUser  optional      // O  [3..131] TLV IEI = 7E
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC CONNECT   n <- ue
+// 3G TS 24.008 cl. 9.3.5.2
+// -----------------------------------------------------------------------------
+type record CONNECTul {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  FacilityIE      facility  optional,    // O [2-] TLV IEI = 1C
+  ConnectedSubAdrs connectedSubAdrs  optional, // O  [2..23] TLV IEI = 4D
+  UserUser        userUser  optional,      // O  [3..131] TLV IEI = 7E
+  SS_VersionInd   sS_VersionInd  optional, // O  [2..3] TLV IEI = 7F
+  StreamId        streamId  optional      // O [3] TLV IEI = 2D
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC EMERGENCY SETUP  ue -> n
+// 3G TS cl. 9.3.8
+// -----------------------------------------------------------------------------
+type record ESETUP {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  Bcap            bcap  optional,       // O  [3..11] TLV IEI = 04
+  StreamId        streamId  optional,   // O [3] TLV IEI = 2D
+  CodecList       supportedCodecs  optional,  // O [5-n] IEI = 40
+  ServCategory    emergCategory  optional  // O TLV [3] TLV IEI = 2E
+};
+
+// =============================================================================
+// PDU Type Definition
+// 3GPP 24.008 clause 9.4.22
+// -----------------------------------------------------------------------------
+type record SERVICEREJECT {
+  SkipIndicator   skipIndicator,         // Skip Indicator BITSTRING [4]
+  ProtocolDiscriminator gMMProtocolDiscriminator, // GMM Protocol Discriminator BITSTRING [4]
+  MessageType     msgType,               // Message Type BITSTRING [8]
+  RejCau          gmmCause,               // M 1 octet
+  GPRS_Timer2     t3346Value  optional   /* cl. 10.5.7.4 O TLV 3     IEI=0x3A @sic R5s120178 Baseline Moving sic@*/
+};
+
+// =============================================================================
+// PDU Type Definition
+// CC SETUP   n -> ue
+// 3G TS 24.008 cl. 9.3.23.1
+// -----------------------------------------------------------------------------
+type record SETUPdl {
+  TI              ti,                    // transaction identifier BITSTRING [4]
+  ProtocolDiscriminator cC_ProtocolDiscriminator, // CC protocol discriminator BITSTRING [4]
+  MessageType     msgType,               // message type BITSTRING [8]
+  RepeatInd       repeatInd  optional,   //  C BITSTRING[8] TV IEI = D-
+  Bcap            bcap1  optional,       //  O  [3..16] TLV IEI = 04
+  Bcap            bcap2  optional,       //  O  [3..16] TLV IEI = 04
+  FacilityIE      facility  optional,    //  O [2-] TLV IEI = 1C
+  ProgInd         progInd  optional,     //  O  [4] TLV IEI = 1E
+  Signal          signal  optional,      //  O [2] TV IEI = 34
+  CGPN            cgpn  optional,        //  O  [2..14] TLV IEI = 5C
+  CGPS            cgps  optional,        //  O  [2..23] TLV IEI = 5D
+  CDPN            cdpn  optional,        //  O [2..43] TLV IEI = 5E
+  CDPS            cdps  optional,        //  O  [2..23] TLV IEI = 6D
+  RedirectingPN   redirectingPN  optional,//  O [3..19] TLV IEI = 74
+  RedirectingPS   redirectingPSubadrs  optional,//  O [2..23] TLV = 75
+  RepeatInd       llcRepeatInd  optional,//   O  [1] TV IEI = D-
+  LLC             llc1  optional,        //   O  [2..18] TLV IEI = 7C
+  LLC             llc2  optional,        //  C   [2..18] TLV IEI = 7C
+  RepeatInd       hlcRepeatInd  optional,//  O  [1] TV IEI = D-
+  HLC             hlc1  optional,        //  O  [2..5] TLV IEI = 7D
+  HLC             hlc2  optional,        //  C  [2..5] TLV IEI = 7D
+  UserUser        userUser  optional,    //  O  [3..131] TLV IEI = 7E
+  PriorityLvl     priority  optional,    //  O [1] TV IEI = 8-
+  AlertPattern    alert  optional,       //  O [3] TLV IEI = 19
+  NtwCCCapabilities ntwCCCapabilities  optional,   //  O [3] TLV IEI = 2F
+  CauNoCLI        cauNoCLI  optional,    //  O [3] TLV IEI = 3A
+  BuBcap          buBcap  optional       //  O TLV [3-15] IEI = 41
+};
+
+// =============================================================================
+// PDU Type Definition
+// Transparent mode RLC PDU. Ref 3G TS 25.322 clause 9.2.1.2
+// -----------------------------------------------------------------------------
+type record TrD_PDU {
+  bitstring       data
+};
+
+} with { encode "NAS Types"}

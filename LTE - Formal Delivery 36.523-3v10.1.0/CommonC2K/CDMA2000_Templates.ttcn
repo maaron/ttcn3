@@ -1,0 +1,385 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-05 16:12:44 +0200 (Wed, 05 Sep 2012) $
+// $Rev: 7331 $
+/******************************************************************************/
+
+module CDMA2000_Templates {
+
+  import from CDMA2000_ASP_TypeDefs all;
+  import from CDMA2000_CommonDefs all;
+  import from CDMA2000_Constants all;
+  import from CDMA2000_Parameters all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from Parameters all;
+
+  template (value) PDN_Address_Type cs_PDN_Address_IPv4 (IPv4_Address_Type  p_Address) :=
+  { /* @status    APPROVED */
+    IPv4  := p_Address
+  };
+
+  template (value) PDN_Address_Type cs_PDN_Address_IPv6 (IPv6_Address_Type  p_Address) :=
+  { /* @status    APPROVED */
+    IPv6  := p_Address
+  };
+
+  template (value) PDN_Address_Type cs_PDN_Address_IPv4v6 (IPv4_Address_Type  p_AddressV4,
+                                                           IPv6_Address_Type  p_AddressV6) :=
+  { /* @status    APPROVED */
+    IPv4v6  := {
+      IPv4  := p_AddressV4,
+      IPv6  := p_AddressV6
+    }
+  };
+
+  function fl_GeneratePDN_Address () return template (value) PDN_Address_Type
+  {
+    var template (value) PDN_Address_Type v_PDN_Address;
+    
+    if ( pc_IPv4 and (not pc_IPv6)) {
+      v_PDN_Address := cs_PDN_Address_IPv4(f_Convert_IPv4Addr2OctString(px_IPv4_Address1_UE)); // @sic R5-113734 sic@
+    }
+    
+    if ( pc_IPv6 and (not pc_IPv4)) {
+      v_PDN_Address := cs_PDN_Address_IPv6 (substr( f_Convert_IPv6Addr2OctString(px_IPv6_Address1_UE), 8, 8 )); // @sic R5-113734 sic@
+    }
+    
+    if ( pc_IPv6 and pc_IPv4) {
+      // Address info consists of 8 octets IPv6 interface identifier followed with the 4 octets IPv4 address
+      // See TS 24.301 clause 9.9.4.9
+      v_PDN_Address := cs_PDN_Address_IPv4v6 (f_Convert_IPv4Addr2OctString(px_IPv4_Address1_UE), // @sic R5-113734 sic@
+                                              substr( f_Convert_IPv6Addr2OctString(px_IPv6_Address1_UE), 8, 8 )); // @sic R5-113734 sic@
+    }
+
+    return v_PDN_Address;
+  };
+
+  template (value) PDN_Address_Type  cs_PDN_Address_Def := fl_GeneratePDN_Address ();  /* @status    APPROVED */
+
+  template (value) CDMA2000_RoutingInfo_Type crs_RoutingInfoNone :=
+  { /* @status    APPROVED */
+    None := true
+  };
+
+  template (value) CDMA2000_TimingInfo_Type cs_CDMA2000_TimingInfoNow :=
+  { /* @status    APPROVED */
+    Now := true
+  };
+
+  template CDMA2000_TimingInfo_Type cr_CDMA2000_TimingInfo_HRPD_Any :=
+  { /* @status    APPROVED */
+    SubFrame := {
+        HRPD  :=
+    {
+      Frame           := { Number  := ?},
+      Subframe        := { Number  := ?}
+    }
+  }
+  };
+
+  template CDMA2000_TimingInfo_Type cr_CDMA2000_TimingInfo_RTT1X_Any :=
+  { /* @status    APPROVED */
+    SubFrame := {
+        RTT1X  := { Number := ? }
+  }
+  };
+
+  template CDMA2000_CnfAspCommonPart_Type cr_CDMA2000_CnfAspCommonPart_CellCfg (CDMA2000_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    RoutingInfo := { None := true },
+    TimingInfo := ?,
+    Result := { Success := true }
+  };
+
+  template (value) CDMA2000_ReqAspCommonPart_Type cs_CDMA2000_ReqAspCommonPart_Common (CDMA2000_CellId_Type p_CellId,
+                                                                                       template (value) CDMA2000_TimingInfo_Type p_TimingInfo := cs_CDMA2000_TimingInfoNow,
+                                                                                       boolean p_CnfFlag := true) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    RoutingInfo := crs_RoutingInfoNone,
+    TimingInfo := p_TimingInfo,
+    ControlInfo := {
+      CnfFlag      := p_CnfFlag,
+      FollowOnFlag := false
+    }
+  };
+
+  template (value) CDMA2000_InitialCellPower_Type cs_CDMA2000_InitialCellPower (template (value) CDMA2000_AbsoluteCellPower_Type p_MaxReferencePower) :=
+  { /* @status    APPROVED */
+    MaxReferencePower := p_MaxReferencePower,
+    Attenuation       := tsc_CDMA2000_Attenuation_Off
+  };
+
+  template (value) CDMA2000_SYSTEM_CTRL_REQ cas_HRPD_CellConfig_REQ (CDMA2000_CellId_Type p_CellId,
+                                                                     template (value) CDMA2000_CellParameters_Type    p_CellParameters,
+                                                                     template (value) HRPD_CellParameters_Type        p_HRPD_CellParameters,
+                                                                     template (value) CDMA2000_AbsoluteCellPower_Type p_ReferencePower,
+                                                                     template (value) CDMA2000_TimingInfo_Type        p_TimingInfo := cs_CDMA2000_TimingInfoNow):=
+  { /* @status    APPROVED */
+    Common  := cs_CDMA2000_ReqAspCommonPart_Common (p_CellId, p_TimingInfo),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          CellParameters  := p_CellParameters,
+          InitialCellPower := cs_CDMA2000_InitialCellPower(p_ReferencePower),
+          ModeSpecificCellParams := {
+            HRPD := p_HRPD_CellParameters
+          }
+        }
+      }
+    }
+  };
+
+  template (value) CDMA2000_SYSTEM_CTRL_REQ cas_RTT1X_CellConfig_REQ (CDMA2000_CellId_Type p_CellId,
+                                                                     template (value) CDMA2000_CellParameters_Type    p_CellParameters,
+                                                                     template (value) RTT1X_CellParameters_Type        p_RTT1X_CellParameters,
+                                                                     template (value) CDMA2000_AbsoluteCellPower_Type p_ReferencePower,
+                                                                     template (value) CDMA2000_TimingInfo_Type        p_TimingInfo := cs_CDMA2000_TimingInfoNow):=
+  { /* @status    APPROVED */
+    Common  := cs_CDMA2000_ReqAspCommonPart_Common (p_CellId, p_TimingInfo),
+    Request := {
+      Cell := {
+        AddOrReconfigure := {
+          CellParameters  := p_CellParameters,
+          InitialCellPower := cs_CDMA2000_InitialCellPower(p_ReferencePower),
+          ModeSpecificCellParams := {
+            RTT1X := p_RTT1X_CellParameters
+          }
+        }
+      }
+    }
+  };
+
+  template (value) CDMA2000_SYSTEM_CTRL_REQ cas_CDMA2000_CellRel_REQ (CDMA2000_CellId_Type p_CellId := cdma2000_Cell_NonSpecific, // Release all cells
+                                                                      template (value) CDMA2000_TimingInfo_Type p_TimingInfo := cs_CDMA2000_TimingInfoNow) :=
+  { /* @status    APPROVED */
+    Common  :=  cs_CDMA2000_ReqAspCommonPart_Common (p_CellId, p_TimingInfo),
+    Request := {
+      Cell := {
+        Release := true
+      }
+    }
+  };
+
+  template (value) CDMA2000_SYSTEM_CTRL_REQ cas_CDMA2000_CellConfig_Power_REQ (template (value) CDMA2000_CellAttenuationList_Type p_CellAttenuationList,
+                                                                               template (value) CDMA2000_TimingInfo_Type p_TimingInfo) :=
+  { /* ASPs to modify cell power */
+    /* @status    APPROVED */
+    Common := cs_CDMA2000_ReqAspCommonPart_Common (cdma2000_Cell_NonSpecific, p_TimingInfo),
+    Request := {
+      CellAttenuationList := p_CellAttenuationList
+    }
+  };
+
+  template CDMA2000_SYSTEM_CTRL_CNF car_CDMA2000_CellConfig_CNF (CDMA2000_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cr_CDMA2000_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm :=  {
+      Cell := true
+    }
+  };
+
+  template CDMA2000_SYSTEM_CTRL_CNF car_CDMA2000_CellConfig_Power_CNF :=
+  { /* @status    APPROVED */
+    Common := cr_CDMA2000_CnfAspCommonPart_CellCfg(cdma2000_Cell_NonSpecific),
+    Confirm := {
+      CellAttenuationList := true
+    }
+  };
+
+  group HRPD_SysIndicationAndCommands {
+
+  template (value) UATI104_Type cs_UATI104_None :=
+  { /* @status    APPROVED */
+    None := true
+  };
+
+  template (value) UATI_Type cs_UATI_Def (O3_Type p_UATI24 := px_UATI24, //@sic R5-120721 sic@
+                                          template (value) UATI104_Type p_UATI104 := cs_UATI104_None) :=
+  { /* @status    APPROVED */
+    UATI24 := p_UATI24,
+    UATI104 := p_UATI104
+  };
+
+  template (value) HRPD_SystemCommand_Type cs_HRPD_SysCmd_RegAndDefBearerEst_Def (RLP_FlowId_Type p_RLP_FlowId := tsc_RLP_FlowId1,
+                                                                                  HRPD_UE_InitStateType p_HRPD_UE_InitState := idle_Null,
+                                                                                  CDMA2000_AttachType p_CDMA2000_AttachType := tsc_HandoverAttach) :=
+  { /* @status    APPROVED */
+    RegAndDefBearerEst := {
+      InitState   := p_HRPD_UE_InitState,
+      RLP_FlowId  := p_RLP_FlowId,             /* Associated RLP Flow ID */
+      AttachType  := p_CDMA2000_AttachType     /* The Attach Type to be expected in VSNCP procedure */
+    }
+  };
+
+  template (value) RTT1X_SystemCommand_Type cs_RTT1X_SysCmd_Reg_Def(RTT1XAttachType p_AttachType,
+                                                                    boolean  p_PreReg := false, // no pre registration
+                                                                    template (omit) B32_Type p_RAND := omit // Not present for power down
+                                                                    ) :=
+  { /* @status    APPROVED */
+    CS_Registration := {
+      AttachType := p_AttachType,
+      IsPreRegistration := p_PreReg,
+      RAND          := p_RAND
+    }
+  };
+
+  template (value) CDMA2000_SystemCommand_Type cs_CDMA2000_SystemCommand_HRPD (template (value) HRPD_SystemCommand_Type  p_HRPD_SystemCommand) :=
+  { /* @status    APPROVED */
+    HRPD := p_HRPD_SystemCommand
+  };
+
+  template (value) CDMA2000_SystemCommand_Type cs_CDMA2000_SystemCommand_RTT1X (template (value) RTT1X_SystemCommand_Type  p_RTT1X_SystemCommand) :=
+  { /* @status    APPROVED */
+    RTT1X := p_RTT1X_SystemCommand
+  };
+
+  template (value) CDMA2000_SYSTEM_CMD cas_HRPD_SYSTEM_CMD (CDMA2000_CellId_Type p_CellId,
+                                                            template (value) CDMA2000_TimingInfo_Type p_TimingInfo := cs_CDMA2000_TimingInfoNow,
+                                                            template (value) HRPD_SystemCommand_Type  p_HRPD_SystemCommand):=
+  { /* @status    APPROVED */
+    Common := cs_CDMA2000_ReqAspCommonPart_Common(p_CellId, p_TimingInfo, false),    // CnfFlag := false
+    Command := cs_CDMA2000_SystemCommand_HRPD(p_HRPD_SystemCommand)
+  };
+
+  template (value) CDMA2000_SYSTEM_CMD cas_RTT1X_SYSTEM_CMD (CDMA2000_CellId_Type p_CellId,
+                                                             template (value) CDMA2000_TimingInfo_Type p_TimingInfo := cs_CDMA2000_TimingInfoNow,
+                                                             template (value) RTT1X_SystemCommand_Type p_RTT1X_SystemCommand):=
+  { /* @status    APPROVED */
+    Common := cs_CDMA2000_ReqAspCommonPart_Common(p_CellId, p_TimingInfo, false),    // CnfFlag := false
+    Command := cs_CDMA2000_SystemCommand_RTT1X(p_RTT1X_SystemCommand)
+  };
+
+  template HRPD_SystemIndication_Type cr_SysInd_RegAndDefBearer (template (present) RegAndDefBearerEstInd_Type p_RegAndDefBearerEstInd := cr_RegAndDefBearerEstInd_Def) :=
+  { /* @status    APPROVED */
+    RegAndDefBearerEstInd := p_RegAndDefBearerEstInd
+  };
+
+  template CS_RegCmplInd_Type cr_CS_RegCmplInd_Def (RTT1XAttachType p_RTT1XAttach ):=
+  { /* @status    APPROVED */
+    CS_RegistrationCmpl := p_RTT1XAttach
+  };
+
+  template RTT1X_SystemIndication_Type cr_SysInd_CS_RegCmpl (template (present) CS_RegCmplInd_Type p_CS_RegCmplInd := cr_CS_RegCmplInd_Def(powerUpAttach)) :=
+  { /* @status    APPROVED */
+    CS_RegistrationCmpl := p_CS_RegCmplInd
+  };
+
+  template HRPD_SystemIndication_Type cr_HRPD_SysInd_InitialAccesProbRcvd :=
+  { /* @status    APPROVED */
+    InitialAccessProbeRcvd := true
+  };
+
+  template RTT1X_SystemIndication_Type cr_RTT1X_SysInd_InitialAccesProbRcvd :=
+  { /* @status    APPROVED */
+    InitialAccessProbeRcvd := true
+  };
+
+  template CDMA2000_IndicationStatus_Type cr_CDMA2000_IndicationStatus_Ok :=
+  { /* @status    APPROVED */
+    Ok := true
+  };
+
+  template CDMA2000_IndAspCommonPart_Type cr_CDMA2000_IndAspCommonPart_HRPD_Common (CDMA2000_CellId_Type p_CellId,
+                                                                               template (present) CDMA2000_RoutingInfo_Type p_RoutingInfo := crs_RoutingInfoNone,
+                                                                               template (present) CDMA2000_TimingInfo_Type  p_TimingInfo := cr_CDMA2000_TimingInfo_HRPD_Any) :=
+  { /* @status    APPROVED */
+    CellId      := p_CellId,
+    RoutingInfo := p_RoutingInfo,
+    TimingInfo  := p_TimingInfo,
+    Status      := cr_CDMA2000_IndicationStatus_Ok
+  };
+
+  template CDMA2000_IndAspCommonPart_Type cr_CDMA2000_IndAspCommonPart_RTT1X_Common (CDMA2000_CellId_Type p_CellId,
+                                                                               template (present) CDMA2000_RoutingInfo_Type p_RoutingInfo := crs_RoutingInfoNone,
+                                                                               template (present) CDMA2000_TimingInfo_Type  p_TimingInfo := cr_CDMA2000_TimingInfo_RTT1X_Any) :=
+  { /* @status    APPROVED */
+    CellId      := p_CellId,
+    RoutingInfo := p_RoutingInfo,
+    TimingInfo  := p_TimingInfo,
+    Status      := cr_CDMA2000_IndicationStatus_Ok
+  };
+
+  template RegAndDefBearerEstInd_Type cr_RegAndDefBearerEstInd_Def :=
+  { /* @status    APPROVED */
+    UATI_AssignmentCmpl     := true,  // UATI Assignment procedure is completed
+    InitialChAssignCmpl     := true,  // Channel Assignment procedure is completed
+    SCP_ConfigCmpl          := true,  // Session configuration procedure is completed
+    Stream_ConfigCmpl       := true,  // Stream configuration procedure is completed
+    EMPA_MMPA_ConfigCmpl    := true,  // Eanhanced multi flow packet application procedure is completed
+    SessionNegotiationCmpl  := *,     // Session negotiation  procedure is optionally completed
+    DeviceAuthCmpl          := *,     // Device authectication procedure is optionally completed
+    LocationUpdateCmpl      := *,     // Location update procedure is optionally completed
+    EAP_AKA_Cmpl            := true,  // AKA procedure is completed
+    VSNCP_ConfigCmpl        := true,  // VSNCP  procedure is completed
+    DHCP_ConfigCmpl         := * ,     // DHCP IPv4 address allocatione is optionally completed
+    ICMPv6_ConfigCmpl       := *
+  };
+
+  template HRPD_SystemIndication_Type cr_HRPD_DetachOnSwitchOffInd :=
+  { /* @status    APPROVED */
+    DefaultBearerRelDetachInd := {
+      VSNCP_TerminateCmpl  := omit,       /* Default bearer is not released before Detach as switch off*/
+      LCP_TerminateCmpl    := true         /* To detach the UE x.s0057 clause 11.2 Detach completed */
+    }
+  };
+
+  template RTT1X_SystemIndication_Type cr_RTT1X_DetachOnSwitchOffInd :=
+  { /* @status    APPROVED */
+    CS_RegistrationCmpl := cr_CS_RegCmplInd_Def ( powerDownAttach)
+  };
+
+  template CDMA2000_SYSTEM_IND car_HRPD_SYSTEM_IND (CDMA2000_CellId_Type p_CellId,
+                                                    template (present) CDMA2000_RoutingInfo_Type  p_RoutingInfo := crs_RoutingInfoNone,
+                                                    template (present) CDMA2000_TimingInfo_Type   p_TimingInfo := cr_CDMA2000_TimingInfo_HRPD_Any,
+                                                    template (present) HRPD_SystemIndication_Type p_HRPD_SystemIndication) :=
+  { /* @status    APPROVED */
+    Common := cr_CDMA2000_IndAspCommonPart_HRPD_Common(p_CellId, p_RoutingInfo, p_TimingInfo),
+    Indication := { HRPD :=  p_HRPD_SystemIndication}
+  };
+
+  template CDMA2000_SYSTEM_IND car_RTT1X_SYSTEM_IND (CDMA2000_CellId_Type p_CellId,
+                                                     template (present) CDMA2000_RoutingInfo_Type  p_RoutingInfo := crs_RoutingInfoNone,
+                                                     template (present) CDMA2000_TimingInfo_Type   p_TimingInfo := cr_CDMA2000_TimingInfo_RTT1X_Any,
+                                                     template (present) RTT1X_SystemIndication_Type p_RTT1X_SystemIndication) :=
+  { /* @status    APPROVED */
+    Common := cr_CDMA2000_IndAspCommonPart_RTT1X_Common(p_CellId, p_RoutingInfo, p_TimingInfo),
+    Indication := { RTT1X :=  p_RTT1X_SystemIndication}
+  };
+
+  template (value) HRPD_SystemCommand_Type cs_HRPD_DetachOnSwitchOff(HRPD_UE_InitStateType   p_InitState := tsc_HRPD_UE_InitState_Active,
+                                                                     PDN_Id_Type             p_PDN_Id := tsc_PDN_Id,
+                                                                     RLP_FlowId_Type         p_RLP_FlowId := tsc_RLP_FlowId1) :=
+  { /* @status    APPROVED */
+    DefaultBearerRelDetach := {
+      InitState        := p_InitState,
+      PDN_Id           := p_PDN_Id,
+      RLP_FlowId       := p_RLP_FlowId,
+      UE_NW_Initiated  := tsc_UEInitDetach
+    }
+  };
+
+  template (value) RTT1X_SystemCommand_Type cs_RTT1X_DetachOnSwitchOff :=
+    /* @status    APPROVED */
+    cs_RTT1X_SysCmd_Reg_Def (powerDownAttach, false, omit); // Assumption detach will not happen in pre-registration mode, no RAND
+
+  template (value) HRPD_SystemCommand_Type cs_ConfigReportInitAccesProbe_HRPD :=
+  { /* @status    APPROVED */
+    ReportInitialAccesProbe := true
+  };
+
+  template (value) RTT1X_SystemCommand_Type cs_ConfigReportInitAccesProbe_RTT1X :=
+  { /* @status    APPROVED */
+    ReportInitialAccesProbe := true
+  };
+
+  } // end of group HRPD_SysIndicationAndCommands
+
+}

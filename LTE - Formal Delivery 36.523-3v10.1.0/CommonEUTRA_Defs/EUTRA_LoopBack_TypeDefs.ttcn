@@ -1,0 +1,149 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-05-24 18:25:07 +0200 (Thu, 24 May 2012) $
+// $Rev: 6658 $
+/******************************************************************************/
+module EUTRA_LoopBack_TypeDefs {
+  import from CommonDefs all;
+  import from NAS_CommonTypeDefs all;
+
+  //----------------------------------------------------------------------------
+  // General Info Elements (36.509 )
+  //----------------------------------------------------------------------------
+
+  type Octet_Type       UE_TestLoopMode_Type;
+  type Octet_Type       UE_TestLoopModeB_LB_Setup_Type;
+  type Octet_Type       UE_PositioningTechnology_Type;
+  const integer tsc_MAX_ModeA_LB_Entities := 8;
+
+  //****************************************************************************
+  // Test Loop PROTOCOL DEFINITIONS: PDUs
+  //----------------------------------------------------------------------------
+  // Special conformance testing functions for User Equipment messages (36.509 cl. 6)
+  //----------------------------------------------------------------------------
+
+  // =============================================================================
+  // Close UE Test Loop
+  // 3G TS 36.509 cl. 6.1
+  // Direction:     SS to UE
+  // -----------------------------------------------------------------------------
+
+  type record CLOSE_UE_TEST_LOOP {
+    SkipIndicator                       skipIndicator,                          /*    M V 1/2    */
+    ProtocolDiscriminator               protocolDiscriminator,                  /*    M V 1/2    */
+    MessageType                         messageType,                            /*    M V 1      */
+    UE_TestLoopMode_Type                ueTestLoopMode,                         /*    M V 1      */
+    UE_TestLoopModeA_LB_Setup_Type      ueTestLoopModeA_LB_Setup optional,      /*    C LV 1-25  */
+    /* present if ueTestLoopMode ='00'F */
+    UE_TestLoopModeB_LB_Setup_Type      ueTestLoopModeB_LB_Setup optional       /*    C V 1      */
+    /* present if ueTestLoopMode ='01'F */
+    /* represents IP PDU delay time 0..255 seconds */
+  };
+  // =============================================================================
+  // Structured Type Definition
+  // *** Comments:
+  // UE Test Loop Mode A LB Setup  36.509 cl. 6.1
+  // *** additional Notes:
+  // The maximum number of LB entities in the LB setup list is less than or equal to 5.
+  // -----------------------------------------------------------------------------
+  type record UE_TestLoopModeA_LB_Setup_Type {
+    O1_Type                             iel,
+    LB_SetupDRB_IE_List_Type            lbSetupDrbList optional
+  };
+
+  // =============================================================================
+  // LB Setup DRB IE
+  // 3G TS 36.509 cl. 6.1
+  // -----------------------------------------------------------------------------
+  type record LB_SetupDRB_IE_Type {
+    B16_Type                            uplinkPdcpSduSize,
+    B3_Type                             reserved,
+    B5_Type                             drbIdentity
+  };
+
+  type record length (1..tsc_MAX_ModeA_LB_Entities)of LB_SetupDRB_IE_Type LB_SetupDRB_IE_List_Type;
+
+  // =============================================================================
+  // Close UE Test Loop Complete
+  // 3G TS 36.509 cl. 6.2
+  // Direction:     UE to SS
+  // -----------------------------------------------------------------------------
+  type record CLOSE_UE_TEST_LOOP_COMPLETE {
+    SkipIndicator                       skipIndicator,                  /*    M V 1/2    */
+    ProtocolDiscriminator               protocolDiscriminator,          /*    M V 1/2    */
+    MessageType                         messageType                     /*    M V 1      */
+  };
+
+  // =============================================================================
+  // OPEN UE Test Loop
+  // 3G TS 36.509 cl. 6.3
+  // Direction:     SS  to UE
+  // -----------------------------------------------------------------------------
+  type record OPEN_UE_TEST_LOOP {
+    SkipIndicator                       skipIndicator,                  /*    M V 1/2    */
+    ProtocolDiscriminator               protocolDiscriminator,          /*    M V 1/2    */
+    MessageType                         messageType                     /*    M V 1      */
+  };
+
+  // =============================================================================
+  // OPEN UE Test Loop Complete
+  // 3G TS 36.509 cl. 6.4
+  // Direction:     UE to SS
+  // -----------------------------------------------------------------------------
+  type record OPEN_UE_TEST_LOOP_COMPLETE {
+    SkipIndicator                       skipIndicator,                  /*    M V 1/2    */
+    ProtocolDiscriminator               protocolDiscriminator,          /*    M V 1/2    */
+    MessageType                         messageType                     /*    M V 1      */
+  };
+
+  // =============================================================================
+  // Activate RB Test Mode
+  // 3G TS 36.509 cl. 6.5
+  // Direction:     SS  to UE
+  // -----------------------------------------------------------------------------
+  type record ACTIVATE_TEST_MODE {
+    SkipIndicator                       skipIndicator,                  /*    M V 1/2    */
+    ProtocolDiscriminator               protocolDiscriminator,          /*    M V 1/2    */
+    MessageType                         messageType,                    /*    M V 1      */
+    UE_TestLoopMode_Type                ueTestLoopMode                  /*    M V 1      */
+  };
+
+  // =============================================================================
+  // Activate RB Test Mode Complete
+  // 3G TS 36.509 cl. 6.6
+  // Direction:     UE to SS
+  // -----------------------------------------------------------------------------
+  type record ACTIVATE_TEST_MODE_COMPLETE {
+    SkipIndicator                       skipIndicator,                  /*    M V 1/2    */
+    ProtocolDiscriminator               protocolDiscriminator,          /*    M V 1/2    */
+    MessageType                         messageType                     /*    M V 1      */
+  };
+
+  // =============================================================================
+  // Deactivate RB Test Mode
+  // 3G TS 36.509 cl. 6.7
+  // Direction:     SS  to UE
+  // -----------------------------------------------------------------------------
+  type record DEACTIVATE_TEST_MODE {
+    SkipIndicator                       skipIndicator,                  /*    M V 1/2    */
+    ProtocolDiscriminator               protocolDiscriminator,          /*    M V 1/2    */
+    MessageType                         messageType                     /*    M V 1      */
+  };
+
+  // =============================================================================
+  // Deactivate RB Test Mode Complete
+  // 3G TS 36.509 cl. 6.8
+  // Direction:     UE to SS
+  // -----------------------------------------------------------------------------
+   type record DEACTIVATE_TEST_MODE_COMPLETE {
+     SkipIndicator                       skipIndicator,                 /*    M V 1/2    */
+     ProtocolDiscriminator               protocolDiscriminator,         /*    M V 1/2    */
+     MessageType                         messageType                    /*    M V 1      */
+   };
+
+} with { encode "NAS Types"}

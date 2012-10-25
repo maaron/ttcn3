@@ -1,0 +1,108 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+
+module IP_PTC_CtrlMsgs {
+
+  import from CommonDefs all;
+  import from IP_ASP_TypeDefs all;
+
+  type record IP_Start_Type {           /* @status    APPROVED */
+    PDN_Index_Type      PdnId,
+    IP_DrbInfo_Type     DrbInfo
+  };
+
+  type record IP_ChangeEutraCell_Type {   /* @status    APPROVED */
+    EUTRA_CellId_Type   CellId
+  };
+
+  type record IP_SendRouterAdvertisement_Type {   /* @status    APPROVED */
+    PDN_Index_Type      PdnId
+  };
+
+  type union IP_ConfigReq_Type {        /* @status    APPROVED */
+    IP_Start_Type                       StartIP,
+    Null_Type                           StopIP,
+    IP_ChangeEutraCell_Type             ChangeEutraCell,
+    IP_SendRouterAdvertisement_Type     SendRouterAdvertisement
+  };
+
+  type Null_Type IP_ConfigCnf_Type;     /* @status    APPROVED */
+
+  type port IP_RAT_CTRL_PORT message {         /* @status    APPROVED */
+    out IP_ConfigReq_Type;
+    in  IP_ConfigCnf_Type;
+  };
+
+  type port IP_PTC_CTRL_PORT message {         /* @status    APPROVED */
+    in  IP_ConfigReq_Type;
+    out IP_ConfigCnf_Type;
+  };
+
+  template (value) IP_ConfigReq_Type cs_IP_StartReq(PDN_Index_Type p_PdnId,
+                                                    template (value) IP_DrbInfo_Type p_DrbInfo) :=
+  { /* @status    APPROVED */
+    StartIP := {
+      PdnId := p_PdnId,
+      DrbInfo := p_DrbInfo
+    }
+  };
+
+  template (value) IP_ConfigReq_Type cs_IP_StopReq :=
+  { /* @status    APPROVED */
+    StopIP := true
+  };
+
+  template (value) IP_ConfigReq_Type cs_IP_ChangeEutraCellReq(EUTRA_CellId_Type p_EutraCellId) :=
+  { /* @status    APPROVED */
+    ChangeEutraCell := {
+      CellId := p_EutraCellId
+    }
+  };
+
+  template IP_ConfigCnf_Type cr_IP_CommonCnf := true;           /* @status    APPROVED */
+
+  template IP_ConfigReq_Type cr_IP_CtrlAnyReq := ?;             /* @status    APPROVED */
+
+  template (value) IP_ConfigCnf_Type cs_IP_CommonCnf := true;   /* @status    APPROVED */
+
+  template (value) IP_DrbInfo_Type cs_DrbInfo_EUTRA(EUTRA_CellId_Type p_CellId,
+                                                    IP_DrbId_Type p_DrbId) :=
+  { /* @status    APPROVED */
+    /* @sic R5w110204: change of IP_EUTRA_DrbInfo_Type sic@ */
+    Eutra := {
+      CellId := p_CellId,
+      DrbId := p_DrbId
+    }
+  };
+
+  function f_IP_Handling_Start(IP_RAT_CTRL_PORT p_Port,
+                               PDN_Index_Type p_PdnIndex,
+                               template (value) IP_DrbInfo_Type p_DrbInfo)
+  { /* @sic R5-113734 change 8: replacing former f_DHCPv4_Start, f_ICMPv6_Start sic@ */
+    p_Port.send(cs_IP_StartReq(p_PdnIndex, p_DrbInfo));
+    p_Port.receive(cr_IP_CommonCnf);
+  }
+
+  function f_IP_Handling_Stop(IP_RAT_CTRL_PORT p_Port)
+  { /* @sic R5-113734 change 8: replacing former f_DHCPv4_Stop, f_ICMPv6_Stop sic@ */
+    p_Port.send(cs_IP_StopReq);
+    p_Port.receive(cr_IP_CommonCnf);
+  }
+
+  function f_IP_ChangeEutraCell(IP_RAT_CTRL_PORT p_Port,
+                                EUTRA_CellId_Type p_EutraCellId)
+  {
+    p_Port.send(cs_IP_ChangeEutraCellReq(p_EutraCellId));
+    p_Port.receive(cr_IP_CommonCnf);
+  }
+
+}

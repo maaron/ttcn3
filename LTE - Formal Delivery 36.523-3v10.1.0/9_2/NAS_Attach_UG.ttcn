@@ -1,0 +1,1843 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2012-09-05 15:12:54 +0200 (Wed, 05 Sep 2012) $
+// * $Rev: 7330 $
+// ***************************************************************************
+
+module NAS_Attach_UG {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_NASCommonFunctions all;
+  import from EUTRA_NASCommonTemplates all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_Timing all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  function f_TC_9_2_1_1_11_EUTRA() runs on EUTRA_PTC
+  { /* Attach / rejected / EPS services and non-EPS services not allowed (multi RAT test) */
+
+    f_EUTRA_NAS_InitIRATorEUTRAonly(LTE_CellsOnDifferentPLMN); // @sic R5-113696 sic@
+    
+    f_UT_ConfigureEPSAttach (UT); // @sic R5-103810 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    f_EUTRA_CellConfig_Def(eutra_CellB); // @sic R5s110596 sic@
+    if (px_SinglePLMN_Tested == MultiPLMN) { // @sic R5-113696 sic@
+      f_EUTRA_CellConfig_Def(eutra_CellG);
+    }
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, EPS_Only, true);   // @sic R5-113696 sic@
+
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellA, RRC_IDLE, -, EPS_Only); // @sic R5s110176 sic@
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_1_11_Body();
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    // UE ends up on other cell
+    if (f_EUTRA_GetOtherRAT() == "NONE") {
+      f_EUTRA_Postamble(eutra_CellB, E4_DEREGISTERED, EPS_Only); // @sic R5-113696 sic@
+    } else {
+      f_EUTRA_ReleaseAllCells();
+    }
+  }// function f_TC_9_2_1_1_11_EUTRA
+
+  function fl_EUTRA_9_2_1_1_11_Body() runs on EUTRA_PTC
+  {
+    var NAS_MSG_Indication_Type v_NasInd;
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    var float v_NoReactionTime := f_EUTRA_SetTimerToleranceMax( eutra_CellB, rrcTimer, 3.0 );
+    var template (value) CellPowerList_Type v_CellPowerList;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(EPS_Only); // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (EPS_Only); // @sic R5s110176 sic@
+    
+    // Step 1.
+    //@siclog "Step 1" siclog@
+    if (px_SinglePLMN_Tested == MultiPLMN) { // @sic R5s120132 sic@
+      v_CellPowerList := {
+        cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ),
+        cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE ),
+        cs_CellPower ( eutra_CellG, tsc_NonSuitableCellRS_EPRE )
+      };
+    } else {
+      v_CellPowerList := {
+        cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ),
+        cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE )
+      };
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    // Other RAT already still off
+    
+    // Step 2
+    //@siclog "Step 2" siclog@
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+    
+    // Step 3. The UE transmits an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message on cell A.
+    //@siclog "Step 3" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_Any,
+                                               cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                 cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                 cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                 f_GetPdnType())));
+    
+    // Step 4. The SS transmits an ATTACH REJECT message with EMM cause = "EPS services and non-EPS services not allowed" as specified.
+    //@siclog "Step 4" siclog@
+    SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_NoSecurityProtection,
+                                                cs_508_AttachReject(cs_EMM_Cause_v(tsc_Cause_EPSandNonEPSServNotAllowed),
+                                                                    omit))));
+    
+    //@siclog "Step 5" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    
+    //@siclog "Step 6" siclog@
+    if (px_SinglePLMN_Tested == MultiPLMN) { // @sic R5s120132 sic@
+      v_CellPowerList := {
+        cs_CellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ),
+        cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE ),
+        cs_CellPower ( eutra_CellG, tsc_NonSuitableCellRS_EPRE )
+      };
+    } else {
+      v_CellPowerList := {
+        cs_CellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ),
+        cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE )
+      };
+    }
+    f_EUTRA_SetCellPowerList(v_CellPowerList);
+
+    //@siclog "Step 7" siclog@
+    //+ Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds ?
+    f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellB, 30.0, "Step 7" );
+    
+    //@siclog "Step 8" siclog@
+    //+ The operator initiates an attach by MMI or by AT command.
+    f_UT_TriggerAttach(UT);
+    
+    //@siclog "Step 9" siclog@
+    //+ Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds ?
+    f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellB, 30.0, "Step 9" );
+    
+    //@siclog "Step 10 Void" siclog@
+    
+    //@siclog "Step 11" siclog@
+    //+ Check: Does the test result of CALL generic procedure indicate that the UE ignores paging on cell B for PS domain with GUTI1?
+    f_EUTRA_508Check_NASNoResponse(eutra_CellB,
+                                   cs_NasPaging_OneRecord(cs_PagingUE_Identity_S_TMSI(v_GutiParams.MME_Code, v_GutiParams.M_TMSI)),
+                                   v_NoReactionTime);
+    
+    if (px_SinglePLMN_Tested == MultiPLMN) { // @sic R5-113696 sic@
+        //@siclog "Step 12a1" siclog@
+        v_CellPowerList := {
+          cs_CellPower ( eutra_CellA, tsc_NonSuitableOffCellRS_EPRE ),
+          cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE ),
+          cs_CellPower ( eutra_CellG, tsc_ServingCellRS_EPRE )
+        };
+        f_EUTRA_SetCellPowerList ( v_CellPowerList );
+        
+        //@siclog "Step 12a2" siclog@
+        //+ Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds ?
+        f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellG, 30.0, "Step 12a2" );
+        
+        //@siclog "Step 12a3" siclog@
+        //+ The operator initiates an attach by MMI or by AT command.
+        f_UT_TriggerAttach(UT);
+        
+        //@siclog "Step 12a4" siclog@
+        //+ Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds ?
+        f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellG, 30.0, "Step 12a4" );
+    }
+    //@siclog "Step 13 - 15 Void" siclog@
+    //@siclog "Step 16" siclog@
+    f_UT_SwitchOffUE (UT, false, CNF_REQUIRED); // @sic R5s1100395 sic@
+    
+    //@siclog "Step 16a1" siclog@
+    if (px_SinglePLMN_Tested == MultiPLMN) { // @sic R5-113696 sic@
+        v_CellPowerList := {
+          cs_CellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ),
+          cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE ),
+          cs_CellPower ( eutra_CellG, tsc_NonSuitableOffCellRS_EPRE )
+        };
+    } else {
+        v_CellPowerList := {
+          cs_CellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ),
+          cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE )
+        };
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+
+    //@siclog "Step 17" siclog@
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellB); // @sic R5s120065 sic@
+    
+    //  Check: Does the UE transmit an ATTACH REQUEST message with IMSI-1?
+    //@siclog "Step 19" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellB,     // @sic R5-113696 sic@
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_Any,
+                                               cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                 cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                     v_AdditionalUpdateType,
+                                                                                                                     f_Imsi2MobileIdentity( px_IMSI_Def ),
+                                                                                                                     omit,
+                                                                                                                     omit), // @sic R5s110242 sic@
+                                                                                 cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                 f_GetPdnType())));
+    
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 19");
+    
+    //  The SS transmits an ATTACH REJECT message with EMM cause = "EPS services and non-EPS services not allowed" as specified.
+    //@siclog "Step 20" siclog@
+    SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellB,    // @sic R5-113696 sic@
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_NoSecurityProtection,
+                                                cs_508_AttachReject(cs_EMM_Cause_v(tsc_Cause_EPSandNonEPSServNotAllowed),
+                                                                    omit)))); // @sic R5-101012 sic@
+    
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellB); // @sic R5-101012, R5-113696 sic@
+    
+    // Cell B as a "Non-Suitable cell" and trigger UTRAN side
+    //  to set Utran-Cell5 as serving cell and continue signalling
+    //@siclog "Step 21a1" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE )  // @sic R5-113696 sic@
+    };
+    
+    /* @sic R5-113805, R5-113696, R5-113734: sic@ */
+    if (f_EUTRA_GetOtherRAT() == "NONE") { // UE supports neither UTRAN nor GERAN and is already Unattached and Idle, ...
+      // Do nothing here
+    } else {
+      f_EUTRA_SetCellPowerList ( v_CellPowerList );
+      f_EUTRA_SendTriggerToOtherRAT(true);
+    }
+    
+  }// function fl_tc_9_2_1_1_11_Body
+
+  function f_TC_9_2_1_1_12_EUTRA () runs on EUTRA_PTC
+  { /* Attach/ rejected/ EPS services not allowed */
+    
+    f_EUTRA_NAS_InitIRATorEUTRAonly(LTE_CellsOnDifferentPLMN); // @sic R5-113696 sic@
+    
+    f_UT_ConfigureEPSAttach (UT); // @sic R5-103810 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    f_EUTRA_CellConfig_Def(eutra_CellB);
+    if (px_SinglePLMN_Tested == MultiPLMN) { // @sic R5-113696 sic@
+      f_EUTRA_CellConfig_Def(eutra_CellG);
+    }
+
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, EPS_Only, true);   // @sic R5-113696 sic@
+
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellA, RRC_IDLE, -, EPS_Only); // @sic R5s110176 sic@
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_1_12_Body ();
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E4_DEREGISTERED, EPS_Only); // @sic R5s110176 sic@
+  }
+
+  function fl_EUTRA_9_2_1_1_12_Body() runs on EUTRA_PTC
+  {
+    var template (value) CellPowerList_Type v_CellPowerList;
+    
+    //@siclog "Step 1" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+
+    //@siclog "Step 2 - 5" siclog@
+    // UE is switched on, sends and ATTACH REQUEST and SS transmits an ATTACH REJECT with reject cause set to illegalME
+    f_EUTRA_AttachReject (eutra_CellA, tsc_Cause_EPSServNotAllowed, EPS_Only); // @sic R5s110176 sic@
+
+    //@siclog "Step 6" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+
+    //@siclog "Step 7" siclog@
+    //+ Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds?
+    f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellB, 30.0, "Step 7");
+
+    //@siclog "Step 8" siclog@
+    f_UT_TriggerAttach (UT);
+
+    //@siclog "Step 9" siclog@
+    f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellB, 30.0, "Step 9" );
+
+    //@siclog "Step 10" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    f_EUTRA_SendTriggerToOtherRAT (true); // @sic R5-112638 sic@
+
+    //@siclog "Step 11a1" siclog@
+    if (px_SinglePLMN_Tested == MultiPLMN) { // @sic R5-113696 sic@
+        v_CellPowerList := {
+          cs_CellPower ( eutra_CellB, tsc_NonSuitableOffCellRS_EPRE ),
+          cs_CellPower ( eutra_CellG, tsc_ServingCellRS_EPRE )
+        };
+        f_EUTRA_SetCellPowerList ( v_CellPowerList );
+
+        //@siclog "Step 11a2" siclog@
+        //+ Check: Does the UE transmit an ATTACH REQUEST message in the next 60 seconds?
+        f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellG, 60.0, "Step 11a2" );
+
+        //@siclog "Step 11a3" siclog@
+        f_UT_TriggerAttach (UT);
+
+        //@siclog "Step 11a4" siclog@
+        f_EUTRA_CheckNoAttachOn1Cell ( eutra_CellG, 30.0, "Step 11a4" );
+    }
+    // send trigger to other RAT as test now finished
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+  } // end of fl_EUTRA_9_2_1_1_12_Body
+
+  function f_TC_9_2_1_2_1b_EUTRA() runs on EUTRA_PTC
+  { // @desc Combined attach procedure / Success / SMS only
+    var CS_PS_MODE v_Mode := VOICE_CENTRIC;
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c10); // @sic R5-113805 sic@
+    
+    if ( not (pc_CS_PS_voice_centric and px_UE_CS_PS_UsageSetting_Tested == VOICE_CENTRIC)) { // @sic R5s120079r1 sic@
+      v_Mode := DATA_CENTRIC;
+    }
+    f_UT_ConfigureCombinedAttach (UT, v_Mode);
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    
+    // Preamble: The UE is in state Switched OFF (state 1)
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, Combined);            // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe(eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_1b_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    if ( pc_CS_PS_voice_centric and px_UE_CS_PS_UsageSetting_Tested == VOICE_CENTRIC) { // @sic R5-122012 sic@
+      // finishes on other RAT
+      f_EUTRA_ReleaseAllCells();
+    } else {
+      f_EUTRA_Postamble(eutra_CellA, E1_IDLE, Combined); // @sic R5s110176 sic@
+    }
+  } // end f_TC_9_2_1_2_1b_EUTRA
+
+  function fl_EUTRA_9_2_1_2_1b_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EPS_TI := '00'O;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_Lac v_Lac1 := f_EUTRA_CellInfo_GetLocationAreaCode(eutra_CellA);
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+    var GutiParameters_Type v_Guti1_Params := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    var GutiParameters_Type v_Guti2_Params := f_CreateGutiParamsWithUpdatedSTmsi(v_Guti1_Params);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId(v_Guti1_Params.PLMN_Identity);
+    var template (value) LocAreaId v_LAI_1 := cs_LAI('13'O, v_PLMN, v_Lac1);
+    var template (omit) MobileIdentity v_MSId := f_GetMSId (Combined); // @sic R5s110176 sic@
+    var template (omit) ProtocolConfigOptions v_Pco := omit;
+    var template (omit) AccessPointName v_APN := omit;
+    var HalfOctet_Type v_EpsBearerId := tsc_EpsDefaultBearerId;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    var boolean v_EIT_Flag := false;
+    var charstring v_OtherRAT := f_EUTRA_GetOtherRAT();
+    var float v_TimerValue;
+    var boolean v_RcvdComplete := false;
+    var NAS_AttDetValue_Type v_EDetachType :=f_GetEDetachType(Combined);
+    timer t_Wait2 := 2.0; // Wait for Attach Complete/Detach
+    
+    //@siclog "Step 1" siclog@
+    // Set the cell type of cell A to the "Serving cell"
+    // Set the cell type of cell 5 or cell 24 to the "Non-Suitable cell"
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_ServingCellRS_EPRE );
+    // send trigger to other RAT to change its power level too
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+    
+    //@siclog "Step 2" siclog@
+    // The UE is powered up or switched on
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+    
+    //@siclog "Step 2A1" siclog@
+    // receive RRC Connection Request on SRB0 (CCCH):
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_CellA, cr_EstablishmentCause_Any);   // @sic R5-122012 sic@
+    
+    //@siclog "Step 2A2" siclog@
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_CellA, -, v_RRC_TI);
+    
+    //@siclog "Step 2A3" siclog@
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    //@siclog "Step 3" siclog@
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_CellA,
+                                                       cr_508_RRCConnectionSetupComplete(v_RRC_TI, ?),
+                                                       cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                         cdr_ATTACH_REQUEST_AttachType(tsc_EAttachType_Combined,
+                                                                                                                       v_AdditionalUpdateType,
+                                                                                                                       f_GutiParameters2MobileIdentity(omit, v_Guti1_Params),
+                                                                                                                       cr_TAI( v_PLMN, v_Lac1),
+                                                                                                                       v_LAI_1,
+                                                                                                                       omit),
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                         f_GetPdnType())));
+    
+    v_PdnConnectivityRequest := v_NasInd.Pdu.PiggybackedPduList[0].Msg;
+    v_EPS_TI := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier; // Use this value in SS responses
+    // Get the PCO to be used later (TS 36.508 v.8.2.2 Table 4.7.3-6)
+    if (ispresent( v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions)) {
+      v_Pco := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;
+    }
+    
+    //+   The SS starts an authentication procedure
+    //+   The UE responds properly to the authentication procedure
+    //+   The SS transmits a NAS SECURITY MODE COMMAND message to
+    //+   activate NAS security.
+    //+   The UE transmits a NAS SECURITY MODE COMPLETE message
+    //+   and establishes the initial security configuration.
+    //+  - ESM information optionally transferred
+    //@siclog "Step 4 - 7Aa2" siclog@
+    v_EIT_Flag := f_CheckEsmInfoTransferFlag(v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST);
+    v_APN := f_EUTRA_Authentication_NAS_AS_Security (eutra_CellA, v_EIT_Flag, v_EPS_TI, true);
+    if (not isvalue(v_APN)) {
+      v_APN := cs_AccessPointName (px_AccessPointName);
+    }
+    
+    //@siclog "Step 8" siclog@
+    //+   SS sends ATTACH ACCEPT message with the ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message
+    f_EUTRA_RRCConnectionReconfiguration_SRB2_1AM_DRB_Est (eutra_CellA,
+                                                           v_RRC_TI,
+                                                           cs_NAS_RequestWithPiggybacking(tsc_SHT_IntegrityProtected_Ciphered,
+                                                                                          cs_ATTACH_ACCEPT_Common (tsc_EAttachType_Combined,
+                                                                                                                   cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                                                                                                   cs_TrackingAreaIdListDef_lv,
+                                                                                                                   f_GutiParameters2MobileIdentity(tsc_IEI_Guti, v_Guti2_Params), // @sic R5s110747 sic@
+                                                                                                                   v_LAI_1,
+                                                                                                                   v_MSId,
+                                                                                                                   omit,
+                                                                                                                   omit,
+                                                                                                                   omit,
+                                                                                                                   omit,
+                                                                                                                   omit,
+                                                                                                                   cs_EPS_NwkFtSup_IMSVoiceNotSupport,
+                                                                                                                   cs_AdditionalUpdateResult_SMSOnly,
+                                                                                                                   omit), // @sic R5s120178 Baseline Moving sic@
+                                                                                          cs_508_ActivateDefEpsBearerContextRequest(v_EpsBearerId,
+                                                                                                                                    v_EPS_TI,
+                                                                                                                                    valueof(v_APN),
+                                                                                                                                    f_EUTRA_GetPDNAddress(f_CheckPCOforIPallocationViaNas (v_Pco)),
+                                                                                                                                    -,
+                                                                                                                                    f_GetDefPCOforPCSCFAddress (v_Pco))));
+    
+    //@siclog "Step 9-10 Void" siclog@
+    if (pc_CS_PS_voice_centric and px_UE_CS_PS_UsageSetting_Tested == VOICE_CENTRIC) {
+      // Table 9.2.1.2.1b.3.2-2 @sic R5-122012 sic@
+      t_Wait2.start;
+      f_EUTRA_SendTriggerToOtherRAT ();
+      alt {
+        [not v_RcvdComplete] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                                             cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected_Ciphered,
+                                                                                               cr_508_ATTACH_COMPLETE,
+                                                                                               cr_508_ActivateDefEpsBearerContextAccept(tsc_EpsDefaultBearerId))))
+          {
+            t_Wait2.start; // start timer again to see if UE sends detach
+            v_RcvdComplete := true;
+            repeat;  // UE may then send detach req
+          }
+        [] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                           cr_NAS_Indication (tsc_SHT_IntegrityProtected_Ciphered,
+                                                              cr_508_DETACH_REQUEST_MO(cr_NAS_KeySetIdentifier (?, ?), // @sic R5s110031 sic@
+                                                                                       f_GutiParameters2MobileIdentity(omit, v_Guti2_Params),
+                                                                                       cr_DetachType(?, v_EDetachType)))))
+          {
+            t_Wait2.stop;
+            f_EUTRA_SendTriggerToOtherRAT (); // Let other RAT know Detach has been sent
+            SRB.send (cas_SRB2_NasPdu_REQ ( eutra_CellA,
+                                            cs_TimingInfo_Now,
+                                            cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                           cs_508_DETACH_ACCEPT)));
+            f_EUTRA_RRC_ConnectionRelease (eutra_CellA, v_RRC_TI);
+          }
+        [] t_Wait2.timeout
+          {
+            f_EUTRA_RRC_ConnectionRelease (eutra_CellA, v_RRC_TI);
+          }
+      }
+      // now wait until finished on other cell
+      select (v_OtherRAT) {
+        case ("UTRAN") {
+          f_IRAT_WaitForCoOrd_Trigger(UTRAN);
+        }
+        case ("GERAN") {
+          f_IRAT_WaitForCoOrd_Trigger(GERAN);
+        }
+      }
+    } else { // @sic R5-122012 sic@
+      //@siclog "Step 11b0" siclog@
+      f_EUTRA_NAS_AttachComplete (eutra_CellA, v_EpsBearerId );  // @sic R5s110449 sic@
+      
+      //@siclog "Step 11b1" siclog@
+      //+   The SS releases the RRC connection.
+      f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+      
+      //@siclog "Step 11b2" siclog@
+      //Check: Does the UE respond to paging on cell A with S-TMSI in GUTI-2 for PS domain?
+      //(Generic Procedure TS36.508 6.4.2.4)
+      f_EUTRA_CellInfo_SetGuti(eutra_CellA, v_Guti2_Params); // @sic R5-110747 sic@
+      f_EPS_508Check_NAS_Paging(eutra_CellA, ps);
+      
+      if (pc_VoLTE) { // @sic R5-122012 sic@
+        //@siclog "Step 11b3a1" siclog@
+        // An IMS call is initiated
+        f_UT_RequestIMSCall (UT);
+        
+        //@siclog "Step 11b3a2" siclog@
+        // Check: Does the UE send RRC Connection Request message? (F, 4) @sic R5-120644 sic@
+        v_TimerValue := f_EUTRA_SetTimerToleranceMin( eutra_CellA, nonProtocolTimer, 5.0 );
+        if (f_EUTRA_RRC_RRCConnectionRequest_Check(eutra_CellA, v_TimerValue)) {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 11b3a2");
+        }
+      }
+      // send trigger to other RAT as test now finished
+      f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+    }
+  }
+
+  function f_TC_9_2_1_2_1c_EUTRA() runs on EUTRA_PTC
+  { /* Combined attach procedure / Success / EPS and CS Fallback not preferred */
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c4);
+    f_UT_ConfigureCombinedAttach (UT, VOICE_CENTRIC);
+
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+
+    // Preamble: The UE is in state Switched OFF (state 1)
+    // ==========================================================================
+    f_EUTRA_Preamble_InterRAT(eutra_CellA, STATE2_IDLEUPDATE, UTRAN, Combined); // @sic R5s110176 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe(eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+
+    // At T0 set cell type of Cell A to the "Serving cell" and wait for UTRAN side power level selection
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ); //set to follow prose
+
+    f_EUTRA_TestBody_Set(true);
+
+    fl_EUTRA_9_2_1_2_1c_Body();
+
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E1_IDLE, Combined); // @sic R5s110176 sic@
+  }
+
+  function fl_EUTRA_9_2_1_2_1c_Body() runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined);
+    var GutiParameters_Type v_Guti1_Params := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    var template (omit) ProtocolConfigOptions v_Pco := omit;
+    var boolean v_IPallocationViaNasFlag :=  false;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode ( eutra_CellA );
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_Guti1_Params.PLMN_Identity);
+    var template (omit) LocAreaId v_LAI := f_GetLAI(v_PLMN, v_LAC, Combined);
+    var template (omit) MobileIdentity v_MSId := f_GetMSId (Combined);
+    var template (value) PDN_Address v_PDN_Address;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(Combined);
+    var NAS_AttDetValue_Type v_EDetachType :=f_GetEDetachType(Combined);
+    var B3_Type v_PDNType := f_GetPdnType();
+    var boolean v_RcvdComplete := false;
+    var template (omit) AccessPointName v_APN := omit;
+    var ProcedureTransactionIdentifier v_EPS_TI := '00'O;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    timer t_Wait2 := 2.0; // Wait for Attach Complete/Detach
+    
+    //@siclog "Step 0" siclog@
+    // Set the cell type of cell A to the "Serving cell"
+    // Set the cell type of cell 5 to the "Non-Suitable cell"
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_ServingCellRS_EPRE );
+    // send trigger to other RAT to change its power level too
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+
+    //@siclog "Step 1" siclog@
+    // The UE is powered up or switched on
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+
+    //@siclog "Step 2" siclog@
+    // receive RRC Connection Request on SRB0 (CCCH):
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_CellA, cr_EstablishmentCause_Any);
+
+    //@siclog "Step 3" siclog@
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_CellA, -, v_RRC_TI);
+
+    //@siclog "Step 4" siclog@
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+
+    //@siclog "Step 5" siclog@
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_CellA,                                    // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(v_RRC_TI, ?), // @sic R5s110468 sic@
+                                                       cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                         cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType), // @sic R5-103681 sic@
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNType)));
+
+    v_PdnConnectivityRequest := v_NasInd.Pdu.PiggybackedPduList[0].Msg;
+    v_EPS_TI := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier;
+    if (ispresent(v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions)) {
+      v_Pco := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;
+    }
+    //@siclog "Step 6-10" siclog@
+    v_APN := f_EUTRA_IdleUpdated_Step5_13 (eutra_CellA, STATE2_IDLEUPDATE, v_NasInd);
+    
+    v_IPallocationViaNasFlag :=  f_CheckPCOforIPallocationViaNas (v_Pco); // See TS 36.508 v.8.2.2 Table 4.7.3-6
+    v_PDN_Address := f_EUTRA_GetPDNAddress (v_IPallocationViaNasFlag);
+    
+    f_EUTRA_RRCConnectionReconfiguration_SRB2_1AM_DRB_Est(eutra_CellA,
+                                                          v_RRC_TI,
+                                                          cs_NAS_RequestWithPiggybacking(tsc_SHT_IntegrityProtected_Ciphered,
+                                                                                         cs_ATTACH_ACCEPT_Common (tsc_EAttachType_Combined,
+                                                                                                                  cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                                                                                                  cs_TrackingAreaIdListDef_lv,
+                                                                                                                  f_GutiParameters2MobileIdentity(tsc_IEI_Guti, v_Guti1_Params),
+                                                                                                                  v_LAI,
+                                                                                                                  v_MSId,
+                                                                                                                  omit,
+                                                                                                                  omit,
+                                                                                                                  omit,
+                                                                                                                  omit,
+                                                                                                                  omit,
+                                                                                                                  cs_EPS_NwkFtSup_IMSVoiceNotSupport,
+                                                                                                                  cs_AdditionalUpdateResult_CSFallbackNotPreferred,
+                                                                                                                  omit),  // @sic R5s120178 Baseline Moving sic@
+                                                                                         cs_508_ActivateDefEpsBearerContextRequest(tsc_EpsDefaultBearerId,       // @sic R5s120458 sic@
+                                                                                                                                   v_EPS_TI,
+                                                                                                                                   valueof(v_APN),
+                                                                                                                                   v_PDN_Address,
+                                                                                                                                   -,
+                                                                                                                                   f_GetDefPCOforPCSCFAddress (v_Pco))));
+    // Table 9.2.1.2.1c.3.2-3
+    t_Wait2.start;
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    alt {
+      [not v_RcvdComplete] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                                           cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected_Ciphered,
+                                                                                             cr_508_ATTACH_COMPLETE,
+                                                                                             cr_508_ActivateDefEpsBearerContextAccept(tsc_EpsDefaultBearerId))))
+        {
+          t_Wait2.start;
+          v_RcvdComplete := true;
+          repeat;  // UE should then send detach req
+        }
+      [] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                         cr_NAS_Indication (tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_DETACH_REQUEST_MO(cr_NAS_KeySetIdentifier (?, ?), // @sic R5s110031 sic@
+                                                                                     f_GutiParameters2MobileIdentity(omit, v_Guti1_Params),
+                                                                                     cr_DetachType(?, v_EDetachType)))))
+       {
+         t_Wait2.stop;
+         f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger); // Let other RAT know Detach has been sent
+         SRB.send (cas_SRB2_NasPdu_REQ ( eutra_CellA,
+                                         cs_TimingInfo_Now,
+                                         cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                        cs_508_DETACH_ACCEPT)));
+         f_EUTRA_RRC_ConnectionRelease (eutra_CellA, v_RRC_TI);
+       }
+      [] t_Wait2.timeout
+        {
+          f_EUTRA_RRC_ConnectionRelease (eutra_CellA, v_RRC_TI);
+        }
+    }
+    // now wait until finished on UTRAN cell
+    f_IRAT_WaitForCoOrd_Trigger(UTRAN);
+    
+    //@siclog "Step 14" siclog@
+    // The UE is powered up or switched on
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+    
+    //@siclog "Step 15" siclog@
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_CellA);    // @sic R5-120721 change 3 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 15");
+    
+    // send RRC Connection Setup on SRB0 (CCCH) and switch on UL grant assignments:
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_CellA);
+    
+    // receive RRC Connection Setup Complete with piggy-backed NAS message on SRB1 (DCCH):
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(eutra_CellA,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(v_RRC_TI, ?),
+                                                       cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                         cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType ),
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, f_GetPdnType())));
+    //@siclog "Step 16 - 28" siclog@
+    // Registration procedure described in TS 36.508 table 4.5.2.3-1
+    f_EUTRA_IdleUpdated_Step5_17 (eutra_CellA, STATE2_IDLEUPDATE, Combined, v_NasInd); // @sic R5s110395 sic@
+    
+    // send trigger to UTRAN side since Test case is now finished on E-UTRA side
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+  }
+
+  function f_TC_9_2_1_2_1d_EUTRA() runs on EUTRA_PTC
+  { /* Combined attach procedure / Success / EPS and CS Fallback not preferred/ data centric UE */
+
+    //Equip UE with a USIM containing default values except for those shown in Table 9.2.1.2.1d.3.1-1
+    f_UT_USIM_Insert ( UT, "36.523-1 Table 9.2.1.2.1d.3.1-1" );
+    
+    // create cell and send out system information
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c4);
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    f_UT_ConfigureCombinedAttach (UT, DATA_CENTRIC);
+    
+    // Preamble: The UE is in state Switched OFF (state 1)
+    // ==========================================================================
+    f_EUTRA_Preamble_InterRAT(eutra_CellA, STATE2_IDLEUPDATE, UTRAN, Combined); // @sic R5s110176 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe(eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+
+    // At T0 set cell type of Cell A to the "Serving cell" and Cell 5 to Suitable cell
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_1d_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    // UE finishes on UTRAN
+    f_EUTRA_ReleaseAllCells();
+  }
+
+  function fl_EUTRA_9_2_1_2_1d_Body() runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti (eutra_CellA);
+    var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode (eutra_CellA);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    var TrackingAreaCode v_TAC := f_EUTRA_CellInfo_GetTAC(eutra_CellA);
+    var template (omit) MobileIdentity v_MSId := f_GetMSId (Combined);
+    var template (omit) LocAreaId v_LAI := f_GetLAI(v_PLMN, v_LAC, Combined);
+    var NAS_MSG_Indication_Type v_NasInd;
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    var template (value) RedirectedCarrierInfo v_RedirectedCarrierInfo;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    var ProcedureTransactionIdentifier v_EPS_TI := '00'O;
+    var template (omit) ProtocolConfigOptions v_Pco := omit;
+    var AccessPointName v_APN;
+    var template (omit) EPS_BearerContextStatus v_EPS_ContextStatus;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined);
+    var template (value) TrackingAreaIdList v_TaiList := cds_TAIListNonConsecutive_tlv ( v_PLMN, { bit2oct( v_TAC ) } ); // @sic R5s100029 sic@
+
+    //Synchronise with UTRAN PTC and get Cell Parameters for UTRAN cell
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ); // @sic R5s120156 sic@
+
+    //@siclog "Step 1" siclog@
+    // The UE is powered up or switched on.
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+    
+    // @siclog "Step 2-16" siclog@
+    //Steps 2-16 of the registration procedure described in TS 36.508 table 4.5.2.3-1 are performed.
+    v_NasInd := f_EUTRA_IdleUpdated_Step1_4 (eutra_CellA, NORMAL, Combined);
+    
+    v_PdnConnectivityRequest := v_NasInd.Pdu.PiggybackedPduList[0].Msg;
+    v_EPS_TI := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier; // Use this value in SS responses
+    // Get the PCO to be used later (TS 36.508 v.8.2.2 Table 4.7.3-6)
+    if (ispresent( v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions)) {
+      v_Pco := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;
+    }
+    v_APN := f_EUTRA_IdleUpdated_Step5_13( eutra_CellA, STATE2_IDLEUPDATE, v_NasInd);
+    
+    f_EUTRA_RRCConnectionReconfiguration_SRB2_1AM_DRB_Est (eutra_CellA,
+                                                           tsc_RRC_TI_Def,
+                                                           cs_NAS_RequestWithPiggybacking(tsc_SHT_IntegrityProtected_Ciphered,
+                                                                          cs_ATTACH_ACCEPT_Common (tsc_EAttachType_Combined,
+                                                                                                   cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                                                                                   cs_TAIListNonConsecutive_lv (v_PLMN, {bit2oct(v_TAC)}),
+                                                                                                   f_GutiParameters2MobileIdentity(tsc_IEI_Guti, v_GutiParams),
+                                                                                                   v_LAI,
+                                                                                                   v_MSId,
+                                                                                                   omit,
+                                                                                                   omit,
+                                                                                                   omit,
+                                                                                                   omit,
+                                                                                                   omit,
+                                                                                                   cs_EPS_NwkFtSup_IMSVoiceNotSupport,
+                                                                                                   cs_AdditionalUpdateResult_CSFallbackNotPreferred,
+                                                                                                   omit), // @sic R5s120178 Baseline Moving sic@
+                                                                          cs_508_ActivateDefEpsBearerContextRequest(tsc_EpsDefaultBearerId,
+                                                                                                                    v_EPS_TI,
+                                                                                                                    v_APN,
+                                                                                                                    f_EUTRA_GetPDNAddress(f_CheckPCOforIPallocationViaNas (v_Pco)),
+                                                                                                                    -,
+                                                                                                                    f_GetDefPCOforPCSCFAddress (v_Pco))));
+
+    
+    f_EUTRA_IdleUpdated_Step16_17 (eutra_CellA, true);
+    
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_IRAT_WaitForCoOrd_Trigger(UTRAN); // wait for trigger from UTRAN side
+    
+    //@siclog "Step 18" siclog@
+    //Transmit a Paging message to the UE on Cell 1 using S-TMSI with CN domain indicator set to "CS"
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    f_EUTRA_UE_Page (eutra_CellA,
+                     cs_DomainNasPaging_OneRecord(cs_PagingUE_Identity_S_TMSI(v_GutiParams.MME_Code,
+                                                                              v_GutiParams.M_TMSI),
+                                                  cs));
+    
+    //@siclog "Step 19a1" siclog@
+    //IF the UE needs to request upper layer input before accepting the CS fallback, the incoming CS call is accepted at the UE through MMI or AT command.
+    if ( not pc_ImmConnect ) {
+      f_UT_AnswerCSCall (UT);
+    }
+    
+    //@siclog "Step 20" siclog@
+    //Receieve RRCConnectionRequest
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_CellA);    // @sic R5-120721 change 3 sic@
+    
+    //@siclog "Step 21" siclog@
+    //Send RRCConnectionSetup
+    f_EUTRA_RRC_ConnectionSetup_Def(eutra_CellA);
+    
+    //@siclog "Step 22" siclog@
+    //receive RRCConnectionSetupComplete containing an EXTENDED SERVICE REQUEST with Service Type IE set to "mobile terminating CS fallback or 1xCS fallback"
+    f_EUTRA_RRCConnectionSetupComplete_Def(eutra_CellA,                                       // @sic R5s120121 MCC160 implementation sic@
+                                           cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?, omit),
+                                           cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                             cr_508_EXT_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get(),
+                                                                                        bit2oct(v_GutiParams.M_TMSI))));
+    
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 22");
+    
+    //Set the Redirect Information in the RRCConnectionRelease message (step 1)
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {// @sic R5-115770 sic@
+      v_RedirectedCarrierInfo := cs_RedirectionInfo_UtraFdd ( v_UTRANSysInfo.Utran[0].FDD.Freq );//[0] corresponds to Utran cell 5 according to the Init-function.
+    }
+    else {
+      v_RedirectedCarrierInfo := cs_RedirectionInfo_UtraTdd ( v_UTRANSysInfo.Utran[0].TDD.Freq );
+    }
+    
+    //@siclog "Step 23" siclog@
+    //Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_CellA,
+                                           cs_RRCConnectionRelease ( tsc_RRC_TI_Def,
+                                                                     other,
+                                                                     v_RedirectedCarrierInfo,
+                                                                     omit ) );
+    
+    //@siclog "Step 23A" siclog@
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ); // @sic R5s120156 sic@
+    f_EUTRA_SendAuthParameters(eutra_CellA, UTRAN);
+
+    //@siclog "Step 42G" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(UTRAN); // wait for trigger from UTRAN side
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ); // @sic R5s120156 sic@
+    
+    //@siclog "Step 43-48" siclog@
+    // @sic R5s120156 sic@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas ( eutra_CellA,
+                                                 tsc_RRC_TI_Def,
+                                                 ?,
+                                                 cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                        cdr_TAU_Request_OldAddGutiTAI (tsc_EpsUpdate_Combined_IMSIAttach,
+                                                                                       f_EUTRA_SecurityKSIasme_Get (),
+                                                                                       cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                                       v_AdditionalUpdateType,
+                                                                                       cr_MobileIdAny(omit),
+                                                                                       cr_TAI_Any ifpresent,
+                                                                                       cr_MobileIdAny('50'O),
+                                                                                       cr_PTMSI_SignatureAny,
+                                                                                       cr_NonceUE_Any)));
+    v_EPS_ContextStatus := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus; // Send this back in the Accept
+
+    SRB.send ( cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                     cs_TimingInfo_Now,
+                                     cs_NAS_Request ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cs_TAU_Accept_Common ( tsc_EpsUpdate_Combined_TaLaUpdate, // @sic R5-121765 sic@
+                                                                             f_GutiParameters2MobileIdentity (tsc_IEI_Guti, v_GutiParams ),
+                                                                             v_TaiList,
+                                                                             v_EPS_ContextStatus,
+                                                                             v_LAI,
+                                                                             v_MSId,
+                                                                             cs_AdditionalUpdateResult_CSFallbackNotPreferred, // @sic R5s120156 sic@
+                                                                             -,
+                                                                             -,
+                                                                             omit,
+                                                                             cs_EPS_NwkFtSup_IMSVoiceNotSupport)))); // @sic R5s120156, R5-121765 sic@
+    
+    /* Receive TRACKING AREA UPDATE COMPLETE */
+    /* According to 24.301 cl: 5.5.3.2.4:
+       If the TRACKING AREA UPDATE ACCEPT message contained a GUTI,
+       the UE shall return a TRACKING AREA UPDATE COMPLETE message to
+       the MME to acknowledge the received GUTI */
+    SRB.receive ( car_SRB1_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_TAU_Complete ) ) );
+    // The SS releases the RRC connection
+    f_EUTRA_RRC_ConnectionRelease ( eutra_CellA, tsc_RRC_TI_Def ); // @sic R5s110777 sic@
+    
+    f_UT_RequestCSCall (UT);
+    
+    //@siclog "Step 49" siclog@
+    //Receieve RRCConnectionRequest
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_CellA);    // @sic R5-120721 change 3 sic@
+    
+    //@siclog "Step 50" siclog@
+    //Send RRCConnectionSetup
+    f_EUTRA_RRC_ConnectionSetup_Def(eutra_CellA);
+    
+    //@siclog "Step 51" siclog@
+    //receive RRCConnectionSetupComplete containing an EXTENDED SERVICE REQUEST with Service Type IE set to "mobile terminating CS fallback or 1xCS fallback"
+    f_EUTRA_RRCConnectionSetupComplete_Def(eutra_CellA,                                       // @sic R5s120121 MCC160 implementation sic@
+                                           cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?, omit),
+                                           cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                             cr_EXT_SERVICE_REQUEST_MO(f_EUTRA_SecurityKSIasme_Get(),
+                                                                                        bit2oct(v_GutiParams.M_TMSI))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 51");
+    
+    //@siclog "Step 52" siclog@
+    //Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_CellA,
+                                           cs_RRCConnectionRelease ( tsc_RRC_TI_Def,
+                                                                     other,
+                                                                     v_RedirectedCarrierInfo,
+                                                                     omit ) );
+    
+    f_EUTRA_SendAuthParameters(eutra_CellA, UTRAN);
+    f_IRAT_WaitForCoOrd_Trigger(UTRAN); // wait for trigger from UTRAN side
+  }// function fl_tc_9_2_1_2_1d_Body
+
+  function f_TC_9_2_1_2_5_EUTRA() runs on EUTRA_PTC
+  { /* @desc Combined attach / Rejected / IMSI invalid */
+
+    f_EUTRA_NAS_Init (LTE_AllCellsOnSamePLMN, c10a);   // @sic R5-113805, R5s110596 sic@
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    f_EUTRA_CellConfig_SRBs_Only(eutra_CellB);
+    
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, Combined, true);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_5_6and7_Body (tsc_EmmCause_IllegalUe);
+    
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED, Combined); // @sic R5s110176 sic@
+    
+  } // end f_TC_9_2_1_2_5_EUTRA
+
+  function f_TC_9_2_1_2_6_EUTRA() runs on EUTRA_PTC
+  { /* Combined attach / rejected / Illegal ME */
+
+    f_EUTRA_NAS_Init (LTE_AllCellsOnSamePLMN, c10a);   // @sic R5-113805, R5s110596 sic@
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    f_EUTRA_CellConfig_SRBs_Only(eutra_CellB);
+    
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, Combined, true);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_5_6and7_Body (tsc_EmmCause_IllegalMe);
+    
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED, Combined); // @sic R5s110176 sic@
+    
+  }// function f_TC_9_2_1_2_6_EUTRA
+
+  function f_TC_9_2_1_2_7_EUTRA() runs on EUTRA_PTC
+  { /* @desc Combined attach / Rejected / IMSI invalid */
+
+    f_EUTRA_NAS_Init (LTE_AllCellsOnSamePLMN, c10a);   // @sic R5-113805, R5s110596 sic@
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    f_EUTRA_CellConfig_SRBs_Only(eutra_CellB);
+    
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, Combined, true);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_5_6and7_Body (tsc_Cause_EPSandNonEPSServNotAllowed);
+    
+    f_EUTRA_TestBody_Set(false);
+    
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED, Combined); // @sic R5s110176 sic@
+  } // end f_TC_9_2_1_2_7_EUTRA
+
+  function fl_EUTRA_9_2_1_2_5_6and7_Body(NAS_CauseValue_Type p_RejectCause) runs on EUTRA_PTC
+  {
+    var template (value) CellPowerList_Type v_CellPowerList;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_AttDetValue_Type v_AttachType;
+    var PdnTypeValue v_PDNValue;
+    var NAS_MSG_Indication_Type v_NAS_Ind;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+    
+    //@siclog "Step 1" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    // send trigger to other RAT to change its power level too
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+    
+    //@siclog "Step 2 - 5" siclog@
+    // UE is switched on, sends and ATTACH REQUEST and SS transmits an ATTACH REJECT with cause set to:
+    // TC_9_2_1_2_5: Illegal UE
+    // TC_9_2_1_2_7: EPS services and non-EPS services not allowed
+    f_EUTRA_AttachReject (eutra_CellA, p_RejectCause, Combined); // @sic R5s110176 sic@
+    
+    //@siclog "Step 6" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 7" siclog@
+    // Check: Does the UE send and ATTACH REQUEST in the next 30 seconds on either Cell B or Cell A?
+    f_EUTRA_CheckNoAttachOn2Cells ( eutra_CellA, eutra_CellB, 30.0 );
+    
+    //@siclog "Step 8" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    f_EUTRA_SendTriggerToOtherRAT (true); // @sic R5-112638 sic@
+    
+    //  Configure power levels, now CellA is the Serving Cell
+    //@siclog "Step 10" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_NonSuitableCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 11 Void" siclog@
+    
+    v_AttachType := f_GetEAttachType(Combined); // @sic R5s110176 sic@
+    
+    v_PDNValue := f_GetPdnType();
+    
+    //  UE sends and ATTACH REQUEST on CellA
+    //@siclog "Step 12" siclog@
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                                v_RRC_TI,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                  cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                      v_AdditionalUpdateType,
+                                                                                                                      f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                                                                      cr_TMSI_Status('0'B),
+                                                                                                                      omit), //@sic R5s110242 sic@
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  v_PDNValue)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 12");
+    
+    //@siclog "Step 13 -15 Void" siclog@
+    //@siclog "Step 16 - 27" siclog@
+    f_EUTRA_IdleUpdated_Step5_17(eutra_CellA, STATE2_IDLEUPDATE, Combined, v_NAS_Ind, false); // @sic R5s110395 sic@
+    
+    // send trigger to other RAT as test now finished
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+  }// end function fl_EUTRA_9_2_1_2_5_6and7_Body
+
+  function f_TC_9_2_1_2_8_EUTRA() runs on EUTRA_PTC
+  { /* Combined attach / rejected / EPS services not allowed */
+    
+    f_EUTRA_NAS_Init (LTE_AllCellsOnSamePLMN, c10a);   // @sic R5-113805, R5s110596 sic@
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    f_EUTRA_CellConfig_SRBs_Only(eutra_CellB);
+    
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, Combined, true);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_8_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E4_DEREGISTERED, Combined); // @sic R5s110176 sic@
+    
+  }// function f_TC_9_2_1_2_8_EUTRA
+
+  function fl_EUTRA_9_2_1_2_8_Body() runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var template (value) CellPowerList_Type v_CellPowerList;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(Combined); // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+    
+    //@siclog "Step 1" siclog@
+    //  The SS configures:
+    //   - Cell A as the "Serving cell".
+    //   - Cell B as a "Suitable neighbour cell".
+    //   - Cell 5 or Cell 24 as a "Suitable neighbour cell".
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    // send trigger to other RAT to change its power level too
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+    
+    //@siclog "Step 2" siclog@
+    //+  The UE is switched on.
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+    
+    // The following messages are sent and shall be received on Cell A.
+    
+    //@siclog "Step 3" siclog@
+    //+ The UE transmits an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message.
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               v_RRC_TI,
+                                               cr_EstablishmentCause_Any,
+                                               cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                 cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType ),
+                                                                                 cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, ?)));
+    
+    
+    //@siclog "Step 4" siclog@
+    //+   The SS transmits an ATTACH REJECT message with EMM cause = "EPS services not allowed".
+    SRB.send  ( cas_SRB1_NasPdu_REQ ( eutra_CellA,
+                                      cs_TimingInfo_Now,
+                                      cs_NAS_Request ( tsc_SHT_NoSecurityProtection,
+                                                       cs_508_AttachReject ( cs_EMM_Cause_v(tsc_Cause_EPSServNotAllowed),
+                                                                             omit))));
+    
+    //@siclog "Step 5" siclog@
+    //+   The SS releases the RRC connection.
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    
+    
+    //Behaviour that depends on the UE capability
+    //@siclog "Step 6" siclog@
+    f_EUTRA_SendTriggerToOtherRAT (true); // @sic R5-112638 sic@
+    
+    //@siclog "Step 7" siclog@
+    //The SS configures: Cell A as the "Suitable neighbour cell". Cell B as the "Suitable neighbour cell".
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 8" siclog@
+    //+   Check: Does the UE transmit the ATTACH REQUEST message in the next 30 seconds on Cell A or Cell B? [1, F]
+    f_EUTRA_CheckNoAttachOn2Cells(eutra_CellA, eutra_CellB, 30.0);
+    
+    // send trigger to other RAT as test now finished
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+    
+  } // function tc_9_2_1_2_8_Body
+
+  function f_TC_9_2_1_2_9_EUTRA() runs on EUTRA_PTC
+  { /* ombined attach / rejected / PLMN not allowed */
+
+    f_EUTRA_NAS_Init (LTE_CellsOnDifferentPLMN, c10, LTE_NAS_Replacef3_f1);   // @sic R5-113805 sic@ @sic R5-121081 sic@
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+
+   // Create cells and send out system information for CellI (serving) and Cell G (non-suitable)
+    f_EUTRA_CellConfig_Def(eutra_CellH);
+    f_EUTRA_CellConfig_Def(eutra_CellG);
+    f_EUTRA_CellConfig_Def(eutra_CellI);
+    
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellG, Combined);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellG, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+
+    f_EUTRA_TestBody_Set(true);
+
+    fl_EUTRA_9_2_1_2_9_Body();
+
+   // Postamble
+    f_EUTRA_TestBody_Set(false);
+
+    f_EUTRA_Postamble(eutra_CellG, E1_IDLE, Combined); // @sic R5s110176 sic@
+  }// function f_TC_9_2_1_2_9_EUTRA
+
+  function fl_EUTRA_9_2_1_2_9_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EPS_TI := '00'O;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var template (value) CellPowerList_Type v_CellPowerList;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(Combined); // @sic R5s110176 sic@
+    var GutiParameters_Type v_GutiParams_CellG := f_EUTRA_CellInfo_GetGuti(eutra_CellG);
+    var GutiParameters_Type v_GutiParams_CellI := f_EUTRA_CellInfo_GetGuti(eutra_CellI);
+    var NAS_PlmnId v_PLMN_CellI := f_Asn2Nas_PlmnId (v_GutiParams_CellI.PLMN_Identity);
+    var TrackingAreaCode v_TAC_CellI := f_EUTRA_CellInfo_GetTAC ( eutra_CellI );
+    
+    // The SS configures:
+    //@siclog "Step 1" siclog@
+    //  - Cell G as the "Serving cell".
+    //  - Cell H as a "Suitable Neighbour cell".
+    //  - Cell I as a "Non-Suitable Off cell".
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellG, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellH, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 2" siclog@
+    //+  The UE is switched on.
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellG); // @sic R5s120065 sic@
+    
+    //@siclog "Step 3" siclog@
+    //The UE transmits an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message.
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas( eutra_CellG,
+                                                tsc_RRC_TI_Def,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                  cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  f_GetPdnType())));
+
+    v_EPS_TI := v_NasInd.Pdu.PiggybackedPduList[0].Msg.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier; // Use this value in SS responses
+    
+    //@siclog "Step 4" siclog@
+    //+   The SS transmits an ATTACH REJECT message with EMM cause = "PLMN not allowed".
+    SRB.send  ( cas_SRB1_NasPdu_REQ ( eutra_CellG,
+                                      cs_TimingInfo_Now,
+                                      cs_NAS_Request ( tsc_SHT_NoSecurityProtection,
+                                                       cs_508_AttachReject ( cs_EMM_Cause_v(tsc_Cause_PLMN_NotAllowed),
+                                                                             omit))));
+    //@siclog "Step 5" siclog@
+    //+   The SS releases the RRC connection.
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellG);
+    
+    //@siclog "Step 6" siclog@
+    //+   Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds?[1,F]
+    f_EUTRA_CheckNoAttachOn1Cell(eutra_CellG, 30.0);
+    
+    //@siclog "Step 7" siclog@
+    //+   The UE is powered off or switched off.
+    f_UT_SwitchOffUE (UT, false, CNF_REQUIRED); // @sic R5s1100395 sic@
+    
+    //@siclog "Step 8" siclog@
+    //+  The UE is powered on or switched on.
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellI); // @sic R5s120065 sic@
+    
+    //@siclog "Step 8A" siclog@
+    //+   Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds?[1,F]
+    f_EUTRA_CheckNoAttachOn1Cell(eutra_CellG, 30.0);
+    
+    //@siclog "Step 9a1" siclog@
+    // +   Set Cell I to "Non-Suitable Cell"
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellG, tsc_NonSuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellH, tsc_NonSuitableOffCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    f_EUTRA_SendTriggerToOtherRAT (true); // @sic R5-112638 sic@
+    
+    //@siclog "Step 10" siclog@
+    //+   The SS configures:
+    //+   Cell I as the "Serving cell".
+    //+   Note: Cell G belongs to PLMN different from PLMN belonging to Cell I.
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 11" siclog@
+    //+   Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message as specified?[1,3,P]
+    v_NasInd:= f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellI,
+                                              v_RRC_TI,
+                                              cr_EstablishmentCause_Any,
+                                              cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                    v_AdditionalUpdateType,
+                                                                                                                    f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                                                                    cr_TMSI_Status ifpresent),
+                                                                                cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                f_GetPdnType())));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 11");
+    
+    //@siclog "Step 12 - 23" siclog@
+    f_EUTRA_IdleUpdated_Step5_17(eutra_CellI, STATE2_IDLEUPDATE, NORMAL, v_NasInd, true); // @sic R5-123650 sic@
+    
+    //@siclog "Step 24 - 25" siclog@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellI, RRC_IDLE, v_RRC_TI, Combined, omit ); // @sic R5s110176, R5-123650 sic@
+    
+    //@siclog "Step 26" siclog@
+    // +   Set Cell I to "Non-Suitable Cell"
+    // +   Set Cell G to "Serving cell"
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellG, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellI, tsc_NonSuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 27" siclog@
+    //+  The UE is powered on or switched on.
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellG, CNF_REQUIRED); // @sic R5s120065, R5s120361 sic@
+    
+    //@siclog "Step 28 - 30" siclog@
+    f_UT_ManualPLMN_Select (UT, f_Asn2Nas_PlmnId(v_GutiParams_CellG.PLMN_Identity));
+    
+    //@siclog "Step 31" siclog@
+    //+   Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message as specified?[1,3,P]
+    v_NasInd:= f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellG,
+                                              v_RRC_TI,
+                                              cr_EstablishmentCause_Any,
+                                              cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected,
+                                                                                cdr_ATTACH_REQUEST_WithGuti(v_AttachType,
+                                                                                                            v_AdditionalUpdateType,
+                                                                                                            f_EUTRA_SecurityKSIasme_Get(),
+                                                                                                            f_GutiParameters2MobileIdentity(omit, v_GutiParams_CellI),
+                                                                                                            cr_TAI( v_PLMN_CellI, bit2oct(v_TAC_CellI))),
+                                                                                cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                f_GetPdnType())));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 31");
+    
+    //@siclog "Step 32 - 44" siclog@
+    f_EUTRA_IdleUpdated_Step5_17(eutra_CellG, STATE2_IDLEUPDATE, Combined, v_NasInd, true); // @sic R5s110395 sic@
+    
+    // send trigger to other RAT as test now finished
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+    
+  } // function tc_9_2_1_2_9_EUTRA
+
+  function f_TC_9_2_1_2_11_EUTRA() runs on EUTRA_PTC
+  { /* @desc Combined attach / Rejected / Roaming not allowed in this tracking area */
+    
+    f_EUTRA_NAS_Init (LTE_CellsOnDifferentPLMN, c10, LTE_NAS_Replacef3_f2);   // @sic R5-113805 sic@ @sic R5-121081 sic@
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellI);
+    f_EUTRA_CellConfig_SRBs_Only(eutra_CellK);
+    f_EUTRA_CellConfig_Def(eutra_CellL);
+    f_EUTRA_CellConfig_Def(eutra_CellC);
+    
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellI, Combined, true);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellI, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_11_Body ();
+    
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellC, E2_CONNECTED, Combined); // @sic R5s110176 sic@
+  } // end f_TC_9_2_1_2_11_EUTRA
+
+  function fl_EUTRA_9_2_1_2_11_Body() runs on EUTRA_PTC
+  {
+    var template (value) CellPowerList_Type v_CellPowerList;
+    var NAS_MSG_Indication_Type v_NAS_Ind;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(Combined); // @sic R5s110176 sic@
+    
+    //@siclog "Step 1" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_NonSuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellL, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellC, tsc_NonSuitableCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 2 - 5" siclog@
+    // UE is switched on, sends and ATTACH REQUEST and SS transmits an ATTACH REJECT with cause set to
+    // Roaming not allowed in this tracking area
+    f_EUTRA_AttachReject (eutra_CellI, tsc_Cause_Roaming_NotAllowed, Combined); // @sic R5s110176 sic@
+    
+    //@siclog "Step 6" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds on cell I?
+    f_EUTRA_CheckNoAttachOn1Cell(eutra_CellI, 30.0);
+    
+    //@siclog "Step 7" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellL, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellC, tsc_NonSuitableCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 8" siclog@
+    // Check: Does the UE send and ATTACH REQUEST in the next 30 seconds on any cell?
+    f_EUTRA_CheckNoAttachOn4Cells ( eutra_CellI, eutra_CellK, eutra_CellL, eutra_CellC, 30.0 );
+    
+    //@siclog "Step 9" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellL, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellC, tsc_NonSuitableCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    
+    //  Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message
+    // on Cell L?
+    //@siclog "Step 10" siclog@
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellL,
+                                                tsc_RRC_TI_Def,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking( tsc_SHT_NoSecurityProtection,
+                                                                                   cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                       v_AdditionalUpdateType,
+                                                                                                                       f_Imsi2MobileIdentity( px_IMSI_Def ),
+                                                                                                                       cr_TMSI_Status('0'B),
+                                                                                                                       omit), //@sic R5s110242 sic@
+                                                                                cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                f_GetPdnType())));
+    
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+    
+    //@siclog "Step 11" siclog@
+    // The SS transmits an ATTACH REJECT message, EMM cause set to "Roaming not allowed in this tracking area" on Cell L
+    SRB.send  ( cas_SRB1_NasPdu_REQ ( eutra_CellL,
+                                      cs_TimingInfo_Now,
+                                      cs_NAS_Request ( tsc_SHT_NoSecurityProtection,
+                                                       cs_508_AttachReject ( cs_EMM_Cause_v(tsc_Cause_Roaming_NotAllowed),
+                                                                             omit))));
+    
+    //@siclog "Step 12" siclog@
+    // The SS releases the RRC connection
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellL);
+    
+    //@siclog "Step 13" siclog@
+    // Check Does the UE send and ATTACH REQUEST in the next 30 seconds on either Cell L or Cell K?
+    f_EUTRA_CheckNoAttachOn2Cells ( eutra_CellL, eutra_CellK, 30.0 );
+    
+    // SS Reconfigures power levels
+    //@siclog "Step 14" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellL, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellC, tsc_NonSuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 15" siclog@
+    //Check: Does the UE transmit an ATTACH REQUESTmessage in the next 30 seconds on any cell?
+    f_EUTRA_CheckNoAttachOn4Cells ( eutra_CellI, eutra_CellK, eutra_CellL, eutra_CellC, 30.0 );
+
+    //@siclog "Step 16" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellL, tsc_NonSuitableOffCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    f_EUTRA_SendTriggerToOtherRAT (true); // @sic R5-112638 sic@
+    
+    // SS Reconfigures power levels
+    //@siclog "Step 18" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_NonSuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellC, tsc_NonSuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //  Switch on UE
+    //@siclog "Step 19" siclog@
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellI); // @sic R5s120065 sic@
+    
+    //@siclog "Step 20" siclog@
+    // The UE transmits an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message on CellI
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellI,
+                                                tsc_RRC_TI_Def,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                  cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                      v_AdditionalUpdateType,
+                                                                                                                      f_Imsi2MobileIdentity( px_IMSI_Def ),
+                                                                                                                      cr_TMSI_Status('0'B),
+                                                                                                                      omit),//@sic R5s110242 sic@
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  f_GetPdnType())));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 20");
+    
+    //@siclog "Step 21" siclog@
+    // The SS transmits an ATTACH REJECT message, EMM cause set to "Roaming not allowed in this tracking area" on CellI
+    SRB.send  ( cas_SRB1_NasPdu_REQ ( eutra_CellI,
+                                      cs_TimingInfo_Now,
+                                      cs_NAS_Request ( tsc_SHT_NoSecurityProtection,
+                                                       cs_508_AttachReject ( cs_EMM_Cause_v(tsc_Cause_Roaming_NotAllowed),
+                                                                             omit))));
+    
+    //@siclog "Step 21A" siclog@
+    // The SS releases the RRC connection @sic R5s120100 sic@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellI); // @sic R5s120133 sic@
+    
+    // SS Reconfigures power levels
+    //@siclog "Step 22" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellC, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //  Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message
+    // on Cell C?
+    //@siclog "Step 23" siclog@
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellC,
+                                                tsc_RRC_TI_Def,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                  cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                      v_AdditionalUpdateType,
+                                                                                                                      f_Imsi2MobileIdentity( px_IMSI_Def ),
+                                                                                                                      cr_TMSI_Status('0'B),
+                                                                                                                      omit), // @sic R5s110242 sic@
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  f_GetPdnType())));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 23");
+    
+    //@siclog "Step 24 - 35" siclog@
+    f_EUTRA_IdleUpdated_Step5_17(eutra_CellC, STATE2_IDLEUPDATE, Combined, v_NAS_Ind, false); // @sic R5s110395 sic@
+
+    // send trigger to other RAT as test now finished
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+  }// end function fl_EUTRA_9_2_1_2_11_Body
+
+  function f_TC_9_2_1_2_13_EUTRA() runs on EUTRA_PTC
+  { /* Combined attach / Rejected / Roaming not allowed in this tracking area */
+
+    f_EUTRA_NAS_Init (LTE_CellsOnDifferentPLMN, c10, LTE_NAS_Replacef4_f1);   // @sic R5-113805, R5-122107 sic@
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellI);
+    f_EUTRA_CellConfig_SRBs_Only(eutra_CellJ);
+    f_EUTRA_CellConfig_SRBs_Only(eutra_CellK);
+    f_EUTRA_CellConfig_Def(eutra_CellE); // @sic R5-122107 sic@
+
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+
+    // Preamble: UE is in state Switched OFF (state 1)
+    // ==========================================================================
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    // @sic R5s110168 change 2.4 sic@
+    f_EUTRA_PreambleOtherRAT (eutra_CellI, Combined, true);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellI, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_EUTRA_9_2_1_2_13_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellI, E2_CONNECTED, Combined); // @sic R5s110176 sic@
+  } // end f_TC_9_2_1_2_13_EUTRA
+
+  function fl_EUTRA_9_2_1_2_13_Body() runs on EUTRA_PTC
+  {
+    var template (value) CellPowerList_Type v_CellPowerList;
+    var NAS_MSG_Indication_Type v_NAS_Ind;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(Combined); // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+    
+    // Set Power levels
+    //@siclog "Step 1" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellE, tsc_NonSuitableCellRS_EPRE ),  // @sic R5-122107 sic@
+      cs_CellPower ( eutra_CellJ, tsc_NonSuitableOffCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 2 - 5" siclog@
+    // UE is switched on, sends and ATTACH REQUEST and SS transmits an ATTACH REJECT with cause set to
+    // No suitable cells in this tracking area
+    f_EUTRA_AttachReject (eutra_CellI, tsc_Cause_NoSuitableCells, Combined); // @sic R5s110176 sic@
+    
+    //  Set Power levels
+    //@siclog "Step 6" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellE, tsc_NonSuitableCellRS_EPRE ), // @sic R5-122107 sic@
+      cs_CellPower ( eutra_CellJ, tsc_NonSuitableOffCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 7" siclog@
+    //   Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds on Cell K or Cell I?
+    f_EUTRA_CheckNoAttachOn2Cells(eutra_CellK, eutra_CellI, 30.0, "step 7, ATTACH REQUEST message on Cell K or Cell I");
+    
+    //@siclog "Step 8" siclog@
+    //  Set Power levels
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellE,  tsc_SuitableCellRS_EPRE  ), // @sic R5-122107 sic@
+      cs_CellPower ( eutra_CellJ, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+
+    //@siclog "Step 9" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message as specified on Cell L?
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellE, // @sic R5-122107 sic@
+                                                tsc_RRC_TI_Def,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                  cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                      v_AdditionalUpdateType,
+                                                                                                                      f_Imsi2MobileIdentity( px_IMSI_Def ),
+                                                                                                                      cr_TMSI_Status('0'B)),
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  f_GetPdnType())));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9");
+    
+    //@siclog "Step 10" siclog@
+    // The SS transmits an ATTACH REJECT message with the EMM cause set to
+    // No suitable cells in this tracking area on cell E
+    //(The list of "forbidden tracking areas for roaming" in the UE should now contain TAI-9 and TAI-11)
+    SRB.send  ( cas_SRB1_NasPdu_REQ ( eutra_CellE, // @sic R5-122107 sic@
+                                      cs_TimingInfo_Now,
+                                      cs_NAS_Request ( tsc_SHT_NoSecurityProtection,
+                                                       cs_508_AttachReject ( cs_EMM_Cause_v(tsc_Cause_NoSuitableCells),
+                                                                             omit))));
+    
+    //  The SS releases the RRC connection.
+    //@siclog "Step 11" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellE);
+    
+    // Set Power levels
+    //@siclog "Step 12" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_NonSuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellE,  tsc_SuitableCellRS_EPRE  ), // @sic R5-122107 sic@
+      cs_CellPower ( eutra_CellJ, tsc_NonSuitableOffCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 13" siclog@
+    // Check: Does the UE transmit the ATTACH REQUEST message in the next 30 seconds on CellI?
+    f_EUTRA_CheckNoAttachOn1Cell(eutra_CellI, 30.0, "step 13");
+    
+    //  Configure Cells.
+    //@siclog "Step 14a1" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_NonSuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellE, tsc_NonSuitableCellRS_EPRE ), // @sic R5-122107 sic@
+      cs_CellPower ( eutra_CellJ, tsc_NonSuitableOffCellRS_EPRE )
+    }
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    f_EUTRA_SendTriggerToOtherRAT (true); // @sic R5-112638 sic@
+
+    //@siclog "Step 14A" siclog@
+    // If possible (see ICS) switch off is performed. Otherwise the power is removed.
+    f_UT_SwitchOffUE (UT, false, CNF_REQUIRED); // @sic R5s1100395, R5-123254 sic@
+    
+    //  Set Power levels. Cell5/24 comes from Non-Suitable Cell level
+    //@siclog "Step 15" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellI, tsc_ServingCellRS_EPRE ),
+      cs_CellPower ( eutra_CellK, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower ( eutra_CellE, tsc_NonSuitableCellRS_EPRE  ), // @sic R5-122107, R5-123120 sic@
+      cs_CellPower ( eutra_CellJ, tsc_NonSuitableOffCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    //@siclog "Step 17" siclog@
+    // The UE is brought back to operation.
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellI); // @sic R5s120065 sic@
+    
+    //@siclog "Step 18" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message?
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellI,
+                                                tsc_RRC_TI_Def,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                  cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                      v_AdditionalUpdateType,
+                                                                                                                      f_Imsi2MobileIdentity( px_IMSI_Def ),
+                                                                                                                      cr_TMSI_Status('0'B),
+                                                                                                                      omit), // @sic R5s110242 sic@
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                  f_GetPdnType())));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 18");
+    
+    //@siclog "Step 19 - 30" siclog@
+    f_EUTRA_IdleUpdated_Step5_17 (eutra_CellI, STATE2_IDLEUPDATE, Combined, v_NAS_Ind, false); // @sic R5s110395 sic@
+    
+    // send trigger to other RAT as test now finished
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+  }// end function fl_EUTRA_9_2_1_2_13_Body
+
+  function f_TC_9_2_1_2_15_EUTRA() runs on EUTRA_PTC
+  { /* @desc Combined attach / Abnormal case / Handling of the EPS attach attempt counter */
+    
+    f_EUTRA_NAS_Init (LTE_CellsOnDifferentPLMN, c10);   // @sic R5-113805 sic@
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def(eutra_CellA);
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-103815 sic@
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5s110232 sic@
+    
+    // Preamble: UE is in state Switched OFF (state 1)
+    // ==========================================================================
+    // If pc_GERAN or pc_UTRAN supported by UE, wait for other RAT to update TMSI-1, P-TMSI-1and RAI-1, and GPRS update status is "GU1:UPDATED"
+    f_EUTRA_PreambleOtherRAT (eutra_CellA, Combined, true);              // @sic R5-113805 sic@
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_CellA, RRC_IDLE, -, Combined); // @sic R5s110176 sic@
+    f_EUTRA_TestBody_Set(true);
+
+    fl_EUTRA_9_2_1_2_15_Body();
+
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED, Combined); // @sic R5s110176 sic@
+  } // end f_TC_9_2_1_2_15_EUTRA
+
+  function fl_EUTRA_9_2_1_2_15_Body() runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (Combined); // @sic R5s110176 sic@
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(Combined); // @sic R5s110176 sic@
+    var integer i;
+    var float v_WaitS := 25.0;
+    
+    //  Set Power levels
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_ServingCellRS_EPRE );
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+    
+    // Switch on UE
+    //@siclog "Step 2" siclog@
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+    
+    //@siclog "Step 3 - 12" siclog@
+    for (i := 1; i <= 5; i := i + 1) {
+      //steps 3,5,7,9,11
+      // RRC Connection Establishment, with Attach Request and PDN Connectivity
+      v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                                 tsc_RRC_TI_Def,
+                                                 cr_EstablishmentCause_Any,
+                                                 cr_NAS_IndicationWithPiggybacking (tsc_SHT_IntegrityProtected,
+                                                                                    cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                    cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                    f_GetPdnType())));
+      
+      if (i==2) {
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+      }
+      f_EUTRA_RRC_ConnectionRelease_Local (eutra_CellA,
+                                           f_EUTRA_GetNextSendOccasion(eutra_CellA,
+                                                                       tsc_EUTRA_DelayBeforeIntraCellHO)); /* @sic R5-110803 change 13 sic@
+                                                                                                     * Note: the local release is scheduled i.e. done while the timer is running -
+                                                                                                     *       what is ok in this case */
+      //steps 4,6,8,10,12
+      if (i == 5) { // @sic R5s110421 sic@
+        v_WaitS := 15.0;
+      }
+      f_Delay(f_EUTRA_SetTimerToleranceMin ( eutra_CellA, nasTimer, v_WaitS));
+    }//end for
+    
+    //  Configure Cells.
+    //@siclog "Step 13" siclog@
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_NonSuitableCellRS_EPRE );
+    f_EUTRA_SendTriggerToOtherRAT (true); // @sic R5-112638 sic@
+
+    //  Set Power levels. Cell5/24 comes from Non-Suitable Cell level
+    //@siclog "Step 14" siclog@
+    f_EUTRA_SetCellPower ( eutra_CellA, tsc_ServingCellRS_EPRE );
+    
+    //@siclog "Step 15 Void" siclog@
+    
+    //  UE brought back to operation. Attach attempt counter is then reset
+    //@siclog "Step 16" siclog@
+    f_UT_SwitchOnUE (UT, false ); // @sic R5s110199, R5s120162 subject to prose CR approval sic@
+    
+    // @sic R5s1100199 sic@
+    //@siclog "Step 17-26 Void" siclog@
+
+    //@siclog "Step 27" siclog@
+    //Check: Does the UE transmit an ATTACH REQUEST message including a PDN CONNECTIVITY REQUEST message
+    
+    v_NasInd:= f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                              v_RRC_TI,
+                                              cr_EstablishmentCause_Any,
+                                              cr_NAS_IndicationWithPiggybacking(tsc_SHT_NoSecurityProtection,
+                                                                                cdr_ATTACH_REQUEST_WithIMSIAndnoTAI(v_AttachType,
+                                                                                                                    v_AdditionalUpdateType,
+                                                                                                                    f_Imsi2MobileIdentity( px_IMSI_Def ),
+                                                                                                                    cr_TMSI_Status('0'B),
+                                                                                                                    omit), //@sic R5s110242 sic@
+                                                                                cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach,
+                                                                                                                f_GetPdnType())));
+
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step27");
+    
+    //@siclog "Step 28 - 39" siclog@
+    f_EUTRA_IdleUpdated_Step5_17(eutra_CellA, STATE2_IDLEUPDATE, Combined, v_NasInd, false); // @sic R5s110395 sic@
+    
+    // send trigger to other RAT as test now finished
+    f_EUTRA_SendTriggerToOtherRAT (); // @sic R5-112638 sic@
+  }// end function fl_EUTRA_9_2_1_2_15_Body
+
+}

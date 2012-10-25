@@ -1,0 +1,1210 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module EUTRA_Measurement_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_RRC_Templates all;
+
+  type integer UTRA_RSCP_Type (-5..91);                         /* @status    APPROVED */
+
+  type integer UTRA_EcN0_Type (0..49);                          /* @status    APPROVED */
+
+  type integer RSSI_Range_Type (0..63);                         /* @status    APPROVED */
+
+  type integer EUTRA_RS_EPRE_Type (-141..-44);                  /* Changed from formerly (-140..-43);   @sic R5-090153 sic@
+                                                                   @status    APPROVED */
+
+  type integer UTRA_RSCP_dBm_Type (-116..-25);                  /* @status    APPROVED */
+
+  type integer UTRA_Ec_Io_dB_Type (-24..0);                     /* in dB
+                                                                   @status    APPROVED */
+
+  type integer GERAN_RSSI_dBm_Type (-110..-47);                 /* @status    APPROVED */
+
+  type integer A3_Offset_Type (-30..30);                        /* @status    APPROVED */
+
+  type integer GapOffset_Gp0_Type (0..39);                      /* @status    APPROVED */
+
+  type integer GapOffset_Gp1_Type (0..79);                      /* @status    APPROVED */
+
+  type integer CDMA2000_PilotPnPhase (0..32767);                /* @status    APPROVED */
+
+  type integer CDMA2000_PilotStrength (0..63);                  /* @status    APPROVED */
+
+  const integer tsc_IdMeasObject_f1 := 1;                       /* @status    APPROVED */
+
+  const integer tsc_IdMeasObject_f2 := 2;                       /* @status    APPROVED */
+
+  const integer tsc_IdMeasObject_f3 := 3;                       /* @status    APPROVED */
+
+  const integer tsc_IdMeasObject_f5 := 5;                       /* @status    APPROVED */
+
+  const integer tsc_IdMeasObject_f8 := 8;                       /* @status    APPROVED */
+
+  const integer tsc_IdMeasObject_f11 := 11;                     /* @status    APPROVED */
+
+  const integer tsc_IdMeasObject_f12 := 12;                     /* @status    APPROVED */
+
+  const integer tsc_IdReportConfig_A1 := 1;                     /* @status    APPROVED */
+
+  const integer tsc_IdReportConfig_A2 := 2;                     /* @status    APPROVED */
+
+  const integer tsc_IdReportConfig_A3 := 3;                     /* @status    APPROVED */
+
+  const integer tsc_IdReportConfigEUTRA_PERIODICAL := 4;        /* @status    APPROVED */
+
+  const integer tsc_IdReportConfig_B2_GERAN := 11;              /* @status    APPROVED */
+
+  const integer tsc_IdReportConfig_B2_UTRA := 12;               /* @status    APPROVED */
+
+  const integer tsc_IdReportConfigInterRAT_PERIODICAL := 10;    /* @status    APPROVED */
+
+  const integer tsc_ReportConfigId_CGI := 5;                    /* @status    APPROVED */
+
+  const MeasObjectId    tsc_IdMeasObject_f14 := 14;             /* @status    APPROVED */
+
+  const MeasObjectId    tsc_IdMeasObject_f17 := 17;             /* Meas object Id for CDMA2000
+                                                                   @status    APPROVED */
+
+  const MeasId          tsc_IdReportConfig_B2_CDMA2000 := 13;   /* @status    APPROVED */
+
+  template (value) DL_DCCH_Message cs_508_RRCConnectionReconfiguration_ConditionMEAS(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     template (value) MeasConfig p_MeasConfig ) :=
+    /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common( p_RRC_TI, p_MeasConfig, omit, omit, omit );
+
+  template (value) MeasConfig cs_MeasConfig(template (omit) MeasObjectToRemoveList p_MeasObjectToRemoveList,
+                                            template (omit) MeasObjectToAddModList p_MeasObjectToAddModList,
+                                            template (omit) ReportConfigToRemoveList p_ReportConfigToRemoveList,
+                                            template (omit) ReportConfigToAddModList p_ReportConfigToAddModList,
+                                            template (omit) MeasIdToRemoveList p_MeasIdToRemoveList,
+                                            template (omit) MeasIdToAddModList p_MeasIdToAddModList,
+                                            template (omit) QuantityConfig p_QuantityConfig := cs_QuantityConfig_Def,
+                                            template (omit) MeasGapConfig p_MeasGapConfig := omit,
+                                            template (omit) RSRP_Range p_RSRP_Range := omit,
+                                            template (omit) PreRegistrationInfoHRPD p_HRPD_PreRegistrationInfo := omit,
+                                            template (omit) MeasConfig.speedStatePars p_SpeedStatePars := omit ) :=
+  { /* @sic R5s100477 Additional Changes: merge of cs_MeasConfig and cs_MeasConfig_Common sic@ */
+    /* @status    APPROVED */
+    measObjectToRemoveList   := p_MeasObjectToRemoveList,
+    measObjectToAddModList   := p_MeasObjectToAddModList,
+    reportConfigToRemoveList := p_ReportConfigToRemoveList,
+    reportConfigToAddModList := p_ReportConfigToAddModList,
+    measIdToRemoveList       := p_MeasIdToRemoveList,
+    measIdToAddModList       := p_MeasIdToAddModList,
+    quantityConfig           := p_QuantityConfig,
+    measGapConfig            := p_MeasGapConfig,
+    s_Measure                := p_RSRP_Range,
+    preRegistrationInfoHRPD  := p_HRPD_PreRegistrationInfo,
+    speedStatePars           := p_SpeedStatePars
+  };
+
+  template (value) MeasObjectToRemoveList cs_MeasObjectToRemoveList_1Entry( MeasObjectId p_MeasObjectId ) :=
+  { /* @status    APPROVED */
+    p_MeasObjectId
+  };
+
+  template (value) MeasObjectToAddModList cs_MeasObjectToAddModList_1Entry(MeasObjectId p_MeasObjectId,
+                                                                           template (value) MeasObjectToAddMod.measObject p_MeasObject ) :=
+  { /* @status    APPROVED */
+    {
+      measObjectId := p_MeasObjectId,
+      measObject   := p_MeasObject
+    }
+  };
+
+  template (value) MeasObjectToAddModList cs_MeasObjectToAddModList_2Entries(MeasObjectId p_MeasObjectId_1,
+                                                                             template (value) MeasObjectToAddMod.measObject p_MeasObject_1,
+                                                                             MeasObjectId p_MeasObjectId_2,
+                                                                             template (value) MeasObjectToAddMod.measObject p_MeasObject_2 ) :=
+  { /* @status    APPROVED */
+    {
+      measObjectId := p_MeasObjectId_1,
+      measObject   := p_MeasObject_1
+    },
+    {
+      measObjectId := p_MeasObjectId_2,
+      measObject   := p_MeasObject_2
+    }
+  };
+
+  template (value) MeasObjectToAddModList cs_MeasObjectToAddModList_3Entries(MeasObjectId p_MeasObjectId_1,
+                                                                             template (value) MeasObjectToAddMod.measObject p_MeasObject_1,
+                                                                             MeasObjectId p_MeasObjectId_2,
+                                                                             template (value) MeasObjectToAddMod.measObject p_MeasObject_2,
+                                                                             MeasObjectId p_MeasObjectId_3,
+                                                                             template (value) MeasObjectToAddMod.measObject p_MeasObject_3 ) :=
+  { /* @status    APPROVED */
+    {
+      measObjectId := p_MeasObjectId_1,
+      measObject   := p_MeasObject_1
+    },
+    {
+      measObjectId := p_MeasObjectId_2,
+      measObject   := p_MeasObject_2
+    },
+    {
+      measObjectId := p_MeasObjectId_3,
+      measObject   := p_MeasObject_3
+    }
+  };
+
+  template (value) MeasObjectToAddMod.measObject cs_MeasObject_measObjectEUTRA_Common(ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                      AllowedMeasBandwidth p_MeasurementBandwidth,
+                                                                                      template (omit) CellIndexList p_BlackCellsToRemoveLis,
+                                                                                      template (omit) BlackCellsToAddModList p_BlackCellsToAddModList,
+                                                                                      template (omit) PhysCellId p_PhysCellId ) :=
+  { /* @status    APPROVED */
+    measObjectEUTRA := {
+      carrierFreq             := p_EUTRA_DL_CarrierFreq,
+      allowedMeasBandwidth    := p_MeasurementBandwidth,
+      presenceAntennaPort1    := false,
+      neighCellConfig         := '01'B,
+      offsetFreq              := dB0,
+      cellsToRemoveList       := omit,
+      cellsToAddModList       := omit,
+      blackCellsToRemoveList  := p_BlackCellsToRemoveLis,
+      blackCellsToAddModList  := p_BlackCellsToAddModList,
+      cellForWhichToReportCGI := p_PhysCellId,
+      measCycleSCell_r10      := omit,             /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+      measSubframePatternConfigNeigh_r10 := omit   /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) CellIndexList cs_CellIndexList_1Entry( integer p_CellIndex ) :=
+  { /* @status    APPROVED */
+    p_CellIndex
+  };
+
+  template (value) BlackCellsToAddModList cs_BlackCellsToAddModList_1Entry(integer p_CellIndex,
+                                                                           PhysCellId p_Start,
+                                                                           template (omit) PhysCellIdRange_Type p_Range) :=
+  { /* @status    APPROVED */
+    {
+      cellIndex := p_CellIndex,
+      physCellIdRange := {
+        start_ := p_Start,
+        range := p_Range
+      }
+    }
+  };
+
+  template (value) MeasObjectToAddMod.measObject cs_MeasObject_measObjectGERAN(ARFCN_ValueGERAN p_StartingARFCN,
+                                                                               BandIndicatorGERAN p_BandIndicator,
+                                                                               template (value) CarrierFreqsGERAN.followingARFCNs p_FollowingARFCNs,
+                                                                               template (omit) Q_OffsetRangeInterRAT p_OffsetFreq,
+                                                                               template (omit) B8_Type p_NCC_Permitted,
+                                                                               template (omit) PhysCellIdGERAN p_CellForWhichToReportCGI) :=
+  { /* @status    APPROVED */
+    measObjectGERAN := {
+      carrierFreqs := {
+        startingARFCN   := p_StartingARFCN,
+        bandIndicator   := p_BandIndicator,
+        followingARFCNs := p_FollowingARFCNs
+      },
+      offsetFreq := p_OffsetFreq,
+      ncc_Permitted := p_NCC_Permitted,
+      cellForWhichToReportCGI := p_CellForWhichToReportCGI
+    }
+  };
+
+  template (value) CarrierFreqsGERAN.followingARFCNs cs_FollowingARFCNs_explicitListOfARFCNs(template (value) ExplicitListOfARFCNs p_ExplicitListOfARFCNs) :=
+  { /* @status    APPROVED */
+    explicitListOfARFCNs := p_ExplicitListOfARFCNs
+  };
+
+  template (value) CellsToAddModUTRA_FDD cs_CellsToAddModUTRA_FDD(template (value) CellsToAddModUTRA_FDD.cellIndex p_CellIndex,
+                                                                  template (value) PhysCellIdUTRA_FDD p_PhysCellId ) :=
+  { /* @status    APPROVED */
+    cellIndex := p_CellIndex,
+    physCellId := p_PhysCellId
+  };
+
+  template (value) CellsToAddModListUTRA_FDD cs_CellsToAddModListUTRA_FDD_1Entry(template (value) CellsToAddModUTRA_FDD.cellIndex p_CellIndex,
+                                                                                 template (value) PhysCellIdUTRA_FDD p_PhysCellId ) :=
+  { /* @status    APPROVED */
+    cs_CellsToAddModUTRA_FDD(p_CellIndex, p_PhysCellId)
+  };
+
+  template (value) MeasObjectUTRA.cellsToAddModList cs_MeasObjectUTRA_cellsToAddModList_FDD( template (value) CellsToAddModListUTRA_FDD p_CellsToAddModListUTRA_FDD ) :=
+  { /* @status    APPROVED */
+    cellsToAddModListUTRA_FDD := p_CellsToAddModListUTRA_FDD
+  };
+
+  template (value) MeasObjectUTRA.cellsToAddModList cs_MeasObjectUTRA_cellsToAddModList_TDD( template (value) CellsToAddModListUTRA_TDD p_CellsToAddModListUTRA_TDD ) :=
+  { /* @status    APPROVED */
+    cellsToAddModListUTRA_TDD := p_CellsToAddModListUTRA_TDD
+  };
+
+  template (value) MeasObjectToAddMod.measObject cs_MeasObject_measObjectUTRA(ARFCN_ValueUTRA p_CarrierFreq,
+                                                                              template (omit) Q_OffsetRangeInterRAT p_OffsetFreq,
+                                                                              template (omit) CellIndexList p_CellsToRemoveList,
+                                                                              template (omit) MeasObjectUTRA.cellsToAddModList p_CellsToAddModList,
+                                                                              template (omit) MeasObjectUTRA.cellForWhichToReportCGI p_CellForWhichToReportCGI) :=
+  { /* @status    APPROVED */
+    measObjectUTRA := {
+      carrierFreq := p_CarrierFreq,
+      offsetFreq := p_OffsetFreq,
+      cellsToRemoveList := p_CellsToRemoveList,
+      cellsToAddModList := p_CellsToAddModList,
+      cellForWhichToReportCGI := p_CellForWhichToReportCGI,
+      csg_allowedReportingCells_v930 := omit   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToRemoveList cs_ReportConfigToRemoveList_1Entry(ReportConfigId p_ReportConfigId) :=
+  { /* @status    APPROVED */
+    p_ReportConfigId
+  };
+
+  template (value) ReportConfigToAddModList cs_ReportConfigToAddModList_1Entry(ReportConfigId p_ReportConfigId,
+                                                                               template (value) ReportConfigToAddMod.reportConfig p_ReportConfig) :=
+  { /* @status    APPROVED */
+    {
+      reportConfigId := p_ReportConfigId,
+      reportConfig   := p_ReportConfig
+    }
+  };
+
+  template (value) ReportConfigToAddModList cs_ReportConfigToAddModList_2Entries(ReportConfigId p_ReportConfigId_1,
+                                                                                 template (value) ReportConfigToAddMod.reportConfig p_ReportConfig_1,
+                                                                                 ReportConfigId p_ReportConfigId_2,
+                                                                                 template (value) ReportConfigToAddMod.reportConfig p_ReportConfig_2) :=
+  { /* @status    APPROVED */
+    {
+      reportConfigId := p_ReportConfigId_1,
+      reportConfig   := p_ReportConfig_1
+    },
+    {
+      reportConfigId := p_ReportConfigId_2,
+      reportConfig   := p_ReportConfig_2
+    }
+  };
+
+  template (value) ReportConfigToAddModList cs_ReportConfigToAddModList_3Entries(ReportConfigId p_ReportConfigId_1,
+                                                                                 template (value) ReportConfigToAddMod.reportConfig p_ReportConfig_1,
+                                                                                 ReportConfigId p_ReportConfigId_2,
+                                                                                 template (value) ReportConfigToAddMod.reportConfig p_ReportConfig_2,
+                                                                                 ReportConfigId p_ReportConfigId_3,
+                                                                                 template (value) ReportConfigToAddMod.reportConfig p_ReportConfig_3) :=
+  { /* @status    APPROVED */
+    {
+      reportConfigId := p_ReportConfigId_1,
+      reportConfig   := p_ReportConfig_1
+    },
+    {
+      reportConfigId := p_ReportConfigId_2,
+      reportConfig   := p_ReportConfig_2
+    },
+    {
+      reportConfigId := p_ReportConfigId_3,
+      reportConfig   := p_ReportConfig_3
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigEUTRA_eventA1_RSRP(EUTRA_RS_EPRE_Type p_Thres,
+                                                                                                    integer p_Hysteresis,
+                                                                                                    TimeToTrigger p_TimeToTrigger,
+                                                                                                    ReportConfigEUTRA.triggerQuantity p_TriggerQuantity,
+                                                                                                    ReportConfigEUTRA.reportQuantity p_ReportQuantity,
+                                                                                                    integer p_MaxReportCells,
+                                                                                                    ReportInterval p_ReportInterval,
+                                                                                                    ReportConfigEUTRA.reportAmount p_ReportAmount) :=
+  { /* @status    APPROVED */
+    reportConfigEUTRA := {
+      triggerType := {
+        event := {
+          eventId := {
+            eventA1 := {
+              a1_Threshold := {
+                threshold_RSRP := p_Thres + 140  //@sic Changed back from 141 (CR R5-0904639) to formerly 140, CR R5-100111 sic@
+              }
+            }
+          },
+          hysteresis := p_Hysteresis,
+          timeToTrigger := p_TimeToTrigger
+        }
+      },
+      triggerQuantity := p_TriggerQuantity,
+      reportQuantity := p_ReportQuantity,
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      ue_RxTxTimeDiffPeriodical_r9 := omit,       /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      includeLocationInfo_r10 := omit,            /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+      reportAddNeighMeas_r10 := omit              /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigEUTRA_eventA2_RSRP(EUTRA_RS_EPRE_Type p_Thres,
+                                                                                                    integer p_Hysteresis,
+                                                                                                    TimeToTrigger p_TimeToTrigger,
+                                                                                                    ReportConfigEUTRA.triggerQuantity p_TriggerQuantity,
+                                                                                                    ReportConfigEUTRA.reportQuantity p_ReportQuantity,
+                                                                                                    integer p_MaxReportCells,
+                                                                                                    ReportInterval p_ReportInterval,
+                                                                                                    ReportConfigEUTRA.reportAmount p_ReportAmount) :=
+  { /* @status    APPROVED */
+    reportConfigEUTRA := {
+      triggerType := {
+        event := {
+          eventId := {
+            eventA2 := {
+              a2_Threshold := {
+                threshold_RSRP := p_Thres + 140  //@sic Changed back from 141 (CR R5-0904639) to formerly 140, @sic CR R5-100111 sic@
+              }
+            }
+          },
+          hysteresis := p_Hysteresis,
+          timeToTrigger := p_TimeToTrigger
+        }
+      },
+      triggerQuantity := p_TriggerQuantity,
+      reportQuantity := p_ReportQuantity,
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      ue_RxTxTimeDiffPeriodical_r9 := omit,       /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      includeLocationInfo_r10 := omit,            /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+      reportAddNeighMeas_r10 := omit              /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigEUTRA_eventA3(A3_Offset_Type p_A3_Offset,
+                                                                                               boolean p_ReportOnLeave,
+                                                                                               integer p_Hysteresis,
+                                                                                               TimeToTrigger p_TimeToTrigger,
+                                                                                               ReportConfigEUTRA.triggerQuantity p_TriggerQuantity,
+                                                                                               ReportConfigEUTRA.reportQuantity p_ReportQuantity,
+                                                                                               integer p_MaxReportCells,
+                                                                                               ReportInterval p_ReportInterval,
+                                                                                               ReportConfigEUTRA.reportAmount p_ReportAmount) :=
+  { /* @status    APPROVED */
+    reportConfigEUTRA := {
+      triggerType := {
+        event := {
+          eventId := {
+            eventA3 := {
+              a3_Offset := p_A3_Offset,
+              reportOnLeave := p_ReportOnLeave
+            }
+          },
+          hysteresis := p_Hysteresis,
+          timeToTrigger := p_TimeToTrigger
+        }
+      },
+      triggerQuantity := p_TriggerQuantity,
+      reportQuantity := p_ReportQuantity,
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      ue_RxTxTimeDiffPeriodical_r9 := omit,       /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      includeLocationInfo_r10 := omit,            /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+      reportAddNeighMeas_r10 := omit              /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigEUTRA_periodical(ReportConfigEUTRA.triggerType.periodical.purpose p_Purpose,
+                                                                                                  ReportConfigEUTRA.triggerQuantity p_TriggerQuantity,
+                                                                                                  ReportConfigEUTRA.reportQuantity p_ReportQuantity,
+                                                                                                  integer p_MaxReportCells,
+                                                                                                  ReportInterval p_ReportInterval,
+                                                                                                  ReportConfigEUTRA.reportAmount p_ReportAmount,
+                                                                                                  template (omit) ReportConfigEUTRA.ue_RxTxTimeDiffPeriodical_r9 p_Ue_RxTxTimeDiffPeriodical_r9 := omit ) :=
+  { /* @status    APPROVED */
+    reportConfigEUTRA := {
+      triggerType := {
+        periodical := {
+          purpose := p_Purpose //enumerated{ reportStrongestCells, reportCGI }
+        }
+      },
+      triggerQuantity := p_TriggerQuantity,
+      reportQuantity := p_ReportQuantity,
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      ue_RxTxTimeDiffPeriodical_r9 := p_Ue_RxTxTimeDiffPeriodical_r9,
+      includeLocationInfo_r10 := omit,            /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+      reportAddNeighMeas_r10 := omit              /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigInterRAT_eventB2_UTRA_RSCP(EUTRA_RS_EPRE_Type p_EUTRA_Thres,
+                                                                                                            UTRA_RSCP_dBm_Type p_UTRAN_Thres,
+                                                                                                            Hysteresis p_Hysteresis,
+                                                                                                            TimeToTrigger p_TimeToTrigger,
+                                                                                                            integer p_MaxReportCells,
+                                                                                                            ReportInterval p_ReportInterval,
+                                                                                                            ReportConfigInterRAT.reportAmount p_ReportAmount) :=
+  { /* @status    APPROVED */
+    reportConfigInterRAT := {
+      triggerType := {
+        event := {
+          eventId := {
+            eventB2 := {
+              b2_Threshold1 := {
+                threshold_RSRP := p_EUTRA_Thres + 140  //@sic Changed back from 141 (CR R5-0904639) to formerly 140, CR R5-100111 sic@
+              },
+              b2_Threshold2 := {
+                b2_Threshold2UTRA := {
+                  utra_RSCP := p_UTRAN_Thres + 115
+                }
+              }
+            }
+          },
+          hysteresis := p_Hysteresis,
+          timeToTrigger := p_TimeToTrigger
+        }
+      },
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      reportQuantityUTRA_FDD_r10 := omit          /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigInterRAT_eventB2_UTRA_EcN0(EUTRA_RS_EPRE_Type p_EUTRA_Thres,
+                                                                                                            UTRA_Ec_Io_dB_Type p_UTRAN_Thres,
+                                                                                                            Hysteresis p_Hysteresis,
+                                                                                                            TimeToTrigger p_TimeToTrigger,
+                                                                                                            integer p_MaxReportCells,
+                                                                                                            ReportInterval p_ReportInterval,
+                                                                                                            ReportConfigInterRAT.reportAmount p_ReportAmount) :=
+  { /* @status    APPROVED */
+    reportConfigInterRAT := {
+      triggerType := {
+        event := {
+          eventId := {
+            eventB2 := {
+              b2_Threshold1 := {
+                threshold_RSRP := p_EUTRA_Thres + 140  //@sic Changed back from 141 (CR R5-0904639) to formerly 140, CR R5-100111 sic@
+              },
+              b2_Threshold2 := {
+                b2_Threshold2UTRA := {
+                  utra_EcN0 := p_UTRAN_Thres * 2 + 49
+                }
+              }
+            }
+          },
+          hysteresis := p_Hysteresis,
+          timeToTrigger := p_TimeToTrigger
+        }
+      },
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      reportQuantityUTRA_FDD_r10 := omit          /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigInterRAT_eventB2_GERAN(EUTRA_RS_EPRE_Type p_EUTRA_Thres,
+                                                                                                        GERAN_RSSI_dBm_Type p_GERAN_Thres,
+                                                                                                        Hysteresis p_Hysteresis,
+                                                                                                        TimeToTrigger p_TimeToTrigger,
+                                                                                                        integer p_MaxReportCells,
+                                                                                                        ReportInterval p_ReportInterval,
+                                                                                                        ReportConfigInterRAT.reportAmount p_ReportAmount) :=
+  { /* @status    APPROVED */
+    reportConfigInterRAT := {
+      triggerType := {
+        event := {
+          eventId := {
+            eventB2 := {
+              b2_Threshold1 := {
+                threshold_RSRP := p_EUTRA_Thres + 140  //@sic Changed back from 141 (CR R5-0904639) to formerly 140, CR R5-100111 sic@
+              },
+              b2_Threshold2 := {
+                b2_Threshold2GERAN := p_GERAN_Thres + 110
+              }
+            }
+          },
+          hysteresis := p_Hysteresis,
+          timeToTrigger := p_TimeToTrigger
+        }
+      },
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      reportQuantityUTRA_FDD_r10 := omit          /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_ReportConfig_reportConfigInterRAT_periodical(ReportConfigInterRAT.triggerType.periodical.purpose p_Purpose,
+                                                                                                     integer p_MaxReportCells,
+                                                                                                     ReportInterval p_ReportInterval,
+                                                                                                     ReportConfigInterRAT.reportAmount p_ReportAmount := r1,
+                                                                                                     template (omit) ReportConfigInterRAT.si_RequestForHO_r9 p_Si_RequestForHO_r9 := omit) :=
+  { /* @status    APPROVED */
+    reportConfigInterRAT := {
+      triggerType := {
+        periodical := {
+          purpose := p_Purpose //enumerated{ reportStrongestCells, reportStrongestCellsForSON, reportCGI }
+        }
+      },
+      maxReportCells := p_MaxReportCells,
+      reportInterval := p_ReportInterval,
+      reportAmount := p_ReportAmount,
+      si_RequestForHO_r9 := p_Si_RequestForHO_r9, /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      reportQuantityUTRA_FDD_r10 := omit          /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template (value) MeasIdToRemoveList cs_MeasIdToRemoveList_1Entry(MeasId p_MeasId) :=
+  { /* @status    APPROVED */
+    p_MeasId
+  };
+
+  template (value) MeasIdToRemoveList cs_MeasIdToRemoveList_2Entries(MeasId p_MeasId_1,
+                                                                     MeasId p_MeasId_2) :=
+  { /* @status    APPROVED */
+    p_MeasId_1,
+    p_MeasId_2
+  };
+
+  template (value) MeasIdToRemoveList cs_MeasIdToRemoveList_3Entries(MeasId p_MeasId_1,
+                                                                     MeasId p_MeasId_2,
+                                                                     MeasId p_MeasId_3) :=
+  { /* @status    APPROVED */
+    p_MeasId_1,
+    p_MeasId_2,
+    p_MeasId_3
+  };
+
+  template (value) MeasIdToAddModList cs_MeasIdToAddModList_1Entry(integer p_MeasId,
+                                                                   integer p_MeasObjectId,
+                                                                   integer p_ReportConfigId) :=
+  { /* @status    APPROVED */
+    {
+      measId         := p_MeasId,
+      measObjectId   := p_MeasObjectId,
+      reportConfigId := p_ReportConfigId
+    }
+  };
+
+  template (value) MeasIdToAddModList cs_MeasIdToAddModList_2Entries(integer p_MeasId_1,
+                                                                     integer p_MeasObjectId_1,
+                                                                     integer p_ReportConfigId_1,
+                                                                     integer p_MeasId_2,
+                                                                     integer p_MeasObjectId_2,
+                                                                     integer p_ReportConfigId_2) :=
+  { /* @status    APPROVED */
+    {
+      measId         := p_MeasId_1,
+      measObjectId   := p_MeasObjectId_1,
+      reportConfigId := p_ReportConfigId_1
+    },
+    {
+      measId         := p_MeasId_2,
+      measObjectId   := p_MeasObjectId_2,
+      reportConfigId := p_ReportConfigId_2
+    }
+  };
+
+  template (value) MeasIdToAddModList cs_MeasIdToAddModList_3Entries(integer p_MeasId_1,
+                                                                     integer p_MeasObjectId_1,
+                                                                     integer p_ReportConfigId_1,
+                                                                     integer p_MeasId_2,
+                                                                     integer p_MeasObjectId_2,
+                                                                     integer p_ReportConfigId_2,
+                                                                     integer p_MeasId_3,
+                                                                     integer p_MeasObjectId_3,
+                                                                     integer p_ReportConfigId_3) :=
+  { /* @status    APPROVED */
+    {
+      measId         := p_MeasId_1,
+      measObjectId   := p_MeasObjectId_1,
+      reportConfigId := p_ReportConfigId_1
+    },
+    {
+      measId         := p_MeasId_2,
+      measObjectId   := p_MeasObjectId_2,
+      reportConfigId := p_ReportConfigId_2
+    },
+    {
+      measId         := p_MeasId_3,
+      measObjectId   := p_MeasObjectId_3,
+      reportConfigId := p_ReportConfigId_3
+    }
+  };
+
+  template (value) QuantityConfig cs_QuantityConfig(template (omit) QuantityConfigEUTRA p_QuantityConfigEUTRA,
+                                                    template (omit) QuantityConfigUTRA p_QuantityConfigUTRA,
+                                                    template (omit) QuantityConfigGERAN p_QuantityConfigGERAN,
+                                                    template (omit) QuantityConfigCDMA2000 p_QuantityConfigCDMA2000) :=
+  { /* @status    APPROVED */
+    quantityConfigEUTRA := p_QuantityConfigEUTRA,
+    quantityConfigUTRA := p_QuantityConfigUTRA,
+    quantityConfigGERAN := p_QuantityConfigGERAN,
+    quantityConfigCDMA2000 := p_QuantityConfigCDMA2000,
+    quantityConfigUTRA_v1020 := omit            /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+  };
+
+  template (value) QuantityConfig cs_QuantityConfig_Def :=
+    /* @status    APPROVED */
+    cs_QuantityConfig(cs_QuantityConfigEUTRA(omit, omit),
+                      omit,
+                      omit,
+                      omit);
+
+  template (value) QuantityConfigEUTRA cs_QuantityConfigEUTRA(template (omit) FilterCoefficient p_FilterCoefficientRSRP,
+                                                              template (omit) FilterCoefficient p_FilterCoefficientRSRQ) :=
+  { /* @status    APPROVED */
+    filterCoefficientRSRP := p_FilterCoefficientRSRP,
+    filterCoefficientRSRQ := p_FilterCoefficientRSRQ
+  };
+
+  template (value) QuantityConfigUTRA cs_QuantityConfigUTRA(QuantityConfigUTRA.measQuantityUTRA_FDD p_MeasQuantityUTRA_FDD,
+                                                            QuantityConfigUTRA.measQuantityUTRA_TDD p_MeasQuantityUTRA_TDD,
+                                                            template (omit) FilterCoefficient p_FilterCoefficient) :=
+  { /* @status    APPROVED */
+    measQuantityUTRA_FDD := p_MeasQuantityUTRA_FDD,
+    measQuantityUTRA_TDD := p_MeasQuantityUTRA_TDD,
+    filterCoefficient := p_FilterCoefficient
+  };
+
+  template (value) QuantityConfigGERAN cs_QuantityConfigGERAN(QuantityConfigGERAN.measQuantityGERAN p_MeasQuantityGERAN,
+                                                              template (omit) FilterCoefficient p_FilterCoefficient) :=
+  { /* @status    APPROVED */
+    measQuantityGERAN := p_MeasQuantityGERAN,
+    filterCoefficient := p_FilterCoefficient
+  };
+
+  template (value) MeasGapConfig cs_MeasGapConfig_setup_gp0(GapOffset_Gp0_Type p_GapOffset) :=
+  { /* @status    APPROVED */
+    setup := {
+      gapOffset := {
+        gp0 := p_GapOffset
+      }
+    }
+  };
+
+  template (value) MeasGapConfig cs_MeasGapConfig_setup_gp1(GapOffset_Gp1_Type p_GapOffset) :=
+  { /* @status    APPROVED */
+    setup := {
+      gapOffset := {
+        gp1 := p_GapOffset
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_MeasurementReport(template integer p_MeasId,
+                                                template RSRP_Range p_RsrpResult,
+                                                template RSRQ_Range p_RsrqResult,
+                                                template MeasResults.measResultNeighCells p_MeasResultNeighCells) :=
+  { /* @status    APPROVED */
+    message_ := {
+      c1 := {
+        measurementReport := {
+          criticalExtensions := {
+            c1 := {
+              measurementReport_r8 := {
+                measResults := {
+                  measId := p_MeasId,
+                  measResultPCell := {
+                    rsrpResult := p_RsrpResult,
+                    rsrqResult := p_RsrqResult
+                  },
+                  measResultNeighCells := p_MeasResultNeighCells,
+                  measResultForECID_r9 := omit,         /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+                  locationInfo_r10 := omit,             /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+                  measResultServFreqList_r10 := omit    /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+                },
+                nonCriticalExtension := * //according to 36.508 4.6.1 table 4.6.1-5
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template UL_DCCH_Message cr_MeasurementReport_Geran_1Entry(template integer p_MeasId,
+                                                             template PhysCellIdGERAN p_PhysCellId) :=
+    /* @status    APPROVED */
+    cr_MeasurementReport(p_MeasId, ?, ?, cr_MeasResultNeighCells_measResultListGERAN_1Entry( *, *, p_PhysCellId, omit, ? ));
+
+  template UL_DCCH_Message cr_MeasurementReport_Utran_1Entry_FDD(template integer p_MeasId,
+                                                                 template PhysCellIdUTRA_FDD p_PhysCellId) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(p_MeasId, ?, ?, cr_MeasResultNeighCells_measResultListUTRA_1Entry_FDD( p_PhysCellId, omit, omit, ? ));
+
+  template UL_DCCH_Message cr_MeasurementReport_Utran_1Entry_TDD(template integer p_MeasId,
+                                                                 template PhysCellIdUTRA_TDD p_PhysCellId) :=
+  /* @status    APPROVED */
+  cr_MeasurementReport(p_MeasId, ?, ?, cr_MeasResultNeighCells_measResultListUTRA_1Entry_TDD( p_PhysCellId, omit, ?, omit ));
+
+  template UL_DCCH_Message cr_MeasurementReport_CDMA2000_1Entry( PhysCellIdCDMA2000 p_PhysCellId,
+                                                                 template CDMA2000_PilotPnPhase p_PilotPnPhase) :=
+    /* @status    APPROVED */
+    //@sic R5-110734 sic@
+    cr_MeasurementReport(1, ?, ?, cr_MeasResultNeighCells_measResultsCDMA2000_1Entry( false, p_PhysCellId, omit, p_PilotPnPhase, ? ) ); //@sic R5-110734 sic@
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultListEUTRA_1Entry(template PhysCellId p_PhysCellId,
+                                                                                               template GlobalCellIdentity_Type p_Cgi_Info,
+                                                                                               template RSRP_Range p_RsrpResult,
+                                                                                               template RSRQ_Range p_RsrqResult,
+                                                                                               template (omit) AdditionalSI_Info_r9 p_AdditionalSI_Info_r9 := omit) :=
+  { /* @status    APPROVED */
+    measResultListEUTRA := {
+      {
+        physCellId := p_PhysCellId,
+        cgi_Info   := p_Cgi_Info,
+        measResult := {
+          rsrpResult := p_RsrpResult,
+          rsrqResult := p_RsrqResult,
+          additionalSI_Info_r9 := p_AdditionalSI_Info_r9      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      }
+    }
+  };
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultListEUTRA_2Entries(template PhysCellId p_PhysCellId_1,
+                                                                                                 template GlobalCellIdentity_Type p_GlobalCellIdentity_EUTRA_1,
+                                                                                                 template RSRP_Range p_RsrpResult_1,
+                                                                                                 template RSRQ_Range p_RsrqResult_1,
+                                                                                                 template PhysCellId p_PhysCellId_2,
+                                                                                                 template GlobalCellIdentity_Type p_GlobalCellIdentity_EUTRA_2,
+                                                                                                 template RSRP_Range p_RsrpResult_2,
+                                                                                                 template RSRQ_Range p_RsrqResult_2) :=
+  { /* @status    APPROVED */
+    measResultListEUTRA := {
+      {
+        physCellId := p_PhysCellId_1,
+        cgi_Info   := p_GlobalCellIdentity_EUTRA_1,
+        measResult := {
+          rsrpResult := p_RsrpResult_1,
+          rsrqResult := p_RsrqResult_1,
+          additionalSI_Info_r9 := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      },
+      {
+        physCellId := p_PhysCellId_2,
+        cgi_Info   := p_GlobalCellIdentity_EUTRA_2,
+        measResult := {
+          rsrpResult := p_RsrpResult_2,
+          rsrqResult := p_RsrqResult_2,
+          additionalSI_Info_r9 := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      }
+    }
+  };
+
+  template GlobalCellIdentity_Type cr_Cgi_Info_EUTRA(template PLMN_Identity p_PLMN_Identity,
+                                                     template CellIdentity p_CellIdentity,
+                                                     template TrackingAreaCode p_TrackingAreaCode,
+                                                     template PLMN_IdentityList2 p_PLMN_IdentityList2) :=
+  { /* @status    APPROVED */
+    cellGlobalId := {
+      plmn_Identity := p_PLMN_Identity,
+      cellIdentity := p_CellIdentity
+    },
+    trackingAreaCode := p_TrackingAreaCode,
+    plmn_IdentityList := p_PLMN_IdentityList2
+  };
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultListUTRA_1Entry_FDD(template PhysCellIdUTRA_FDD p_PhysCellId,
+                                                                                                  template MeasResultUTRA.cgi_Info p_Cgi_Info,
+                                                                                                  template UTRA_RSCP_Type p_UTRA_RSCP,
+                                                                                                  template UTRA_EcN0_Type p_UTRA_EcN0,
+                                                                                                  template (omit) AdditionalSI_Info_r9 p_AdditionalSI_Info_r9 := omit) :=
+  { /* @status    APPROVED */
+    measResultListUTRA := {
+      {
+        physCellId := {
+          fdd := p_PhysCellId
+        },
+        cgi_Info := p_Cgi_Info,
+        measResult := {
+          utra_RSCP := p_UTRA_RSCP,
+          utra_EcN0 := p_UTRA_EcN0,
+          additionalSI_Info_r9 := p_AdditionalSI_Info_r9      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      }
+    }
+  };
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultListUTRA_1Entry_TDD(template PhysCellIdUTRA_TDD p_PhysCellId,
+                                                                                                  template MeasResultUTRA.cgi_Info p_Cgi_Info,
+                                                                                                  template UTRA_RSCP_Type p_UTRA_RSCP,
+                                                                                                  template UTRA_EcN0_Type p_UTRA_EcN0,
+                                                                                                  template (omit) AdditionalSI_Info_r9 p_AdditionalSI_Info_r9 := omit) :=
+  { /* @status    APPROVED */
+    measResultListUTRA := {
+      {
+        physCellId := {
+          tdd := p_PhysCellId
+        },
+        cgi_Info := p_Cgi_Info,
+        measResult := {
+          utra_RSCP := p_UTRA_RSCP,
+          utra_EcN0 := p_UTRA_EcN0,
+          additionalSI_Info_r9 := p_AdditionalSI_Info_r9      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      }
+    }
+  };
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultListUTRA_2Entries_FDD(template PhysCellIdUTRA_TDD p_PhysCellId_1,
+                                                                                                    template MeasResultUTRA.cgi_Info p_Cgi_Info_1,
+                                                                                                    template UTRA_RSCP_Type p_UTRA_RSCP_1,
+                                                                                                    template UTRA_EcN0_Type p_UTRA_EcN0_1,
+                                                                                                    template PhysCellIdUTRA_TDD p_PhysCellId_2,
+                                                                                                    template MeasResultUTRA.cgi_Info p_Cgi_Info_2,
+                                                                                                    template UTRA_RSCP_Type p_UTRA_RSCP_2,
+                                                                                                    template UTRA_EcN0_Type p_UTRA_EcN0_2) :=
+  { /* @status    APPROVED */
+    measResultListUTRA := { permutation( //@sic R5s110435 Change2 sic@
+      {
+        physCellId := {
+          fdd := p_PhysCellId_1
+        },
+        cgi_Info := p_Cgi_Info_1,
+        measResult := {
+          utra_RSCP := p_UTRA_RSCP_1,
+          utra_EcN0 := p_UTRA_EcN0_1,
+          additionalSI_Info_r9 := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      },
+      {
+        physCellId := {
+          fdd := p_PhysCellId_2
+        },
+        cgi_Info := p_Cgi_Info_2,
+        measResult := {
+          utra_RSCP := p_UTRA_RSCP_2,
+          utra_EcN0 := p_UTRA_EcN0_2,
+          additionalSI_Info_r9 := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      } ) //@sic R5s110435 Change2 sic@
+    }
+  };
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultListUTRA_2Entries_TDD(template PhysCellIdUTRA_TDD p_PhysCellId_1,
+                                                                                                    template MeasResultUTRA.cgi_Info p_Cgi_Info_1,
+                                                                                                    template UTRA_RSCP_Type p_UTRA_RSCP_1,
+                                                                                                    template UTRA_EcN0_Type p_UTRA_EcN0_1,
+                                                                                                    template PhysCellIdUTRA_TDD p_PhysCellId_2,
+                                                                                                    template MeasResultUTRA.cgi_Info p_Cgi_Info_2,
+                                                                                                    template UTRA_RSCP_Type p_UTRA_RSCP_2,
+                                                                                                    template UTRA_EcN0_Type p_UTRA_EcN0_2) :=
+  { /* @status    APPROVED */
+    measResultListUTRA := { permutation( //@sic R5s110435 Change2 sic@
+      {
+        physCellId := {
+          tdd := p_PhysCellId_1
+        },
+        cgi_Info := p_Cgi_Info_1,
+        measResult := {
+          utra_RSCP := p_UTRA_RSCP_1,
+          utra_EcN0 := p_UTRA_EcN0_1,
+          additionalSI_Info_r9 := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      },
+      {
+        physCellId := {
+          tdd := p_PhysCellId_2
+        },
+        cgi_Info := p_Cgi_Info_2,
+        measResult := {
+          utra_RSCP := p_UTRA_RSCP_2,
+          utra_EcN0 := p_UTRA_EcN0_2,
+          additionalSI_Info_r9 := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+        }
+      } ) //@sic R5s110435 Change2 sic@
+    }
+  };
+
+  template MeasResultUTRA.cgi_Info cr_Cgi_Info_UTRA(template PLMN_Identity p_PLMN_Identity,
+                                                    template CellGlobalIdUTRA.cellIdentity p_CellIdentity,
+                                                    template MeasResultUTRA.cgi_Info.locationAreaCode p_LocationAreaCode,
+                                                    template MeasResultUTRA.cgi_Info.routingAreaCode p_RoutingAreaCode,
+                                                    template PLMN_IdentityList2 p_PLMN_IdentityList2) :=
+  { /* @status    APPROVED */
+    cellGlobalId := {
+      plmn_Identity := p_PLMN_Identity,
+      cellIdentity := p_CellIdentity
+    },
+    locationAreaCode := p_LocationAreaCode,
+    routingAreaCode := p_RoutingAreaCode,
+    plmn_IdentityList := p_PLMN_IdentityList2
+  };
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultListGERAN_1Entry(template integer p_ARFCN,
+                                                                                               template BandIndicatorGERAN p_BandIndicator,
+                                                                                               template PhysCellIdGERAN p_PhysCellId,
+                                                                                               template MeasResultGERAN.cgi_Info p_Cgi_Info,
+                                                                                               template RSSI_Range_Type p_RSSI) :=
+  { /* @status    APPROVED */
+    measResultListGERAN := {
+      {
+        carrierFreq := {
+          arfcn := p_ARFCN,
+          bandIndicator := p_BandIndicator
+        },
+        physCellId := p_PhysCellId,
+        cgi_Info := p_Cgi_Info,
+        measResult := {
+          rssi := p_RSSI
+        }
+      }
+    }
+  };
+
+  template MeasResultGERAN.cgi_Info cr_Cgi_Info_GERAN(template PLMN_Identity p_PLMN_Identity,
+                                                      template CellGlobalIdGERAN.locationAreaCode p_LocationAreaCode,
+                                                      template CellGlobalIdGERAN.cellIdentity p_CellIdentity,
+                                                      template MeasResultGERAN.cgi_Info.routingAreaCode p_RoutingAreaCode ) :=
+  { /* @status    APPROVED */
+    cellGlobalId := {
+      plmn_Identity := p_PLMN_Identity,
+      locationAreaCode := p_LocationAreaCode,
+      cellIdentity := p_CellIdentity
+    },
+    routingAreaCode := p_RoutingAreaCode
+  };
+
+  template (value) MeasGapConfig cs_508_MeasGapConfig_GP1 :=
+    /* @status    APPROVED */
+    cs_MeasGapConfig_setup_gp0(30);    /* TGRP = 40ms
+                                          @sic R5-120235/R5-120236 offset changed from 0 to 30 sic@ */
+
+  template (value) MeasGapConfig cs_508_MeasGapConfig_GP2 :=
+    /* @status    APPROVED */
+    cs_MeasGapConfig_setup_gp1(30);    /* TGRP = 80ms
+                                          @sic R5-120235/R5-120236 offset changed from 0 to 30 sic@ */
+
+  template (value) MeasObjectToAddMod.measObject cs_508_MeasObjectEUTRA_GENERIC(ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                AllowedMeasBandwidth p_MeasurementBandwidth ) :=
+    /* @status    APPROVED */
+    cs_MeasObject_measObjectEUTRA_Common( p_EUTRA_DL_CarrierFreq, p_MeasurementBandwidth, omit, omit, omit );
+
+  template (value) MeasObjectToAddMod.measObject cs_508_MeasObjectGERAN_GENERIC(ARFCN_ValueGERAN p_StartingARFCN,
+                                                                                BandIndicatorGERAN p_BandIndicator,
+                                                                                template (value) ExplicitListOfARFCNs p_ExplicitListOfARFCNs) :=
+    /* @status    APPROVED */
+    cs_MeasObject_measObjectGERAN(p_StartingARFCN,
+                                  p_BandIndicator,
+                                  cs_FollowingARFCNs_explicitListOfARFCNs( p_ExplicitListOfARFCNs ),
+                                  omit, omit, omit);
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigEUTRA_A2(EUTRA_RS_EPRE_Type p_Thres ) :=
+    /* @status    APPROVED */
+    cs_ReportConfig_reportConfigEUTRA_eventA2_RSRP( p_Thres, 0, ms320, rsrp, both, 1, ms1024, r1 ); //Changed from infinity_ to r1; @sic CR R5-093093 sic@
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigEUTRA_A3 :=
+    /* @status    APPROVED */
+    cs_ReportConfig_reportConfigEUTRA_eventA3( 0, false, 0, ms640, rsrp, both, 1, ms1024, r1 ); //Changed from infinity_ to r1; @sic CR R5-093093 sic@
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigEUTRA_Periodical :=
+    /* @status    APPROVED */
+    cs_ReportConfig_reportConfigEUTRA_periodical( reportStrongestCells, rsrp, both, 1, ms1024, infinity_ );
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigInterRAT_B2_GERAN(EUTRA_RS_EPRE_Type p_EUTRA_Thres,
+                                                                                          GERAN_RSSI_dBm_Type p_GERAN_Thres) :=
+    /* @status    APPROVED */
+    cs_ReportConfig_reportConfigInterRAT_eventB2_GERAN( p_EUTRA_Thres,
+                                                        p_GERAN_Thres,
+                                                        0, //TBD!!!! FFS according to 36.508
+                                                        ms0,
+                                                        6,
+                                                        ms1024,
+                                                        r1 ); //Changed from infinity_ to r1, @sic CR R5-093093 sic@
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigInterRAT_B2_UTRA_ConditionFDD(EUTRA_RS_EPRE_Type p_EUTRA_Thres,
+                                                                                                      UTRA_Ec_Io_dB_Type p_UTRA_Thres) :=
+    /* @status    APPROVED */
+    cs_ReportConfig_reportConfigInterRAT_eventB2_UTRA_EcN0( p_EUTRA_Thres,
+                                                            p_UTRA_Thres,
+                                                            3,
+                                                            ms0,
+                                                            6,
+                                                            ms1024,
+                                                            r1 ); //Changed from infinity_ to r1, @sic CR R5-093093 sic@
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigInterRAT_B2_UTRA_ConditionTDD(EUTRA_RS_EPRE_Type p_EUTRA_Thres,
+                                                                                                      UTRA_RSCP_dBm_Type p_UTRA_Thres) :=
+    /* @status    APPROVED */
+    cs_ReportConfig_reportConfigInterRAT_eventB2_UTRA_RSCP( p_EUTRA_Thres,
+                                                            p_UTRA_Thres,
+                                                            3,
+                                                            ms0,
+                                                            6,
+                                                            ms1024,
+                                                            r1 ); //Changed from infinity_ to r1, @sic CR R5-093093 sic@
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigInterRAT_Periodical :=
+    /* @status    APPROVED */
+    cs_ReportConfig_reportConfigInterRAT_periodical( reportStrongestCells, 1, ms1024, infinity_ );
+
+  template (value) MeasConfig cs_Measurement_Config_A3(ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                       AllowedMeasBandwidth p_MeasurementBandwidth,
+                                                       template (omit) MeasGapConfig p_MeasGapConfig := omit) :=
+    /* @sic R5s100477 Additional Changes: merge of cs_Measurement_Config_A3 and cs_MeasConfig_A3_InterFreq_UTRAN sic@ */
+    /* @status    APPROVED */
+    cs_MeasConfig(omit,
+                  cs_MeasObjectToAddModList_1Entry(1,
+                                                   cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq,
+                                                                                        p_MeasurementBandwidth,
+                                                                                        omit,
+                                                                                        omit,
+                                                                                        omit)),
+                  omit,
+                  cs_ReportConfigToAddModList_1Entry(1, cs_508_ReportConfigEUTRA_A3),
+                  omit,
+                  cs_MeasIdToAddModList_1Entry( 1, 1, 1 ),
+                  -,
+                  p_MeasGapConfig);
+
+  template (value) MeasConfig cs_Measurement_Config_A3_InterFreq(ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq1,
+                                                                 AllowedMeasBandwidth p_MeasurementBandwidth1,
+                                                                 ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq2,
+                                                                 AllowedMeasBandwidth p_MeasurementBandwidth2,
+                                                                 template (omit) MeasGapConfig p_MeasGapConfig := omit) :=
+    /* @sic R5s100524 Change 1 sic@ */
+    /* @status    APPROVED */
+    cs_MeasConfig(omit,
+                  cs_MeasObjectToAddModList_2Entries(1,
+                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq1,
+                                                                                          p_MeasurementBandwidth1,
+                                                                                          omit, omit, omit),
+                                                     2,
+                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq2,
+                                                                                          p_MeasurementBandwidth2,
+                                                                                          omit, omit, omit)),
+                  omit,
+                  cs_ReportConfigToAddModList_1Entry(1, cs_508_ReportConfigEUTRA_A3),
+                  omit,
+                  cs_MeasIdToAddModList_1Entry( 1, 1, 1 ),
+                  -,
+                  p_MeasGapConfig);
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_IratMeasB2_C2K (RRC_TransactionIdentifier p_RRC_TI,
+                                                                                   ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq, //@sic CR R5-112614 sic@
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth, //@sic CR R5-112614 sic@
+                                                                                   CDMA2000_Type p_CDMA2000_Type,
+                                                                                   ARFCN_ValueCDMA2000 p_ARFCNCDMA2000,
+                                                                                   BandclassCDMA2000 p_BandClassCDMA2000,
+                                                                                   SearchWindowSize_Type p_SearchWindowSize,
+                                                                                   MeasObjectId p_MeasObjectId,
+                                                                                   PhysCellId p_PhysCellId,
+                                                                                   integer p_CellIndex := 1,
+                                                                                   QuantityConfigCDMA2000.measQuantityCDMA2000 p_MeasQuantity :=pilotStrength //@sic R5-120711 sic@
+                                                                                   ) :=
+    /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1, //@sic CR R5-112614 sic@
+                                                                                                       cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq, p_EUTRA_MeasurementBandwidth ), //@sic CR R5-112614 sic@
+                                                                                                       p_MeasObjectId,
+                                                                                                     cs_MeasObject_measObjectCDMA2000(p_CDMA2000_Type,
+                                                                                                                                      p_ARFCNCDMA2000,
+                                                                                                                                      p_BandClassCDMA2000,
+                                                                                                                                      p_SearchWindowSize,
+                                                                                                                                      0,
+                                                                                                                                      omit,
+                                                                                                                                      {cs_CellsToAddModCDMA2000 (p_CellIndex,p_PhysCellId)},
+                                                                                                                                      omit ) ),
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_B2_CDMA2000,
+                                                                                                       cs_508_ReportConfigInterRAT_B2_CDMA2000( -69 ) ),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry( 1, p_MeasObjectId, tsc_IdReportConfig_B2_CDMA2000 ),
+                                                                    cs_QuantityConfig( omit, omit, omit, cs_QuantityConfigCDMA2000( p_MeasQuantity ) ),  // 0 is just put here for compiling, this value is measQuantityCDMA2000 and is currently FFS as per 36508
+                                                                    cs_508_MeasGapConfig_GP2 // currently using this since the MeasGapConfig for CDMA2000 is not defined and the MeasGapConfig given in 36523 in test case prose cannot be found
+                                                                    ) );
+
+  template (value) MeasObjectToAddMod.measObject cs_MeasObject_measObjectCDMA2000(CDMA2000_Type p_CDMA2000_Type,
+                                                                                  ARFCN_ValueCDMA2000 p_ARFCN,
+                                                                                  BandclassCDMA2000 p_BandClass,
+                                                                                  SearchWindowSize_Type p_SearchWindowSize,
+                                                                                  template (omit) Q_OffsetRangeInterRAT p_OffsetFreq,
+                                                                                  template (omit) CellIndexList p_CellsToRemoveList,
+                                                                                  template (omit) CellsToAddModListCDMA2000 p_CellsToAddModList,
+                                                                                  template (omit) PhysCellIdCDMA2000 p_CellForWhichToReportCGI ) :=
+  { /* @status    APPROVED */
+    measObjectCDMA2000 := {
+      cdma2000_Type := p_CDMA2000_Type,
+      carrierFreq := {
+        bandClass := p_BandClass,
+        arfcn := p_ARFCN
+      },
+      searchWindowSize := p_SearchWindowSize,
+      offsetFreq := p_OffsetFreq,
+      cellsToRemoveList := p_CellsToRemoveList,
+      cellsToAddModList := p_CellsToAddModList,
+      cellForWhichToReportCGI := p_CellForWhichToReportCGI
+    }
+  };
+
+  template (value) QuantityConfigCDMA2000 cs_QuantityConfigCDMA2000 (QuantityConfigCDMA2000.measQuantityCDMA2000 p_MeasQuantityCDMA2000 ) :=
+  { /* @status    APPROVED */
+    measQuantityCDMA2000 := p_MeasQuantityCDMA2000
+  };
+
+  template (value) ReportConfigToAddMod.reportConfig cs_508_ReportConfigInterRAT_B2_CDMA2000( EUTRA_RS_EPRE_Type p_EUTRA_Thres ) :=
+  { /* @status    APPROVED */
+    reportConfigInterRAT := {
+      triggerType := {
+        event := {
+          eventId := {
+            eventB2 := {
+              b2_Threshold1 := {
+                threshold_RSRP := p_EUTRA_Thres + 140 //@sic Changed back from 141 (R5-0904639) to formerly 140, R5-100111 sic@
+              },
+              b2_Threshold2 := {
+                b2_Threshold2CDMA2000 := 30 // fixed to 30 (-15 DB as per 36508 9.0.0)
+              }
+            }
+          },
+          hysteresis := 2,
+          timeToTrigger := ms0
+        }
+      },
+      maxReportCells := 8,
+      reportInterval := ms2048,
+      reportAmount := r1,
+      si_RequestForHO_r9 := omit,                 /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+      reportQuantityUTRA_FDD_r10 := omit          /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+    }
+  };
+
+  template MeasResults.measResultNeighCells cr_MeasResultNeighCells_measResultsCDMA2000_1Entry(template boolean p_PreRegistrationStatusHRPD,
+                                                                                               template PhysCellIdCDMA2000 p_PhysCellId,
+                                                                                               template MeasResultCDMA2000.cgi_Info p_Cgi_Info,
+                                                                                               template CDMA2000_PilotPnPhase p_PilotPnPhase,
+                                                                                               template CDMA2000_PilotStrength p_PilotStrength ) :=
+  { /* @status    APPROVED */
+    measResultsCDMA2000 := {
+      preRegistrationStatusHRPD := p_PreRegistrationStatusHRPD,
+      measResultListCDMA2000 := {
+        {
+          physCellId := p_PhysCellId,
+          cgi_Info := p_Cgi_Info,
+          measResult := {
+            pilotPnPhase := p_PilotPnPhase,
+            pilotStrength := p_PilotStrength
+          }
+        }
+      }
+    }
+  };
+
+}

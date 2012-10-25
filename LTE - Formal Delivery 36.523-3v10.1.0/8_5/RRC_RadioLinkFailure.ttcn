@@ -1,0 +1,397 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-25 17:02:09 +0200 (Wed, 25 Apr 2012) $
+// $Rev: 6567 $
+/******************************************************************************/
+
+module RRC_RadioLinkFailure {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+
+  function f_TC_8_5_1_1_EUTRA() runs on EUTRA_PTC
+  { /* RRC Connection Re-establishment: Success (after Radio Link Failure) */
+
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var ShortMAC_I v_ShortMAC_I;
+
+    var EUTRA_SecurityParams_Type v_AuthParams; //@sic R5s100324 sic@
+    var template (value) CellPowerList_Type v_CellPowerList;
+
+    timer t_T310_Lower;
+
+    f_EUTRA_Init ( c1 ); //@sic R5s100459 sic@
+
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId ( eutra_Cell1 );
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell2 );
+
+    /* Preamble to enter UE in state Generic RB Established (state 3) */
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+
+    v_ShortMAC_I := f_Calculate_ShortMAC (eutra_Cell1, eutra_Cell2);
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS changes the power level of cell 1 to non-suitable "Off" according to TS 36.508 subclause 6.2.2.1 in order that the radio link quality of Cell 1 is degraded.
+    v_CellPowerList := {
+      cs_CellPower (eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower (eutra_Cell2, tsc_ServingCellRS_EPRE) // @sic R5s100324 & R5-105010 sic@
+    };
+    f_EUTRA_SetCellPowerList(v_CellPowerList);           // @sic R5s110726 additional changes for change 2 sic@
+
+    //@siclog "Step 2" siclog@
+    //Check: Does the UE initiate an RRC connection re-establishment procedure on Cell 1 or Cell 2. This is checked during the time T=T310.
+    t_T310_Lower.start(f_EUTRA_SetTimerToleranceMin ( eutra_Cell1, rrcTimer, 1.0 )); //@sic R5w100302 sic@
+    alt {
+      [] SRB.receive( car_SRB0_RrcPdu_IND( (eutra_Cell1, eutra_Cell2),
+                                           cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                        v_PhysicalCellIdentity_Cell1,
+                                                                                        cr_ReestablishmentCause_Any,
+                                                                                        ? ) ) )
+        {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.5.1.1 Step 2");
+        }
+      [] t_T310_Lower.timeout
+        {
+        }
+    }
+
+    //@siclog "Step 3" siclog@
+    //Check: Does the UE send RRC connection re-establishment request message on Cell 2?
+    SRB.receive( car_SRB0_RrcPdu_IND( eutra_Cell2, ////@sic R5s100324 sic@
+                                      cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                   v_PhysicalCellIdentity_Cell1,
+                                                                                   cr_ReestablishmentCause_OtherFailure,
+                                                                                   v_ShortMAC_I ) ) );
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.5.1.1 Step 3");
+
+    v_AuthParams := f_EUTRA_Security_Get ( ); //@sic R5s100324 & R5s100564 sic@
+    v_AuthParams := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest ( eutra_Cell2, v_AuthParams, 0 ); //@sic R5s100324 sic@
+    f_EUTRA_Security_Set ( v_AuthParams ); //@sic R5s100324 sic@
+
+    //@siclog "Step 4" siclog@
+    //The SS transmits RRCConnectionReestablishment message.
+    f_EUTRA_RRC_RRCConnectionReestablishment_Def ( eutra_Cell2 );
+
+    //@siclog "Step 5" siclog@
+    //The UE transmits RRCConnectionReestablishmentComplete message.
+    SRB.receive( car_SRB1_RrcPdu_IND ( eutra_Cell2,
+                                       cr_508_RRCConnectionReestablishmentComplete ( tsc_RRC_TI_Def ) ) );
+
+    //@siclog "Step 6 - 7" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message to resume existing radio bearer.
+    //The UE transmits a RRCConnectionReconfigurationComplete message.
+    f_EUTRA_RRC_RRCConnectionReconfiguration_Resume_SRB2_DRBs ( eutra_Cell2, tsc_RRC_TI_Def ); //@sic R5s100324 sic@
+
+    //@siclog "Step 8" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 2?
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell2 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble ( eutra_Cell2, E2_CONNECTED );
+
+  }
+
+  function f_TC_8_5_1_2_EUTRA() runs on EUTRA_PTC
+  { /* Radio link failure / T301 expiry */
+
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var T301_Type v_T301_SIB2 := ms2000;
+    var ShortMAC_I v_ShortMAC_I;
+
+    var integer v_Duration; //@sic R5s110310 MCC STF160 Additional Change sic@
+    var SubFrameTiming_Type v_TimingFirstMsg; //@sic R5s110310 MCC STF160 Additional Change sic@
+    var SubFrameTiming_Type v_TimingT301Min; //@sic R5s110310 MCC STF160 Additional Change sic@
+    var SubFrameTiming_Type v_TimingT301Max; //@sic R5s110310 MCC STF160 Additional Change sic@
+    var SubFrameTiming_Type v_TimingFurtherMsg; //@sic R5s110310 MCC STF160 Additional Change sic@
+    var SRB_COMMON_IND v_ReceivedRrcMsg; //@sic R5s110310 MCC STF160 Additional Change sic@
+
+    //!!!! PROSE CR NEEDED FOR BELOW IMPLEMENTATION !!!!
+    var float v_T301 := 2.0; //According to specific message contents, Table 8.5.1.2.3.3-1. //@sic R5s110396 sic@
+    var float v_T301Min; //@sic R5s110396 sic@
+    var float v_T301Max; //@sic R5s110396 sic@
+    var integer v_T301Min_InMillisec; //@sic R5s110396 sic@
+    var integer v_T301Max_InMillisec; //@sic R5s110396 sic@
+
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0 := {
+      cs_CellPower( eutra_Cell1, tsc_ServingCellRS_EPRE ),
+      cs_CellPower( eutra_Cell2, tsc_NonSuitableCellRS_EPRE )
+    };
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1 := {
+      cs_CellPower( eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE ),
+      cs_CellPower( eutra_Cell2, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE )
+    };
+
+    f_EUTRA_Init ( c1 );
+
+    //Get cell dependant parameters
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId( eutra_Cell1 );
+
+    //@sic R5s110396 sic@ //Moved after f_EUTRA_Init
+    v_T301Min := f_EUTRA_SetTimerToleranceMin( eutra_Cell1, rrcTimer, v_T301 ); //@sic R5s110310 MCC STF160 Additional Change sic@
+    v_T301Max := f_EUTRA_SetTimerToleranceMax( eutra_Cell1, rrcTimer, v_T301 ); //@sic R5s110310 MCC STF160 Additional Change and R5s110396 sic@
+    v_T301Min_InMillisec := float2int( v_T301Min*1000.0 ); //@sic R5s110310 MCC STF160 Additional Change sic@
+    v_T301Max_InMillisec := float2int( v_T301Max*1000.0 ); //@sic R5s110310 MCC STF160 Additional Change sic@
+
+    //Set Sys info for cell 2 to be used at creation
+    f_EUTRA_CellInfo_SetSysInfo_T301( eutra_Cell2, v_T301_SIB2 );
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def( eutra_Cell2 );
+
+    /* Preamble to enter UE in state Generic RB Established (state 3) */
+    f_EUTRA_Preamble( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def( eutra_Cell1 );
+
+    //Set inital cell power level according to T0
+    f_EUTRA_SetCellPowerList( v_CellPowerList_AtT0 );
+
+    v_ShortMAC_I := f_Calculate_ShortMAC( eutra_Cell1, eutra_Cell2 );
+
+    f_EUTRA_TestBody_Set( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS changes the power level of cell 1 to non-suitable "Off" and changes the power level of cell 2 to suitable according to TS 36.508 subclause 6.2.2.1 in order that the radio link quality of Cell 1 is degraded.
+    f_EUTRA_SetCellPowerList( v_CellPowerList_AtT1 );
+
+    //@siclog "Step 2" siclog@
+    //The UE sends RRCConnectionReestablishmentRequest message on Cell 2.
+    SRB.receive( car_SRB0_RrcPdu_IND( eutra_Cell2,
+                                      cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                   v_PhysicalCellIdentity_Cell1,
+                                                                                   cr_ReestablishmentCause_OtherFailure,
+                                                                                   v_ShortMAC_I ) ) )
+    -> value v_ReceivedRrcMsg; //@sic R5s110310 MCC STF160 Additional Change sic@;
+    v_TimingFirstMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+    v_TimingT301Min  := f_EUTRA_TimingInfoAdd( v_TimingFirstMsg, v_T301Min_InMillisec ); //@sic R5s110310 MCC STF160 Additional Change sic@
+    v_TimingT301Max  := f_EUTRA_TimingInfoAdd( v_TimingFirstMsg, v_T301Max_InMillisec ); //@sic R5s110310 MCC STF160 Additional Change sic@
+
+    //The local SS release is scheduled and done at the expiry of the timer t_T301Min
+    f_EUTRA_RRC_ConnectionRelease_Local( eutra_Cell2,
+                                         v_TimingT301Min ); //@sic R5s110310 MCC STF160 Additional Change sic@
+    
+    alt {
+      //Step 3: The SS does not respond to any RRCConnectionReestablishmentRequest messages for T301
+      [] SRB.receive( car_SRB0_RrcPdu_IND( ?, cr_RRCConnectionReestablishmentRequest_AnyUE (?) ) ) -> value v_ReceivedRrcMsg //@sic R5s110310 MCC STF160 Additional change sic@
+        {
+          v_TimingFurtherMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+          v_Duration := f_EUTRA_SubFrameTimingDuration( v_TimingFirstMsg, v_TimingFurtherMsg );
+          if ( v_Duration > v_T301Max_InMillisec ) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 3-4 - Unexpected RRCConnectionReestablishmentRequest after expiry of T301");
+          }
+          repeat;
+        }
+      
+      [] SRB.check( receive( car_SRB0_RrcPdu_IND( eutra_Cell2, cr_508_RRCConnectionRequest ) ) -> value v_ReceivedRrcMsg ) //@sic R5s110310 MCC STF160 Additional change sic@
+        {
+          v_TimingFurtherMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+          v_Duration := f_EUTRA_SubFrameTimingDuration( v_TimingFirstMsg, v_TimingFurtherMsg );
+          if ( v_Duration < v_T301Min_InMillisec ) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 3 - Unexpected RRCConnectionRequest before expiry of T301");
+          }
+        }
+    }
+
+    //@siclog "Step 4 - 8" siclog@
+    //The UE will perform TAU procedure based on steps 1 to 5 of subclause 6.4.2.7 in TS 36.508 on Cell 2.
+    //NOTE: The UE performs a TAU procedure due to NAS signaling connection recovery.
+    f_EUTRA_TrackingAreaUpdate_WithoutRelease( eutra_Cell2 );
+
+    //@siclog "Step 5" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 2?
+    f_EUTRA_508Check_ConnectedState( eutra_Cell2 );
+
+    f_EUTRA_TestBody_Set( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble( eutra_Cell2, E2_T3440 ); // @sic R5s120062 sic@
+
+  }
+
+  function f_TC_8_5_1_3_EUTRA() runs on EUTRA_PTC
+  { /* RRC Connection Re-establisment; Failure: T311 Expiry (after Radio Link Failure) */
+
+    f_EUTRA_Init ( c1 );
+
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell11 ); //@sic R5s100319 sic@
+
+    /* Preamble to enter UE in state Generic RB Established (state 3) */
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //The SS changes the power level of Cell 1 to non-suitable "Off" according to TS 36.508 subclause 6.2.2.1 in order that the radio link quality of Cell 1 is degraded.
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE ); //@sic R5s100319 & R5-105009 sic@
+
+    //@siclog "Step 2" siclog@
+    //Wait for 12s (T311 (10s) is transmitted in SIB2).
+    f_Delay( 12.0 ); //@sic R5s100319 & R5w100302 sic@
+
+    //@siclog "Step 3" siclog@
+    //The SS changes the power level of Cell 11 to "Serving Cell" according to TS 36.508 subclause 6.2.2.1
+    f_EUTRA_SetCellPower ( eutra_Cell11, tsc_ServingCellRS_EPRE );
+
+    //@siclog "Step 4" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.7 indicate that the UE is camped on E-UTRAN Cell 11? NOTE: The UE performs a TAU procedure and the RRC connection is released.
+    f_EUTRA_508CheckCampOnNewEutraCell ( eutra_Cell11 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble ( eutra_Cell11, E1_IDLE ); //@sic R5s100319 sic@
+  }
+
+  function f_TC_8_5_1_4_EUTRA() runs on EUTRA_PTC
+  { /* RRC Connection Re-establishment; Failure: Reject (after Radio Link Failure) */
+
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var ShortMAC_I v_ShortMAC_I;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE ), //@sic R5-112085 & R5s110249 sic@
+      cs_CellPower ( eutra_Cell2, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE )
+    };
+
+    f_EUTRA_Init ( c1 );
+
+    //Get cell dependant parameters
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId ( eutra_Cell1 );
+
+    //Create and configure cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell2 );
+
+    /* Preamble to enter UE in state Generic RB Established (state 3) */
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+
+    v_ShortMAC_I := f_Calculate_ShortMAC ( eutra_Cell1, eutra_Cell2 );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    /* Step 1: The SS changes the power level of Cell 1 to non-suitable cell according to TS 36.508 subclause 6.2.2.1
+     *         in order that the radio link quality of Cell 1 is degraded and set the power level of Cell 2 to suitable cell. */
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+
+    /* Step 2: UE transmits an RRCConnectionReestablishmentRequest message on Cell 2. */
+    SRB.receive( car_SRB0_RrcPdu_IND( eutra_Cell2,
+                                      cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                   v_PhysicalCellIdentity_Cell1,
+                                                                                   cr_ReestablishmentCause_Any,
+                                                                                   v_ShortMAC_I ) ) );
+
+    /* Step 3: The SS transmits an RRCConnectionReestablishmentReject message */
+    SRB.send ( cas_SRB0_RrcPdu_REQ ( eutra_Cell2,
+                                     cs_TimingInfo_Now,
+                                     cs_508_RRCConnectionReestablishmentReject ) );
+
+    /* Step 4-8: The UE will perform TAU procedure based on steps 1 to 5 of subclause 6.4.2.7 in TS 36.508 on Cell 2.
+     *           NOTE: The UE performs a TAU procedure due to NAS signaling connection recovery. */
+    f_EUTRA_TrackingAreaUpdate_WithoutRelease ( eutra_Cell2 );
+
+    /* Step 5: Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the
+     *         UE is in E-UTRA RRC_CONNECTED state on Cell 2? */
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell2 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble ( eutra_Cell2, E2_T3440 ); // @sic R5s120062 sic@
+
+  }
+
+  function f_TC_8_5_1_5_EUTRA() runs on EUTRA_PTC
+  { /* Radio Link Recovery while T310 is running */
+    var SubFrameTiming_Type v_TimingInfo;
+    timer t_Wait;
+
+    f_EUTRA_Init ( c1 );
+
+    //Set Sys info for cell 1 to be used at creation
+    f_EUTRA_CellInfo_SetSysInfo_T310 ( eutra_Cell1, ms2000 );
+
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    /* Preamble to enter UE in state Generic RB Established (state 3) */
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_GenericRbEst_TAInfinity ( eutra_Cell1 );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 0" siclog@
+    //SS wait for the 660ms to ensure that DL Timing Advance is sent at least once and UE apply the value of timeAlignmentTimerDedicated which is updated during the preamble.
+    f_Delay(0.660);
+
+    //@siclog "Step 1" siclog@
+    //The SS changes Cell 1 level according to the row "T1" in table 8.5.1.5.3.2-1.
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE );
+
+    //@siclog "Step 2" siclog@
+    //SS waits for 1.5s. The T310 is 2s.
+    f_Delay ( 1.5 ); //No need to take tolerances into account, because 1.5s is reached though before T310 expires.
+
+    //@siclog "Step 3" siclog@
+    //The SS changes Cell 1 level according to the row "T0" in table 8.5.1.5.3.2-1.
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_ServingCellRS_EPRE );
+
+    //@siclog "Step 4" siclog@
+    //SS waits for 5s. Check: Does the UE transmit any signalling message?
+    t_Wait.start( 5.0 ); //@sic R5w100302 sic@
+    alt {
+      [] t_Wait.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.5.1.5 Step 4");
+        }
+      [] SRB.receive
+        {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.5.1.5 Step 4");
+        }
+    }
+
+    /* Calculate timing info such that UE is in DRX on Duration:
+       @sic R5s110219 change 4 sic@ */
+    v_TimingInfo := f_EUTRA_GetNextSendOccasion(eutra_Cell1);
+    v_TimingInfo := f_EUTRA_GetDrxOnDuration(eutra_Cell1, v_TimingInfo, cs_508_DRX_Config_DrxL);  // force consideration of DRX even for DRX_L
+
+    //@siclog "Step 5" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 1?
+    f_EUTRA_508Check_ConnectedState(eutra_Cell1, cs_TimingInfo(v_TimingInfo.SFN.Number, v_TimingInfo.Subframe.Number));
+
+    f_EUTRA_TestBody_Set ( false );
+
+    /* Postamble */
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED ); //@sic R5-103875 sic@
+  }
+
+}

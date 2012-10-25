@@ -1,0 +1,907 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:10:23 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7300 $
+/******************************************************************************/
+
+module InterRat_Handover_EtoU_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from UTRAN_ASN1_ASP_RAB_Templates all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_Parameters all;
+  import from UTRAN_RAB_Functions all;
+  import from UTRAN_RRC_CommonTemplates all;
+  import from UTRAN_RRC_RAB_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TTCN_ASP_Templates all;
+  import from UTRAN_TypeDefs all;
+
+  const integer         tsc_E_AGCH_PowerOffset := 128;                          /* @status    APPROVED */
+
+  const integer         tsc_E_HICH_PowerOffset := 128;                          /* PowerOffset = -32 + offset * 0.25
+                                                                                   Unit dB, Range -32dB .. +31.75dB, Step +0.25dB
+                                                                                   (25.433, 9.2.2.13Id), offset relative to P-CPICH
+                                                                                   @status    APPROVED */
+
+  template (value) U_CPHY_CONFIG_REQ cas_E_AGCH_SetupInfo_FDD(UTRAN_CellId_Type                                      p_CellId,
+                                                              integer                                                p_PhyChId,
+                                                              template (value) SS_ActivationTime                     p_SS_ActTime,
+                                                              template (value) RL_Setup_FDD_PhysicalChannelInfo_Type p_RL_Setup_FDD_PhysicalChannelInfo_Type := cs_SS_E_AGCH_Info_FDD) :=
+    /* @status    APPROVED */
+    cas_RL_SetupInfo_FDD(p_CellId, p_PhyChId, p_RL_Setup_FDD_PhysicalChannelInfo_Type, p_SS_ActTime);
+
+  template (value) U_CPHY_CONFIG_REQ cas_E_AGCH_SetupInfo_TDD(UTRAN_CellId_Type                                      p_CellId,
+                                                              integer                                                p_PhyChId,
+                                                              template (value) SS_ActivationTime                     p_SS_ActTime,
+                                                              template (value) RL_Setup_TDD_PhysicalChannelInfo_Type p_RL_Setup_TDD_PhysicalChannelInfo_Type := cs_SS_E_AGCH_Info_TDD) :=
+    /* @status    APPROVED */
+    cas_RL_SetupInfo_TDD(p_CellId, p_PhyChId, p_RL_Setup_TDD_PhysicalChannelInfo_Type, p_SS_ActTime);
+
+  template (value) U_CPHY_CONFIG_REQ cas_E_HICH_SetupInfo_FDD(UTRAN_CellId_Type                                      p_CellId,
+                                                              integer                                                p_PhyChId,
+                                                              template (value) SS_ActivationTime                     p_SS_ActTime,
+                                                              template (value) RL_Setup_FDD_PhysicalChannelInfo_Type p_RL_Setup_FDD_PhysicalChannelInfo_Type := cs_SS_E_HICH_Info_FDD) :=
+    /* @status    APPROVED */
+    cas_RL_SetupInfo_FDD(p_CellId, p_PhyChId, p_RL_Setup_FDD_PhysicalChannelInfo_Type, p_SS_ActTime);
+
+  template (value) U_CPHY_CONFIG_REQ cas_E_HICH_SetupInfo_TDD(UTRAN_CellId_Type                                      p_CellId,
+                                                              integer                                                p_PhyChId,
+                                                              template (value) SS_ActivationTime                     p_SS_ActTime,
+                                                              template (value) RL_Setup_TDD_PhysicalChannelInfo_Type p_RL_Setup_TDD_PhysicalChannelInfo_Type := cs_SS_E_HICH_Info_TDD) :=
+    /* @status    APPROVED */
+    cas_RL_SetupInfo_TDD(p_CellId, p_PhyChId, p_RL_Setup_TDD_PhysicalChannelInfo_Type, p_SS_ActTime);
+
+  template (value) U_CPHY_CONFIG_REQ cas_E_DPCH_SetupInfo_FDD(UTRAN_CellId_Type                                      p_CellId,
+                                                              integer                                                p_PhyChId,
+                                                              template (value) SS_ActivationTime                     p_SS_ActTime,
+                                                              template (value) RL_Setup_FDD_PhysicalChannelInfo_Type p_RL_Setup_FDD_PhysicalChannelInfo_Type) :=
+    /* @status    APPROVED */
+    cas_RL_SetupInfo_FDD(p_CellId, p_PhyChId, p_RL_Setup_FDD_PhysicalChannelInfo_Type, p_SS_ActTime);
+
+  template (value) U_CPHY_CONFIG_REQ cas_E_DCH_SetupInfo_TDD(UTRAN_CellId_Type                                      p_CellId,
+                                                             integer                                                p_PhyChId,
+                                                             template (value) SS_ActivationTime                     p_SS_ActTime,
+                                                             template (value) RL_Setup_TDD_PhysicalChannelInfo_Type p_RL_Setup_TDD_PhysicalChannelInfo_Type) :=
+    /* @status    APPROVED */
+    cas_RL_SetupInfo_TDD(p_CellId, p_PhyChId, p_RL_Setup_TDD_PhysicalChannelInfo_Type, p_SS_ActTime);
+
+  template (value) RL_Setup_FDD_PhysicalChannelInfo_Type cs_SS_E_AGCH_Info_FDD :=
+  { /* @status    APPROVED */
+    e_AGCHInfo := {
+     r8 := {
+      e_AGCHInfo := cs_E_AGCH_Info_FDD_r8,
+      tti := f_Get_EDCH_TTI_Value(),
+      e_AGCH_PowerOffset := tsc_E_AGCH_PowerOffset,
+      e_RNTI_Primary := tsc_E_RNTI,
+      e_RNTI_Secondary := omit,
+      ss_DTX_Info  := omit,
+      initialServingGrantValue := omit,
+      sttdIndicator := omit
+     }
+    }
+  };
+
+  template (value) RL_Setup_TDD_PhysicalChannelInfo_Type cs_SS_E_AGCH_Info_TDD :=
+  { /* @status    APPROVED */
+    e_AGCHInfo := {
+     r8 := {
+      e_AGCH_ID_TDD := 0,
+      e_AGCHInfo := cs_E_AGCH_Info_TDD_r8,
+      e_AGCH_PowerOffset := 128,
+      maximum_E_AGCH_Power := -2,
+      carrier_Frequency := omit,
+      e_RNTI := tsc_E_RNTI,
+      sS_E_AGCH_DRX_Info := omit
+     }
+    }
+  };
+
+  template (value) RL_Setup_FDD_PhysicalChannelInfo_Type cs_SS_E_HICH_Info_FDD :=
+  { /* @status    APPROVED */
+    e_HICHInfo := {
+      e_HICHInfo := cs_E_HICH_Info,
+      e_HICHInfoCommonEDCH := omit,
+      tti := f_Get_EDCH_TTI_Value(),
+      e_HICH_PowerOffset := tsc_E_HICH_PowerOffset,
+      sttdIndicator := false // DEFAULT FALSE @sic R5-120613 sic@
+    }
+  };
+
+  template (value) RL_Setup_TDD_PhysicalChannelInfo_Type cs_SS_E_HICH_Info_TDD :=
+  { /* @status    APPROVED */
+    e_HICHInfo := {
+      n_E_HICH := 4,
+      maximum_E_HICH_Power := -2,
+      e_HICHInfoList := {
+        {
+          e_HICH_ID_TDD := 0,
+          e_HICH_Type := scheduled,
+          e_HICHInfo := {
+            ei := 0,
+            timeslotNumber := 6,
+            channelisation_Code := cc16_15,
+            midambleAllocationMode := { defaultMidamble := NULL },
+            midambleConfiguration := 8
+          },
+          carrier_Frequency := omit,
+          e_HICH_PowerOffset := 128
+        }
+      }
+    }
+  };
+
+  template (value) RL_Setup_FDD_PhysicalChannelInfo_Type cs_SS_E_DPCH_Info_FDD(UL_ScramblingCode p_UL_ScramblingCode) :=
+  { /* @status    APPROVED */
+    e_DPCHInfo := {
+      r8 := {
+        e_DPCCH_Info := cs_E_DPCCH_Info,
+        e_DPDCH_Info := cs_E_DPDCH_Info,
+        scramblingCodeType := longSC,
+        scramblingCode := p_UL_ScramblingCode,
+        tti := f_Get_EDCH_TTI_Value(),
+        edch_PhysicalLayerCategory := px_EDCH_UE_Category_FDD,
+        edch_PhysicalLayerCategory_extension := omit,
+        ul_16QAM_Settings := omit,
+        s_offset := omit
+      }
+    }
+  };
+
+  template (value) RL_Setup_TDD_PhysicalChannelInfo_Type cs_SS_E_DCH_Info_TDD :=
+  { /* @status    APPROVED */
+    e_DCHInfo := {
+      e_RUCCH_Info := cs_E_RUCCH_Info,
+      e_PUCH_Info := cs_SS_E_PUCH_Info
+    }
+  };
+
+  template (value) CphyTrchConfigReq cs_E_DCH_MACdFlows_FDD(template (value) SS_ActivationTime p_ActivationTime,
+                                                            template (value) E_DCHMACdFlows    p_E_DCHMacdFlows := cs_E_DCHMACdFlows_FDD_Def) :=
+  /* @status    APPROVED */
+    cs_CphyTrchConfigReq_Common_FDD(p_ActivationTime, omit, omit, omit, omit, omit, p_E_DCHMacdFlows, omit, omit);
+
+  template (value) CphyTrchConfigReq_TDD cs_E_DCH_MACdFlows_TDD(template (value) SS_ActivationTime p_ActivationTime,
+                                                                template (value) E_DCHMACdFlows_TDD    p_E_DCHMacdFlows := cs_E_DCHMACdFlows_TDD_Def) :=
+  /* @status    APPROVED */
+    cs_CphyTrchConfigReq_Common_TDD(p_ActivationTime, omit, omit, omit, omit, omit, p_E_DCHMacdFlows, omit,omit);
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_MACe_Setup_REQ_FDD(integer                            p_NodeB_Id,
+                                                                 template (value) SS_ActivationTime p_SS_ActivationTime,
+                                                                 template (omit) DDI_MappingList    p_DDI_MappingList := cs_DDI_MappingList_A14,
+                                                                 template (omit) E_DCHMACdFlows     p_E_DCHMACdFlows := cs_E_DCHMACdFlows_FDD_Def,
+                                                                 boolean                            p_ConnectedToMAC_es := true) :=   // @sic R5s120551 sic@
+  { /* @status    APPROVED */
+    configMACe_FDD := {
+      nodeB_Id := p_NodeB_Id,
+      configMessage := {
+        setup := {
+          activationTime := p_SS_ActivationTime,
+          ddiMappinglist := p_DDI_MappingList,
+          e_DCHMacdFlows := p_E_DCHMACdFlows,
+          connectedToMAC_es := p_ConnectedToMAC_es,
+          ss_DRX_MAC_Info := omit
+        }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_MACe_Setup_REQ_TDD(integer                            p_NodeB_Id,
+                                                                 template (value) SS_ActivationTime p_SS_ActivationTime,
+                                                                 template (omit) DDI_MappingList    p_DDI_MappingList := cs_DDI_MappingList_A14,
+                                                                 template (omit) E_DCHMACdFlows_TDD p_E_DCHMACdFlows := cs_E_DCHMACdFlows_TDD_Def) :=
+  { /* @status    APPROVED */
+    configMACe_TDD := {
+      nodeB_Id := p_NodeB_Id,
+      configMessage := {
+        setup := {
+          activationTime := p_SS_ActivationTime,
+          ddiMappinglist := p_DDI_MappingList,
+          e_DCHMacdFlows := p_E_DCHMACdFlows
+        }
+      }
+    }
+  };
+
+  template (value) E_DCH_AddReconf_MAC_d_Flow cs_E_DCH_AddReconf_MAC_d_Flow_DTCH :=
+  { /* @status    APPROVED */
+    mac_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DTCH1,
+    mac_d_FlowPowerOffset := tsc_E_DCH_MAC_d_FlowPowerOffset,
+    mac_d_FlowMaxRetrans := tsc_E_DCH_MAC_d_FlowMaxRetrans_DTCH,
+    mac_d_FlowMultiplexingList := omit,
+    transmissionGrantType := {
+      scheduledTransmissionGrantInfo := NULL
+    }
+  };
+
+  template (value) E_DCH_AddReconf_MAC_d_Flow_r7 cs_E_DCH_AddReconf_MAC_d_Flow_DTCH_TDD :=
+  { /* @status    APPROVED */
+    mac_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DTCH1,
+    mac_d_FlowPowerOffset := tsc_E_DCH_MAC_d_FlowPowerOffset,
+    mac_d_FlowMaxRetrans := tsc_E_DCH_MAC_d_FlowMaxRetrans_DTCH,
+    mac_d_FlowRetransTimer := omit,
+    mac_d_FlowMultiplexingList := omit,
+    transmissionGrantType := {
+      scheduledTransmissionGrantInfo := NULL
+    }
+  };
+
+  template (value) E_DCH_AddReconf_MAC_d_Flow cs_E_DCH_AddReconf_MAC_d_Flow_DCCH :=
+  { /* @status    APPROVED */
+    mac_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DCCH,
+    mac_d_FlowPowerOffset := tsc_E_DCH_MAC_d_FlowPowerOffset,
+    mac_d_FlowMaxRetrans := tsc_E_DCH_MAC_d_FlowMaxRetrans_DCCH,
+    mac_d_FlowMultiplexingList := omit,
+    transmissionGrantType := {
+      non_ScheduledTransGrantInfo := {
+        maxMAC_e_PDUContents := 162,
+        ms2_NonSchedTransmGrantHARQAlloc := omit //i.e. transmission in all HARQ processes is allowed
+      }
+    }
+  };
+
+  template (value) E_DCH_AddReconf_MAC_d_Flow_r7 cs_E_DCH_AddReconf_MAC_d_Flow_DCCH_TDD :=
+  { /* @status    APPROVED */
+    mac_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DCCH,
+    mac_d_FlowPowerOffset := tsc_E_DCH_MAC_d_FlowPowerOffset,
+    mac_d_FlowMaxRetrans := tsc_E_DCH_MAC_d_FlowMaxRetrans_DCCH,
+    mac_d_FlowRetransTimer := omit,
+    mac_d_FlowMultiplexingList := omit,
+    transmissionGrantType := {
+      non_ScheduledTransGrantInfo := {
+        modeSpecificInfo := {tdd := NULL}
+      }
+    }
+  };
+
+  template (value) E_DCHMACdFlows cs_E_DCHMACdFlows_FDD_Def :=
+  { /* @status    APPROVED */
+    tti := f_Get_EDCH_TTI_Value(),
+    harq_Info := rvtable,
+    addReconf_MAC_d_FlowList := { //condition A14 for Radio Bearer Setup in TS 34.108
+      cs_E_DCH_AddReconf_MAC_d_Flow_DCCH,
+      cs_E_DCH_AddReconf_MAC_d_Flow_DTCH
+    },
+    addReconf_MAC_d_FlowList_r7 := omit
+  };
+
+  template (value) E_DCHMACdFlows_TDD cs_E_DCHMACdFlows_TDD_Def :=
+  {  /* @status    APPROVED */
+    harq_Info := rvtable,
+    addReconf_MAC_d_FlowList := { //condition A14 for Radio Bearer Setup in TS 34.108
+      cs_E_DCH_AddReconf_MAC_d_Flow_DCCH_TDD,
+      cs_E_DCH_AddReconf_MAC_d_Flow_DTCH_TDD
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_MACe_NodeB_CellMapping_1Cell(UTRAN_CellId_Type p_CellId,
+                                                                      integer           p_NodeB_Id) :=
+  { /* @status    APPROVED */
+    nodeB := {
+      nodeB_Id := p_NodeB_Id,
+      celllist := {
+        enum2int(p_CellId)
+      }
+    }
+  };
+
+  template (value) DDI_Mapping cs_DDI_Mapping_DCCH(DDI                        p_DDI,
+                                                   LogicalChannelIdentity     p_LogicalChannelId,
+                                                   MAC_LogicalChannelPriority p_MAC_LogicalChannelPriority,
+                                                   integer                    p_RB_Id) :=
+  { /* @status    APPROVED */
+    macHeaderManipulation := normalMacHeader,
+    logicalChannelIdentity := p_LogicalChannelId,
+    e_DCH_MAC_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DCCH,
+    ddi := p_DDI,
+    rlc_PDU_SizeList := cs_RLC_PDU_SizeList_144,
+    includeInSchedulingInfo := false,
+    mac_LogicalChannelPriority := p_MAC_LogicalChannelPriority,
+    logicalChannelType := dCCH,
+    rB_Identity := p_RB_Id
+  };
+
+  template (value) DDI_Mapping cs_DDI_Mapping_DTCH(DDI                      p_DDI,
+                                                   LogicalChannelIdentity   p_LogicalChannelId,
+                                                   E_DCH_MAC_d_FlowIdentity p_E_DCH_MAC_d_FlowId,
+                                                   boolean                  p_IncludeInSchedulingInfo,
+                                                   integer                  p_RB_Id) :=
+  { /* @status    APPROVED */
+    macHeaderManipulation := normalMacHeader,
+    logicalChannelIdentity := p_LogicalChannelId,
+    e_DCH_MAC_d_FlowIdentity := p_E_DCH_MAC_d_FlowId,
+    ddi := p_DDI,
+    rlc_PDU_SizeList := cs_RLC_PDU_SizeList_336,
+    includeInSchedulingInfo := p_IncludeInSchedulingInfo,
+    mac_LogicalChannelPriority := 8,
+    logicalChannelType := dTCH,
+    rB_Identity := p_RB_Id
+  };
+
+  template (value) DDI_MappingList cs_DDI_MappingList_A14 :=
+  { /* @status    APPROVED */
+    cs_DDI_Mapping_DCCH(tsc_E_DCH_DDI_1, tsc_UL_DCCH1, 1, tsc_RB1),
+    cs_DDI_Mapping_DCCH(tsc_E_DCH_DDI_2, tsc_UL_DCCH2, 2, tsc_RB2),
+    cs_DDI_Mapping_DCCH(tsc_E_DCH_DDI_3, tsc_UL_DCCH3, 3, tsc_RB3),
+    cs_DDI_Mapping_DCCH(tsc_E_DCH_DDI_4, tsc_UL_DCCH4, 4, tsc_RB4),
+    cs_DDI_Mapping_DTCH(tsc_E_DCH_DDI_5, tsc_UL_DTCH1, tsc_E_DCH_MAC_d_FlowId_DTCH1, false, tsc_RB25)
+  };
+
+  function f_SS_DL_DPCH_ModifySRB_to_HS_DSCH(UTRAN_CellId_Type                  p_CellId,
+                                                  template (value) SS_ActivationTime p_ActTime := cs_ActivateNow) runs on UTRAN_PTC
+  {
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CMAC_Config(cas_MAC_FDD_Release(utran_CellDedicated,
+                                              tsc_DL_DPCH1,
+                                              p_ActTime));
+      
+      f_UTRAN_CPHY_TrCH_Release(cas_PHY_ReleaseDCH_FDD(p_CellId,
+                                                       tsc_DL_DPCH1,
+                                                       cs_TrChConfigTypeDCH_NoSHO,
+                                                       p_ActTime));
+      
+      f_UTRAN_CPHY_RL_Release(cas_RL_RelReq_FDD(p_CellId,
+                                                tsc_DL_DPCH1,
+                                                p_ActTime));
+      
+      //Setup F-DPCH (needed?)
+      f_UTRAN_CPHY_RL_Setup(cas_DL_DPCH_SetupInfo_FDD(p_CellId,
+                                                      tsc_F_DPCH,
+                                                      cs_F_DPCH_Info_FDD,
+                                                      cs_ActivateNow));
+      
+    }
+    else if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_TDD) {
+      f_UTRAN_CMAC_Config(cas_MAC_TDD_Release(utran_CellDedicated,
+                                              tsc_DL_DPCH1,
+                                              p_ActTime));
+      
+      f_UTRAN_CPHY_TrCH_Release(cas_PHY_ReleaseDCH_TDD(p_CellId,
+                                                       tsc_DL_DPCH1,
+                                                       cs_TrChConfigTypeDCH_NoSHO,
+                                                       p_ActTime));
+      
+      f_UTRAN_CPHY_RL_Release(cas_RL_RelReq_TDD(p_CellId,
+                                                tsc_DL_DPCH1,
+                                                p_ActTime));
+      
+      //Setup F-DPCH (needed?)
+      f_UTRAN_CPHY_RL_Setup(cas_DL_DPCH_SetupInfo_TDD(p_CellId,
+                                                      tsc_F_DPCH,
+                                                      cs_DL_DPCH_SRB_StandAlone_TDD,
+                                                      cs_ActivateNow));
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "Cell is neither FDD nor TDD");
+    }
+  }
+
+  function f_SS_HS_DSCH_ConfigCommon(UTRAN_CellId_Type                  p_CellId,
+                                     template (value) SS_ActivationTime p_ActTime := cs_ActivateNow) runs on UTRAN_PTC
+  {
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CPHY_RL_Setup(cas_RL_SetupInfo_FDD(p_CellId,
+                                                 tsc_HSPDSCH,
+                                                 cs_DL_Cell_DCH_HS_DSCH_PS_RAB_FDD(px_HSDSCH_UE_Category_FDD,
+                                                                                   cs_DL_HSPDSCH_Information_FDD(cs_HS_SCCH_Info_FDD, cs_Measurement_Feedback_Info),
+                                                                                   false),
+                                                 p_ActTime));
+      
+      f_UTRAN_CPHY_TrCH_Config(cas_TrChCfgInfo_FDD(p_CellId,
+                                                   tsc_HSPDSCH,
+                                                   cs_TrChConfigTypeNonDCH,
+                                                   cs_CphyTrchConfigReq_HS_DSCHMacdFlows_FDD(p_ActTime,
+                                                                                             cs_HS_DSCHMacdFlows(cs_HARQ_Info_FDD,
+                                                                                                                 cs_SS_AddOrReconfMAC_dFlow2(cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue),
+                                                                                                                                             cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue(148)))))));
+
+      f_UTRAN_CMAC_MACHs_Config(p_CellId,
+                                 cas_CMAC_MAChs_TFRC_ExplicitConfigReq_FDD(p_CellId));
+
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_FDD(p_CellId,
+                                               tsc_HSPDSCH,
+                                               cs_UE_Info,
+                                               cs_TrCHInfo_HS_DSCHMacdFlows_FDD(cs_HS_DSCHMacdFlows(cs_HARQ_Info_FDD,
+                                                                                                    cs_SS_AddOrReconfMAC_dFlow2(cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue),
+                                                                                                                                cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue(148))))),
+                                               cs_TrLogMappingDL_MAC_HS_SRB));
+    }
+    else if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_TDD) {
+      f_UTRAN_CPHY_RL_Setup(cas_RL_SetupInfo_TDD(p_CellId,
+                                                 tsc_HSPDSCH,
+                                                 cs_DL_Cell_DCH_HS_DSCH_PS_RAB_TDD(px_HSDSCH_UE_Category_TDD,
+                                                                                   cs_DL_HSPDSCH_Information_TDD(cs_HS_SCCH_Info_TDD,
+                                                                                                                 cs_HS_PDSCH_Midamble_Configuration_TDD128),
+                                                                                   false),
+                                                 p_ActTime));
+      f_UTRAN_CPHY_TrCH_Config(cas_TrChCfgInfo_TDD(p_CellId,
+                                                   tsc_HSPDSCH,
+                                                   cs_TrChConfigTypeNonDCH,
+                                                   cs_CphyTrchConfigReq_HS_DSCHMacdFlows_TDD(p_ActTime,
+                                                                                             cs_HS_DSCHMacdFlows_TDD(cs_HARQ_Info_TDD,
+                                                                                                                     cs_SS_AddOrReconfMAC_dFlow2(cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue),
+                                                                                                                                                 cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue(148)))))));
+      
+      f_UTRAN_CMAC_MACHs_Config(p_CellId,
+                                cas_CMAC_MAChs_TFRC_ExplicitConfigReq_TDD(p_CellId));
+      
+      f_UTRAN_CMAC_Config(cas_CMAC_CfgInfo_TDD(p_CellId,
+                                               tsc_HSPDSCH,
+                                               cs_UE_Info,
+                                               cs_TrCHInfo_HS_DSCHMacdFlows_TDD(cs_HS_DSCHMacdFlows_TDD(cs_HARQ_Info_TDD,
+                                                                                                        cs_SS_AddOrReconfMAC_dFlow2(cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue),
+                                                                                                                                    cs_SS_MAC_hs_AddReconfQueue(cs_MAC_hs_AddReconfQueue(148))))),
+                                               cs_TrLogMappingDL_MAC_HS_SRB));
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "Cell is neither FDD nor TDD");
+    }
+  }
+
+  function f_SS_UL_DPCH_ModifySRB_to_E_DCH(UTRAN_CellId_Type                  p_CellId,
+                                                template (value) SS_ActivationTime p_ActTime := cs_ActivateNow) runs on UTRAN_PTC
+  {
+    var UL_ScramblingCode v_UL_ScramblingCode;
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      v_UL_ScramblingCode := f_UTRAN_CellInfo_GetULScrmCode_FDD(p_CellId);
+      
+      f_UTRAN_CMAC_Config(cas_MAC_FDD_Release(utran_CellDedicated,
+                                              tsc_UL_DPCH1,
+                                              p_ActTime));
+      
+      f_UTRAN_CPHY_TrCH_Release(cas_PHY_ReleaseDCH_FDD(p_CellId,
+                                                       tsc_UL_DPCH1,
+                                                       cs_TrChConfigTypeDCH_NoSHO,
+                                                       p_ActTime));
+      
+      f_UTRAN_CPHY_RL_Modify(cas_RL_Modify_DPCHInfo_FDD(p_CellId,
+                                                        tsc_UL_DPCH1,
+                                                        cs_DPCHInfo_UL_FDD(cs_UL_DPCH_OnlyHS_PDSCH_FDD(v_UL_ScramblingCode),
+                                                                           cs_HS_DPCCHInfo),
+                                                        p_ActTime,
+                                                        false));
+    }
+    else if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_TDD) {
+      f_UTRAN_CMAC_Config(cas_MAC_TDD_Release(utran_CellDedicated,
+                                              tsc_UL_DPCH1,
+                                              p_ActTime));
+      
+      f_UTRAN_CPHY_TrCH_Release(cas_PHY_ReleaseDCH_TDD(p_CellId,
+                                                       tsc_UL_DPCH1,
+                                                       cs_TrChConfigTypeDCH_NoSHO,
+                                                       p_ActTime));
+      
+      f_UTRAN_CPHY_RL_Modify(cas_RL_Modify_DPCHInfo_TDD(p_CellId,
+                                                        tsc_UL_DPCH1,
+                                                        cs_DPCHInfo_UL_TDD(cs_UL_DPCH_OnlyHS_PDSCH_TDD,
+                                                                           cs_HS_DPCCHInfo),
+                                                        p_ActTime));
+      }
+    else {
+      FatalError(__FILE__, __LINE__, "Cell is neither FDD nor TDD");
+    }
+  }
+
+  function f_UTRAN_CMAC_MACe_NodeB_CellMapping_Config(UTRAN_CellId_Type                  p_CellId,
+                                                      integer                            p_NodeB_Id) runs on UTRAN_PTC
+  {
+    U_CMAC.send(cas_MACe_NodeB_CellMapping_1Cell(p_CellId, p_NodeB_Id));
+    U_CMAC.receive(car_CMAC_MACHe_NodeB_CellMapping_CNF(p_NodeB_Id));
+  }
+
+  function f_SS_E_DCH_ConfigCommon(UTRAN_CellId_Type                  p_CellId,
+                                   template (value) SS_ActivationTime p_ActTime := cs_ActivateNow) runs on UTRAN_PTC
+  {
+    var UL_ScramblingCode v_UL_ScramblingCode;
+    var integer v_NodeB := f_UTRAN_CellInfo_GetNodeB_Id(p_CellId);
+
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      v_UL_ScramblingCode := f_UTRAN_CellInfo_GetULScrmCode_FDD(p_CellId);
+      
+      // Configuration of E-AGCH
+      f_UTRAN_CPHY_RL_Setup(cas_E_AGCH_SetupInfo_FDD(p_CellId,
+                                                     tsc_E_AGCH,
+                                                     p_ActTime));
+      
+      // Configuration of E-HICH
+      f_UTRAN_CPHY_RL_Setup(cas_E_HICH_SetupInfo_FDD(p_CellId,
+                                                     tsc_E_HICH,
+                                                     p_ActTime));
+      
+      /* @sic R5s120397: Configuration of E-RGCH not needed sic@ */
+
+      // Configuration of E-DPCH
+      f_UTRAN_CPHY_RL_Setup(cas_E_DPCH_SetupInfo_FDD(p_CellId,
+                                                     tsc_E_DPCH,
+                                                     p_ActTime,
+                                                     cs_SS_E_DPCH_Info_FDD(v_UL_ScramblingCode)));
+      
+      // Configuration of Transport channels
+      f_UTRAN_CPHY_TrCH_Config(cas_TrChCfgInfo_FDD(p_CellId,
+                                                   tsc_E_DPCH,
+                                                   cs_TrChConfigTypeNonDCH,
+                                                   cs_E_DCH_MACdFlows_FDD(p_ActTime)));
+      
+      // Configuration of MAC
+      f_UTRAN_CMAC_MACe_NodeB_CellMapping_Config(p_CellId,
+                                                 v_NodeB);
+      
+      // Configuration of MACe
+      f_UTRAN_CMACe_Config(cas_CMAC_MACe_Setup_REQ_FDD(v_NodeB,
+                                                       p_ActTime));
+      // Configuration of MACes
+      f_UTRAN_CMACes_Config(p_CellId, cas_CMAC_MACes_Setup_REQ(p_CellId, p_ActTime, cs_DDI_MappingList_A14));
+    }
+    else if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_TDD) {
+      f_UTRAN_CPHY_RL_Setup(cas_E_AGCH_SetupInfo_TDD(p_CellId,
+                                                     tsc_E_AGCH,
+                                                     p_ActTime));
+      
+      // Configuration of E-HICH
+      f_UTRAN_CPHY_RL_Setup(cas_E_HICH_SetupInfo_TDD(p_CellId,
+                                                     tsc_E_HICH,
+                                                     p_ActTime));
+      
+      // Configuration of E-DPCH
+      f_UTRAN_CPHY_RL_Setup(cas_E_DCH_SetupInfo_TDD(p_CellId,
+                                                     tsc_E_DPCH,
+                                                     p_ActTime,
+                                                     cs_SS_E_DCH_Info_TDD));
+      
+      // Configuration of Transport channels
+      f_UTRAN_CPHY_TrCH_Config(cas_TrChCfgInfo_TDD(p_CellId,
+                                                   tsc_E_DPCH,
+                                                   cs_TrChConfigTypeNonDCH,
+                                                   cs_E_DCH_MACdFlows_TDD(p_ActTime)));
+      
+      // Configuration of MAC
+      f_UTRAN_CMAC_MACe_NodeB_CellMapping_Config(p_CellId,
+                                                 v_NodeB);
+      
+      // Configuration of MACe
+      f_UTRAN_CMACe_Config(cas_CMAC_MACe_Setup_REQ_TDD(v_NodeB,
+                                                       p_ActTime));
+      // Configuration of MACes
+      f_UTRAN_CMACes_Config(p_CellId, cas_CMAC_MACes_Setup_REQ(p_CellId, p_ActTime, cs_DDI_MappingList_A14));
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "Cell is neither FDD nor TDD");
+    }
+  };
+
+  function f_SS_RB25_AM_HSPA_Cfg(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CRLC_Config(cas_RB25_AM_Info_FDD(-, -, -, cds_UL_AM_RLC_HSU));
+    }
+    else {
+      f_UTRAN_CRLC_Config(cas_RB25_AM_Info_TDD(-, -, -, cds_UL_AM_RLC_HSU));
+    }
+  }
+
+  function f_SS_Config_HSPA_RAB(UTRAN_CellId_Type                  p_CellId,
+                                template (value) SS_ActivationTime p_ActTime := cs_ActivateNow) runs on UTRAN_PTC
+  {
+    //Modify DL SRBs
+    f_SS_DL_DPCH_ModifySRB_to_HS_DSCH(p_CellId, p_ActTime);
+    
+    //Configure HSDPA
+    f_SS_HS_DSCH_ConfigCommon(p_CellId, p_ActTime);
+    
+    //Modify UL SRBs
+    f_SS_UL_DPCH_ModifySRB_to_E_DCH(p_CellId, p_ActTime);
+    
+    //Configure HSUPA
+    f_SS_E_DCH_ConfigCommon(p_CellId, p_ActTime);
+    
+    //Setup radio bearer RB25
+    f_SS_RB25_AM_HSPA_Cfg(p_CellId);
+    
+    f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_E_HS);
+  }
+
+  function f_TC_8_4_1_2_UTRAN() runs on UTRAN_PTC
+  { // Test case 8.4.1.2 Inter-RAT Handover / from E-UTRA to UTRA(PS) / Data
+    
+    var U_RLC_AM_IND v_RcvdMsg;
+    var U_RNTI v_U_RNTI;
+    var C_RNTI v_C_RNTI;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var octetstring v_PSSpecificNAS_Info, v_CSSpecificNAS_Info;
+    var DRX_CycleLengthStructure v_DRX_CycleLengthStructure;
+    var PLMN_Identity v_PLMN_Identity;
+    var octetstring v_LAC;
+    
+    // Initialise all cells
+    f_UTRAN_Init(EUTRA_UTRAN);
+    
+    // Create and configure Cell 5
+    // Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH(utran_Cell5);
+    
+    // Start sending System Information
+    f_UTRAN_SendDefSysInfo(utran_Cell5);
+    
+    f_UTRAN_Pre_Preamble (utran_Cell5, NotSpecified); // @sic R5-120764 sic@
+    
+    // Send relevant UTRAN cell info to EUTRA PTC
+    f_UTRAN_Send_IR_SysInfoToEUTRA(utran_Cell5);
+    
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //Configure a dedicated channel in the UTRAN FDD with configuration
+    // according to 34.108 cl. 6.10.2.4.1.26
+    f_SS_Config_64kPS_RAB(utran_Cell5);
+    
+    // Sent after UE Capability
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+
+    // Set up the ciphering ready for when the UE hands over
+    f_UTRAN_ConfigureCipheringBeforeHO(utran_Cell5);
+    
+    f_UTRAN_SetCellPower(utran_Cell5, tsc_AttenuationServingCell);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger); // Tell SS to transmit a MobilityFromEUTRACommand message
+    
+    //@siclog "Step 3" siclog@
+    U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated,
+                                  tsc_RB2,
+                                  cr_HandoverToUTRANComplete))
+      -> value v_RcvdMsg;
+    
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.4.1.2 Step 3");
+    
+    //@siclog "Step 4 - 5" siclog@
+    f_UTRAN_ConfigureIntegrityAfterHO(utran_Cell5);
+    
+    //@siclog "Step 6" siclog@
+    //Transmits UTRAN MOBILITY INFORMATION message to notify CN information
+    v_SecurityInfo := f_UTRAN_Security_Get();
+    v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI(utran_Cell5);
+    v_C_RNTI := f_UTRAN_CellInfo_GetC_RNTI(utran_Cell5);
+    v_DRX_CycleLengthStructure := f_UTRAN_CellInfo_GetDRX_CycleLength(utran_Cell5);
+    v_PSSpecificNAS_Info := f_UTRAN_CellInfo_GetRAC(utran_Cell5) & bit2oct(f_UTRAN_CellInfo_GetNMO(utran_Cell5)); // @sic R5-103419 sic@
+    v_CSSpecificNAS_Info := f_UTRAN_CellInfo_GetT3212(utran_Cell5) & int2oct(f_UTRAN_CellInfo_GetAttFlag(utran_Cell5), 1);
+    v_PLMN_Identity := f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell5);
+    v_LAC := f_UTRAN_CellInfo_GetLAC(utran_Cell5);
+    
+    U_AM.send(cas_RLC_Data_Req_NoCnf(utran_CellDedicated, // @sic R5s110382 sic@
+                                     tsc_RB2,
+                                     cs_RRC_UtranMobilityInfo(v_SecurityInfo.dl_IntegrityCheckInfo,//IntegrityCheckInfo
+                                                              tsc_RRC_TI,                            //RRC_TransactionIdentifier
+                                                              omit,                                //IntegrityProtectionModeInfo_r7
+                                                              omit,                                //CipheringModeInfo_r7
+                                                              v_U_RNTI,                            //U_RNTI
+                                                              v_C_RNTI,                            //C_RNTI
+                                                              omit,                                //H_RNTI
+                                                              cs_UEConnTimersConst,                //UE_ConnTimersAndConstants_r5
+                                                              cs_CNInfo_PSCS(v_PLMN_Identity,          //CN_InformationInfoFull
+                                                                             v_LAC,
+                                                                             v_DRX_CycleLengthStructure,
+                                                                             v_PSSpecificNAS_Info,
+                                                                             v_CSSpecificNAS_Info),    // @sic R5-112705 sic@
+                                                              omit,                                //PLMN_Identity
+                                                              omit,                                //URA_Identity
+                                                              omit,                                //SupportChangeUECapab
+                                                              omit,                                //DL_CounterSynchronisationInfo_r5
+                                                              omit,                                //UtranMobilityInformation_r7_add_ext
+                                                              omit)));                             //UTRANMobilityInformation_v860ext2_Type
+    
+    //@siclog "Step 7" siclog@
+    //Receieve UTRAN MOBILITY INFORMATION CONFIRM message
+    U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated, // @sic R5s110382 sic@
+                                  tsc_RB2,
+                                  cr_108_UTRAN_MobilityInfoCnf(tsc_RRC_TI)));
+    
+    f_UTRAN_TestBody_Set(false);
+    
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger); // Tell to EUTRA PTC Test case is now finished on E-UTRA side
+    
+    // Switch off UE and release cell
+    f_UTRAN_Postamble(utran_Cell5, U3_HANDOVER);
+  }
+
+  function f_TC_8_4_1_4_UTRAN() runs on UTRAN_PTC
+  { /* Inter-RAT Handover / from E-UTRA to UTRA (HSPA) / Data */
+    
+    var U_RLC_AM_IND v_RcvdMsg;
+    var U_RNTI v_U_RNTI;
+    var C_RNTI v_C_RNTI;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var octetstring v_PSSpecificNAS_Info, v_CSSpecificNAS_Info;
+    var DRX_CycleLengthStructure v_DRX_CycleLengthStructure;
+    var PLMN_Identity v_PLMN_Identity;
+    var octetstring v_LAC;
+    
+    // Initialise all cells
+    f_UTRAN_Init(EUTRA_UTRAN);
+    
+    // Create and configure Cell 5
+    // Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH(utran_Cell5);
+    
+    // Start sending System Information
+    f_UTRAN_SendDefSysInfo(utran_Cell5);
+    
+    f_UTRAN_Pre_Preamble (utran_Cell5, NotSpecified); // @sic R5-120764 sic@
+    
+    // Send relevant UTRAN cell info to EUTRA PTC
+    f_UTRAN_Send_IR_SysInfoToEUTRA(utran_Cell5);
+    
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //Configure a dedicated channel in the UTRAN FDD with configuration
+    // according to 36.508 table 4.8.3-1, condition UTRA HSDPA RB
+    f_SS_Config_HSDPA_64kUL_RAB(utran_Cell5);
+    
+    //UE starts registered in EUTRA, wait its Auth Params
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+
+    f_UTRAN_ConfigureCipheringBeforeHO(utran_Cell5);
+    
+    f_UTRAN_SetCellPower (utran_Cell5, tsc_AttenuationServingCell);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger); // Tell SS to transmit a MobilityFromEUTRACommand message
+    
+    //@siclog "Step 3" siclog@
+    U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated,
+                                  tsc_RB2,
+                                  cr_HandoverToUTRANComplete))
+      -> value v_RcvdMsg;
+    
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.4.1.4 Step 3");
+    
+    //@siclog "Steps 4-5" siclog@
+    f_UTRAN_ConfigureIntegrityAfterHO(utran_Cell5);
+    
+    //@siclog "Step 6" siclog@
+    //Transmits UTRAN MOBILITY INFORMATION message to notify CN information
+    v_SecurityInfo := f_UTRAN_Security_Get();
+    v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI(utran_Cell5);
+    v_C_RNTI := f_UTRAN_CellInfo_GetC_RNTI(utran_Cell5);
+    v_DRX_CycleLengthStructure := f_UTRAN_CellInfo_GetDRX_CycleLength(utran_Cell5);
+    v_PSSpecificNAS_Info := f_UTRAN_CellInfo_GetRAC(utran_Cell5) & bit2oct(f_UTRAN_CellInfo_GetNMO(utran_Cell5)); // @sic R5-103419 sic@
+    v_CSSpecificNAS_Info := f_UTRAN_CellInfo_GetT3212(utran_Cell5) & int2oct(f_UTRAN_CellInfo_GetAttFlag(utran_Cell5), 1);
+    v_PLMN_Identity := f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell5);
+    v_LAC := f_UTRAN_CellInfo_GetLAC(utran_Cell5);
+    
+    U_AM.send(cas_RLC_Data_Req_NoCnf(utran_CellDedicated, // @sic R5s110382 sic@
+                                     tsc_RB2,
+                                     cs_RRC_UtranMobilityInfo(v_SecurityInfo.dl_IntegrityCheckInfo,//IntegrityCheckInfo
+                                                              tsc_RRC_TI,                            //RRC_TransactionIdentifier
+                                                              omit,                                //IntegrityProtectionModeInfo_r7
+                                                              omit,                                //CipheringModeInfo_r7
+                                                              v_U_RNTI,                            //U_RNTI
+                                                              v_C_RNTI,                            //C_RNTI
+                                                              omit,                                //H_RNTI
+                                                              cs_UEConnTimersConst,                //UE_ConnTimersAndConstants_r5
+                                                              cs_CNInfo_PSCS(v_PLMN_Identity,          //CN_InformationInfoFull
+                                                                             v_LAC,
+                                                                             v_DRX_CycleLengthStructure,
+                                                                             v_PSSpecificNAS_Info,
+                                                                             v_CSSpecificNAS_Info),    // @sic R5-112705 sic@
+                                                              omit,                                //PLMN_Identity
+                                                              omit,                                //URA_Identity
+                                                              omit,                                //SupportChangeUECapab
+                                                              omit,                                //DL_CounterSynchronisationInfo_r5
+                                                              omit,                                //UtranMobilityInformation_r7_add_ext
+                                                              omit)));                             //UTRANMobilityInformation_v860ext2_Type
+    
+    //@siclog "Step 7" siclog@
+    //Receieve UTRAN MOBILITY INFORMATION CONFIRM message
+    U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated, // @sic R5s110382 sic@
+                                  tsc_RB2,
+                                  cr_108_UTRAN_MobilityInfoCnf(tsc_RRC_TI)));
+    
+    f_UTRAN_TestBody_Set(false);
+
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger); // Tell to EUTRA PTC Test case is now finished on UTRAN side
+    
+    // Switch off UE and release cell
+    f_UTRAN_Postamble(utran_Cell5, U3_HANDOVER);
+  }
+
+  function f_TC_8_4_1_5_UTRAN() runs on UTRAN_PTC
+  {
+    var U_RNTI v_U_RNTI;
+    var C_RNTI v_C_RNTI;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var octetstring v_PSSpecificNAS_Info, v_CSSpecificNAS_Info;
+    var DRX_CycleLengthStructure v_DRX_CycleLengthStructure;
+    var PLMN_Identity v_PLMN_Identity;
+    var octetstring v_LAC;
+    
+    // Initialise all cells
+    f_UTRAN_Init(EUTRA_UTRAN);
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH(utran_Cell5);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo(utran_Cell5);
+    
+    f_UTRAN_Pre_Preamble (utran_Cell5, NotSpecified); // @sic R5-120776 sic@
+    f_UTRAN_Send_IR_SysInfoToEUTRA(utran_Cell5);
+    
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    f_SS_Config_HSPA_RAB(utran_Cell5);
+    
+    //UE starts registered in EUTRA, receive updated auth params
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    f_UTRAN_ConfigureCipheringBeforeHO(utran_Cell5);
+    
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger); // Tell SS to transmit a MobilityFromEUTRACommand message
+    
+    //@siclog "Step 3" siclog@
+    U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated,
+                                  tsc_RB2,
+                                  cr_HandoverToUTRANComplete));
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "Test Case 8.4.1.5 Step 3");
+    
+    f_UTRAN_ConfigureIntegrityAfterHO(utran_Cell5);
+    
+    //@siclog "Step 6" siclog@
+    //Transmits UTRAN MOBILITY INFORMATION message to notify CN information
+    v_SecurityInfo := f_UTRAN_Security_Get();
+    v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI(utran_Cell5);
+    v_C_RNTI := f_UTRAN_CellInfo_GetC_RNTI(utran_Cell5);
+    v_DRX_CycleLengthStructure := f_UTRAN_CellInfo_GetDRX_CycleLength(utran_Cell5);
+    v_PSSpecificNAS_Info := f_UTRAN_CellInfo_GetRAC(utran_Cell5) & bit2oct(f_UTRAN_CellInfo_GetNMO(utran_Cell5)); // @sic R5-103419 sic@
+    v_CSSpecificNAS_Info := f_UTRAN_CellInfo_GetT3212(utran_Cell5) & int2oct(f_UTRAN_CellInfo_GetAttFlag(utran_Cell5), 1);
+    v_PLMN_Identity := f_UTRAN_CellInfo_GetPLMNIdentity(utran_Cell5);
+    v_LAC := f_UTRAN_CellInfo_GetLAC(utran_Cell5);
+    
+    U_AM.send(cas_RLC_Data_Req_NoCnf(utran_CellDedicated, // @sic R5s110382 sic@
+                                     tsc_RB2,
+                                     cs_RRC_UtranMobilityInfo(v_SecurityInfo.dl_IntegrityCheckInfo, // IntegrityCheckInfo
+                                                              tsc_RRC_TI,                           // RRC_TransactionIdentifier
+                                                              omit,                                 // IntegrityProtectionModeInfo_r7
+                                                              omit,                                 // CipheringModeInfo_r7
+                                                              v_U_RNTI,                             // U_RNTI
+                                                              v_C_RNTI,                             // C_RNTI
+                                                              omit,                                 // H_RNTI
+                                                              cs_UEConnTimersConst,                 // UE_ConnTimersAndConstants_r5
+                                                              cs_CNInfo_PSCS(v_PLMN_Identity,       // CN_InformationInfoFull
+                                                                             v_LAC,
+                                                                             v_DRX_CycleLengthStructure,
+                                                                             v_PSSpecificNAS_Info,
+                                                                             v_CSSpecificNAS_Info), // @sic R5-112705 sic@
+                                                              omit,                                 // PLMN_Identity
+                                                              omit,                                 // URA_Identity
+                                                              omit,                                 // SupportChangeUECapab
+                                                              omit,                                 // DL_CounterSynchronisationInfo_r5
+                                                              omit,                                 // UtranMobilityInformation_r7_add_ext
+                                                              omit)));                              // UTRANMobilityInformation_v860ext2_Type
+    
+    //@siclog "Step 7" siclog@
+    //Receieve UTRAN MOBILITY INFORMATION CONFIRM message
+    U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated, // @sic R5s110382 sic@
+                                  tsc_RB2,
+                                  cr_108_UTRAN_MobilityInfoCnf(tsc_RRC_TI)));
+    f_UTRAN_TestBody_Set(false);
+    
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger); //Tell to EUTRA PTC Test case is now finished on UTRAN side
+    
+    //Switch off UE and release cell
+    f_UTRAN_Postamble(utran_Cell5, U3_HANDOVER);
+  }
+
+}

@@ -1,0 +1,127 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-12 13:26:51 +0200 (Tue, 12 Jun 2012) $
+// $Rev: 6844 $
+/******************************************************************************/
+
+module CDMA2000_CommonDefs { /* type definitions used by CDMA2000 and EUTRA */
+
+  import from CommonDefs all;
+  
+  type integer SearchWindowSize_Type (0..15);           /* Search Window as in 36.331 ASN.1 definition for SystemInformationBlockType8.searchWindowSize */
+  type integer BandclassCDMA2000_Type (0..31);          /* Band class defined as in 36.331 ASN.1 definition for BandclassCDMA2000 */
+  type integer ARFCN_ValueCDMA2000_Type (0..2047);      /* ARFCN for CDMA2000 cell as in 36.331 ASN.1 definition for ARFCN_ValueCDMA2000 */
+  type integer PhysCellIdCDMA2000_Type (0..511);        /* PN offset for CDMA2000 cell as in 36.331 ASN.1 definition for PhysCellIdCDMA2000 */
+  type integer ProtRev_Type            (0..255);        /* protocol revision */
+  type integer OpenLoopAdjust_Type (0..255);             /* 9.4.6.2.6 of C.S0024  */
+
+  type integer BCD_Digit_Type (0..9);                   /* To represent BCD digit of MCC */
+  type record length (3) of BCD_Digit_Type  MCC_Type ;  /* Represents Mobile Country Code */
+  type record length (2) of BCD_Digit_Type  MNC_Type ;  /* Represents Mobile Network  Code  i.e. the 11 and 12 digits in IMSI*/
+  type record length (1..8) of B8_Type   TMSI_Zone_Type;     /* TMSI Zone 1 to 8 octets */
+  type O4_Type  TMSI_Code_Type;
+  type integer EncryptionMode_Type (0..7);  /* C.S0005 table 3.7.4.5-1 & 3.7.5.7-3
+                                             * 0 ... Encryption disabled
+                                             * 1 ... Encryption with ORYX algorithm for User Info and
+                                             *       Enhanced Cellular Msg Encryption Algorithm for Signalling
+                                             * 2 ... Encryption with Rijndael algorithm
+                                             * 3-7 ... reserved
+                                             */
+
+ 
+  type integer TMSI_ZoneLen_Type (1..8);              /* TMSI Zone Lenght; On encoding this is encoded to B4_Type */
+  type record TMSI_Type {                        /* Globally unique TMSI as defined in C.s0005 clause 3.7.2.3.2.19 */
+      TMSI_ZoneLen_Type   TMSI_ZoneLen,          /* Length of TMSI_Zone 1..8 */
+      TMSI_Zone_Type      TMSI_Zone,             /* TMSI_ZoneLen octets of TMSI_Zone */
+      TMSI_Code_Type      TMSI_Code              /* TMSI code */
+  }
+
+
+  type B128_Type SectorID_HRPD_Type;                    /* Sector ID for HRPD as in 36.331 ASN.1 definition for CellGlobalIdCDMA2000.cellGlobalIdHRPD */
+
+  type record SectorID_RTT1X_Type {                     /* Sector ID for 1XRTT acc. to C.S0005 clause 3.7.2.3.2.1 and as in 36.331 ASN.1 clause 6.3.4,
+                                                         * definition of CellGlobalIdCDMA2000.cellGlobalId1XRTT */
+    B16_Type    BaseId,                                 /* Base station identification.
+                                                         * The base station shall set this field to its identification number */
+    B16_Type    NID,                                    /* Network identification
+                                                         * This field serves as a sub-identifier of a system as defined by the owner of the SID.
+                                                         * The base station shall set this field to the network identification number for this network */
+    B15_Type    SID                                     /* System identification. set  to the system identification number for this system */
+  };
+
+  type record CarrierFreqCDMA2000_Type {                /* Carrier Frequency for CDMA2000 cell as in 36.331 ASN.1 definition for CarrierFreqCDMA2000;
+                                                         * contains Band class 5 bit and Channel number 11 bit part of Sector Channel over head message contained in 24 bit Channel IE */
+    BandclassCDMA2000_Type     BandClass,
+    ARFCN_ValueCDMA2000_Type   ARFCN
+  };
+
+  type enumerated CDMA2K_Type {                         /* CDMA 2000 Type for CDMA2000 cell as in 36.331 ASN.1 definition for CDMA2000-Type */
+    type1XRTT,
+    typeHRPD
+  };
+
+  type union CellGlobalIdCDMA2000_Type {                /* CDMA 2000 Type Sector ID of the Cell as in 36.331 ASN.1 definition CellGlobalIdCDMA2000*/
+    SectorID_RTT1X_Type RTT1X,
+    SectorID_HRPD_Type  HRPD
+  };
+    
+  //---------------------------------------------------------------------------------------------------------------------------------------------
+  
+  type integer PilotOffset_Type (-31..0);               /* Represents the offset i.e.  Pilot Channel power to total cell power(dB);
+                                                         * By default shall be set to -7
+                                                         * 127 selected Max value by 7 bits */
+  type integer PowerIor_Type    (-127..0);              /*  Represets the cell total Tx power Ior (dBm/1.23 MHz) */
+  type integer PowerIoc_Type    (-127..0);              /* Represets the cell total  AWGN power  Ioc (dBm/1.23 MHz) which is independent of cell */
+  type integer Attenuation_Type (0..127);
+  type integer SystemType_Type  (0..255);               /* 0 to 2 are allowed and 3 to 255 are reserved 13.1 of C.S0024 */
+  type integer ColorCode_Type   (0..255);               /* 7.11.6.2.1 of C.S0024 */
+  
+  type integer ReverseLinkMACIndex_Type (0..383);       /* C.S0024 clause 12.4.1.3.2.2  */
+  
+  
+  type enumerated ReverseRateLimit_Type {               /* Table 9.9.6.3-2 of C.S0024;
+                                                         * set  to the highest data rate that the access terminal is allowed to use on the Reverse Traffic Channel;
+                                                         * 10 Reserved values */
+    kbps0,
+    kbps9_6,
+    kbps19_2,
+    kbps38_4,
+    kbps76_8,
+    kbps153_6,
+    resrv1, resrv2, resrv3, resrv4, resrv5,
+    resrv6, resrv7, resrv8, resrv9, resrv10
+  };
+  
+  type enumerated PacketApplication_Type {              /*  Type of Packet Application to be used in Stream protocol */
+    enhMultiFlowPacketApp
+  };
+
+  type enumerated ControlChannelRate_Type {             /* Determines the MAC configuration for Control Channel */
+    macIndex2,
+    macIndex3
+  };
+  
+  type enumerated CDMA2000_CellId_Type {
+    cdma2000_Cell_NonSpecific,
+    cdma2000_Cell15,  //HRDP Cell
+    cdma2000_Cell16,  //HRDP Cell
+    cdma2000_Cell17,  //HRDP Cell
+    cdma2000_Cell18,  //HRDP Cell
+    cdma2000_Cell19,  //RTT1X Cell
+    cdma2000_Cell20,  //RTT1X Cell
+    cdma2000_Cell21,  //RTT1X Cell
+    cdma2000_Cell22   //RTT1X Cell
+  };
+  type record SearchWindowSizeRecord_Type {
+      SearchWindowSize_Type     SearchWindow_Active,       /* Search Window for Active Cells */
+      SearchWindowSize_Type     SearchWindow_Neighbor,     /* Search Window for Neighbor Cells */
+      SearchWindowSize_Type     SearchWindow_Remaining     /* Search Window for Rest Cells */
+  };
+
+}
+

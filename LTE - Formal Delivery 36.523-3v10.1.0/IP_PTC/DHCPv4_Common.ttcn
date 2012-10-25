@@ -1,0 +1,402 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module DHCPv4_Common {
+
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from DHCPv4_TypeDefs all;
+
+  const charstring tsc_DNS_DomainName := "3gpp.org"; // FFS px_IMS_HomeDomainName;
+
+  template DHCPv4Option_MessageType cr_DHCPv4MessageType(template (present) DHCPv4_MsgType p_MsgType) :=
+  { /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_MessageType,
+    len  := 1,
+    msgType := p_MsgType
+  };
+
+  template DHCPMessagev4Options cr_DHCPMessagev4Options(template (present) DHCPv4_MsgType p_MsgType) :=
+  { /* @status    APPROVED */
+    subnetMask := *,
+    timeOffset := *,
+    router := *,
+    timeServer := *,
+    nameServer := *,
+    domainNameServer := *,
+    logServer := *,
+    cookieServer := *,
+    lprServer := *,
+    impressServer := *,
+    rlocserv := *,
+    hostName := *,
+    bootFileSize := *,
+    meritDumpFile := *,
+    domainName := *,
+    swapServer := *,
+    rootPath := *,
+    extensions_path := *,
+    ip_forwarding := *,
+    nonLocalSourceRouting := *,
+    policyFilter := *,
+    maximumDatagramReassemblySize := *,
+    default_ip_ttl := *,
+    pathMTU_AgingTimeout := *,
+    pathMTU_PlateauTable := *,
+    interfaceMTU := *,
+    allSubnetsLocal := *,
+    broadcastAddress := *,
+    performMaskDiscovery := *,
+    maskSupplier := *,
+    performRouterDiscovery := *,
+    routerSolicitationAddress := *,
+    staticRoute := *,
+    trailerEncapsulation := *,
+    arpCacheTimeout := *,
+    ethernetEncapsulation := *,
+    tcpDefaultTTL := *,
+    tcpKeepAliveInterval := *,
+    tcpKeepAliveGarbage := *,
+    nisDomain := *,
+    nisServers := *,
+    ntpServers := *,
+    vendorSpecificInfo := *,
+    netbiosServers := *,
+    netbiosDDServers := *,
+    netbiosNodeType := *,
+    netbiosScope := *,
+    xWindowFont_server := *,
+    xWindowDisplayManagers := *,
+    requestedIPAddress := *,
+    ipAddressLeaseTime := *,
+    optionOverload := *,
+    messageType := cr_DHCPv4MessageType(p_MsgType),
+    serverIdentifier := *,
+    parameterRequestList := *,
+    message97 := *,
+    maxDHCPSize := *,
+    renewalT1 := *,
+    rebindingT2 := *,
+    classIdentifier := *,
+    clientIdentifier := *,
+    sipServers := *,
+    rapidCommit := *
+  };
+
+  template DHCPv4Message cr_DHCPv4Request(template (present) DHCPv4_MsgType p_MsgType := ?,
+                                          template (present) O4_Type p_Ciaddr := ?,
+                                          template (present) O4_Type p_Yiaddr := ?,
+                                          template (present) O4_Type p_Siaddr := ?,
+                                          template (present) O4_Type p_Giaddr := ?) :=
+  { /* @status    APPROVED */
+    op := tsc_OPCODE_BOOTREQUEST,
+    htype := ?,
+    hlen := ?,
+    hops := 0,
+    xid := ?,
+    secs := ?,
+    flags := ?,
+    ciaddr := p_Ciaddr,
+    yiaddr := p_Yiaddr,
+    siaddr := p_Siaddr,
+    giaddr := p_Giaddr,
+    chaddr := ?,
+    sname := ?,
+    file := ?,
+    magicCookie := tsc_DHCPv4_MagicCookie, // RFC 2131 clause 3
+    options := cr_DHCPMessagev4Options(p_MsgType),
+    endOption := tsc_DHCPv4_EndOption,
+    padding := *
+  };
+
+  template (value) DHCPv4Option_MessageType cs_DHCPv4MessageType(DHCPv4_MsgType p_MsgType) :=
+  { /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_MessageType,
+    len  := 1,
+    msgType := p_MsgType
+  };
+
+  template (value) DHCPv4Option_ServerIdentifier cs_DHCPv4ServerIdentifier(O4_Type p_ServerAddress) :=
+  { /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_ServerIdentifier,
+    len  := 4,
+    val  := p_ServerAddress
+  };
+
+  template (value) DHCPv4Options_SIPServers cs_DHCPv4Options_SIPServer_DomainName(charstring p_PcscfDomainName) :=
+  { /* acc. to RFC 3361 */
+    /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_SIPServers,
+    len := lengthof(p_PcscfDomainName) + 3,     /* acc. to RFC 3361 cl. 3.1 when p_PcscfDomainName has N lables we have one length octet for each lable plus one terminating length octet with '0'
+                                                   => as p_PcscfDomainName has N-1 "." separating the lables we get a length of (lengthof(p_PcscfDomainName) + 2) for the encoded p_PcscfDomainName
+                                                   => together with the 'enc' field we have (lengthof(p_PcscfDomainName) + 3) */
+    enc  := '00'O,                              /* => Domain Name List acc. to RFC 3361 cl. 3.1 */
+    domainNames := {p_PcscfDomainName},
+    addressList := omit
+  };
+
+  template (value) DHCPv4Options_SIPServers cs_DHCPv4Options_SIPServer_IPAddr(O4_Type p_IPAddress) :=
+  { /* acc. to RFC 3361 */
+    /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_SIPServers,
+    len := 5,                                   /* one IPv4 address only */
+    enc  := '01'O,                              /* => Domain Name List acc. to RFC 3361 cl. 3.2 */
+    domainNames := omit,
+    addressList := {p_IPAddress}
+  };
+
+  template (value) DHCPv4Option_DomainNameServerOption cs_DHCPv4Option_DomainNameServerOption(O4_Type p_DnsServerAddress) :=
+  { /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_DomainNameServerOption,
+    len := 4,                                   /* one IPv4 address only */
+    addresses := {p_DnsServerAddress}
+  };
+
+  template (value) DHCPv4Option_DomainName cs_DHCPv4Option_DomainName(charstring p_DnsDomainName) :=
+  { /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_DomainName,
+    len := lengthof(p_DnsDomainName),
+    val := p_DnsDomainName
+  };
+
+  template (value) DHCPv4Options_RapidCommit cs_DHCPv4ServerRapidCommit :=
+  { /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_RapidCommit,
+    len  := 0
+  };
+
+  template (value) DHCPv4Option_IPAddressLeaseTime cs_DHCPv4LeaseTime :=
+  { /* @status    APPROVED */
+    code := tsc_DHCPv4Options_CODE_IPAddressLeaseTime,
+    len := 4,
+    val := 86400  // one day
+  };
+
+  template (value) DHCPMessagev4Options cs_DHCPv4_Options(DHCPv4_MsgType p_MsgType,
+                                                          template (omit) DHCPv4Option_ServerIdentifier p_ServerIdentifier := omit,
+                                                          template (omit) DHCPv4Option_IPAddressLeaseTime p_LeaseTime := omit,
+                                                          template (omit) DHCPv4Options_SIPServers p_SIPServer := omit,
+                                                          template (omit) DHCPv4Option_DomainNameServerOption p_DomainNameServerOption := omit,
+                                                          template (omit) DHCPv4Option_DomainName p_DomainName := omit,
+                                                          template (omit) DHCPv4Options_RapidCommit p_RapidCommit := omit) :=
+  { /* @status    APPROVED */
+    subnetMask := omit,
+    timeOffset  := omit,
+    router := omit,
+    timeServer := omit,
+    nameServer := omit,
+    domainNameServer := p_DomainNameServerOption,
+    logServer := omit,
+    cookieServer := omit,
+    lprServer := omit,
+    impressServer := omit,
+    rlocserv := omit,
+    hostName := omit,
+    bootFileSize := omit,
+    meritDumpFile := omit,
+    domainName := p_DomainName,
+    swapServer := omit,
+    rootPath := omit,
+    extensions_path := omit,
+    ip_forwarding := omit,
+    nonLocalSourceRouting := omit,
+    policyFilter := omit,
+    maximumDatagramReassemblySize := omit,
+    default_ip_ttl := omit,
+    pathMTU_AgingTimeout := omit,
+    pathMTU_PlateauTable := omit,
+    interfaceMTU := omit,
+    allSubnetsLocal := omit,
+    broadcastAddress := omit,
+    performMaskDiscovery := omit,
+    maskSupplier := omit,
+    performRouterDiscovery := omit,
+    routerSolicitationAddress := omit,
+    staticRoute := omit,
+    trailerEncapsulation := omit,
+    arpCacheTimeout := omit,
+    ethernetEncapsulation := omit,
+    tcpDefaultTTL := omit,
+    tcpKeepAliveInterval := omit,
+    tcpKeepAliveGarbage := omit,
+    nisDomain := omit,
+    nisServers := omit,
+    ntpServers := omit,
+    vendorSpecificInfo := omit,
+    netbiosServers := omit,
+    netbiosDDServers := omit,
+    netbiosNodeType := omit,
+    netbiosScope := omit,
+    xWindowFont_server := omit,
+    xWindowDisplayManagers := omit,
+    requestedIPAddress := omit,
+    ipAddressLeaseTime := p_LeaseTime,
+    optionOverload := omit,
+    messageType := cs_DHCPv4MessageType(p_MsgType),
+    serverIdentifier := p_ServerIdentifier,
+    parameterRequestList := omit,
+    message97 := omit,
+    maxDHCPSize := omit,
+    renewalT1 := omit,
+    rebindingT2 := omit,
+    classIdentifier := omit,
+    clientIdentifier := omit,
+    sipServers := p_SIPServer,
+    rapidCommit := p_RapidCommit
+  };
+
+  template (value) DHCPv4Message cs_DHCPv4_Response(DHCPv4Message p_RequestMsg,
+                                                    O4_Type p_Yiaddr,
+                                                    template (value) DHCPMessagev4Options p_DHCPv4_Options)  :=
+  { /* @status    APPROVED */
+    /* @sic R5-121779 sic@ */
+    op := tsc_OPCODE_BOOTREPLY,
+    htype := p_RequestMsg.htype,
+    hlen  := p_RequestMsg.hlen,
+    hops  := 0,
+    xid   := p_RequestMsg.xid,
+    secs  := 0,
+    flags := p_RequestMsg.flags,
+    ciaddr := '00000000'O,
+    yiaddr := p_Yiaddr,  // UE address
+    siaddr := '00000000'O,
+    giaddr := p_RequestMsg.giaddr,
+    chaddr := p_RequestMsg.chaddr,
+    sname  := int2oct(0, 64),
+    file   := int2oct(0, 128),
+    magicCookie := tsc_DHCPv4_MagicCookie, // RFC 2131 clause 3
+    options := p_DHCPv4_Options,
+    endOption := tsc_DHCPv4_EndOption,
+    padding := omit
+  };
+
+  function fl_DHCPv4_ParameterRequested(DHCPv4_ParameterRequestList p_ParameterRequestList,
+                                        DHCPv4Options_CODE p_OptionCode) return boolean
+  {
+    var integer i;
+
+    for (i := 0; i < lengthof (p_ParameterRequestList);  i := i + 1) {
+      if (p_ParameterRequestList[i] == p_OptionCode) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function f_DHCPv4_Response(DHCPv4Message p_Request,
+                             charstring p_ClientAddr,
+                             charstring p_ServerAddr,
+                             charstring p_PcscfAddr := "",
+                             charstring p_DnsServerAddr := "",
+                             charstring p_DomainName := tsc_DNS_DomainName) return template (omit) DHCPv4Message
+  { /* @sic R5-123740 change 1: 36.523-3 cl. 4.2.4.7 sic@ */
+    var template (value) DHCPv4Option_ServerIdentifier v_ServerIdentifier := cs_DHCPv4ServerIdentifier(f_Convert_IPv4Addr2OctString(p_ServerAddr));
+    var template (omit) DHCPv4Option_IPAddressLeaseTime v_LeaseTime := omit;
+    var template (omit) DHCPv4Options_SIPServers v_SIPServer := omit;
+    var template (omit) DHCPv4Option_DomainNameServerOption v_DomainNameServerOption := omit;
+    var template (omit) DHCPv4Option_DomainName v_DomainName := omit;
+    var template (omit) DHCPv4Options_RapidCommit v_RapidCommit := omit;
+    var DHCPv4_ParameterRequestList v_ParameterRequestList;
+    var DHCPv4_MsgType v_ResponseMsgType;
+    var O4_Type v_ExpectedCiaddr := '00000000'O;
+
+    if (not match(p_Request, cr_DHCPv4Request)) {
+      f_ErrorLog(__FILE__, __LINE__, "Invalid DHCPv4 message");
+      return omit;
+    } /* else: magicCookie is valid and there is a MessageType contained in the options */
+    
+    select (p_Request.options.messageType.msgType) {
+      case (DHCPv4_MsgType_DISCOVER_E) {
+        if (ispresent(p_Request.options.rapidCommit)) {
+          v_ResponseMsgType := DHCPv4_MsgType_ACK_E;
+          v_RapidCommit := cs_DHCPv4ServerRapidCommit;
+        } else {
+          v_ResponseMsgType := DHCPv4_MsgType_OFFER_E;
+        }
+        v_LeaseTime := cs_DHCPv4LeaseTime;   // mandatory for response to DISCOVER
+      }
+      case (DHCPv4_MsgType_REQUEST_E) {
+        v_ResponseMsgType := DHCPv4_MsgType_ACK_E;
+        v_LeaseTime := cs_DHCPv4LeaseTime;
+      }
+      case (DHCPv4_MsgType_INFORM_E) {
+        v_ResponseMsgType := DHCPv4_MsgType_ACK_E;
+        v_ExpectedCiaddr := f_Convert_IPv4Addr2OctString(p_ClientAddr);
+      }
+      case else {
+        f_ErrorLog(__FILE__, __LINE__, "Invalid DHCPv4 message");
+        return omit;
+      }
+    }
+    // check values of ciaddr, yiaddr, siaddr, giaddr:
+    if (not match(p_Request, cr_DHCPv4Request(?, v_ExpectedCiaddr, '00000000'O, '00000000'O, '00000000'O))) {
+      f_ErrorLog(__FILE__, __LINE__, "Invalid Address in DHCP request");
+    }
+
+    if (ispresent(p_Request.options.parameterRequestList)) {
+      v_ParameterRequestList := p_Request.options.parameterRequestList.optionCodes;
+
+      if (fl_DHCPv4_ParameterRequested(v_ParameterRequestList, tsc_DHCPv4Options_CODE_SIPServers)) {
+        if (p_PcscfAddr == "") {
+          v_SIPServer := cs_DHCPv4Options_SIPServer_IPAddr(f_Convert_IPv4Addr2OctString(p_ServerAddr));                         // use common server address
+        } else if (f_IpAddressIsIPv4(p_PcscfAddr)) {
+          v_SIPServer := cs_DHCPv4Options_SIPServer_IPAddr(f_Convert_IPv4Addr2OctString(p_PcscfAddr));                          // use p_PcscfAddr as P-CSCF IP address
+        } else {
+          v_SIPServer := cs_DHCPv4Options_SIPServer_DomainName(p_PcscfAddr);                                                    // use p_PcscfAddr as domain name
+        }
+      }
+      if (fl_DHCPv4_ParameterRequested(v_ParameterRequestList, tsc_DHCPv4Options_CODE_DomainNameServerOption)) {
+        if (p_DnsServerAddr == "") {
+          v_DomainNameServerOption := cs_DHCPv4Option_DomainNameServerOption(f_Convert_IPv4Addr2OctString(p_ServerAddr));       // use common server address
+        } else{
+          v_DomainNameServerOption := cs_DHCPv4Option_DomainNameServerOption(f_Convert_IPv4Addr2OctString(p_DnsServerAddr));
+        }
+      }
+      if (fl_DHCPv4_ParameterRequested(v_ParameterRequestList, tsc_DHCPv4Options_CODE_DomainName)) {
+        v_DomainName := cs_DHCPv4Option_DomainName(p_DomainName);
+      }
+    }
+    return cs_DHCPv4_Response(p_Request,
+                              f_Convert_IPv4Addr2OctString(p_ClientAddr),
+                              cs_DHCPv4_Options(v_ResponseMsgType,
+                                                v_ServerIdentifier,
+                                                v_LeaseTime,
+                                                v_SIPServer,
+                                                v_DomainNameServerOption,
+                                                v_DomainName,
+                                                v_RapidCommit));
+  }
+
+  function f_DHCPv4_GetEncodedResponse(octetstring p_ReqData,
+                                       charstring p_ClientAddr,
+                                       charstring p_ServerAddr) return octetstring
+  { /* @sic R5-121779: split of f_DHCP_GetResponse into f_DHCPv4_GetEncodedResponse and f_DHCPv4_Response sic@ */
+    var bitstring v_DataBitstring := oct2bit(p_ReqData);
+    var DHCPv4Message v_Request;
+    var template (omit) DHCPv4Message v_Response := omit;
+
+    // Decode incoming DHCP message
+    
+    if (decvalue(v_DataBitstring, v_Request) != 0) {
+      f_ErrorLog(__FILE__, __LINE__, "DHCP message cannot be decoded (skipped)");
+    }
+    else {
+      v_Response := f_DHCPv4_Response(v_Request, p_ClientAddr, p_ServerAddr);
+    }
+
+    if (isvalue(v_Response)) {
+      v_DataBitstring := encvalue(v_Response);
+      return bit2oct(v_DataBitstring);
+    }
+    return ''O; // Error
+  }
+
+}

@@ -1,0 +1,728 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-12 13:26:51 +0200 (Tue, 12 Jun 2012) $
+// $Rev: 6844 $
+/******************************************************************************/
+
+module CDMA2000_CellInfo {
+
+  import from CDMA2000_ASP_TypeDefs all;
+  import from CDMA2000_CommonDefs all;
+  import from CDMA2000_Constants all;
+  import from CDMA2000_Parameters all;
+  import from CDMA2000_Templates all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+
+  type record CDMA2000_CommonCellInfo_Type {            /* @status    APPROVED */
+    CDMA2000_CellParameters_Type     CommonCellParams
+  };
+
+  type record CDMA2000_ReferenceCellPower_Type {        /* @status    APPROVED */
+    CDMA2000_AbsoluteCellPower_Type  CellPower,
+    CDMA2000_Attenuation_Type        CellAttenuation
+  };
+
+  type record CDMA2000_CellInfo_Type {                  /* @status    APPROVED */
+    CDMA2000_CommonCellInfo_Type     CommonCellInfo,
+    CDMA2000_ReferenceCellPower_Type ReferenceCellPower,
+    ModeSpecificCellParams_Type      ModeSpecificParams
+  };
+
+  type record length (tsc_CDMA2000_MaxNumberOfCells) of CDMA2000_CellInfo_Type CDMA2000_CellArray_Type;    /* @status    APPROVED */
+
+  template (value) CDMA2000_Attenuation_Type  cs_CDMA2000_Attenuation_Def ( Attenuation_Type p_Attenuation := tsc_AttenuationDef) :=
+  { /* @status    APPROVED */
+    Value := p_Attenuation
+  };
+
+  template (value) CDMA2000_ReferenceCellPower_Type cs_CDMA2000_ReferenceCellPower_Def( template (value) CDMA2000_AbsoluteCellPower_Type p_CellPower,
+                                                                                        template (value) CDMA2000_Attenuation_Type       p_Attenuation) :=
+  { /* @status    APPROVED */
+    CellPower := p_CellPower,
+    CellAttenuation := p_Attenuation
+  };
+
+  template (value) CarrierFreqCDMA2000_Type  cs_CarrierFreqCDMA2000_Def(BandclassCDMA2000_Type p_Bandclass := px_HRPD_BandClass,
+                                                                        ARFCN_ValueCDMA2000_Type p_ChannelNum  ):=  //@sic R5-110332 sic@
+  { /* @status    APPROVED */
+    BandClass := p_Bandclass,
+    ARFCN := p_ChannelNum
+  };
+
+  template (value) CDMA2000_AbsoluteCellPower_Type cs_CDMA2000_AbsoluteCellPowerDef (PowerIoc_Type p_PowerIoc := tsc_PowerIocDef,
+                                                                                     PowerIor_Type p_PowerIor := tsc_PowerIorDef,
+                                                                                     template (value) PilotOffset_Type p_PilotOffset := tsc_PilotOffsetHRPDDef) :=
+  { /* @status    APPROVED */
+    PowerIoc := p_PowerIoc,
+    PowerIor := p_PowerIor,
+    PilotOffset := p_PilotOffset
+  };
+
+  template (value) CDMA2000_CellParameters_Type cs_CDMA2000_CellParameters_HRPD_Def (PhysCellIdCDMA2000_Type  p_PNOffset := tsc_PNOffsetDef,
+                                                                                     SectorID_HRPD_Type       p_SectorID := px_HRPD_SectorID_Cell15,
+                                                                                     ARFCN_ValueCDMA2000_Type p_ChannelNum , //@sic R5-110332 sic@
+                                                                                     BandclassCDMA2000_Type   p_Bandclass := px_HRPD_BandClass,
+                                                                                     template (value) SearchWindowSizeRecord_Type  p_SearchWindow := cs_SearchWindow_Def) :=
+  { /* @status    APPROVED */
+    Type         := typeHRPD,
+    CarrierFreq  := cs_CarrierFreqCDMA2000_Def(p_Bandclass, p_ChannelNum), // Contains bandclass and arfcn i.e. 11 bit channel number
+    PhysCellId   := p_PNOffset, // PN offset of pilot 0..511
+    CellGlobalId := {
+      HRPD := p_SectorID        // Contains the 128 bit cell ID for HRPD and 47 bit cell ID for 1XRTT
+    },
+    SearchWindow  := p_SearchWindow
+  };
+
+  template (value)  SectorID_RTT1X_Type cs_SectorID_RTT1X_Def (B16_Type  p_BaseId  := px_1XRTT_BaseId_Cell19,
+                                                               B16_Type  p_NID     := px_1XRTT_NID ,
+                                                               B15_Type  p_SID     := px_1XRTT_SID):=
+  { /* @status    APPROVED */
+    BaseId :=  p_BaseId,
+    NID    :=    p_NID,
+    SID    :=    p_SID
+  };
+
+  template (value) CDMA2000_CellParameters_Type cs_CDMA2000_CellParameters_RTT1X_Def (PhysCellIdCDMA2000_Type  p_PNOffset := tsc_PNOffsetDef,
+                                                                                      template (value) SectorID_RTT1X_Type p_SectorID := cs_SectorID_RTT1X_Def,
+                                                                                      ARFCN_ValueCDMA2000_Type p_ChannelNum , //@sic R5-110332 sic@
+                                                                                      BandclassCDMA2000_Type   p_Bandclass := px_1XRTT_BandClass,
+                                                                                      template (value) SearchWindowSizeRecord_Type  p_SearchWindow := cs_SearchWindow_Def) :=
+  { /* @status    APPROVED */
+    Type         := type1XRTT,
+    CarrierFreq  := cs_CarrierFreqCDMA2000_Def(p_Bandclass, p_ChannelNum), // Contains bandclass and arfcn i.e. 11 bit channel number
+    PhysCellId   := p_PNOffset, // PN offset of pilot 0..511
+    CellGlobalId := {
+      RTT1X := p_SectorID        // Contains the 128 bit cell ID for HRPD and 47 bit cell ID for 1XRTT
+    },
+    SearchWindow  := p_SearchWindow
+  };
+
+  template (value) SearchWindowSizeRecord_Type cs_SearchWindow_Def (SearchWindowSize_Type     p_SearchWindow_Active     := tsc_SearchWindowDef,
+                                                                    SearchWindowSize_Type     p_SearchWindow_Neighbor   := tsc_SearchWindowDef,
+                                                                    SearchWindowSize_Type     p_SearchWindow_Remaining  := tsc_SearchWindowDef) :=
+  { /* @status    APPROVED */
+    SearchWindow_Active       := p_SearchWindow_Active,       /* Search Window for Active Cells */
+    SearchWindow_Neighbor     := p_SearchWindow_Neighbor,     /* Search Window for Neighbor Cells */
+    SearchWindow_Remaining    := p_SearchWindow_Remaining      /* Search Window for Rest Cells */
+  };
+
+  template (value) CDMA2000_CommonCellInfo_Type cs_CDMA2000_CommonCellInfo_Def (template (value) CDMA2000_CellParameters_Type p_CDMA2000_CellParameters) :=
+  { /* @status    APPROVED */
+    CommonCellParams := p_CDMA2000_CellParameters
+  };
+
+  template (value) HRPD_CellParameters_Type cs_HRPD_CellParametersDef (SystemType_Type  p_SystemType := tsc_SystemTypeDef,
+                                                                       B8_Type          p_SubNetMask  := tsc_SubNetMaskDef,
+                                                                       ColorCode_Type   p_ColorCode := px_ColorCode,
+                                                                       MCC_Type              p_CountryCode := tsc_CountryCodeDef,
+                                                                       OpenLoopAdjust_Type   p_OpenLoopAdjust := px_OpenLoopAdjust,
+                                                                       ReverseRateLimit_Type      p_ReverseRateLimit := tsc_ReverseRateLimitDef,
+                                                                       ReverseLinkMACIndex_Type   p_MACIndex := px_MACIndex, //@sic R5-120721 sic@
+                                                                       PacketApplication_Type     p_PacketApp := tsc_PacketAppDef,
+                                                                       ControlChannelRate_Type    p_ControlChannelRate := tsc_ControlChannelRateDef,
+                                                                       PDN_Id_Type p_PDN_Id := tsc_PDN_Id,
+                                                                       template (value) PDN_Address_Type p_PDN_Address := cs_PDN_Address_Def,
+                                                                       template (value) UATI_Type p_UATI := cs_UATI_Def) :=
+  { /* @status    APPROVED */
+    SystemType       := p_SystemType,
+    SubNetMask       := p_SubNetMask,
+    ColorCode        := p_ColorCode,
+    CountryCode      := p_CountryCode, // 7.11.6.2.2 of C.S0024
+    OpenLoopAdjust   := p_OpenLoopAdjust,
+    ReverseRateLimit := p_ReverseRateLimit,//
+    MACIndex         := p_MACIndex ,
+    PacketApp        := p_PacketApp,
+    ControlChannelRate  := p_ControlChannelRate,
+    PDN_Id           :=  p_PDN_Id,
+    PDN_Address      := p_PDN_Address,
+    UATI             := p_UATI
+  };
+
+  template (value)  TMSI_Type cs_TMSI_Def (TMSI_Zone_Type      p_TMSI_Zone :=tsc_TMSI_ZoneDef,
+                                           TMSI_Code_Type      p_TMSI_Code := px_1XRTT_TMSI_Def):= /* Globally unique TMSI as defined in C.s0005 clause 3.7.2.3.2.19 */
+  { /* @status    APPROVED */
+    TMSI_ZoneLen   := lengthof (p_TMSI_Zone),  /* Length of TMSI_Zone 1..8 */
+    TMSI_Zone      := p_TMSI_Zone,           /* TMSI_ZoneLen octets of TMSI_Zone */
+    TMSI_Code      := p_TMSI_Code            /* TMSI code */
+  };
+
+  template (value) RTT1X_CellParameters_Type cs_RTT1X_CellParametersDef (B10_Type  p_MCC,
+                                                                         B7_Type   p_IMSI_11_12,
+                                                                         B12_Type p_Reg_Zone :=tsc_Reg_ZoneDef,
+                                                                         B4_Type  p_Base_Class :=tsc_BaseClassDef,
+                                                                         template (value) TMSI_Type p_TMSI :=cs_TMSI_Def,
+                                                                         ProtRev_Type    p_ProtRev  := tsc_ProtRevDef ,
+                                                                         ProtRev_Type    p_Min_ProtRev :=px_1XRTT_MinProtRev ,
+                                                                         EncryptionMode_Type p_Sig_EncryptionMode :=px_1XRTT_Sig_EncMode,
+                                                                         EncryptionMode_Type  p_USerInfo_EncryptionMode :=px_1XRTT_UserInfo_EncMode) :=
+  { /* @status    APPROVED */
+    Reg_Zone                := p_Reg_Zone,
+    Base_Class              := p_Base_Class,
+    MCC                     := p_MCC,
+    IMSI_11_12              := p_IMSI_11_12,
+    TMSI                    := p_TMSI ,
+    ProtRev                 := p_ProtRev,
+    Min_ProtRev             := p_Min_ProtRev ,
+    Sig_EncryptionMode      := p_Sig_EncryptionMode,
+    USerInfo_EncryptionMode := p_USerInfo_EncryptionMode
+  };
+
+  template (value) ModeSpecificCellParams_Type cs_ModeSpecificCellParams_HRPD_Def (template (value) HRPD_CellParameters_Type p_HRPD_CellParameters) :=
+  { /* @status    APPROVED */
+    HRPD := p_HRPD_CellParameters
+  };
+
+  template (value) ModeSpecificCellParams_Type cs_ModeSpecificCellParams_RTT1X_Def (template (value) RTT1X_CellParameters_Type p_RTT1X_CellParameters) :=
+  { /* @status    APPROVED */
+    RTT1X := p_RTT1X_CellParameters
+  };
+
+  template (value) CDMA2000_AbsoluteCellPower_Type cs_CDMA2000_AbsoluteCellPower_Def (PowerIor_Type    p_PowerIor := tsc_PowerIorDef,
+                                                                                      PowerIoc_Type   p_PowerIoc := tsc_PowerIocDef,
+                                                                                      PilotOffset_Type  p_PilotOffset := tsc_PilotOffsetHRPDDef) :=
+  { /* @status    APPROVED */
+    PowerIoc    := p_PowerIoc,
+    PowerIor    := p_PowerIor,
+    PilotOffset := p_PilotOffset
+  };
+
+  template (value) CDMA2000_CellInfo_Type cs_CDMA2000_CellInfo_Def (template (value) CDMA2000_CellParameters_Type p_CDMA2000_CellParameters,
+                                                                    template (value) ModeSpecificCellParams_Type p_ModeSpecificCellParams,
+                                                                    PowerIor_Type    p_PowerIor := tsc_PowerIorDef,
+                                                                    PowerIoc_Type    p_PowerIoc := tsc_PowerIocDef,
+                                                                    PilotOffset_Type p_PilotOffset:= tsc_PilotOffsetHRPDDef) :=
+  { /* @status    APPROVED */
+    CommonCellInfo     := cs_CDMA2000_CommonCellInfo_Def (p_CDMA2000_CellParameters),
+    ReferenceCellPower := cs_CDMA2000_ReferenceCellPower_Def(cs_CDMA2000_AbsoluteCellPower_Def (p_PowerIor, p_PowerIoc, p_PilotOffset),
+                                                             cs_CDMA2000_Attenuation_Def),
+    ModeSpecificParams := p_ModeSpecificCellParams
+  };
+
+  function f_CDMA2000_CellInfo_GetIndex (CDMA2000_CellId_Type p_CellId) return integer
+  {
+    select (p_CellId)
+    {
+      case (cdma2000_Cell15) {
+        return 0;
+      } case (cdma2000_Cell16) {
+        return 1;
+      } case (cdma2000_Cell17) {
+        return 2;
+      } case (cdma2000_Cell18) {
+        return 3;
+      } case (cdma2000_Cell19) {
+        return 4;
+      } case (cdma2000_Cell20) {
+        return 5;
+      } case (cdma2000_Cell21) {
+        return 6;
+      } case (cdma2000_Cell22) {
+        return 7;
+      } case else {
+        FatalError (__FILE__, __LINE__, "Invalid CellId");
+        return 0;
+      }
+    }
+  }
+
+  function fl_ConvertMCC_T0_B10 (MCC_Type p_MCC) return B10_Type
+  {
+    var integer i, j;
+    var integer v_Result := 0;
+    var integer v_Multiplier := 100;
+
+    for (i:=0; i<3; i:=i+1)
+      {
+        j:= p_MCC[i];
+        if (j == 0) { j :=10;}
+        v_Result := v_Result + (j * v_Multiplier);
+        v_Multiplier := v_Multiplier /10;
+      }
+    v_Result := v_Result-111;
+    return int2bit (v_Result, 10);
+  };
+
+  function fl_ConvertMNC_T0_B7 (MNC_Type p_MNC) return B7_Type
+  {
+    var integer i, j;
+    var integer v_Result := 0;
+    var integer v_Multiplier := 10;
+    
+    for (i:=0; i<2; i:=i+1)
+      {
+        j:= p_MNC[i];
+        if (j == 0) { j :=10;}
+       v_Result := v_Result + (j * v_Multiplier);
+        v_Multiplier := v_Multiplier /10;
+      }
+    v_Result := v_Result-11;
+    return int2bit(v_Result,7);
+  };
+
+  function f_HRPD_CalculateChannelNumber(CDMA2000_CellId_Type p_CellId,
+                                         BandclassCDMA2000_Type p_BandClass) return ARFCN_ValueCDMA2000_Type
+  {
+      //@sic R5-120734 sic@
+    var ARFCN_ValueCDMA2000_Type v_ARFCN ;
+    select (p_BandClass) {
+      case (0)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell15,cdma2000_Cell16) // f14 Mid Frequency
+              {
+                v_ARFCN := 356;
+              }
+            case (cdma2000_Cell17) //f15 High Frequency
+              {
+                v_ARFCN := 779;
+              }
+            case (cdma2000_Cell18) // f16 Low Frequency
+              {
+                v_ARFCN := 1013;
+              }
+          }
+        }
+      case (1)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell15,cdma2000_Cell16) // f14 Mid Frequency
+              {
+                v_ARFCN := 600;
+              }
+            case (cdma2000_Cell17) // f15 High Frequency
+              {
+                v_ARFCN := 1175;
+              }
+            case (cdma2000_Cell18) // f16 Low Frequency
+              {
+                v_ARFCN := 25;
+              }
+          }
+        }
+      case (3)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell15,cdma2000_Cell16) //f14 Mid Frequency
+              {
+                v_ARFCN := 872;
+              }
+            case (cdma2000_Cell17) // f15 High Frequency
+              {
+                v_ARFCN := 76;
+              }
+            case (cdma2000_Cell18) // f16 Low Frequency
+              {
+                v_ARFCN := 1120;
+              }
+          }
+        }
+      case (4)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell15,cdma2000_Cell16) // f14 Mid Frequency
+              {
+                v_ARFCN := 300;
+              }
+            case (cdma2000_Cell17) //f15 High Frequency
+              {
+                v_ARFCN := 525;
+              }
+            case (cdma2000_Cell18) // f16 Low Frequency
+              {
+                v_ARFCN := 100;
+              }
+          }
+        }
+      case (6) //@sic R5-113659 sic@
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell15,cdma2000_Cell16) //f14 Mid Frequency
+              {
+                v_ARFCN := 200;
+              }
+            case (cdma2000_Cell17) //f15 High Frequency
+              {
+                 v_ARFCN := 350;
+              }
+            case (cdma2000_Cell18) //f16 Low Frequency
+              {
+                v_ARFCN := 125;
+              }
+          }
+        }
+      case (10)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell15,cdma2000_Cell16) //f14 Mid Frequency
+              {
+                v_ARFCN := 500;
+              }
+            case (cdma2000_Cell17) //f15 High Frequency
+              {
+                v_ARFCN := 820;
+              }
+            case (cdma2000_Cell18) //f16 Low Frequency
+              {
+                v_ARFCN := 100;
+              }
+          }
+        }
+      case (15)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell15,cdma2000_Cell16) //f14 Mid Frequency
+              {
+                v_ARFCN := 450;
+              }
+            case (cdma2000_Cell17) //f15 High Frequency
+              {
+                v_ARFCN := 800;
+              }
+            case (cdma2000_Cell18) //f16 Low Frequency
+              {
+                v_ARFCN := 75;
+              }
+          }
+        }
+      case else
+             {
+               FatalError (__FILE__, __LINE__, "Band class FFS or not defined");
+             }
+      
+    }
+    return v_ARFCN;
+  }
+
+  function f_RTT1X_CalculateChannelNumber(CDMA2000_CellId_Type p_CellId,
+                                          BandclassCDMA2000_Type p_BandClass) return ARFCN_ValueCDMA2000_Type
+  {
+    //@sic R5-120734 sic@
+    var ARFCN_ValueCDMA2000_Type v_ARFCN ;
+    select ( p_BandClass)
+    {
+      case (0)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell19,cdma2000_Cell20) // Mid Frequency
+              {
+                v_ARFCN := 356;
+              }
+            case (cdma2000_Cell21) // High Frequency
+              {
+                v_ARFCN := 779;
+              }
+            case (cdma2000_Cell22) // Low Frequency
+              {
+                v_ARFCN := 1013;
+              }
+          }
+        }
+      case (1)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell19,cdma2000_Cell20) // Mid Frequency
+              {
+                v_ARFCN := 600;
+              }
+            case (cdma2000_Cell21) // High Frequency
+              {
+                v_ARFCN := 1175;
+              }
+            case (cdma2000_Cell22) // Low Frequency
+              {
+                v_ARFCN := 25;
+              }
+          }
+        }
+      case (3)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell19,cdma2000_Cell20) // Mid Frequency
+              {
+                v_ARFCN := 872;
+              }
+            case (cdma2000_Cell21) // High Frequency
+              {
+                v_ARFCN := 76;
+              }
+            case (cdma2000_Cell22) // Low Frequency
+              {
+                v_ARFCN := 1120;
+              }
+          }
+        }
+      case (4)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell21,cdma2000_Cell20) // Mid Frequency
+              {
+                v_ARFCN := 300;
+              }
+            case (cdma2000_Cell21) // High Frequency
+              {
+                v_ARFCN := 525;
+              }
+            case (cdma2000_Cell22) // Low Frequency
+              {
+                v_ARFCN := 100;
+              }
+          }
+        }
+      case (6) //@sic R5-113659 sic@
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell19,cdma2000_Cell20) // Mid Frequency
+              {
+                v_ARFCN := 275;
+              }
+            case (cdma2000_Cell21) // High Frequency
+              {
+                v_ARFCN := 375;
+              }
+            case (cdma2000_Cell22) // Low Frequency
+              {
+                v_ARFCN := 225;
+              }
+          }
+        }
+       case (10)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell19,cdma2000_Cell20) // Mid Frequency
+              {
+               v_ARFCN := 500;
+              }
+            case (cdma2000_Cell21) // High Frequency
+              {
+                v_ARFCN := 820;
+              }
+            case (cdma2000_Cell22) // Low Frequency
+              {
+                v_ARFCN := 100;
+              }
+          }
+        }
+      case (15)
+        {
+          select (p_CellId)
+          {
+            case (cdma2000_Cell19,cdma2000_Cell20) // Mid Frequency
+              {
+               v_ARFCN := 450;
+              }
+            case (cdma2000_Cell21) // High Frequency
+              {
+                v_ARFCN := 800;
+              }
+            case (cdma2000_Cell22) // Low Frequency
+              {
+                v_ARFCN := 75;
+              }
+          }
+        }
+      case else
+             {
+               FatalError (__FILE__, __LINE__, "Band class FFS or not defined");
+             }
+      
+    }
+    return v_ARFCN;
+  }
+
+  function f_CDMA2000_CellInfo_Init (CDMA2000_CellId_Type p_CellId) return CDMA2000_CellInfo_Type
+  {
+    var template (value) CDMA2000_CellInfo_Type v_CellInfo;
+    var PhysCellIdCDMA2000_Type v_PNOffset;
+    var SectorID_HRPD_Type v_SectorID_HRPD;
+    var template (value) SectorID_RTT1X_Type v_SectorID_RTT1X;
+    var ARFCN_ValueCDMA2000_Type v_ChannelNum;
+    var template (value) ModeSpecificCellParams_Type v_ModeSpecificCellParams;
+    var B10_Type v_MCC := fl_ConvertMCC_T0_B10(tsc_CountryCodeDef);
+    var B7_Type v_MNC := fl_ConvertMNC_T0_B7(tsc_MNC_Def);
+    var B12_Type v_Reg_Zone;
+    var B4_Type v_BaseClass := int2bit(0,4);
+    
+    select (p_CellId) {
+      case(cdma2000_Cell15,
+           cdma2000_Cell16,
+           cdma2000_Cell17,
+           cdma2000_Cell18) // HRPD Cells
+        {
+          v_ModeSpecificCellParams := cs_ModeSpecificCellParams_HRPD_Def(cs_HRPD_CellParametersDef);
+          v_ChannelNum := f_HRPD_CalculateChannelNumber(p_CellId,px_HRPD_BandClass);
+          select  (p_CellId ) {
+            case ( cdma2000_Cell15 )
+              {
+                v_PNOffset := tsc_PNOffsetDef;
+                v_SectorID_HRPD := px_HRPD_SectorID_Cell15;
+              }
+            case ( cdma2000_Cell16 )
+              {
+                v_PNOffset := tsc_PNOffset2;
+                v_SectorID_HRPD := px_HRPD_SectorID_Cell16;
+              }
+            case ( cdma2000_Cell17 )
+              {
+                v_PNOffset := tsc_PNOffset3;
+                v_SectorID_HRPD := px_HRPD_SectorID_Cell17;
+              }
+            case ( cdma2000_Cell18 )
+              {
+                v_PNOffset := tsc_PNOffset4;
+                v_SectorID_HRPD := px_HRPD_SectorID_Cell18;
+              }
+          }
+          v_CellInfo := cs_CDMA2000_CellInfo_Def(cs_CDMA2000_CellParameters_HRPD_Def(v_PNOffset, v_SectorID_HRPD, v_ChannelNum),
+                                                 v_ModeSpecificCellParams);
+        }
+      case(cdma2000_Cell19,
+           cdma2000_Cell20,
+           cdma2000_Cell21,
+           cdma2000_Cell22) // RTT1X Cells
+        {
+          if ((px_1XRTT_BandClass == 1) or  (px_1XRTT_BandClass == 4)) {
+            v_BaseClass:= int2bit(1,4);
+          };
+          v_ChannelNum := f_RTT1X_CalculateChannelNumber(p_CellId,px_1XRTT_BandClass);
+          select  (p_CellId ) {
+            case ( cdma2000_Cell19 )
+              {
+                v_Reg_Zone := tsc_Reg_ZoneDef;
+                v_PNOffset := tsc_PNOffsetDef;
+                v_SectorID_RTT1X := cs_SectorID_RTT1X_Def ;
+                
+             }
+            case ( cdma2000_Cell20 )
+              {
+                v_Reg_Zone := tsc_Reg_Zone2;
+                v_PNOffset := tsc_PNOffset2;
+                v_SectorID_RTT1X := cs_SectorID_RTT1X_Def (px_1XRTT_BaseId_Cell20);
+              }
+            case ( cdma2000_Cell21 )
+              {
+                v_Reg_Zone := tsc_Reg_Zone3;
+                v_PNOffset := tsc_PNOffset3;
+                v_SectorID_RTT1X := cs_SectorID_RTT1X_Def (px_1XRTT_BaseId_Cell21);
+              }
+            case ( cdma2000_Cell22 )
+              {
+                v_Reg_Zone := tsc_Reg_Zone4;
+                v_PNOffset := tsc_PNOffset4;
+                v_SectorID_RTT1X := cs_SectorID_RTT1X_Def (px_1XRTT_BaseId_Cell22) ;
+              }
+          }
+          v_ModeSpecificCellParams := cs_ModeSpecificCellParams_RTT1X_Def(cs_RTT1X_CellParametersDef (v_MCC, v_MNC,v_Reg_Zone,v_BaseClass));
+          v_CellInfo := cs_CDMA2000_CellInfo_Def (cs_CDMA2000_CellParameters_RTT1X_Def(v_PNOffset, v_SectorID_RTT1X, v_ChannelNum),
+                                                  v_ModeSpecificCellParams);
+        }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid C2k cell Identity");
+      }
+    }
+    return valueof(v_CellInfo);
+  }
+
+  function f_CDMA2000_CellArray_Init () return CDMA2000_CellArray_Type
+  {
+    var template (value) CDMA2000_CellArray_Type v_CDMA2000_Cells;
+    var integer v_Index;
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex (cdma2000_Cell15);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init(cdma2000_Cell15);
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex (cdma2000_Cell16);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init (cdma2000_Cell16);
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex (cdma2000_Cell17);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init(cdma2000_Cell17);
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex (cdma2000_Cell18);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init (cdma2000_Cell18);
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex (cdma2000_Cell19);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init(cdma2000_Cell19);
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex (cdma2000_Cell20);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init (cdma2000_Cell20);
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex  (cdma2000_Cell21);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init(cdma2000_Cell21);
+    
+    v_Index := f_CDMA2000_CellInfo_GetIndex (cdma2000_Cell22);
+    v_CDMA2000_Cells[v_Index] := f_CDMA2000_CellInfo_Init (cdma2000_Cell22);
+    
+    return valueof(v_CDMA2000_Cells);
+  }
+
+  function f_CDMA2000_IR_InitSingleSysInfo (CDMA2000_CellInfo_Type p_CellInfo) return template (value) CoOrd_CDMA2000SysInfo_Type
+  { //@sic R5s100848 sic@
+    if (p_CellInfo.CommonCellInfo.CommonCellParams.Type == typeHRPD) {
+      return cs_CoOrdCDMA2000_SysInfoSingleCell (true,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CarrierFreq.ARFCN,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CarrierFreq.BandClass,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.PhysCellId,
+                                                 p_CellInfo.ModeSpecificParams.HRPD.ColorCode ,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CellGlobalId.HRPD,
+                                                 tsc_BaseId_Dummy, // Dummy value as HRPD cell
+                                                 tsc_NID_Dummy,  // Dummy value as HRPD cell
+                                                 tsc_SID_Dummy,
+                                                 tsc_RegZone_Dummy); // Dummy value as HRPD cell
+    } else {
+      return cs_CoOrdCDMA2000_SysInfoSingleCell (false,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CarrierFreq.ARFCN,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CarrierFreq.BandClass,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.PhysCellId,
+                                                 tsc_ColorCode_Dummy,// Dummy value as RTT1X cell
+                                                 tsc_HRPD_SectorID_Dummy, // Dummy value as RTT1X cell
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CellGlobalId.RTT1X.BaseId,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CellGlobalId.RTT1X.NID,
+                                                 p_CellInfo.CommonCellInfo.CommonCellParams.CellGlobalId.RTT1X.SID,
+                                                 p_CellInfo.ModeSpecificParams.RTT1X.Reg_Zone );
+    }
+  }
+
+  function f_CDMA2000_IR_SysInfoInit (CDMA2000_CellArray_Type p_CellInfo,
+                                      CDMA2K_Type p_CDMA2K_Type := typeHRPD)
+    return template (value) IRAT_CoOrd_SysInfo_Type
+  { //@sic R5s100848 sic@
+    var integer v_CellIndex1,v_CellIndex2,v_CellIndex3,v_CellIndex4;
+    select (p_CDMA2K_Type) {
+      case (typeHRPD) {
+        v_CellIndex1 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell15);
+        v_CellIndex2 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell16);
+        v_CellIndex3 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell17);
+        v_CellIndex4 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell18);
+      }
+      case (type1XRTT) {
+        v_CellIndex1 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell19);
+        v_CellIndex2 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell20);
+        v_CellIndex3 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell21);
+        v_CellIndex4 := f_CDMA2000_CellInfo_GetIndex(cdma2000_Cell22);
+      }
+    };
+    return cs_CoOrdCDMA2000_SysInfo(f_CDMA2000_IR_InitSingleSysInfo (p_CellInfo[v_CellIndex1]),
+                                    f_CDMA2000_IR_InitSingleSysInfo (p_CellInfo[v_CellIndex2]),
+                                    f_CDMA2000_IR_InitSingleSysInfo (p_CellInfo[v_CellIndex3]),
+                                    f_CDMA2000_IR_InitSingleSysInfo (p_CellInfo[v_CellIndex4]));
+  }
+
+}

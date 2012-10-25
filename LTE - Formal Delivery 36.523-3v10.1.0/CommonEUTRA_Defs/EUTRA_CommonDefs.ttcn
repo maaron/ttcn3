@@ -1,0 +1,380 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-21 11:02:29 +0200 (Tue, 21 Aug 2012) $
+// $Rev: 7131 $
+/******************************************************************************/
+
+module EUTRA_CommonDefs {
+  import from CommonDefs all;
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:2002" all;
+
+  group Common_Types {
+
+  type enumerated EUTRA_RRC_STATE_Type {RRC_IDLE, RRC_CONNECTED};
+  type enumerated IDLEUPDATED_Type {PREAMBLE, NORMAL};
+  type enumerated IDLEUPDATED_STATE_Type {STATE2_IDLEUPDATE, STATE2A_TESTLOOP_ModeA,STATE2A_TESTLOOP_ModeB};
+  type enumerated EUTRA_POSTAMBLE_STATE_Type {E1_IDLE, E2_CONNECTED, E2_T3440, E3_TESTMODE, E4_DEREGISTERED};
+  type enumerated EUTRA_FDD_TDD_Mode_Type {FDD, TDD};
+  type enumerated EUTRA_NAS_NumOfPLMN_Type {LTE_AllCellsOnSamePLMN, LTE_CellsOnDifferentPLMN};
+/*  type enumerated EUTRA_NAS_CellTC_Type {    @sic R5-106627 sic@
+    LTEsinglecell,          // LTE single cell test case
+    LTEmulticell,           // LTE multi cell test case without cell E
+    LTEmulticell_UsingE,    // LTE multi cell test using cell E
+    LTEmulticell_UTRANCell, // LTE I-RAT test case with UTRAN
+    LTEmulticell_GERANcell  // LTE I-RAT test case with GERAN
+  }; */
+  type enumerated EUTRA_NAS_CellSpecialFreq {
+    LTE_NAS_NormalFreq,
+    LTE_NAS_Usef1_f2,     // LTE NAS test case using f1/f2 instead of f3/f4. See 36.508 Table 6.3.2.2-3 Note 1
+    LTE_NAS_Replacef3_f1, // LTE NAS test case: replace f3 by f1
+    LTE_NAS_Replacef4_f1,  // LTE NAS test case: replace f4 by f1
+    LTE_NAS_Replacef3_f2  // LTE NAS test case: replace f3 by f2
+  };
+  
+  type enumerated EUTRA_ResourceAllocationScheme_Type {
+    dci1A,       /* All channels: DCI Format 1A and Resource allocation type 2, localized. */
+    dci1C_dci1   /* BCCH/PCCH/RAR: DCI format 1C, Resource allocation 2, distributed
+                  * E-Specific: DCI format 1, Resource allocation 0 */
+  };
+  
+  type enumerated DrxConfigurationCondition_Type { DRX_L, DRX_S, DRX_S_LongOnDuration };   /* @sic R5-101178, R5-104796, R5s120054 (new value DRX_S_LongOnDuration) sic@ */
+
+  type record GutiParameters_Type {
+    PLMN_Identity     PLMN_Identity,
+    MME_GroupId_Type  MME_GroupId,
+    MMEC              MME_Code,
+    M_TMSI_Type       M_TMSI
+  };
+
+  
+  type integer HarqProcessId_Type (0..14);                              /* The values 0..7 represent the ID of HARQ process ID; value range 0..14 is for TDD */
+  type record length(0..14) of HarqProcessId_Type HarqProcessList_Type; /* list of HARQ processes: each element shall be unique */
+  type integer RedundancyVersion_Type (0..3);                           /* used in EUTRA_ASP_DrbDefs and EUTRA_ASP_Typedefs */
+  type bitstring ContentionResolutionId_Type length(48);                /* used in EUTRA_ASP_DrbDefs and EUTRA_ASP_Typedefs */
+
+  type union RRC_MSG_Request_Type {                                     /* DL RRC PDU on CCCH or DCCH */
+    DL_CCCH_Message             Ccch,
+    DL_DCCH_Message             Dcch
+  };
+
+  type union RRC_MSG_Indication_Type {                                  /* UL RRC PDU on CCCH or DCCH */
+    UL_CCCH_Message             Ccch,
+    UL_DCCH_Message             Dcch
+  };
+
+  type record of SystemInformationBlockType11 SystemInformationBlockType11_List_Type;
+
+  } // End group Common_Types
+
+  //----------------------------------------------------------------------------
+
+  group Common_Constants {
+
+  const Dl_Bandwidth_Type           tsc_Bandwidth_Def := n25;   /* n6, n15, n25, n50, n75, n100 */
+  const RRC_TransactionIdentifier   tsc_RRC_TI_Def := 0;        /* considering UMTS there seems to be no reason to use a constant for the RRC-TI */
+  const integer                     tsc_EUTRA_MaxNumberOfCells := 20;        /* Maximum number of cells;
+                                                                              * in TS 36.508 in, clause 4.4.2 and 6.3.2.2 there are tables for cells
+                                                                              * being used in non-NAS and NAS test cases;
+                                                                              * in both cases less than 20 cells are listed */
+
+  const C_RNTI                      tsc_C_RNTI_Def   := int2bit(4097, 16);   /* '1001'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def2  := int2bit(4148, 16);   /* '1034'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def3  := int2bit(4369, 16);   /* '1111'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def4  := int2bit(8177, 16);   /* '1FF1'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def5  := int2bit(1234, 16);   /* '04D2'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def6  := int2bit(2345, 16);   /* '0929'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def7  := int2bit(3456, 16);   /* '0D80'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def8  := int2bit(4567, 16);   /* '11D7'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def9  := int2bit(5678, 16);   /* '162E'H acc. to TS 36.523-3 table 7.1.1-1 */
+  const C_RNTI                      tsc_C_RNTI_Def10 := int2bit(6789, 16);   /* '1A85'H acc. to TS 36.523-3 table 7.1.1-1 */
+
+  const Ra_PreambleIndex_Type tsc_EUTRA_PrachPreambleIndex_Dedicated_Def := 52;  /* first index for dedicated random access preambles */
+
+  const SubFrameNumber_Type tsc_EUTRA_SN4 := 4;
+
+  const integer tsc_EUTRA_DelayBeforeIntraCellHO := 300;                     /* delay before an intra cell handover */
+  const float tsc_EUTRA_DelayForCellSelection := 1.0;                        /* delay to allow the UE to perform cell selection
+                                                                                e.g. before paging or change of power level */
+
+  } // End group Common_Constants
+
+  //----------------------------------------------------------------------------
+
+  group RRC_Nested_Types {
+
+  type MasterInformationBlock.dl_Bandwidth                                      EUTRA_SysinfoDL_Bandwidth_Type;   /* Channel bandwidth acc. to TS 36.101, clause 5.4.2 */
+
+  type SystemInformationBlockType1.freqBandIndicator                            FrequencyBand_Type;
+  type SystemInformationBlockType1.si_WindowLength                              SiWindowLength_Type;
+  type SystemInformationBlockType1.cellSelectionInfo.q_RxLevMin                 Q_Rxlevmin_Type;
+  type SystemInformationBlockType1.cellSelectionInfo.q_RxLevMinOffset           Q_RxLevMinOffset_Type;
+  type SystemInformationBlockType1.cellAccessRelatedInfo.cellBarred             CellBarred_Type;
+  type SystemInformationBlockType1.cellAccessRelatedInfo.intraFreqReselection   IntraFreqRes_Type;
+  type SystemInformationBlockType1.nonCriticalExtension.nonCriticalExtension.ims_EmergencySupport_r9    Ims_EmergencySupport_r9;
+ 
+  type SystemInformationBlockType2.freqInfo.ul_Bandwidth                                             EUTRA_SysinfoUL_Bandwidth_Type;
+  type SystemInformationBlockType2.freqInfo.additionalSpectrumEmission                               AdditionalSpectrumEmission_Type;
+  type SystemInformationBlockType2.ac_BarringInfo.ac_BarringForEmergency                             AccessBarringForEmergencyCalls_Type;
+  type SystemInformationBlockType2.ac_BarringInfo.ac_BarringForMO_Signalling.ac_BarringFactor        AccessProbabilityFactor_Type;
+  type SystemInformationBlockType2.ac_BarringInfo.ac_BarringForMO_Signalling.ac_BarringTime          AccessBarringTime_Type;
+  type SystemInformationBlockType2.ac_BarringInfo                                                    AccessBarringInformation_Type;
+
+  type SystemInformationBlockType3.cellReselectionInfoCommon.q_Hyst                             Q_Hyst_Type;
+  type SystemInformationBlockType3.intraFreqCellReselectionInfo.t_ReselectionEUTRA              T_ReselectionEutran_Type;
+  type SystemInformationBlockType3.cellReselectionServingFreqInfo.cellReselectionPriority       CellRes_Prio_Type;
+  type SystemInformationBlockType3.cellReselectionInfoCommon.speedStateReselectionPars          SpeedStateReselectionPars_Type;
+
+  type SchedulingInfoList[0].si_Periodicity                                     SiPeriodicity_Type;
+  type SPS_ConfigDL.setup                                                       SpsConfigDL_Type;
+  type SPS_ConfigUL.setup                                                       SpsConfigUL_Type;
+  type PagingRecordList[0].cn_Domain                                            CN_Domain_Type;
+  type PCCH_Config.nB                                                           Paging_nB_Type;
+  type UE_TimersAndConstants.t300                                               T300_Type;
+  type UE_TimersAndConstants.t301                                               T301_Type;
+  type UE_TimersAndConstants.t310                                               T310_Type;
+  type UE_TimersAndConstants.t311                                               T311_Type;
+  type RACH_ConfigCommon.ra_SupervisionInfo.preambleTransMax                    PreambleTransMax_Type;
+  type S_TMSI.m_TMSI                                                            M_TMSI_Type;
+  type RegisteredMME.mmegi                                                      MME_GroupId_Type;
+  type RACH_ConfigCommon.ra_SupervisionInfo.mac_ContentionResolutionTimer       MAC_ContentionResolutionTimer_Type;
+  type RACH_ConfigDedicated.ra_PRACH_MaskIndex                                  Ra_PRACH_MaskIndex_Type;
+  type SoundingRS_UL_ConfigCommon.setup.srs_BandwidthConfig                     SrsBandwidthConfiguration_Type;
+  type PUCCH_ConfigCommon.nRB_CQI                                               N_RB_CQI_Type;
+  type PUSCH_ConfigCommon.pusch_ConfigBasic.pusch_HoppingOffset                 PUSCH_HoppingOffset_Type;
+  type PUSCH_ConfigCommon.pusch_ConfigBasic.n_SB                                PUSCH_N_SB_Type;
+  type PUSCH_ConfigCommon.pusch_ConfigBasic.hoppingMode                         PUSCH_HoppingMode_Type;
+  type SchedulingRequestConfig.setup.sr_PUCCH_ResourceIndex                     SR_PUCCH_ResourceIndex_Type;
+  type SchedulingRequestConfig.setup.dsr_TransMax                               Dsr_TransMax_Type;
+  type PDSCH_ConfigCommon.referenceSignalPower                                  ReferenceSignalPower_Type;
+  type PRACH_ConfigInfo.prach_FreqOffset                                        Prach_FrequencyOffset_Type;
+  type LogicalChannelConfig.ul_SpecificParameters.prioritisedBitRate            PrioritizedBitRate_Type;
+  type CarrierBandwidthEUTRA.dl_Bandwidth                                       Dl_Bandwidth_Type;
+  type CarrierBandwidthEUTRA.ul_Bandwidth                                       Ul_Bandwidth_Type;
+  type PCCH_Config.defaultPagingCycle                                           DefaultPagingCycle_Type;
+  type RACH_ConfigDedicated.ra_PreambleIndex                                    Ra_PreambleIndex_Type;
+  type RACH_ConfigCommon.ra_SupervisionInfo.ra_ResponseWindowSize               Ra_ResponseWindowSize_Type;//@sic R5-095164 sic@
+  type MeasResultEUTRA.cgi_Info                                                 GlobalCellIdentity_Type;
+  type SecurityAlgorithmConfig.cipheringAlgorithm                               CipheringAlgorithm_Type;
+  type SecurityAlgorithmConfig.integrityProtAlgorithm                           IntegrityProtAlgorithm_Type;
+  type PLMN_IdentityInfo.cellReservedForOperatorUse                             CellReservedForOpUse_Type;
+  type Paging.systemInfoModification                                            Paging_SystemInfoModification_Type;
+  type Paging.etws_Indication                                                   Paging_ETWS_Indication;
+  type PhysCellIdRange.range                                                    PhysCellIdRange_Type;
+
+  type RadioResourceConfigDedicated.mac_MainConfig.explicitValue.ul_SCH_Config.maxHARQ_Tx           MaxHARQ_Tx_Type;
+  type RadioResourceConfigDedicated.mac_MainConfig.explicitValue.ul_SCH_Config.periodicBSR_Timer    PeriodicBSR_Timer_Type;
+  type RadioResourceConfigDedicated.mac_MainConfig.explicitValue.ul_SCH_Config.retxBSR_Timer        RetxBSR_Timer_Type;
+
+  type RadioResourceConfigDedicated.mac_MainConfig      MAC_MainConfig_Type; /* NOTE:
+                                                                              * the type name is confusing since there is a ASN.1 type MAC_MainConfig
+                                                                              * which is used as RadioResourceConfigDedicated.mac_MainConfig.explicitValue;
+                                                                              * but that is as per ASN.1 */
+  type MAC_MainConfig.ul_SCH_Config                     UL_SCH_Config_Type;
+  type MAC_MainConfig.phr_Config                        PHR_Config_Type;
+  type MAC_MainConfig.mac_MainConfig_v1020              MAC_MainConfig_v1020_Type;
+  type UE_EUTRA_Capability.ue_Category                  UE_Category_Type;
+  
+  type TDD_Config.subframeAssignment                    TDD_SubframeAssignment_Type;
+  type PRACH_ConfigSIB.rootSequenceIndex                RootSequenceIndex_Type;
+  type PDSCH_ConfigCommon.p_b                           P_b_Type;
+  type PhysicalConfigDedicated.antennaInfo              PhysicalConfigDedicated_AntennaInfo_Type;
+  type SchedulingRequestConfig.setup.sr_ConfigIndex     SR_ConfigIndex_Type;  // @sic R5-102177 sic@
+  type SystemInformationBlockType8.parameters1XRTT      Parameters1XRTT_Type;
+  type SystemInformationBlockType8.parametersHRPD       ParametersHRPD_Type;
+  type SystemInformationBlockType8.searchWindowSize     SearchWindowSize_Type;
+  type SystemInformationBlockType9.hnb_Name             HnbName_Type;
+  type SystemInformationBlockType10.messageIdentifier   MessageIdentifier_Type;
+  type SystemInformationBlockType10.serialNumber        SerialNumber_Type;
+  type SystemInformationBlockType10.warningType         WarningType_Type;
+  type SystemInformationBlockType10.warningSecurityInfo          WarningSecurityInfo_Type;
+  type SystemInformationBlockType11.warningMessageSegmentType    WarningMessageSegmentType_Type;
+  type SystemInformationBlockType11.warningMessageSegmentNumber  WarningMessageSegmentNumber_Type;
+  type SystemInformationBlockType11.warningMessageSegment        WarningMessageSegment_Type;
+  type SystemInformationBlockType11.dataCodingScheme             DataCodingScheme_Type;
+  type SystemInformationBlockType12_r9.warningMessageSegmentType_r9    WarningMessageSegmentType_SIB12_Type;
+  type SystemInformationBlockType12_r9.warningMessageSegmentNumber_r9  WarningMessageSegmentNumber_SIB12_Type;
+  type SystemInformationBlockType12_r9.warningMessageSegment_r9        WarningMessageSegment_SIB12_Type;
+  type SystemInformationBlockType12_r9.dataCodingScheme_r9             DataCodingScheme_SIB12_Type;
+  
+  type IdleModeMobilityControlInfo.t320                 T320_Type;
+  
+  type PDCP_Parameters.maxNumberROHC_ContextSessions    MaxNumberROHC_ContextSessions_Type;
+
+  type Handover.targetRAT_Type                          TargetRAT_Type;
+
+  type CellReselectionParametersCDMA2000.t_ReselectionCDMA2000      T_ReselectionCDMA2000_Type;
+  type SystemInformationBlockType8.csfb_RegistrationParam1XRTT_v920.powerDownReg_r9      PowerDownReg_Type;
+
+  } // End group RRC_Nested_Types
+
+  //----------------------------------------------------------------------------
+
+  group ASP_CommonPart {
+  /* Definition of ASP common parts for REQ-, CNF- and IND-ASPs */
+
+  //----------------------------------------------------------------------------
+
+  group ASP_CommonPart_Definitions {
+
+  group Routing_Info {
+
+  const integer tsc_MaxRB := maxDRB + 3; /* DRBs + 3 SRBs */
+  const integer tsc_SRB0 := 0;
+  const integer tsc_SRB1 := 1;
+  const integer tsc_SRB2 := 2;
+  const DRB_Identity tsc_DRB1 := 1;
+  const DRB_Identity tsc_DRB2 := 2;
+  const DRB_Identity tsc_DRB3 := 3;
+  const DRB_Identity tsc_DRB4 := 4;
+  const DRB_Identity tsc_DRB5 := 5;
+  const DRB_Identity tsc_DRB6 := 6;
+  const DRB_Identity tsc_DRB7 := 7;
+  const DRB_Identity tsc_DRB8 := 8;
+
+  type integer SRB_Identity_Type (tsc_SRB0, tsc_SRB1, tsc_SRB2);        /* SRB0 to be covered as well */
+
+  type record of DRB_Identity DRB_IdentityList_Type;
+  
+  const DRB_IdentityList_Type tsc_DrbList_Def := {tsc_DRB1};
+
+  type union RadioBearerId_Type {
+    SRB_Identity_Type              Srb,
+    DRB_Identity                   Drb
+  };
+  const RadioBearerId_Type tsc_RbId_SRB0 := {Srb:=tsc_SRB0};
+  const RadioBearerId_Type tsc_RbId_SRB1 := {Srb:=tsc_SRB1};
+  const RadioBearerId_Type tsc_RbId_SRB2 := {Srb:=tsc_SRB2};
+
+  const RadioBearerId_Type tsc_RbId_DRB1  := {Drb:=tsc_DRB1};
+  const RadioBearerId_Type tsc_RbId_DRB2  := {Drb:=tsc_DRB2};
+  const RadioBearerId_Type tsc_RbId_DRB3  := {Drb:=tsc_DRB3};
+  const RadioBearerId_Type tsc_RbId_DRB4  := {Drb:=tsc_DRB4};
+  const RadioBearerId_Type tsc_RbId_DRB5  := {Drb:=tsc_DRB5};
+  const RadioBearerId_Type tsc_RbId_DRB6  := {Drb:=tsc_DRB6};
+  const RadioBearerId_Type tsc_RbId_DRB7  := {Drb:=tsc_DRB7};
+  const RadioBearerId_Type tsc_RbId_DRB8  := {Drb:=tsc_DRB8};
+  
+  // type record of RadioBearerId_Type RadioBearerIdList_Type;    /* array of SRB Ids and/or DRB Ids (DRBs + 3 SRBs) */
+
+  type union RoutingInfo_Type {
+    Null_Type                 None,
+    RadioBearerId_Type        RadioBearerId
+  };
+
+  } // End sub-group Routing_Info
+
+  //----------------------------------------------------------------------------
+
+  group Timing_Info {
+
+  type integer SystemFrameNumber_Type (0..1023);
+  type integer SubFrameNumber_Type (0..9);
+
+  type union SubFrameInfo_Type {
+    SubFrameNumber_Type         Number,
+    Null_Type                   Any     /* no specific sub-frame (valid for REQ ASPs only) */
+  };
+  type union SystemFrameNumberInfo_Type{
+    SystemFrameNumber_Type      Number,
+    Null_Type                   Any     /* no specific frame number (valid for REQ ASPs only) */
+  };
+  type record  SubFrameTiming_Type {
+    SystemFrameNumberInfo_Type  SFN,
+    SubFrameInfo_Type           Subframe
+  };
+  type record  of SubFrameTiming_Type SubFrameTimingList_Type;
+  type union TimingInfo_Type {
+    SubFrameTiming_Type         SubFrame,
+    Null_Type                   Now,    /* to be used in REQ ASPs when there is no 'activation time' */
+    Null_Type                   None    /* only to be used in SYSTEM_CTRL_CNF but not for EnquireTiming */
+  };
+
+  } // End sub-group Timing_Info
+
+  } // End sub-group ASP_CommonPart_Definitions
+
+  //----------------------------------------------------------------------------
+
+  group REQ_ASP_CommonPart {
+
+  const boolean tsc_CnfReq := true;
+  const boolean tsc_NoCnfReq := false;
+
+  type record ReqAspControlInfo_Type {
+    boolean CnfFlag,                    /* true => SS shall send CNF:
+                                         * when the REQ is with no timing information (no activation time), SS shall send the confirmation when the configuration is done, i.e. when the test case may continue.
+                                         * Example:
+                                         * when there is a configuration follow by a send event it shall not be necessary to have a wait timer in between but the CNF triggers the send event.
+                                         * If there are other triggers e.g. like the UE sending a message, CnfFlag shall be set to false by the test case to avoid racing conditions with the CNF and the signalling message.
+                                         * When there is an activation time SS shall send the CNF after the configuration has been scheduled;
+                                         * that means SS shall not wait until the activation time has been expired. */
+    boolean FollowOnFlag                /* false => no further (related) information
+                                         * true: further related information will be sent to SS (semantics depending on respective ASP) */
+  };
+
+  type record ReqAspCommonPart_Type {
+    EUTRA_CellId_Type           CellId,
+    RoutingInfo_Type            RoutingInfo,
+    TimingInfo_Type             TimingInfo,
+    ReqAspControlInfo_Type      ControlInfo
+  };
+
+  } // End group REQ_ASP_CommonPart
+
+  //----------------------------------------------------------------------------
+
+  group CNF_ASP_CommonPart {
+
+  type union ConfirmationResult_Type {
+    Null_Type Success,
+    integer   Error                     /* may contain SS specific error code; this will not be evaluated by TTCN */
+  };
+
+  type record CnfAspCommonPart_Type {
+    EUTRA_CellId_Type           CellId,
+    RoutingInfo_Type            RoutingInfo,
+    TimingInfo_Type             TimingInfo,
+    ConfirmationResult_Type     Result
+  };
+
+  } // End sub-group CNF_ASP_CommonPart
+
+  //----------------------------------------------------------------------------
+
+  group IND_ASP_CommonPart {
+
+  type record IntegrityErrorIndication_Type {
+    boolean   Nas,                                              /* NAS Integrity: set to true when received MAC does not match calculated MAC */
+    boolean   Pdcp                                              /* PDCP Integrity: set to true when received MAC does not match calculated MAC */
+  };
+
+  type record ErrorIndication_Type {
+    IntegrityErrorIndication_Type       Integrity,              /* Integrity error: received MAC does not match calculated MAC */
+    integer                             System                  /* any other error: may be SS specific error code; this will not be evaluated by TTCN;
+                                                                 * e.g. an error shall be raised when the UE requests retransmission of an RLC PDU */
+  };
+
+  type union IndicationStatus_Type {
+    Null_Type Ok,
+    ErrorIndication_Type        Error
+  };
+
+  type record IndAspCommonPart_Type {
+    EUTRA_CellId_Type                   CellId,
+    RoutingInfo_Type                    RoutingInfo,
+    TimingInfo_Type                     TimingInfo,
+    IndicationStatus_Type               Status
+  };
+
+  } // End sub-group IND_ASP_CommonPart
+
+  //----------------------------------------------------------------------------
+
+  } // End group ASP_CommonPart
+
+}

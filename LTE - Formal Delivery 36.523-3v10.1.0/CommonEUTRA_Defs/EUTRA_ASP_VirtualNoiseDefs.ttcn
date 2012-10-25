@@ -1,0 +1,57 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-13 14:05:15 +0200 (Wed, 13 Jun 2012) $
+// $Rev: 6894 $
+/******************************************************************************/
+
+module EUTRA_ASP_VirtualNoiseDefs {
+  /* ASP definitions for virtual noise generation in EUTRA cells.
+     The noise is configurated for an already existing EUTRA cell.
+     For UEs with 2 antenna connectors the AWGN (Additive white Gaussian noise) signals applied to each receiver antenna connector shall be uncorrelated. */
+
+  import from CommonDefs all;
+  import from EUTRA_CommonDefs all;
+
+  type record EUTRA_VngConfigInfo_Type {
+    Dl_Bandwidth_Type           Bandwidth,      /* Bandwidth to be used for the noise
+                                                 * (in general the same bandwidth as for the associated EUTRA cell) */
+    integer                     NocLevel        /* Noc level; calculation is FFS */
+  };
+
+  type union EUTRA_VngConfigRequest_Type {     /* configure/activate noise for a given cell;
+                                                 * NOTE: it is assumed the the associated EUTRA cell has been created beforehand */
+    EUTRA_VngConfigInfo_Type    Configure,      /* configuration of the virtual noise generator;
+                                                 * regardless of the power level the noise generator is off before it gets activated for this cell;
+                                                 * whether the configuration can be changed during a test is FFS but if so the noise generator shall be deactivated for this cell */
+    Null_Type                   Activate,       /* noise is activated (switched on) for the given cell acc. to the previous configuration;
+                                                 * while being active the configuration shall not be modified */
+    Null_Type                   Deactivate      /* deactivate noise for given cell */
+  };
+
+  type Null_Type EUTRA_VngConfigConfirm_Type;
+
+  type record EUTRA_VNG_CTRL_REQ {
+    ReqAspCommonPart_Type       Common,         /* CellId : as for the assiciated EUTRA cell
+                                                 * RoutingInfo : None
+                                                 * TimingInfo : Now
+                                                 * ControlInfo : CnfFlag:=true; FollowOnFlag:=false */
+    EUTRA_VngConfigRequest_Type Request
+  };
+
+
+  type record EUTRA_VNG_CTRL_CNF {
+    CnfAspCommonPart_Type       Common,         /* TimingInfo is ignored by TTCN (apart from EnquireTiming)
+                                                 * => SS may set TimingInfo to "None" */
+    EUTRA_VngConfigConfirm_Type Confirm
+  };
+
+  type port EUTRA_VNG_PORT message {            /* EUTRA PTC: Port for virtual noise generator */
+    out EUTRA_VNG_CTRL_REQ;
+    in  EUTRA_VNG_CTRL_CNF;
+  };
+}

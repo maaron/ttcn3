@@ -1,0 +1,137 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-25 20:50:56 +0200 (Wed, 25 Apr 2012) $
+// $Rev: 6568 $
+/******************************************************************************/
+
+module UTRANGERAN_CommonFunctions {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from NAS_24008Templates all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+
+  type enumerated      UTRAN_GERAN_ATTACH_Type {Combined, PS_Only, NotSpecified};  /* @status    APPROVED */
+
+  function f_UG_GetPktDataProtoAddr (boolean p_IPallocationViaNas) return template (value) PktDataProtoAddr
+  {
+    var template (value) PktDataProtoAddr v_PDN_Address := cs_PktDataProtoAddrMT('06'O, tsc_PDP_TypeNoIPv4, '00000000'O); // Start with ipv4 values for now
+  
+    if (pc_IPv6 and pc_IPv4) {
+      // Address info consists of 4 octets IPv4 address identifier followed with the 8 octets IPv6 interface
+      // See TS 24.008 clause 10.5.6.4
+      v_PDN_Address.iel := '16'O;
+      v_PDN_Address.pDP_TypeNo := tsc_PDP_TypeNoIPv4v6;
+      if (p_IPallocationViaNas){
+        v_PDN_Address.addrInfo := f_Convert_IPv4Addr2OctString(px_IPv4_Address1_UE) & f_Convert_IPv6Addr2OctString(px_IPv6_Address1_UE);  // @sic R5-113734 sic@
+        } else {
+        v_PDN_Address.addrInfo := '00000000'O & f_Convert_IPv6Addr2OctString(px_IPv6_Address1_UE); // @sic R5-113734 sic@
+        }
+    } // IPv4v6
+    else {
+      if (pc_IPv4) {  // IPv4 only
+        v_PDN_Address.pDP_TypeNo := tsc_PDP_TypeNoIPv4;
+        if (p_IPallocationViaNas){
+          v_PDN_Address.addrInfo := f_Convert_IPv4Addr2OctString(px_IPv4_Address1_UE);  // @sic R5-113734 sic@
+        }
+      }
+      else {          // IPv6 only
+        v_PDN_Address.iel := '12'O;
+        v_PDN_Address.pDP_TypeNo := tsc_PDP_TypeNoIPv6;
+        if (p_IPallocationViaNas){
+          v_PDN_Address.addrInfo := f_Convert_IPv6Addr2OctString(px_IPv6_Address1_UE); // @sic R5-113734 sic@
+        }
+      }
+    }
+    return v_PDN_Address;
+  };
+
+  function f_U_Asn2Nas_PlmnId(PLMN_Identity p_PlmnId) return NAS_PlmnId
+  { // This is a copy of the EUTRAN function (f_Asn2Nas_PlmnId), but this version will use the UTRAN ASN
+
+    var hexstring v_MCC := '000'H; // initialised with 3 digits which will be overwritten
+    var hexstring v_MNC := 'FFF'H; // initialised with 3 'F'H => if lengthof(p_PlmnId.mnc) < 3 the remaining digits are 'F'H
+    var Digit v_Digit;
+    var integer I;
+
+    for (I := 0; (I < lengthof(p_PlmnId.mcc)) and(I < lengthof(v_MCC)); I := I + 1) {
+      v_Digit := p_PlmnId.mcc[I];
+      v_MCC[I] := int2hex(v_Digit, 1);
+    }
+
+    for (I := 0; (I < lengthof(p_PlmnId.mnc)) and (I < lengthof(v_MNC)); I := I + 1) {
+      v_Digit := p_PlmnId.mnc[I];
+      v_MNC[I] := int2hex(v_Digit, 1);
+    }
+
+    // build PLMN ID representation as used in NAS
+    // TAI/TAI list/MobileIdentity[GUTI]/...
+    return hex2oct(v_MCC[1] & v_MCC[0] &
+                   v_MNC[2] & v_MCC[2] &
+                   v_MNC[1] & v_MNC[0]);
+  }
+
+  function f_U_ConvertImsi2ASN (hexstring p_Hex) return IMSI_GSM_MAP
+  {
+    var IMSI_GSM_MAP v_ReturnValue;
+    var integer I;
+    var integer v_Length := lengthof(p_Hex);
+
+    if (v_Length < 6 or v_Length > 21) {
+      FatalError(__FILE__, __LINE__, "invalid length of IMSI");
+    }
+    for (I := 0; I < v_Length; I := I + 1) {
+      v_ReturnValue[I] := hex2int(p_Hex[I]);
+    }
+    return v_ReturnValue;
+  }
+
+  function fl_UG_GetTimerTolerance(float p_Timer) return float
+  {
+    var float v_LargeTolerance := p_Timer * 0.1;
+    var float v_LittleTolerance := (2.0 * 0.01) + 0.055;  /* 2*TTI + 55ms */
+    
+    if (v_LittleTolerance <= v_LargeTolerance) {
+      return v_LargeTolerance;
+    }
+    else {
+      return v_LittleTolerance;
+    }
+  }
+
+  function f_UG_SetTimerToleranceMin(float p_Timer) return float
+  {
+    var float v_Tolerance := fl_UG_GetTimerTolerance(p_Timer);
+    if (p_Timer < v_Tolerance) {
+      return 0.0;
+    }
+    return p_Timer - v_Tolerance;
+  }
+
+  function f_UG_SetTimerToleranceMax(float p_Timer) return float
+  {
+    return p_Timer + fl_UG_GetTimerTolerance (p_Timer);
+  }
+
+  function f_UG_RauReq_GetUpdateValueForRauAcc(ROUTINGAREAUPDATEREQUEST p_RauReq,
+                                               B3_Type p_NewValueFor000 := '000'B) return B3_Type
+  {
+    var B3_Type v_UpdateType := p_RauReq.updateType.updateValue;
+      
+    if (v_UpdateType != '000'B) {
+      v_UpdateType := '001'B;
+    } else {
+      v_UpdateType := p_NewValueFor000;
+    }
+    return v_UpdateType;
+  }
+
+}

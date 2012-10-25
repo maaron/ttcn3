@@ -1,0 +1,100 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2009-08-12 23:57:28 +0200 (Wed, 12 Aug 2009) $
+// $Rev: 1474 $
+/******************************************************************************/
+
+module EUTRA_ASP_NasCtrl {
+
+  import from CommonDefs all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_CommonDefs all;
+
+  group NAS_Security {
+
+  type record NAS_SecurityInfo_Type {                           /* ciphering/integrity algorithm and key */
+    B3_Type                    Algorithm,                       /* acc. to 24.301 cl. 9.9.3.20 NAS security algorithms */
+    B128_Key_Type              K_NAS                            /* key acc. 33.401 Figure 6.2-2 (K_NASint, K_NASenc) */
+  };
+
+  type record NAS_SecurityStartRestart_Type {
+    NAS_SecurityInfo_Type     Integrity     optional,           /* omit: keep integrity protection as it is */
+    NAS_SecurityInfo_Type     Ciphering     optional,           /* omit: keep ciphering as it is */
+    Null_Type                 NasCountReset optional            /* omit: maintain NAS COUNT */
+  };
+
+  type union NAS_Security_Type {                                /* to download or reset NAS security algorithms and keys and to reset NAS COUNT;
+                                                                   in DL security protection is applied acc. to the SecurityProtection info of
+                                                                   the NAS_MSG_Request_Type;
+                                                                   in the UL if a security protected NAS PDU is received it is assumed to be ciphered
+                                                                   (this is because the SECURITY MODE COMMAND is already ciphered for NAS);
+                                                                   (Note: if the latter assumption is not applicable, ciphering needs to be started explicitly);
+                                                                   the NAS emulation shall distinguish between security protected and non-security protected NAS PDUs */
+    NAS_SecurityStartRestart_Type       StartRestart,
+    Null_Type                           Release
+  };
+
+  type record NasCountInfo_Type {
+    NasCount_Type             UL  optional,     /* UL NAS COUNT is the value corresponding to the latest PDU sent by the UE;
+                                                   acc. 24.301 cl. 4.4.3.1 at the UE the NAS COUNT is initialised with 0;
+                                                   => in TTCN (NAS emulation) NAS COUNT is initialised with its max. value;
+                                                   omit: keep as it is */
+    NasCount_Type             DL  optional      /* DL NAS COUNT is the value corresponding to the latest PDU sent to the UE;
+                                                   acc. 24.301 cl. 4.4.3.1 at the UE the NAS COUNT is initialised with 0;
+                                                   => in TTCN (NAS emulation) NAS COUNT is initialised with its max. value;
+                                                   omit: keep as it is */
+  };
+
+  type union NAS_CountReq_Type {
+    Null_Type                 Get,
+    NasCountInfo_Type         Set
+  };
+
+  type union NAS_CountCnf_Type {
+    NasCountInfo_Type         Get,
+    Null_Type                 Set
+  };
+
+  type union NasCtrlRequest_Type {
+    NAS_Security_Type         Security,                         /* StartRestart/Release of NAS security */
+    NAS_CountReq_Type         NasCount                          /* to set or enquire NAS COUNT */
+  };
+
+  type union NasCtrlConfirm_Type {
+    Null_Type                 Security,
+    NAS_CountCnf_Type         NasCount
+  };
+
+  type record NAS_CTRL_REQ {
+    ReqAspCommonPart_Type               Common,                 /* Note: the common part is ignored by the NAS emulator */
+    NasCtrlRequest_Type                 Request
+  };
+
+  type record NAS_CTRL_CNF {
+    CnfAspCommonPart_Type               Common,                 /* Note: in the common part cell id shall be eutra_Cell_NonSpecific
+                                                                 *       and RoutingInfo and TiminInfo are set to 'None' */
+    NasCtrlConfirm_Type                 Confirm
+  };
+
+  } // end of group NAS_Security
+
+  group Port_Definitions {
+
+  type port EUTRA_NASCTRL_PORT message {        /* EUTRA PTC: Port for configuration of NAS emulation */
+    out NAS_CTRL_REQ;
+    in  NAS_CTRL_CNF;
+  };
+
+  type port NASEMU_CTRL_PORT message {          /* NASEMU PTC: Port for configuration of NAS emulation */
+    out NAS_CTRL_CNF;
+    in  NAS_CTRL_REQ;
+  };
+
+  } // end of group Port_Definitions
+
+}

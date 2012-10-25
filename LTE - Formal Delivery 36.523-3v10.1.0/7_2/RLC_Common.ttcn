@@ -1,0 +1,403 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module RLC_Common {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CommonDefs all;
+  import from L2_CommonTemplates all;
+
+group RLC_SS_TypesAndConstants {
+
+type record RLC_SS_State {      /* @desc      Describes the state (state variables, counters) of simulated RLC entitiy within the tester
+                                 *            Relevant varibales are to be initialized with the default values from 36.508
+                                 * @status    APPROVED */
+  // RLC AM state variables, see 36.322 cl. 7.1
+  integer AM_VTS,       // Send state variable VT(S)
+  integer AM_VTA,       // Acknowledgement state variable VT(A)
+  // determines Maximum send state variable VT(MS)
+  integer AM_VRR,       // Receive state variable VR(R)
+  // determines Maximum send state variable VR(MR)
+  integer AM_VRX,       // t_Reordering state variable VR(X)
+  integer AM_VRMS,      // Maximum STATUS transmit state variable VR(MS)
+  integer AM_VRH,       // Highest received state variable VR(H)
+  // RLC UM state variables, see 36.322 cl. 7.1
+  integer UM_VTUS,      // UM Send state variable VT(US)
+  integer UM_VRUR,      // UM receive state variable VR(UR)
+  integer UM_VRUX,      // UM t_Reordering state variable VR(UX)
+  integer UM_VRUH,      // UM highest received state variable VR(UH)
+  // Timers, see 36.322 cl. 7.3
+  float t_PollRetransmit,   // t_PollRetransmit
+  float t_Reordering,       // t_Reordering
+  float t_StatusProhibit,   // t_StatusProhibit
+  // Configurable parameters, see 36.322 cl. 7.4
+  integer maxRetxThreshold, // maxRetxThreshold
+  integer pollPDU,          // pollPDU
+  integer pollByte,         // pollByte
+  // Other configurable parameters
+  integer UM_SN_Size,    // 5 or 10, see 36.322 cl. 6.2.2.3
+  // other variables
+  RLC_AMD_PDU_Type AMD_PDU,
+  RLC_UMD_PDU_Type UMD_PDU,
+  RLC_AM_StatusPDU_Type StatusPDU,
+  RLC_DataField_Type RLC_Data,// to hold RLC data field
+  RLC_DataFieldList_Type RLC_DataList,// to hold RLC data field list
+  SubFrameTiming_Type TimeStampLastReceivedPDU,
+  integer TxPRBS_Pos,
+  integer RxPRBS_Pos,
+  integer TxDataSize,
+  integer RxDataSize,
+// PDCP state variables, see 36.323 cl. 7.1
+  integer Next_PDCP_TX_SN,  // indicates the PDCP sequence number of the next PDCP SDU
+  integer Next_PDCP_RX_SN,  // indicates the next expected PDCP sequence number
+//  PDCP36.509 state variables, see 36.509 cl. 7.4
+  integer UL_PDCP_SDU_size,   // UL PDCP SDU size for returned UL PDCP SDUs
+  boolean UL_PDCP_SDU_scaling // to enable/disable scaling of UL PDCP SDU size
+};
+
+const integer tsc_LI_Size := 11;                        /* @desc     Length indicator size. Ref 3G TS 36.322 clause 6.2.2.5
+                                                         * @status   APPROVED */
+
+const integer tsc_AM_Window_Size := 512;                /* @desc     AM window size. Ref 3G TS 36.322 clause 7.2 a
+                                                         * @status   APPROVED */
+
+const integer tsc_NACK_SN_Size := 10;                   /* @desc     The number of bits used to represent a NACK_SN sequence number.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.16.
+                                                         * @status   APPROVED */
+
+const integer tsc_AM_SO_Size := 15;                     /* @desc     The number of bits used to represent a SO Segment Offset.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.7, 6.2.2.18, 6.2.2.19.
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_DC_DataPDU := '1'B;                   /* @desc     Value for D/C field within an AMD Data PDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.9
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_E_BitAndLI := '1'B;                   /* @desc     Value for ExtBit in UMDPDU/AMDPDU/AMDPDUsegment when the next
+                                                         *           fields are E field and LI field.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.4
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_E1_NACK_Follows := '1'B;              /* @desc     Value to indicate that a set of NACK_SN, E1 and E2 follows.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.15
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_E2_NoSO_Follows := '0'B;              /* @desc     Value to indicate that a set of SOstart and SOend does not follow for this NACK_SN.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.17
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_E2_SO_Follows := '1'B;                /* @desc     Value to indicate that a set of SOstart and SOend follows for this NACK_SN.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.17
+                                                         * @status   APPROVED */
+
+const B15_Type tsc_SO_Special := '111111111111111'B;    /* @desc     Value to indicate that the missing portion of the AMD PDU
+                                                         *           includes all bytes to the last byte of the AMD PDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.19
+                                                         * @status   APPROVED */
+
+const RLC_FramingInfo_Type tsc_FI_StartOfSDU := '01'B;  /* @desc     Value to indicate that PDU contains the starting part of an SDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.6
+                                                         * @status   APPROVED */
+
+const RLC_FramingInfo_Type tsc_FI_EndOfSDU := '10'B;    /* @desc     Value to indicate that PDU contains the ending part of an SDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.6
+                                                         * @status   APPROVED */
+
+const RLC_FramingInfo_Type tsc_FI_MiddleOfSDU := '11'B; /* @desc     Value to indicate that PDU contains a middle part of an SDU.
+                                                         *           Ref 3GTS 36.322 clause 6.2.2.6
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_LSF_NotLast := '0'B;                  /* @desc     Value to indicate that last byte of the AMD PDU segment does not
+                                                         *           correspond to the last byte of an AMD PDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.8
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_LSF_Last := '1'B;                     /* @desc     Value to indicate that last byte of the AMD PDU segment corresponds
+                                                         *           to the last byte of an AMD PDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.8
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_P_NoPoll := '0'B;                     /* @desc     Value for PollingBit field within an AMDPDU/AMDPDUsegment
+                                                         *           indicating that a status report is not requested.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.11
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_P_Poll := '1'B;                       /* @desc     Value for PollingBit field within an AMDPDU/AMDPDUsegment
+                                                         *           indicating that a status report is requested.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.11
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_RF_AMDPDU := '0'B;                    /* @desc     Value to indicate that the RLC PDU is an AMD PDU.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.10
+                                                         * @status   APPROVED */
+
+const B1_Type tsc_RF_AMDPDUseg := '1'B;                 /* @desc     Value to indicate that the RLC PDU is an AMD PDU segment.
+                                                         *           Ref 3G TS 36.322 clause 6.2.2.10
+                                                         * @status   APPROVED */
+
+const boolean tsc_LI_Error := true;                     /* @desc     indication that an RLC LI error is to be generated
+                                                         * @status   APPROVED */
+
+const boolean tsc_NoLI_Error := false;                  /* @desc     indication that no RLC LI error is to be generated
+                                                         * @status   APPROVED*/
+
+const integer tsc_RLC_SDU1 := 0;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU2 := 1;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU3 := 2;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU4 := 3;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU5 := 4;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU6 := 5;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU7 := 6;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU8 := 7;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU9 := 8;                        /* @status   APPROVED */
+
+const integer tsc_RLC_SDU10 := 9;                       /* @status   APPROVED */
+
+const integer tsc_RLC_SDU11 := 10;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU12 := 11;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU13 := 12;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU14 := 13;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU15 := 14;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU16 := 15;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU17 := 16;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU18 := 17;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU19 := 18;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU20 := 19;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU21 := 20;                      /* @status   APPROVED */
+
+const integer tsc_RLC_SDU22 := 21;                      /* @status   APPROVED */
+
+const integer tsc_MaxPRBS_Pos := 16777215;              /* @desc     Maximum octet position for accessing PRBS.
+                                                         * @status   APPROVED */
+
+} // end of group RLC_SS_TypesAndConstants
+
+group RLC_CommonTemplates {
+
+template (value) RLC_PDU_Header_FlexPart_Type cs_FlexPart_1LI(integer p_LI) :=
+{ /* @status    APPROVED */
+  LengthIndicator := {
+    {
+      Extension := tsc_E_Data,
+      LengthIndicator := int2bit (p_LI, tsc_LI_Size)
+    }
+  },
+  Padding := '0000'B
+};
+
+template (value) RLC_PDU_Header_FlexPart_Type cs_FlexPart_2LIs(integer p_LI1,
+                                                               integer p_LI2) :=
+{ /* @status    APPROVED */
+  LengthIndicator := {
+    {
+      Extension := tsc_E_BitAndLI,
+      LengthIndicator := int2bit (p_LI1, tsc_LI_Size)
+    },
+    {
+      Extension := tsc_E_Data,
+      LengthIndicator := int2bit (p_LI2, tsc_LI_Size)
+    }
+  },
+  Padding := omit
+};
+
+template RLC_PDU_Header_FlexPart_Type cr_FlexPart_1LI(integer p_LI) :=
+{ /* @status    APPROVED */
+  LengthIndicator := {
+    {
+      Extension := tsc_E_Data,
+      LengthIndicator := int2bit (p_LI, tsc_LI_Size) // does this produce '???...??'B ?
+    }
+  },
+  Padding := '????'B // @sic R5s100466 sic@
+};
+
+template RLC_PDU_Header_FlexPart_Type cr_FlexPart_2LIs(integer p_LI1,
+                                                       integer p_LI2) :=
+{ /* @status    APPROVED */
+  LengthIndicator := {
+    {
+      Extension := tsc_E_BitAndLI,
+      LengthIndicator := int2bit (p_LI1, tsc_LI_Size)
+    },
+    {
+      Extension := tsc_E_Data,
+      LengthIndicator := int2bit (p_LI2, tsc_LI_Size)
+    }
+  },
+  Padding := omit
+};
+
+} // end of group RLC_CommonTemplates
+
+group RLC_ASP_templates {
+
+template (value) DRB_COMMON_REQ cas_DRB1_RLCAmDataReq (EUTRA_CellId_Type p_CellId,
+                                                       template (value) TimingInfo_Type p_TimingInfo,
+                                                       template (value) RLC_AMD_PDU_Type p_AMD_PDU) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_RB (p_CellId, tsc_RbId_DRB1, p_TimingInfo),
+  U_Plane := {
+    SubframeDataList := {
+      {
+        SubframeOffset := 0,
+        HarqProcess := {Automatic := true},
+        PduSduList := { RlcPdu := {{AMD := p_AMD_PDU}}}
+      }
+    }
+  }, // U_Plane
+  SuppressPdcchForC_RNTI := omit
+}; // cas_DRB1_RLCAmDataReq
+
+template (value) DRB_COMMON_REQ cas_DRB1_RLCAmDataReq_List (EUTRA_CellId_Type p_CellId,
+                                                            template (value) TimingInfo_Type p_TimingInfo,
+                                                            template (value) DRB_DataPerSubframeList_DL_Type p_SubframeDataListList) :=
+  /* @status    APPROVED */
+  /* @sic R5s100473 Further MCC160 Changes sic@ */
+  cas_DRB_COMMON_REQ_SubframeDataList(p_CellId, tsc_RbId_DRB1, p_TimingInfo, p_SubframeDataListList);
+
+template (value) DRB_COMMON_REQ cas_DRB1_RLCStatusReq (EUTRA_CellId_Type p_CellId,
+                                                       template (value) TimingInfo_Type p_TimingInfo,
+                                                       template (value) RLC_AM_StatusPDU_Type p_STATUS_PDU) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_RB (p_CellId, tsc_RbId_DRB1, p_TimingInfo),
+  U_Plane := {
+    SubframeDataList := {
+      {
+        SubframeOffset := 0,
+        HarqProcess := {Automatic := true},
+        PduSduList := { RlcPdu := {{Status := p_STATUS_PDU}}}
+      }
+    }
+  }, // U_Plane
+  SuppressPdcchForC_RNTI := omit
+}; // cas_DRB1_RLCStatusReq
+
+template DRB_COMMON_IND car_DRB1_RLCAmDataInd(EUTRA_CellId_Type p_CellId,
+                                              template (present) RLC_AMD_PDU_Type p_AMD_PDU) :=
+{ /* @status    APPROVED */
+  Common := cr_IndAspCommonPart_RB (p_CellId, tsc_RbId_DRB1),
+  U_Plane := {
+    SubframeData := {
+      PduSduList := { RlcPdu := {{AMD := p_AMD_PDU}}},
+      NoOfTTIs := 1
+      // @sic R5w100222 slide 4 - RedundancyVersion removed sic@
+    }
+  } // U_Plane
+}; // car_DRB1_RLCAmDataInd
+
+template DRB_COMMON_IND car_DRB1_RLCStatusInd(EUTRA_CellId_Type p_CellId,
+                                              template (present) RLC_AM_StatusPDU_Type p_STATUS_PDU) :=
+{ /* @status    APPROVED */
+  Common := cr_IndAspCommonPart_RB (p_CellId, tsc_RbId_DRB1),
+  U_Plane := {
+    SubframeData := {
+      PduSduList := { RlcPdu := {{Status := p_STATUS_PDU}}},
+      NoOfTTIs := 1
+      // @sic R5w100222 slide 4 - RedundancyVersion removed sic@
+    }
+  } // U_Plane
+}; // car_DRB1_RLCStatusInd
+
+template (value) DRB_COMMON_REQ cas_DRB2_RLCUmDataReq (EUTRA_CellId_Type p_CellId,
+                                                       template (value) TimingInfo_Type p_TimingInfo,
+                                                       template (value) RLC_UMD_PDU_Type p_RlcPDU) :=
+{ /* @status    APPROVED */
+  Common := cs_ReqAspCommonPart_RB (p_CellId, tsc_RbId_DRB2, p_TimingInfo),
+  U_Plane := {
+    SubframeDataList := {
+      {
+        SubframeOffset := 0,
+        HarqProcess := {Automatic := true},
+        PduSduList := { RlcPdu := {{UMD := p_RlcPDU}}}
+      }
+    }
+  }, // U_Plane
+  SuppressPdcchForC_RNTI := omit
+}; // cas_DRB2_RLCUmDataReq
+
+template DRB_COMMON_IND car_DRB2_RLCUmDataInd(EUTRA_CellId_Type p_CellId,
+                                              template (present) RLC_UMD_PDU_Type p_UMD_PDU) :=
+{ /* @status    APPROVED */
+  Common := cr_IndAspCommonPart_RB (p_CellId, tsc_RbId_DRB2),
+  U_Plane := {
+    SubframeData := {
+      PduSduList := { RlcPdu := {{UMD := p_UMD_PDU}}},
+      NoOfTTIs := 1
+      // @sic R5w100222 slide 4 - RedundancyVersion removed sic@
+    }
+  } // U_Plane
+}; // car_DRB2_RLCUmDataInd
+
+} // end of group RLC_ASP_templates
+
+group RLC_Init {
+
+function f_InitRLC_Record(out RLC_SS_State p_RLC_Rec,
+                          RLC_Mode_Type p_RLC_Mode)
+{
+  if  ( p_RLC_Mode == UM_Mode) {
+    p_RLC_Rec.t_Reordering := 0.05;
+  }
+  else {
+    p_RLC_Rec.t_Reordering := 0.08;
+  }
+  p_RLC_Rec.t_PollRetransmit := 0.08;
+  p_RLC_Rec.t_StatusProhibit := 0.06; // @sic R5s100039 sic@
+  p_RLC_Rec.pollPDU := 128;
+  p_RLC_Rec.pollByte := 125000;
+  p_RLC_Rec.maxRetxThreshold := 4;
+  p_RLC_Rec.UM_SN_Size := 10;
+  // Initialisation of other parameters
+  p_RLC_Rec.AM_VTS := 0;
+  p_RLC_Rec.AM_VRR := 0;
+  p_RLC_Rec.AM_VRH := 0;
+  p_RLC_Rec.UM_VTUS := 0;
+  p_RLC_Rec.UM_VRUR := 0;
+  p_RLC_Rec.UM_VRUX := 0;
+  p_RLC_Rec.UM_VRUH := 0;
+  p_RLC_Rec.TimeStampLastReceivedPDU := {
+    SFN := { Number :=0 },
+    Subframe := { Number := 0 } } ;
+  p_RLC_Rec.TxPRBS_Pos := 0;
+  p_RLC_Rec.RxPRBS_Pos := 0;
+  p_RLC_Rec.TxDataSize := 0;
+  p_RLC_Rec.RxDataSize := 0;
+  p_RLC_Rec.Next_PDCP_TX_SN := 0;
+  p_RLC_Rec.Next_PDCP_RX_SN := 0;
+  p_RLC_Rec.UL_PDCP_SDU_size := 100;
+  p_RLC_Rec.UL_PDCP_SDU_scaling := false;
+}
+
+} // end of group RLC_Init
+
+}

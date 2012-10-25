@@ -1,0 +1,82 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-14 13:26:06 +0200 (Thu, 14 Jun 2012) $
+// $Rev: 6917 $
+/******************************************************************************/
+
+module InterRat_Handover_EtoG_GERAN {
+
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+
+  function fl_TC_8_4_3_2and3_GERAN(boolean p_DoSysInfo) runs on GERAN_PTC
+  {
+    var integer v_T0_RSSI_Cell24 := -85;
+    var integer v_T1_RSSI_Cell24 := -65;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    if (p_DoSysInfo) { // 8.4.3.3.
+      // Need to send SI 1, 3 and 13 to EUTRA
+      EUTRA.send (cms_IRAT_OctetData (bit2oct(encvalue(f_GERAN_SysInfo_GetSI1 (geran_Cell24)))));
+      EUTRA.send (cms_IRAT_OctetData (bit2oct(encvalue(f_GERAN_SysInfo_GetSI3 (geran_Cell24)))));
+      EUTRA.send (cms_IRAT_OctetData (bit2oct(encvalue(f_GERAN_SysInfo_GetSI13 (geran_Cell24)))));
+    }
+    // Create GERAN cells
+    f_GERAN_CreateCell (geran_Cell24);
+
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    f_GERAN_SetCellPowerLevel ( geran_Cell24, v_T0_RSSI_Cell24 ); //@sic R5s120372 sic@
+
+    //* @desc Coordinate with E-UTRA component to send GERAN frequencies
+    f_GERAN_Send_IR_SysInfoToEUTRA ( geran_Cell24 );
+    f_GERAN_Send_IR_SysInfoToEUTRA ( geran_Cell25 );
+    f_GERAN_Send_IR_SysInfoToEUTRA ( geran_Cell26 );
+    
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 3" siclog@
+    //The SS changes Cell1 and Cell 24 parameters according to the values specified for T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel ( geran_Cell24, v_T1_RSSI_Cell24 ); //@sic R5s120372 sic@
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //* @desc: Receive HANDOVER TO GERAN COMPLETE message
+    /*G_L2.receive ( car_G_L2_ACCESS_IND ( geran_Cell24,
+      ?, tsc_PhyCh0, ?, ?,
+      cr_HandoverToGERANComplete ) ) -> value v_RcvdMsg;*/
+    
+    //@siclog "Step 6" siclog@
+    //does the test result of generic test procedure in 36.508
+    //subclause 6.4.2.9 indicate that the UE is camped on GERAN Cell 24?
+    f_GERAN_508CheckCampOnNewGeranCell( geran_Cell24 );
+
+    f_GERAN_TestBody_Set( false );
+    
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Tell to EUTRA PTC Test case is now finished on GERAN side
+    
+    //* @desc Switch off UE and release cell
+    f_GERAN_Postamble ( geran_Cell24, G2_PSHANDOVER );
+  }
+
+  function f_TC_8_4_3_2_GERAN() runs on GERAN_PTC
+  { /* Inter-RAT cell change order / From E-UTRA data RRC_CONNECTED to GPRS / Without NACC */
+     fl_TC_8_4_3_2and3_GERAN(false);
+  }
+
+  function f_TC_8_4_3_3_GERAN() runs on GERAN_PTC
+  { /* Inter-RAT cell change order / From E-UTRA data to GPRS / With NACC */
+    fl_TC_8_4_3_2and3_GERAN(true);
+  }
+
+}

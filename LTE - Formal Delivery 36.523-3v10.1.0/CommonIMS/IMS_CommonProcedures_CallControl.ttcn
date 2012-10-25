@@ -1,0 +1,1098 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+
+module IMS_CommonProcedures_CallControl {
+
+  import from CommonIP all;
+  import from IMS_Component all;
+  import from IMS_ASP_TypeDefs all;
+  import from IMS_ASP_Templates all;
+  import from IMS_CommonParameters all;
+  import from IMS_Constants all;
+  import from IMS_SIP_Templates all;
+  import from IMS_SDP_Templates all;
+  import from IMS_CommonFunctions all;
+  import from IMS_CommonProcedures_Registration all;
+  import from LibSip_SIPTypesAndValues all;
+  import from LibSip_SDPTypes all;
+
+  //============================================================================
+  // local functions to build send/receive messages
+  //----------------------------------------------------------------------------
+
+  function fl_IMS_DisplayNameSet(IMS_ProtectedUnprotected_Type p_ProtectedUnprotected) return template (present) charstring
+  {
+    var template (present) charstring v_DisplayName := ?;
+    
+    if (p_ProtectedUnprotected == unprotected) {
+      v_DisplayName := "Anonymous";
+    }
+    return v_DisplayName;
+  }
+  
+  function fl_IMS_RecordRoute_A23_A31_TX(boolean p_IsGIBA,
+                                         template (omit) GenericParam p_SigCompParam := omit) runs on IMS_PTC return template (value) RecordRoute
+  { /* p_IsGIBA   ..  SS server port in unprotected (and therefore left out)
+       p_SigCompParam  .. Compression parameter to be included in the last route parameter (see 34.299-1 cl. 13.2.4) */
+    var template (value) RouteBody_List v_RouteBodyList;
+    var template (omit) integer v_Port_ps := omit;
+
+    if (not p_IsGIBA) {   // A1
+      v_Port_ps := f_IMS_PTC_GetPort_ps();
+    }
+
+    v_RouteBodyList := {
+      cs_RouteBody(f_SIP_BuildSipUrl_TX("sip:pcscf.other.com")),
+      cs_RouteBody(f_SIP_BuildSipUrl_TX("sip:scscf.other.com")),
+      cs_RouteBody(f_SIP_BuildSipUrl_TX("sip:orig@" & px_IMS_Scscf)),
+      f_RouteBodyWithParamsTX(cs_SipUrl_Def(px_IMS_Pcscf, v_Port_ps), p_SigCompParam)
+    };
+
+    return cs_RecordRoute(v_RouteBodyList);
+  }
+
+  function fl_IMS_RecordRoute_A23_A31_RX(boolean p_IsGIBA,
+                                         template (omit) GenericParam p_SigCompParam := omit) runs on IMS_PTC return template (present) RecordRoute
+  { /* p_IsGIBA   ..  SS server port in unprotected (and therefore left out)
+       p_SigCompParam  .. Compression parameter to be included in the last route parameter (see 34.299-1 cl. 13.3.4 step 3) */
+    var template integer v_Port_ps := *;
+    var template (present) RouteBody_List v_RouteBodyList;
+
+    if (not p_IsGIBA) {   // A1
+      v_Port_ps := f_IMS_PTC_GetPort_ps();
+    }
+
+    v_RouteBodyList := {
+      f_RouteBodyWithParamsRX(*, f_SIP_BuildSipUrl_RX("sip:pcscf.other.com"), p_SigCompParam),
+      cr_RouteBody(*, f_SIP_BuildSipUrl_RX("sip:scscf.other.com")),
+      cr_RouteBody(*, f_SIP_BuildSipUrl_RX("sip:orig@" & px_IMS_Scscf)),
+      cr_RouteBody(*, cr_SipUrl_Def(px_IMS_Pcscf, v_Port_ps))
+    };
+
+    return cr_RecordRoute(v_RouteBodyList);
+  }
+
+  function fl_Route_ReverseOrderOfRecordRoute(template (omit) MessageHeader p_MessageHeader) return template Route
+  {
+    var template (value)   RouteBody_List v_RecordRoute_BodyList;
+    var template (present) RouteBody_List v_Route_BodyList;
+    var integer v_LengthOfList;
+    var integer i;
+    var integer k;
+
+    if (not isvalue(p_MessageHeader.recordRoute)) {
+      return *;
+    }
+    v_RecordRoute_BodyList := valueof(p_MessageHeader.recordRoute.routeBody);
+    
+    v_LengthOfList := lengthof(v_RecordRoute_BodyList);
+    k := v_LengthOfList;
+    for (i:=0; i<v_LengthOfList; i:=i+1) {
+      k := k - 1;
+      v_Route_BodyList[i] := v_RecordRoute_BodyList[k];
+    }
+    return cr_Route(v_Route_BodyList);
+  }
+
+/*   function fl_IMS_Params_CheckSigComp(template (omit) SemicolonParam_List p_ParamList) runs on IMS_PTC return boolean */
+/*   { */
+/*     if (isvalue(p_ParamList)) { */
+/*       if (match(valueof(p_ParamList), cr_SigCompParam)) { */
+/*         return; */
+/*       } */
+/*     } */
+/*     f_IMS_SetVerdictFailOrInconc(__FILE__, __LINE__, "Missing SigComp parameter in Route header"); */
+/*   } */
+
+  function fl_Via_AddSigCompParam(template (value) Via p_Via) runs on IMS_PTC return template (value) Via
+  {
+    var template (value) Via v_Via := p_Via;
+    var template (value) ViaBody v_ViaBody := v_Via.viaBody[0];
+    var template (omit) SemicolonParam_List v_ViaParams;
+    var integer v_ParamsCnt;
+
+    if (not f_IMS_PTC_ImsInfo_SigCompStarted()) {
+      return v_Via;
+    }
+    v_ViaParams := v_ViaBody.viaParams;
+    if (not isvalue(v_ViaParams)) {
+      v_ParamsCnt := 0;
+    } else {
+      if (match(valueof(v_ViaParams), cr_SigCompParam)) {   // SigComp param is already included
+        return v_Via;
+      }
+      v_ParamsCnt := lengthof(v_ViaParams);
+    }
+    v_ViaParams[v_ParamsCnt] := valueof(cs_SigCompParam);
+    v_Via.viaBody[0].viaParams := v_ViaParams;
+    return p_Via;
+  }
+
+  function fl_Via_AsInPrevInvite(template (value) Via p_InviteVia) return template (present) Via
+  {
+    var template (value) ViaBody v_ViaBody := p_InviteVia.viaBody[0];
+    var template (value) charstring v_Protocol := v_ViaBody.sentProtocol.transport;
+    var template (value) HostPort v_SentBy := v_ViaBody.sentBy;
+    return cr_ViaDef(v_Protocol, v_SentBy);
+  }
+
+  //============================================================================
+  // Functions to build responses to be sent to the UE
+  //----------------------------------------------------------------------------
+
+  function f_IMS_InviteResponse_100_MessageHeaderTX(INVITE_Request p_InviteRequest) return template (value) MessageHeader
+  { // 100 Trying for INVITE (see TS 34.229, A.2.2)
+    var MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Response := cs_MessageHeader_Dummy;
+
+    v_MessageHeader_Response.via             := v_MessageHeader_Invite.via;
+    v_MessageHeader_Response.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Response.toField         := cs_ToDef(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec);
+    v_MessageHeader_Response.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Response.cSeq            := v_MessageHeader_Invite.cSeq;
+
+    return v_MessageHeader_Response;
+  }
+
+  function f_IMS_InviteResponse_180_MessageHeaderTX(INVITE_Request p_InviteRequest,
+                                                    boolean p_IsEmergency := false,
+                                                    boolean p_IsGIBA := false) runs on IMS_PTC return template (value) MessageHeader
+  { // 180 Ringing for INVITE (see TS 34.229, A.2.6)
+    var MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Response := cs_MessageHeader_Dummy;
+
+    v_MessageHeader_Response.recordRoute     := fl_IMS_RecordRoute_A23_A31_TX(p_IsGIBA, f_IMS_PTC_ImsInfo_GetSigCompParam());
+    v_MessageHeader_Response.via             := v_MessageHeader_Invite.via;
+    v_MessageHeader_Response.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Response.toField         := cs_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Response.contact         := cs_Contact(cs_SipUrl_Def(tsc_IMS_CalleeContactUri), cs_ParamList_Feature(tsc_IMS_ContactFeatureParam));
+    v_MessageHeader_Response.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Response.cSeq            := v_MessageHeader_Invite.cSeq;
+    if (p_IsEmergency) {    // Condition A4
+      v_MessageHeader_Response.pAssertedID   := cs_PAssertedId(f_SIP_BuildSipUrl_TX(tsc_IMS_Emergency_TelUri));
+    }
+    return v_MessageHeader_Response;
+  }
+
+  function f_IMS_InviteResponse_183_MessageHeaderTX(INVITE_Request p_InviteRequest,
+                                                    boolean p_IsEmergency := false,
+                                                    boolean p_IsGIBA := false) runs on IMS_PTC return template (value) MessageHeader
+  { // 183 Session Progress for INVITE (see TS 34.229, A.2.3)
+    var MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Response := cs_MessageHeader_Dummy;
+
+    v_MessageHeader_Response.recordRoute     := fl_IMS_RecordRoute_A23_A31_TX(p_IsGIBA, f_IMS_PTC_ImsInfo_GetSigCompParam());
+    v_MessageHeader_Response.via             := v_MessageHeader_Invite.via;
+    v_MessageHeader_Response.require         := cs_Require("100rel"); // @sic R5s120530 change 3.7 sic@
+    v_MessageHeader_Response.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Response.toField         := cs_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Response.contact         := cs_Contact(cs_SipUrl_Def(tsc_IMS_CalleeContactUri), cs_ParamList_Feature(tsc_IMS_ContactFeatureParam));
+    v_MessageHeader_Response.rSeq            := cs_RSeq(tsc_IMS_RSeqNumFor183);
+    v_MessageHeader_Response.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Response.cSeq            := v_MessageHeader_Invite.cSeq;
+    //v_MessageHeader_Response.allow           := cs_Allow("UPDATE");      @sic R5-123077 change 1 - "The Allow header is not mandatory in 183 session in progress" sic@
+    v_MessageHeader_Response.contentType     := cs_ContentTypeDef("application/sdp");
+    if (p_IsEmergency) {    // Condition A5
+      v_MessageHeader_Response.pAssertedID   := cs_PAssertedId(f_SIP_BuildSipUrl_TX(tsc_IMS_Emergency_TelUri));
+    }
+    return v_MessageHeader_Response;
+  }
+  
+  function f_IMS_OtherResponse_200_MessageHeaderTX(template (value) MessageHeader p_MessageHeader_Request,
+                                                   template (omit) ContentType p_ContentType := omit) return template (value) MessageHeader
+  { // 200 OK for other requests than REGISTER or SUBSCRIBE (see TS 34.229, A.3.1)
+    var template (value) MessageHeader v_MessageHeader_Response := cs_MessageHeader_Dummy;
+
+    v_MessageHeader_Response.via             := p_MessageHeader_Request.via;
+    v_MessageHeader_Response.fromField       := p_MessageHeader_Request.fromField;
+    v_MessageHeader_Response.toField         := cs_ToWithTag(p_MessageHeader_Request.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Response.callId          := p_MessageHeader_Request.callId;
+    v_MessageHeader_Response.cSeq            := p_MessageHeader_Request.cSeq;
+    v_MessageHeader_Response.contentType     := p_ContentType;
+    
+    return v_MessageHeader_Response;
+  }
+  
+  function f_IMS_InviteResponse_200_MessageHeaderTX(INVITE_Request p_InviteRequest,
+                                                    template (omit) ContentType p_ContentType := omit,
+                                                    boolean p_IsEmergency := false,
+                                                    boolean p_IsGIBA := false) runs on IMS_PTC return template (value) MessageHeader
+  { // 200 OK for other requests than REGISTER or SUBSCRIBE (see TS 34.229, A.3.1) - INVITE
+    var template (value) MessageHeader v_MessageHeader_Response := f_IMS_OtherResponse_200_MessageHeaderTX(p_InviteRequest.msgHeader, p_ContentType);
+    
+    v_MessageHeader_Response.recordRoute     := fl_IMS_RecordRoute_A23_A31_TX(p_IsGIBA);
+    v_MessageHeader_Response.contact         := cs_Contact(cs_SipUrl_Def(tsc_IMS_CalleeContactUri));
+    if (p_IsEmergency) {    // Condition A6
+      v_MessageHeader_Response.pAssertedID   := cs_PAssertedId(f_SIP_BuildSipUrl_TX(tsc_IMS_Emergency_TelUri));
+    }
+    return v_MessageHeader_Response;
+  }
+  
+  //============================================================================
+  // Functions to build responses to be expected from the UE
+  //----------------------------------------------------------------------------
+
+  function f_IMS_InviteResponse_100_MessageHeaderRX(template (value) INVITE_Request p_InviteRequest) return template (present) MessageHeader
+  { // 100 Trying for INVITE (see TS 34.229, A.2.2)
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (present) MessageHeader v_MessageHeader_Response := cr_MessageHeader_Dummy;
+
+    v_MessageHeader_Response.via             := v_MessageHeader_Invite.via;
+    v_MessageHeader_Response.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Response.toField         := cr_ToDef(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec);
+    v_MessageHeader_Response.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Response.cSeq            := v_MessageHeader_Invite.cSeq;
+
+    return v_MessageHeader_Response;
+  }
+
+  function f_IMS_InviteResponse_180_MessageHeaderRX(template (value) INVITE_Request p_InviteRequest,
+                                                    boolean p_IsEmergency := false,
+                                                    boolean p_IsGIBA := false) runs on IMS_PTC return template (present) MessageHeader
+  { // 180 Ringing for INVITE (see TS 34.229, A.2.6)
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (present) MessageHeader v_MessageHeader_Response := cr_MessageHeader_Dummy;
+    var template (present) charstring v_UE_IPAddrOrFQDN := f_IMS_PTC_UE_IPAddrOrFQDN_Get();
+    var integer v_Port_us := f_IMS_PTC_GetPort_us(not p_IsGIBA);
+
+    v_MessageHeader_Response.recordRoute     := fl_IMS_RecordRoute_A23_A31_RX(p_IsGIBA);
+    v_MessageHeader_Response.via             := v_MessageHeader_Invite.via;
+    v_MessageHeader_Response.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Response.toField         := cr_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+
+    v_MessageHeader_Response.contact         := cr_Contact(cr_SipUrlHostPort(v_UE_IPAddrOrFQDN, v_Port_us), cr_FeatureParamInContactParams(?));
+    v_MessageHeader_Response.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Response.cSeq            := v_MessageHeader_Invite.cSeq;
+
+    v_MessageHeader_Response.pAccessNetworkInfo := cr_PAccessNetworkInfoDef(?, *);    // NOTE: acc. A.2.6 there is no condition regardinging GIBA
+    if (p_IsEmergency) {    // Condition A4
+      v_MessageHeader_Response.pAssertedID      := cr_PAssertedId(f_SIP_BuildSipUrl_RX(tsc_IMS_Emergency_TelUri));
+    }
+    return v_MessageHeader_Response;
+  }
+
+  function f_IMS_InviteResponse_183_MessageHeaderRX(template (value) INVITE_Request p_InviteRequest,
+                                                    boolean p_IsGIBA := false) runs on IMS_PTC return template (present) MessageHeader
+  { // 183 Session Progress for INVITE (see TS 34.229, A.2.3)
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (present) MessageHeader v_MessageHeader_Response := cr_MessageHeader_Dummy;
+    var template (present) charstring v_UE_IPAddrOrFQDN := f_IMS_PTC_UE_IPAddrOrFQDN_Get();
+    var integer v_Port_us := f_IMS_PTC_GetPort_us(not p_IsGIBA);
+    
+    v_MessageHeader_Response.via             := v_MessageHeader_Invite.via;
+    v_MessageHeader_Response.recordRoute     := fl_IMS_RecordRoute_A23_A31_RX(p_IsGIBA, f_IMS_PTC_ImsInfo_GetSigCompParam());
+    v_MessageHeader_Response.require         := cr_Require("100rel");
+    v_MessageHeader_Response.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Response.toField         := cr_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Response.contact         := cr_Contact(cr_SipUrlHostPort(v_UE_IPAddrOrFQDN, v_Port_us), cr_FeatureParamInContactParams(?));
+    v_MessageHeader_Response.rSeq            := cr_RSeq(tsc_IMS_RSeqNumFor183);
+    v_MessageHeader_Response.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Response.cSeq            := v_MessageHeader_Invite.cSeq;
+    //v_MessageHeader_Response.allow           := cr_Allow("UPDATE");      @sic R5-123077 change 1 - "The Allow header is not mandatory in 183 session in progress" sic@
+    v_MessageHeader_Response.contentType     := cr_ContentTypeDef("application/sdp");
+
+    return v_MessageHeader_Response;
+  }
+  
+  function f_IMS_InviteResponse_200_MessageHeaderRX(template (value) MessageHeader p_MessageHeader_Request,
+                                                    template (omit) ContentType p_ContentType := omit,
+                                                    boolean p_IsGIBA := false,
+                                                    boolean p_IsEmergency := false) runs on IMS_PTC return template (present) MessageHeader
+  { // 200 OK for other requests than REGISTER or SUBSCRIBE (see TS 34.229, A.3.1) - INVITE
+
+    var template (present) MessageHeader v_MessageHeader_Response := f_IMS_OtherResponse_200_MessageHeaderRX(p_MessageHeader_Request, p_ContentType);
+    var template (present) charstring v_UE_IPAddrOrFQDN := f_IMS_PTC_UE_IPAddrOrFQDN_Get();
+    var integer v_Port_us := f_IMS_PTC_GetPort_us(not p_IsGIBA);
+
+    // additional fields just for response for INVITE
+    v_MessageHeader_Response.recordRoute := fl_IMS_RecordRoute_A23_A31_RX(p_IsGIBA);
+    v_MessageHeader_Response.contact     := cr_Contact(cr_SipUrlHostPort(v_UE_IPAddrOrFQDN, v_Port_us));
+
+    if (p_IsEmergency) {
+      v_MessageHeader_Response.pAssertedID   := cr_PAssertedId(f_SIP_BuildSipUrl_RX(tsc_IMS_Emergency_TelUri));
+    }
+    return v_MessageHeader_Response;
+  }
+  
+  //============================================================================
+  // Functions to build requests to be sent to the UE
+  //----------------------------------------------------------------------------
+
+  function f_IMS_InviteRequest_MessageHeaderTX(template (value) Supported p_SupportedTag := cs_Supported_100rel,
+                                               boolean p_IsGIBA := false) runs on IMS_PTC return template (value) MessageHeader
+  { /* INVITE acc. to condition A4 - INVITE creating a dialog  (see TS 34.229, A.2.9) */
+  
+    var template (value) MessageHeader v_MessageHeader_Invite := cs_MessageHeader_Dummy;
+    var template (value) ViaBody_List v_ViaBodyList;
+    var template (value) RouteBody_List v_RouteBodyList;
+    var charstring v_PublicUserId := f_IMS_PTC_ImsInfo_GetPublicUserId();
+    var charstring v_Host := px_IMS_Pcscf;
+    var integer v_Port_ps := f_IMS_PTC_GetPort_ps(not p_IsGIBA);
+    var template (omit) SemicolonParam_List v_ContactParams := omit;
+    var charstring v_CallerAddr := tsc_IMS_CallerDomain;
+    var integer v_CallerPort := 6543;
+    var integer v_CSeqValue := 4711;
+    var template (omit) GenericParam v_SigCompParam := f_IMS_PTC_ImsInfo_GetSigCompParam();   // omit when sigcomp is not started
+
+    v_ViaBodyList := {
+      cs_ViaBody("UDP", cs_HostPort(v_Host, v_Port_ps),          f_ViaParamsTX(f_IMS_PTC_ImsInfo_GetNextBranch(), v_SigCompParam)),
+      cs_ViaBody("UDP", cs_HostPort("scscf1.3gpp.org"),          f_ViaParamsTX(f_IMS_PTC_ImsInfo_GetNextBranch())),
+      cs_ViaBody("UDP", cs_HostPort("scscf2.3gpp.org"),          f_ViaParamsTX(f_IMS_PTC_ImsInfo_GetNextBranch())),
+      cs_ViaBody("UDP", cs_HostPort("pcscf2.3gpp.org"),          f_ViaParamsTX(f_IMS_PTC_ImsInfo_GetNextBranch())),
+      cs_ViaBody("UDP", cs_HostPort(v_CallerAddr, v_CallerPort), f_ViaParamsTX(f_IMS_PTC_ImsInfo_GetNextBranch()))
+    };
+
+    v_RouteBodyList := {
+      f_RouteBodyWithParamsTX(cs_SipUrl_Def(v_Host, v_Port_ps), v_SigCompParam),
+      cs_RouteBody(f_SIP_BuildSipUrl_TX("sip:term@scscf1.3gpp.org")),
+      cs_RouteBody(f_SIP_BuildSipUrl_TX("sip:orig@scscf2.3gpp.org")),
+      cs_RouteBody(f_SIP_BuildSipUrl_TX("sip:pcscf2.3gpp.org"))
+    };
+
+    v_MessageHeader_Invite.via             := cs_Via(v_ViaBodyList);
+    v_MessageHeader_Invite.recordRoute     := cs_RecordRoute(v_RouteBodyList);
+    v_MessageHeader_Invite.fromField       := cs_From(f_SIP_BuildSipUrl_TX(tsc_IMS_CallerSipAddrStr), tsc_IMS_InviteFromTag);
+    v_MessageHeader_Invite.toField         := cs_ToDef(f_SIP_BuildSipUrl_TX(v_PublicUserId));
+    v_MessageHeader_Invite.callId          := cs_CallId ("f81d4fae-7dec-11d0-a765-00a0c91e6bf6" & tsc_IMS_CallerDomain);   //CallId set to an arbitrary string
+    v_MessageHeader_Invite.cSeq            := cs_CseqDef(v_CSeqValue, "INVITE");
+    v_MessageHeader_Invite.supported       := p_SupportedTag;
+    v_MessageHeader_Invite.pCalledPartyID  := cs_PCalledPartyId(f_SIP_BuildSipUrl_TX(v_PublicUserId));
+    v_MessageHeader_Invite.contentType     := cs_ContentTypeDef("application/sdp");
+    v_MessageHeader_Invite.maxForwards     := cs_MaxForwardsDef;
+    v_MessageHeader_Invite.accept          := cs_Accept({cs_AcceptBody("application/sdp"), cs_AcceptBody("application/3gpp-ims+xml")});
+
+    if (tsc_IMS_MTSI) {
+      v_MessageHeader_Invite.pAssertedService := cs_PAssertedService(tsc_IMS_AcceptContactValue);
+      v_MessageHeader_Invite.acceptContact    := cs_AcceptContact({cs_GenericParam(tsc_IMS_AcceptContactId, tsc_IMS_AcceptContactValue)});
+      v_ContactParams := cs_ParamList_Feature(tsc_IMS_ContactFeatureParam);
+    }
+    v_MessageHeader_Invite.contact        := cs_Contact(f_SIP_BuildSipUrl_TX(tsc_IMS_CallerSipAddrStr, v_CallerPort), v_ContactParams);
+
+    f_IMS_PTC_ImsInfo_CseqSet(dialogMT, v_CSeqValue);
+
+    return v_MessageHeader_Invite;
+  }
+
+  function f_IMS_PrackRequest_MessageHeaderTX(template (value) INVITE_Request p_InviteRequest,
+                                              MessageHeader p_MessageHeader_PrevReliableResponse,
+                                              template (omit) ContentType p_ContentType := omit) runs on IMS_PTC return template (value) MessageHeader
+  { /* PRACK (see TS 34.229, A.2.4) */
+    /* p_MessageHeader_PrevReliableResponse   ..   MessageHeader of "the reliable response" (e.g. previous 183 response) */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Prack := cs_MessageHeader_Dummy;
+    var template (value) Via v_Via := fl_Via_AddSigCompParam(v_MessageHeader_Invite.via);
+    var CSeq v_CSeq := p_MessageHeader_PrevReliableResponse.cSeq;
+    var integer v_CSeqValue := v_CSeq.seqNumber + 1;
+    var integer v_ResponseNumber := p_MessageHeader_PrevReliableResponse.rAck.responseNum;
+    
+    v_MessageHeader_Prack.via             := v_Via;
+    v_MessageHeader_Prack.toField         := cs_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Prack.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Prack.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Prack.cSeq            := cs_CseqDef(v_CSeqValue, "PRACK");
+    v_MessageHeader_Prack.maxForwards     := cs_MaxForwardsDef;
+    v_MessageHeader_Prack.rAck            := cs_RAckDef(v_ResponseNumber, v_CSeq.seqNumber, v_CSeq.method);
+    v_MessageHeader_Prack.contentType     := p_ContentType;
+
+    f_IMS_PTC_ImsInfo_CseqSet(dialogMT, v_CSeqValue);
+
+    return v_MessageHeader_Prack;
+  }
+
+  function f_IMS_UpdateRequest_MessageHeaderTX(template (value) INVITE_Request p_InviteRequest) runs on IMS_PTC return template (value) MessageHeader
+  { /* UPDATE (see TS 34.229, A.2.5) */
+    /* p_CSeq   ..   "value of CSeq sent by the endpoint within its previous request in the same dialog" */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Update := cs_MessageHeader_Dummy;
+    var template (value) Via v_Via := fl_Via_AddSigCompParam(v_MessageHeader_Invite.via);
+    var integer v_CSeqValue := f_IMS_PTC_ImsInfo_CseqIncr(dialogMT);
+
+    v_MessageHeader_Update.via             := v_Via;
+    v_MessageHeader_Update.toField         := cs_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Update.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Update.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Update.cSeq            := cs_CseqDef(v_CSeqValue, "UPDATE");
+    v_MessageHeader_Update.maxForwards     := cs_MaxForwardsDef;
+    v_MessageHeader_Update.contentType     := cs_ContentTypeDef("application/sdp");
+
+    return v_MessageHeader_Update;
+  }
+
+  function f_IMS_AckRequest_MessageHeaderTX(template (value) INVITE_Request p_InviteRequest) runs on IMS_PTC return template (value) MessageHeader
+  { /* ACK (see TS 34.229, A.2.7) */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Ack := cs_MessageHeader_Dummy;
+    var template (value) Via v_Via := fl_Via_AddSigCompParam(v_MessageHeader_Invite.via);
+    var integer v_CSeqValue := f_MessageHeader_GetCseqValue(v_MessageHeader_Invite);    // for ACK the CSeq value of the corresponding INVATE has to be used
+
+    v_MessageHeader_Ack.via             := v_Via;
+    v_MessageHeader_Ack.toField         := cs_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Ack.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Ack.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Ack.cSeq            := cs_CseqDef(v_CSeqValue, "ACK");
+    v_MessageHeader_Ack.maxForwards     := cs_MaxForwardsDef;
+
+    return v_MessageHeader_Ack;
+  }
+
+  function f_IMS_ByeRequest_MessageHeaderTX(template (value) INVITE_Request p_InviteRequest) runs on IMS_PTC return template (value) MessageHeader
+  { /* BYE (see TS 34.229, A.2.8) */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Bye := cs_MessageHeader_Dummy;
+    var template (value) Via v_Via := fl_Via_AddSigCompParam(v_MessageHeader_Invite.via);
+    var integer v_CSeqValue := f_IMS_PTC_ImsInfo_CseqIncr(dialogMT);
+
+    v_MessageHeader_Bye.via             := v_Via;
+    v_MessageHeader_Bye.toField         := cs_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Bye.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Bye.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Bye.cSeq            := cs_CseqDef(v_CSeqValue, "BYE");
+    v_MessageHeader_Bye.maxForwards     := cs_MaxForwardsDef;
+    
+    return v_MessageHeader_Bye;
+  }
+   
+  //============================================================================
+  // Functions to build requests to be sent to the UE
+  //----------------------------------------------------------------------------
+
+  function f_IMS_InviteRequest_MessageHeaderRX(template (present) Supported p_Supported := cr_Supported_100rel,
+                                               boolean p_A2 := false,
+                                               boolean p_A6 := false) runs on IMS_PTC return template (present) MessageHeader
+  { /* INVITE acc. to condition A4 - INVITE creating a dialog  (see TS 34.229, A.2.1) */
+    /* p_A2  ..  GIBA
+       p_A6  ..  emergency session in case of no registration
+       NOTE: If SigComp shall be applied the param "comp=sigcomp" is optional for Via, Route and Contact */
+    var template (present) MessageHeader v_MessageHeader_Invite := cr_MessageHeader_Dummy;
+    var template (present) charstring v_UE_IPAddrOrFQDN := ?;
+    var template (present) RouteBody_List v_RouteBodyList;
+    var IMS_ProtectedPorts_Type v_Protected;
+    var template integer v_Port_us := *;
+    var template integer v_Port_ps := *;
+    var template charstring v_Displayname := *;
+    var template SemicolonParam_List v_Contact_FeatureParamList := *;
+
+    if (p_A6) {
+      v_Port_us := ?;
+      v_Port_ps := tsc_IMS_PortNumber_5060;
+      v_Contact_FeatureParamList := cr_FeatureParamInContactParams(?);
+    } else if (not p_A2) {
+      v_UE_IPAddrOrFQDN := f_IMS_PTC_UE_IPAddrOrFQDN_Get();
+      v_Protected := f_IMS_PTC_Security_GetProtectedPorts();
+      v_Port_us := v_Protected.Port_us;
+      v_Port_ps := v_Protected.Port_ps;
+    }
+
+    v_RouteBodyList[0]   := cr_RouteBody(*, cr_SipUrl_Def(px_IMS_Pcscf, v_Port_ps));
+    if (p_A2 or p_A6) {
+      v_Displayname := "Anonymous";
+    } else {
+      v_RouteBodyList[1] := cr_RouteBody(*, cr_SipUrl_Def(px_IMS_Scscf));
+    }
+    if (tsc_IMS_MTSI) {    // A3
+      v_Contact_FeatureParamList := cr_FeatureParamInContactParams(?);
+    }
+
+    v_MessageHeader_Invite.via             := cr_ViaDef(?, cr_HostPort(v_UE_IPAddrOrFQDN, v_Port_us));
+    v_MessageHeader_Invite.route           := cr_Route(v_RouteBodyList);
+    v_MessageHeader_Invite.fromField       := cr_From(v_Displayname, ?);
+    v_MessageHeader_Invite.toField         := cr_ToDef(?);          /* !!!! additional checks:
+                                                                     * !!!! - no To tag
+                                                                     * !!!! - A6, A7: "emergency service URN beginning as urn:service:sos" */
+    v_MessageHeader_Invite.callId          := cr_CallId(?);         /* !!!! additional check: shall be different than in REGISTER */
+    v_MessageHeader_Invite.cSeq            := cr_CseqDef(?, "INVITE");
+    v_MessageHeader_Invite.supported       := p_Supported;          /* !!!! additional check: A8 - Geolocation header to provide its geographical location */
+    v_MessageHeader_Invite.geolocation     := *;                    /* !!!! additional check: A8 - Geolocation header to provide its geographical location */
+
+    v_MessageHeader_Invite.contact         := cr_Contact(cr_SipUrlHostPort(v_UE_IPAddrOrFQDN, v_Port_us), cr_FeatureParamInContactParams);
+    v_MessageHeader_Invite.contentType     := cr_ContentTypeDef(("application/sdp", "multipart/mixed"));
+    v_MessageHeader_Invite.maxForwards     := cr_MaxForwardsDef;
+
+    v_MessageHeader_Invite.accept          := cr_Accept({cr_AcceptBody("application/sdp"), cr_AcceptBody("application/3gpp-ims+xml"), *});
+
+    if (p_A2 or p_A6) {
+      v_MessageHeader_Invite.securityVerify  := omit;
+    } else {
+      v_MessageHeader_Invite.require         := cr_Require;
+      v_MessageHeader_Invite.proxyRequire    := cr_ProxyRequireDef;
+      v_MessageHeader_Invite.securityVerify  := f_IMS_PTC_BuildSecurityVerifyHeader();
+      v_MessageHeader_Invite.pAccessNetworkInfo := cr_PAccessNetworkInfoDef(?, *);
+    }
+    
+    if (tsc_IMS_MTSI) {    // A3
+      v_MessageHeader_Invite.pPreferredID     := cr_PPreferredID;     // !!!! A7: check for px_EmergencyPublicUserIdentity  !!!!
+      v_MessageHeader_Invite.acceptContact    := cr_AcceptContact(cs_GenericParam(tsc_IMS_AcceptContactId, tsc_IMS_AcceptContactValue));
+    }
+    return v_MessageHeader_Invite;
+  }
+
+  //----------------------------------------------------------------------------
+
+  function f_IMS_PrackRequest_MessageHeaderRX(template (value) INVITE_Request p_InviteRequest,
+                                              MessageHeader p_MessageHeader_PrevReliableResponse,
+                                              template ContentType p_ContentType := *) runs on IMS_PTC return template (present) MessageHeader
+  { /* PRACK (see TS 34.229, A.2.4) */
+    /* p_MessageHeader_PrevReliableResponse   ..   MessageHeader of "the reliable response" (e.g. previous 183 response) */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (present) MessageHeader v_MessageHeader_Prack := cr_MessageHeader_Dummy;
+    var CSeq v_CSeq := p_MessageHeader_PrevReliableResponse.cSeq;
+    var integer v_CSeqValue := v_CSeq.seqNumber + 1;
+    var integer v_ResponseNumber := p_MessageHeader_PrevReliableResponse.rAck.responseNum;
+    
+    f_IMS_PTC_ImsInfo_CseqSet(dialogMO, v_CSeqValue);
+
+    v_MessageHeader_Prack.via             := fl_Via_AsInPrevInvite(v_MessageHeader_Invite.via); // @sic R5s120530 change 3.9 sic@
+    v_MessageHeader_Prack.route           := fl_Route_ReverseOrderOfRecordRoute(p_MessageHeader_PrevReliableResponse);
+    v_MessageHeader_Prack.toField         := cr_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Prack.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Prack.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Prack.cSeq            := cr_CseqDef(v_CSeqValue, "PRACK");
+    v_MessageHeader_Prack.maxForwards     := cr_MaxForwardsDef;
+    v_MessageHeader_Prack.rAck            := cr_RAckDef(v_ResponseNumber, v_CSeq.seqNumber, v_CSeq.method);
+    v_MessageHeader_Prack.contentType     := p_ContentType;
+
+    return v_MessageHeader_Prack;
+  }
+   
+  function f_IMS_UpdateRequest_MessageHeaderRX(template (value) INVITE_Request p_InviteRequest,
+                                               MessageHeader p_MessageHeader_Prev183Response,
+                                               boolean p_IsGIBA := false) runs on IMS_PTC return template (present) MessageHeader
+  { /* UPDATE (see TS 34.229, A.2.5) */
+    /* p_CSeq   ..   "value of CSeq sent by the endpoint within its previous request in the same dialog" */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (present) MessageHeader v_MessageHeader_Update := cr_MessageHeader_Dummy;
+    var integer v_CSeqValue := f_IMS_PTC_ImsInfo_CseqIncr(dialogMO);
+
+    v_MessageHeader_Update.via             := fl_Via_AsInPrevInvite(v_MessageHeader_Invite.via); // @sic R5s120530 change 3.10 sic@
+    v_MessageHeader_Update.route           := fl_Route_ReverseOrderOfRecordRoute(p_MessageHeader_Prev183Response);
+    v_MessageHeader_Update.toField         := cr_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Update.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Update.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Update.cSeq            := cr_CseqDef(v_CSeqValue, "UPDATE");
+    v_MessageHeader_Update.maxForwards     := cr_MaxForwardsDef;
+    v_MessageHeader_Update.contentType     := cr_ContentTypeDef("application/sdp");
+
+    if (not p_IsGIBA) {
+      v_MessageHeader_Update.require         := cr_Require;
+      v_MessageHeader_Update.proxyRequire    := cr_ProxyRequireDef;
+      v_MessageHeader_Update.securityVerify  := f_IMS_PTC_BuildSecurityVerifyHeader();
+      v_MessageHeader_Update.pAccessNetworkInfo := cr_PAccessNetworkInfoDef(?, *);
+    } else {
+      v_MessageHeader_Update.securityVerify  := omit;
+    }
+
+    return v_MessageHeader_Update;
+  }
+   
+  function f_IMS_AckRequest_MessageHeaderRX(template (value) INVITE_Request p_InviteRequest,
+                                            template (omit) MessageHeader p_MessageHeader_PrevResponse := omit) return template (present) MessageHeader
+  { /* ACK (see TS 34.229, A.2.7) */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (present) MessageHeader v_MessageHeader_Ack := cr_MessageHeader_Dummy;
+    var integer v_CSeqValue := f_MessageHeader_GetCseqValue(v_MessageHeader_Invite);
+
+    v_MessageHeader_Ack.via             := v_MessageHeader_Invite.via;
+    v_MessageHeader_Ack.route           := fl_Route_ReverseOrderOfRecordRoute(p_MessageHeader_PrevResponse);
+    v_MessageHeader_Ack.toField         := cr_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Ack.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Ack.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Ack.cSeq            := cr_CseqDef(v_CSeqValue, "ACK");
+    v_MessageHeader_Ack.maxForwards     := cr_MaxForwardsDef;
+    v_MessageHeader_Ack.pAccessNetworkInfo := omit;
+   
+    return v_MessageHeader_Ack;
+  }
+   
+  function f_IMS_ByeRequest_MessageHeaderRX(template (value) INVITE_Request p_InviteRequest,
+                                            template (omit) MessageHeader p_MessageHeader_Prev183Response := omit,
+                                            boolean p_IsGIBA := false) runs on IMS_PTC return template (present) MessageHeader
+  { /* BYE (see TS 34.229, A.2.8) */
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (present) MessageHeader v_MessageHeader_Bye := cr_MessageHeader_Dummy;
+    var integer v_CSeqValue := f_IMS_PTC_ImsInfo_CseqIncr(dialogMO);
+
+    v_MessageHeader_Bye.via             := fl_Via_AsInPrevInvite(v_MessageHeader_Invite.via);
+    v_MessageHeader_Bye.route           := fl_Route_ReverseOrderOfRecordRoute(p_MessageHeader_Prev183Response);
+    v_MessageHeader_Bye.toField         := cr_ToWithTag(v_MessageHeader_Invite.toField.addressField.nameAddr.addrSpec, tsc_IMS_InviteToTag);
+    v_MessageHeader_Bye.fromField       := v_MessageHeader_Invite.fromField;
+    v_MessageHeader_Bye.callId          := v_MessageHeader_Invite.callId;
+    v_MessageHeader_Bye.cSeq            := cr_CseqDef(v_CSeqValue, "BYE");
+    v_MessageHeader_Bye.maxForwards     := cr_MaxForwardsDef;
+
+    if (not p_IsGIBA) {
+      v_MessageHeader_Bye.require            := cr_Require;
+      v_MessageHeader_Bye.proxyRequire       := cr_ProxyRequireDef;
+      v_MessageHeader_Bye.securityVerify     := f_IMS_PTC_BuildSecurityVerifyHeader();
+      v_MessageHeader_Bye.pAccessNetworkInfo := cr_PAccessNetworkInfoDef(?, *);
+    } else {
+      v_MessageHeader_Bye.securityVerify     := omit;
+    }
+
+    return v_MessageHeader_Bye;
+  }
+   
+  //============================================================================
+  //============================================================================
+  // Common functions for Call Control acc. to 34.229-1 Annex C
+  //----------------------------------------------------------------------------
+
+  function f_IMS_CallReleaseMT(template (value) INVITE_Request p_InviteRequest,
+                               IMS_ProtectedUnprotected_Type p_PortSecurity := protected) runs on IMS_PTC
+  {
+    var template (value) MessageHeader v_MessageHeader_Bye;
+
+    // The SS sends BYE to release the call
+    v_MessageHeader_Bye := f_IMS_ByeRequest_MessageHeaderTX(p_InviteRequest);
+    IMS_Client.send(cas_IMS_BYE_Request(cs_IMS_RoutingInfo(p_PortSecurity, vc_IMS_Global.ImsInfo.ProtocolUsed), cs_BYE_Request(p_InviteRequest.requestLine.requestUri, v_MessageHeader_Bye)));
+
+    //  The UE sends 200 OK for the BYE request and ends the call.
+    IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(p_PortSecurity), cr_Response(c_statusLine200, f_IMS_OtherResponse_200_MessageHeaderTX(v_MessageHeader_Bye))));
+  }
+
+  function f_IMS_CallReleaseMO(INVITE_Request p_InviteRequest,
+                               template (omit) MessageHeader p_MessageHeader_Prev183Response := omit,
+                               IMS_ProtectedUnprotected_Type p_PortSecurity := protected) runs on IMS_PTC
+  {
+    // var IP_AddrInfo_Type v_UE_Address := f_IMS_PTC_UE_Address_Get();
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+    var template (value) IMS_RoutingInfo_Type v_RoutingInfo;
+    var boolean v_IsGIBA := (p_PortSecurity == unprotected);
+    var template (present) MessageHeader v_MessageHeader_Bye;
+
+    // --- Receive BYE
+    v_MessageHeader_Bye := f_IMS_ByeRequest_MessageHeaderRX(p_InviteRequest, p_MessageHeader_Prev183Response, v_IsGIBA);
+    IMS_Server.receive(car_IMS_Bye_Request(cr_IMS_RoutingInfo(p_PortSecurity),
+                                           cr_BYE_Request(p_InviteRequest.requestLine.requestUri, v_MessageHeader_Bye))) -> value v_IMS_DATA_REQ;
+
+    // --- Send 200 OK
+    v_RoutingInfo := f_IMS_RoutingInfo_ULtoDL(v_IMS_DATA_REQ.RoutingInfo);
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo, cs_Response(c_statusLine200, f_IMS_OtherResponse_200_MessageHeaderTX(v_IMS_DATA_REQ.Request.Bye.msgHeader))));
+
+  }
+
+  //****************************************************************************
+  //  @desc Emergency speech call setup according to 34.229-1 Annex C.22
+  //  Input: p_PortSecurity indicating whether signalling is over unprotected or protected ports
+  //----------------------------------------------------------------------------
+
+  function f_IMS_EmergencyCallSetup_AnnexC22(IMS_ProtectedUnprotected_Type p_PortSecurity) runs on IMS_PTC return INVITE_Request
+  { /* !!!! acc. to A.2.1 in step 1 MIME encapsulation is used only acc. to condition A8 !!!! */
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+    var template(value) IMS_RoutingInfo_Type v_RoutingInfo_DL;
+    var charstring v_CalleeUri := "urn:service:sos"; // Request-Uri 34.229-1 Annex A.2.1 (FFS)
+    var INVITE_Request v_InviteRequest;
+    var template (value) MessageHeader v_MessageHeader_InviteResponse_200;
+    var template (present) MessageHeader v_MessageHeader_Ack;
+    var template (present) MessageHeader v_MessageHeader_Invite;
+    var template (value) SDP_Message v_SDP_Message_Step4;
+    var SDP_Message v_SDP_Message_Step1;
+    var template (present) MIME_Message v_MIME_Message_Step1 := cr_MIME_Message_EmergencyCall(f_IMS_BuildSDP_AnnexC22_Step1());
+    var boolean v_IsEmergency := true;
+    var charstring v_Format;
+
+    // Step 1. Receive INVITE for an Emergency call
+    v_MessageHeader_Invite := f_IMS_InviteRequest_MessageHeaderRX(-, (p_PortSecurity == unprotected));
+    IMS_Server.receive(car_IMS_Invite_Request(cr_IMS_RoutingInfo(p_PortSecurity),
+                                              cr_INVITE_Request(f_SIP_BuildSipUrl_RX(v_CalleeUri), v_MessageHeader_Invite, cr_MessageBody_MIME(v_MIME_Message_Step1))))
+      -> value v_IMS_DATA_REQ;
+    v_RoutingInfo_DL := f_IMS_RoutingInfo_ULtoDL(v_IMS_DATA_REQ.RoutingInfo);
+    v_InviteRequest := v_IMS_DATA_REQ.Request.Invite;
+    v_SDP_Message_Step1 := v_InviteRequest.messageBody.mimeMessageBody.mimeEncapsulatedList[0].mime_encapsulated_part.sdpMessageBody;
+    v_Format := "97";     // !!!! needs to be extracted from v_SDP_Message_Step1 (34.229-1 Annex C.21 Step 4: "Note 1: The value for fmt, payload type and format copied from step 1") !!!!
+
+    f_IMS_PTC_ImsInfo_CseqSet(dialogMO, v_InviteRequest.msgHeader.cSeq.seqNumber);
+
+    // Step 2. SS sends a 100 Trying provisional response.
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL, cs_Response(c_statusLine100, f_IMS_InviteResponse_100_MessageHeaderTX(v_InviteRequest))));
+    
+    // Step 3. SS sends a 180 Ringing.
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL, cs_Response(c_statusLine180, f_IMS_InviteResponse_180_MessageHeaderTX(v_InviteRequest, v_IsEmergency))));
+    
+    // Step 4. SS responds to the invite INVITE with 200 OK including the SDP record.
+    v_SDP_Message_Step4 := f_IMS_BuildSDP_AnnexC22_Step4(-, f_IMS_PTC_NW_Address_GetTypeStr(), f_IMS_PTC_NW_Address_GetAddrStr(), v_Format);
+    v_MessageHeader_InviteResponse_200 := f_IMS_InviteResponse_200_MessageHeaderTX(v_InviteRequest, cs_ContentTypeDef("application/sdp"));
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL, cs_Response(c_statusLine200, v_MessageHeader_InviteResponse_200, cs_MessageBody_SDP(v_SDP_Message_Step4))));
+    
+    // Step 5. Finally, UE acknowledges call setup.
+    v_MessageHeader_Ack := f_IMS_AckRequest_MessageHeaderRX(v_InviteRequest, v_MessageHeader_InviteResponse_200);
+    IMS_Server.receive(car_IMS_Ack_Request(cr_IMS_RoutingInfo(protected),
+                                           cr_ACK_Request(f_SIP_BuildSipUrl_RX (v_CalleeUri), v_MessageHeader_Ack)));
+    return v_InviteRequest;
+  }
+  
+  //****************************************************************************
+  //  @desc MT speech call setup according to 34.229-1 Annex C.11
+  // @input: p_RegisterRequest is last Register received on sec port.
+  //----------------------------------------------------------------------------
+  function f_IMS_MTCallSetup_AnnexC11(REGISTER_Request p_RegisterRequest,
+                                      boolean p_ReleaseCall := false) runs on IMS_PTC
+  {
+    var template (value) MessageHeader v_MessageHeader_Invite;
+    var template (value) INVITE_Request v_InviteRequest;
+    var IMS_Response_Type v_SessionInProgress183;
+    var template (value) SDP_Message v_Tx_SDP;
+    var SipUrl v_ContactUrl := p_RegisterRequest.msgHeader.contact.contactBody.contactAddresses[0].addressField.addrSpecUnion;
+    
+    // Determine SS server secure port number
+    v_Tx_SDP := f_IMS_BuildSDP_AnnexC11_Step1or7("step 1", f_IMS_PTC_NW_Address_GetTypeStr(), f_IMS_PTC_NW_Address_GetAddrStr());
+    
+    // Prepare INVITE message to be sent in step 1.
+    v_MessageHeader_Invite := f_IMS_InviteRequest_MessageHeaderTX(cs_Supported_precondition);
+    v_InviteRequest := cs_INVITE_Request(v_ContactUrl, v_MessageHeader_Invite, cs_MessageBody_SDP(v_Tx_SDP));
+      
+    v_SessionInProgress183 := f_IMS_MTCallSetup_AnnexC11_Steps1_4(v_InviteRequest);
+
+   // Establish Dedicated EPS bearer
+  
+   // See TS. 36.508 EUTRA/EPS signalling for IMS MT speech call Table 4.5A.7.3-1 Step 9-12
+   /* Note: This needs to be done by the procedcure using
+         f_IMS_MTCallSetup_AnnexC11_Steps1_4 and
+         f_IMS_MTCallSetup_AnnexC11_Steps5_13
+    */
+ 
+    f_IMS_MTCallSetup_AnnexC11_Steps5_13(p_RegisterRequest, v_InviteRequest, v_SessionInProgress183);
+    
+    // MT Call established
+    
+    if (p_ReleaseCall) {
+      // Step 14-15. SS sends BYE to release the call; UE sends 200 OK for the BYE request and ends the call
+      f_IMS_CallReleaseMT(v_InviteRequest);
+    }
+    
+  }
+  
+  function f_IMS_MTCallSetup_AnnexC11_Steps1_4(template (value) INVITE_Request p_InviteRequest) runs on IMS_PTC return IMS_Response_Type
+  { /* MT speech call setup according to 34.229-1 Annex C.11, steps 1 to 4.
+       return p_SessionInProgress183 received in step 4 */
+    var IMS_DATA_RSP v_IMS_DATA_RSP;
+    var boolean v_Trying := false;
+    var template (present) SDP_Message v_SDP_Message;
+        
+    // Step 1 - Send INVITE
+    IMS_Client.send(cas_IMS_Invite_Request(cs_IMS_RoutingInfo(protected, vc_IMS_Global.ImsInfo.ProtocolUsed), p_InviteRequest));
+    
+    // Step 2. TODO
+    // ts_action("Please accept MTSI call");
+    
+    v_SDP_Message := f_IMS_BuildSDP_AnnexC11_Step4or8("step 4");
+    alt {
+      // Step 3. Receive optional 100 Trying
+      [not v_Trying] IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(protected),
+                                                         cr_Response(c_statusLine100, f_IMS_InviteResponse_100_MessageHeaderRX(p_InviteRequest))))
+        {
+          v_Trying :=  true;
+          repeat;
+        }
+      // Step 4. Receive 183 Session in Progress
+      [] IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(protected),
+                                             cr_Response(c_statusLine183,
+                                                         f_IMS_InviteResponse_183_MessageHeaderRX(p_InviteRequest),
+                                                         cr_MessageBody_SDP(v_SDP_Message))))
+        -> value v_IMS_DATA_RSP
+        {
+        }
+    }
+    
+    // fl_IMS_Params_CheckSigComp(v_IMS_DATA_RSP.Response.msgHeader.route.routeBody[0].rrParam); // acc. to 34.229-1 cl. 13.3.4 step 3 "comp=sigcomp" is mandatory for first route parameter of Record-Route only; this is checked in f_IMS_InviteResponse_183_MessageHeaderTX
+
+    return v_IMS_DATA_RSP.Response;
+  }
+
+  //****************************************************************************
+  //  @desc MT speech call setup according to 34.229-1 Annex C.11, steps 5 to 13
+  // @input: in p_RegisterRequest is last Register received on sec port.
+  //         in p_InviteRequest sent in step 1
+  //         in p_SessionInProgress183 received in step 4
+  //----------------------------------------------------------------------------
+  function f_IMS_MTCallSetup_AnnexC11_Steps5_13(REGISTER_Request p_RegisterRequest,
+                                                template (value) INVITE_Request p_InviteRequest,
+                                                IMS_Response_Type p_SessionInProgress183) runs on IMS_PTC
+  {
+    var IMS_DATA_RSP v_IMS_DATA_RSP;
+    var template (value) MessageHeader v_MessageHeader_Invite := p_InviteRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Prack;
+    var template (value) MessageHeader v_MessageHeader_Update;
+    var template (value) MessageHeader v_MessageHeader_Ack;
+    var MessageHeader v_MessageHeader_PrevReliableResponse := p_SessionInProgress183.msgHeader;
+    var SipUrl v_ContactUrl := p_RegisterRequest.msgHeader.contact.contactBody.contactAddresses[0].addressField.addrSpecUnion;
+    var boolean v_Ringing := false;
+    //var charstring v_PeerUE := tsc_IMS_CallerSipAddrStr; // TODO
+    var template (value)   SDP_Message v_Tx_SDP := f_IMS_BuildSDP_AnnexC11_Step1or7("step 7", f_IMS_PTC_NW_Address_GetTypeStr(), f_IMS_PTC_NW_Address_GetAddrStr());   // !!!! a=curr:qos remote none or curr:qos remote sendrecv !!!!
+    var template (present) SDP_Message v_Rx_SDP := f_IMS_BuildSDP_AnnexC11_Step4or8("step 8"); // @sic R5s120530 change 3.16 sic@
+
+    // Step 5. Send PRACK
+    v_MessageHeader_Prack := f_IMS_PrackRequest_MessageHeaderTX(p_InviteRequest, v_MessageHeader_PrevReliableResponse);
+    IMS_Client.send(cas_IMS_Prack_Request(cs_IMS_RoutingInfo(protected, vc_IMS_Global.ImsInfo.ProtocolUsed), cs_PRACK_Request(v_ContactUrl, v_MessageHeader_Prack)));
+
+    // Step 6. Receive 200 OK
+    IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(protected), cr_Response(c_statusLine200, f_IMS_OtherResponse_200_MessageHeaderRX(v_MessageHeader_Prack))));
+    
+    // Step 7. Send UPDATE
+    v_MessageHeader_Update := f_IMS_UpdateRequest_MessageHeaderTX(p_InviteRequest);
+    IMS_Client.send(cas_IMS_Update_Request(cs_IMS_RoutingInfo(protected, vc_IMS_Global.ImsInfo.ProtocolUsed),
+                                           cs_UPDATE_Request(v_ContactUrl, v_MessageHeader_Update, cs_MessageBody_SDP(v_Tx_SDP))));
+    
+    // Step 8. Receive 200 OK. The UE acknowledges the UPDATE with 200 OK and includes SDP answer to acknowledge its current precondition status.
+    IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(protected),
+                                        cr_Response(c_statusLine200,
+                                                    f_IMS_OtherResponse_200_MessageHeaderRX(v_MessageHeader_Update),
+                                                    cr_MessageBody_SDP(v_Rx_SDP))))
+      -> value v_IMS_DATA_RSP;
+    
+    alt {
+      // Step 9. Receive optional 180 Ringing
+      [not v_Ringing] IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(protected), cr_Response(c_statusLine180, f_IMS_InviteResponse_180_MessageHeaderRX(p_InviteRequest))))
+        -> value v_IMS_DATA_RSP
+        {
+          v_Ringing :=  true;
+          v_MessageHeader_PrevReliableResponse := v_IMS_DATA_RSP.Response.msgHeader;
+
+          if (f_MessageHeader_CheckRequire(v_MessageHeader_PrevReliableResponse, "100rel")) {
+            // Step 10. Send PRACK
+            v_MessageHeader_Prack := f_IMS_PrackRequest_MessageHeaderTX(p_InviteRequest, v_MessageHeader_PrevReliableResponse);
+            IMS_Client.send(cas_IMS_Prack_Request(cs_IMS_RoutingInfo(protected, vc_IMS_Global.ImsInfo.ProtocolUsed),
+                                                  cs_PRACK_Request(v_ContactUrl, v_MessageHeader_Prack)));
+            // Step 11. The UE acknowledges the PRACK with 200 OK
+            IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(protected), cr_Response(c_statusLine200, f_IMS_OtherResponse_200_MessageHeaderRX(v_MessageHeader_Prack))));
+          }
+          repeat;
+        }
+      // Step 12. Receive 200 OK. The UE responds to INVITE with a 200 OK final response after the user answers the call.
+      [] IMS_Client.receive(car_IMS_DATA_RSP(cr_IMS_RoutingInfo(protected), cr_Response(c_statusLine200, f_IMS_InviteResponse_200_MessageHeaderRX(v_MessageHeader_Invite)))) -> value v_IMS_DATA_RSP
+        {
+        }
+    } // alt
+    
+    // Step 13. Send ACK. The SS acknowledges the receipt of 200 OK for INVITE.
+    v_MessageHeader_Ack := f_IMS_AckRequest_MessageHeaderTX(p_InviteRequest);
+    IMS_Client.send(cas_IMS_Ack_Request(cs_IMS_RoutingInfo(protected, vc_IMS_Global.ImsInfo.ProtocolUsed), cs_ACK_Request(v_ContactUrl, v_MessageHeader_Ack)));
+   // MT Call established
+  }
+
+  function f_IMS_MOCallSetup_AnnexC21_Step2(charstring p_CalleeUri) runs on IMS_PTC return IMS_DATA_REQ
+  {
+    var template (present) MessageHeader v_MessageHeader_Invite;
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+    var template (present) SDP_Message v_SDP_Message := f_IMS_BuildSDP_AnnexC21_Step2();
+        
+    // Step 2. Receive INVITE Request
+    v_MessageHeader_Invite := f_IMS_InviteRequest_MessageHeaderRX(cr_Supported_precondition);
+    IMS_Server.receive(car_IMS_Invite_Request(cr_IMS_RoutingInfo(protected),
+                                              cr_INVITE_Request(f_SIP_BuildSipUrl_RX(p_CalleeUri),
+                                                                v_MessageHeader_Invite,
+                                                                cr_MessageBody_SDP(v_SDP_Message))))
+      -> value v_IMS_DATA_REQ;
+
+    f_IMS_PTC_ImsInfo_CseqSet(dialogMO, v_IMS_DATA_REQ.Request.Invite.msgHeader.cSeq.seqNumber);
+
+    return v_IMS_DATA_REQ;
+  }
+
+  function f_IMS_MOCallSetup_AnnexC21_Step3_4(template (value) IMS_RoutingInfo_Type p_RoutingInfo_DL,
+                                              INVITE_Request p_InviteRequest) runs on IMS_PTC return MessageHeader
+  { /* return MessageHeader of the 183 response */
+    var template (value) MessageHeader v_MessageHeader_Response183;
+    var template (value) SDP_Message v_SDP_Message := f_IMS_BuildSDP_AnnexC21_Step4(f_IMS_PTC_NW_Address_GetTypeStr(), f_IMS_PTC_NW_Address_GetAddrStr());
+
+    // Step 3. SS sends a 100 Trying provisional response.
+    IMS_Server.send(cas_IMS_DATA_RSP(p_RoutingInfo_DL, cs_Response(c_statusLine100,
+                                                                   f_IMS_InviteResponse_100_MessageHeaderTX(p_InviteRequest))));
+                    
+    // Step 4. Send 183 Session In Progress.
+    v_MessageHeader_Response183 := f_IMS_InviteResponse_183_MessageHeaderTX(p_InviteRequest);
+    v_MessageHeader_Response183.supported := cs_Supported_precondition;
+    IMS_Server.send(cas_IMS_DATA_RSP(p_RoutingInfo_DL, cs_Response(c_statusLine183,
+                                                                   v_MessageHeader_Response183,
+                                                                   cs_MessageBody_SDP(v_SDP_Message))));
+
+    return valueof(v_MessageHeader_Response183);    // valueof cannot be avoided as otherwise we would need several 'valueof' in f_IMS_MOCallSetup_AnnexC21_Steps5To13
+  }
+
+  function f_IMS_MOCallSetup_AnnexC21_Steps5To13(INVITE_Request p_InviteRequest,
+                                                 MessageHeader p_MessageHeader_Prev183Response) runs on IMS_PTC
+  {
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+    var template (value) IMS_RoutingInfo_Type v_RoutingInfo_DL;
+    var template (present) MessageHeader v_MessageHeader_Prack;
+    var template (present) MessageHeader v_MessageHeader_Update;
+    var template (present) MessageHeader v_MessageHeader_Ack;
+    var template (value) MessageHeader v_MessageHeader_InviteResponse_200;
+    var template (value) MessageHeader v_MessageHeader_PrackResponse_200;
+    var template (omit) MessageBody v_MessageBodyTx := omit;
+    var template (omit) ContentType v_ContentType := omit;
+    var PRACK_Request v_PrackRequest;
+    var UPDATE_Request v_UpdateRequest;
+    var boolean v_MediaConfigured := false;
+    var SipUrl v_PeerContactUrl := f_MessageHeader_GetContactSipUrl(p_InviteRequest.msgHeader);
+    var template (present) SDP_Message v_SDP_Message_Step5or7 := f_IMS_BuildSDP_AnnexC21_Step5or7();
+    
+    // Step 5. Receive PRACK
+    v_MessageHeader_Prack := f_IMS_PrackRequest_MessageHeaderRX(p_InviteRequest, p_MessageHeader_Prev183Response);
+    IMS_Server.receive(car_IMS_Prack_Request(cr_IMS_RoutingInfo(protected),
+                                             cr_PRACK_Request(v_PeerContactUrl,
+                                                              v_MessageHeader_Prack,
+                                                              cr_MessageBody_SDP(v_SDP_Message_Step5or7) ifpresent)))
+      -> value v_IMS_DATA_REQ;
+    v_PrackRequest := v_IMS_DATA_REQ.Request.Prack;
+    v_RoutingInfo_DL := f_IMS_RoutingInfo_ULtoDL(v_IMS_DATA_REQ.RoutingInfo);
+    
+    // fl_IMS_Params_CheckSigComp(v_PrackRequest.msgHeader.route.routeBody[0].rrParam);     // acc. to 34.229-1 cl. 13.2.4 step 4 (PRACK) "comp=sigcomp" is optional for Via and Route
+    
+    // Step 6. Send 200 OK
+    if (ispresent(v_PrackRequest.messageBody)) {
+      // !!!! Acc. to annex C.21 "UE ... optionally offer a second SDP if a dedicated EPS bearer is established by the network." where do we get that information from ??? !!!!
+
+      v_ContentType := cs_ContentTypeDef("application/sdp");
+      v_MessageBodyTx.sdpMessageBody := f_IMS_BuildSDP_AnnexC21_Step6or8(v_PrackRequest.messageBody.sdpMessageBody,
+                                                                         f_IMS_PTC_NW_Address_GetTypeStr(),
+                                                                         f_IMS_PTC_NW_Address_GetAddrStr());
+    }
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL,
+                                     cs_Response(c_statusLine200, f_IMS_OtherResponse_200_MessageHeaderTX(v_PrackRequest.msgHeader, v_ContentType), v_MessageBodyTx)));
+    
+    // Step 7 Optional. Receive Update
+    // Note: UE will send Update if Media is not yet configured
+    if (not v_MediaConfigured) {    // !!!! v_MediaConfigured is always false !!!!
+      v_MessageHeader_Update := f_IMS_UpdateRequest_MessageHeaderRX(p_InviteRequest, p_MessageHeader_Prev183Response);
+      IMS_Server.receive(car_IMS_Update_Request(cr_IMS_RoutingInfo(protected),
+                                                cr_UPDATE_Request(v_PeerContactUrl,
+                                                                  v_MessageHeader_Update,
+                                                                  cr_MessageBody_SDP(v_SDP_Message_Step5or7))));
+      v_UpdateRequest := v_IMS_DATA_REQ.Request.Update;
+
+      //fl_IMS_Params_CheckSigComp(v_UpdateRequest.msgHeader.route.routeBody[0].rrParam);     // acc. to 34.229-1 cl. 13.2.4 step 6 (UPDATE) "comp=sigcomp" is optional for Via and Route
+      
+      // Step 8 Optional. Send 200 OK
+      IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL,
+                                       cs_Response(c_statusLine200, f_IMS_OtherResponse_200_MessageHeaderTX(v_UpdateRequest.msgHeader, v_ContentType), v_MessageBodyTx)));
+    } // not v_MediaConfigured
+    
+    // Step 9. SS sends a 180 Ringing.
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL,
+                                     cs_Response(c_statusLine180, f_IMS_InviteResponse_180_MessageHeaderTX(p_InviteRequest))));
+    
+    // Step 10. Receive PRACK
+    v_MessageHeader_Prack := f_IMS_PrackRequest_MessageHeaderRX(p_InviteRequest, p_MessageHeader_Prev183Response);
+    IMS_Server.receive(car_IMS_Prack_Request(cr_IMS_RoutingInfo(protected),
+                                             cr_PRACK_Request(v_PeerContactUrl, v_MessageHeader_Prack))) -> value v_IMS_DATA_REQ;
+    v_PrackRequest := v_IMS_DATA_REQ.Request.Prack;
+    
+    //fl_IMS_Params_CheckSigComp(v_PrackRequest.msgHeader.route.routeBody[0].rrParam);     // acc. to 34.229-1 cl. 13.2.4 step 9 (PRACK) "comp=sigcomp" is optional for Via and Route
+
+    // Step 11. Send 200 OK (response to last PRACK)
+    v_MessageHeader_PrackResponse_200 := f_IMS_OtherResponse_200_MessageHeaderTX(v_PrackRequest.msgHeader);
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL, cs_Response(c_statusLine200, v_MessageHeader_PrackResponse_200)));
+    
+    // Step 12. Send 200 OK (response to INVITE)
+    v_MessageHeader_InviteResponse_200 := f_IMS_InviteResponse_200_MessageHeaderTX(p_InviteRequest);
+    IMS_Server.send(cas_IMS_DATA_RSP(v_RoutingInfo_DL, cs_Response(c_statusLine200, v_MessageHeader_InviteResponse_200)));
+    
+    // Step 13. Finally, UE acknowledges call setup.
+    v_MessageHeader_Ack := f_IMS_AckRequest_MessageHeaderRX(p_InviteRequest, v_MessageHeader_InviteResponse_200);
+    IMS_Server.receive(car_IMS_Ack_Request(cr_IMS_RoutingInfo(protected),
+                                             cr_ACK_Request(f_MessageHeader_GetContactSipUrl(v_PrackRequest.msgHeader), v_MessageHeader_Ack))) -> value v_IMS_DATA_REQ;
+    
+    //fl_IMS_Params_CheckSigComp(v_IMS_DATA_REQ.Request.Ack.msgHeader.route.routeBody[0].rrParam);   // acc. to 34.229-1 cl. 13.2.4 step 12 (ACK) "comp=sigcomp" is optional for Route
+  }
+  
+  //****************************************************************************
+  //  @desc MO speech call setup according to 34.229-1 Annex C.21
+  //----------------------------------------------------------------------------
+  function f_IMS_MOCallSetup_AnnexC21(charstring p_CalleeUri) runs on IMS_PTC  return INVITE_Request
+  {
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+    var INVITE_Request v_InviteRequest;
+    var MessageHeader v_MessageHeader_Response183;
+    var template (value) IMS_RoutingInfo_Type v_RoutingInfo_DL;
+    
+    // Step 1 - Make the UE attempt an IMS speech call
+    // Note: MMI action shall be called before entering this function
+    
+    // Step 2
+    v_IMS_DATA_REQ := f_IMS_MOCallSetup_AnnexC21_Step2(p_CalleeUri);
+    v_RoutingInfo_DL := f_IMS_RoutingInfo_ULtoDL(v_IMS_DATA_REQ.RoutingInfo);
+    v_InviteRequest := v_IMS_DATA_REQ.Request.Invite;
+
+    // Step 3, 4
+    v_MessageHeader_Response183 := f_IMS_MOCallSetup_AnnexC21_Step3_4(v_RoutingInfo_DL, v_InviteRequest);
+
+    // Establish Dedicated Bearer
+    // See TS. 36.508 EUTRA/EPS signalling for IMS MO speech call Table 4.5A.6.3-1 Step 9-11
+    /* Note: This needs to be done in the procedure using
+     * f_IMS_MOCallSetup_AnnexC21_Steps1To4 and
+     * f_IMS_MOCallSetup_AnnexC21_Steps5To13
+     */
+    
+    f_IMS_MOCallSetup_AnnexC21_Steps5To13(v_InviteRequest, v_MessageHeader_Response183);
+    
+    return v_InviteRequest;
+  }
+  
+  //============================================================================
+  
+  group HandlingOfPublishMessage {
+  
+  function f_IMS_PublishRequest_MessageHeaderRX(boolean p_IsGIBA := false)  runs on IMS_PTC return template (present) MessageHeader
+  { /* PUBLISH (see TS 34.229, A.4.3) */
+    /* !!!! NOTE: Checks may need to be enhanced !!!!*/
+    var template (present) MessageHeader v_MessageHeader_Publish := cr_MessageHeader_Dummy;
+    var template (present) charstring v_UE_IPAddrOrFQDN := f_IMS_PTC_UE_IPAddrOrFQDN_Get();
+    
+    v_MessageHeader_Publish.route        := cr_RouteSubs (px_IMS_Pcscf, *, px_IMS_Scscf);
+    v_MessageHeader_Publish.via          := cr_ViaDef(-, cr_HostPort(v_UE_IPAddrOrFQDN));
+    v_MessageHeader_Publish.toField      := cr_ToDef(?);     // NOTE: absence of the To tag needs to be checked separately
+    v_MessageHeader_Publish.fromField    := cr_From(*, ?);   // NOTE: absence of the To tag needs to be checked separately
+    v_MessageHeader_Publish.cSeq         := cr_CseqDef(?, "PUBLISH");
+    v_MessageHeader_Publish.callId       := cr_CallId(?);
+    v_MessageHeader_Publish.maxForwards  := cr_MaxForwardsDef;
+    v_MessageHeader_Publish.event        := cr_EventDef(?);
+    if (not p_IsGIBA) {
+      v_MessageHeader_Publish.securityVerify     := f_IMS_PTC_BuildSecurityVerifyHeader();
+      v_MessageHeader_Publish.pAccessNetworkInfo := cr_PAccessNetworkInfoDef(?, *);
+    }
+    return v_MessageHeader_Publish;
+  }
+  
+  function f_IMS_PublishResponse_200_MessageHeaderTX(PUBLISH_Request p_PublishRequest) return template (value) MessageHeader
+  { // 200 OK for PUBLISH (see TS 34.229, A.4.4)
+    var MessageHeader v_MessageHeader_Publish := p_PublishRequest.msgHeader;
+    var template (value) MessageHeader v_MessageHeader_Response := cs_MessageHeader_Dummy;
+    
+    v_MessageHeader_Response.via             := v_MessageHeader_Publish.via;
+    v_MessageHeader_Response.fromField       := v_MessageHeader_Publish.fromField;
+    v_MessageHeader_Response.toField         := cs_ToWithTag(v_MessageHeader_Publish.toField.addressField.nameAddr.addrSpec, tsc_IMS_ToTagSubscribeDialog);
+    v_MessageHeader_Response.callId          := v_MessageHeader_Publish.callId;
+    v_MessageHeader_Response.cSeq            := v_MessageHeader_Publish.cSeq;
+    v_MessageHeader_Response.contact         := cs_Contact(f_SIP_BuildSipUrl_TX(px_IMS_Scscf));
+    v_MessageHeader_Response.expires         := cs_Expires ("600000");
+
+    /* !!!!! NOTE: Acc. to A.4.4 the response shall contain a SIP-ETag what seems not to exist in the type definitions */
+
+    return v_MessageHeader_Response;
+  }
+
+  // FFS: Code not yet used, but may be needed
+  altstep a_IMS_DefaultPublish() runs on IMS_PTC
+  { /* acc. to 34.229-1 C.5 Default handling of PUBLISH requests */
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+    
+    [] IMS_Server.receive(car_IMS_Publish_Request(cr_IMS_RoutingInfo(?),
+                                                  cr_PUBLISH_Request(f_SIP_BuildSipUrl_RX(f_IMS_PTC_ImsInfo_GetPublicUserId()), f_IMS_PublishRequest_MessageHeaderRX())))
+      -> value v_IMS_DATA_REQ
+      {
+        IMS_Server.send(cas_IMS_DATA_RSP(f_IMS_RoutingInfo_ULtoDL(v_IMS_DATA_REQ.RoutingInfo),
+                                         cs_Response(c_statusLine200, f_IMS_PublishResponse_200_MessageHeaderTX(v_IMS_DATA_REQ.Request.Publish))));
+      }
+  }
+  
+  } // group
+  
+}

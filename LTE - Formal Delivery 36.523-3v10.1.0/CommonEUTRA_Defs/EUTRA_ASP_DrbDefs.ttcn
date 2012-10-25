@@ -1,0 +1,569 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2010-10-21 13:02:56 +0200 (Thu, 21 Oct 2010) $
+// $Rev: 4092 $
+/******************************************************************************/
+
+module EUTRA_ASP_DrbDefs {
+  //****************************************************************************
+  // ASP interface for DRBs
+  //****************************************************************************
+
+  import from CommonDefs all;
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:2002" all;
+  import from EUTRA_CommonDefs all;
+
+  //****************************************************************************
+
+  group PDU_TypeDefs {
+
+  group MAC_PDU {
+
+  //****************************************************************************
+  // MAC PDU definitions
+  //----------------------------------------------------------------------------
+  // MAC PDU SubHeader (TS 36.321, clause 6.1.2)
+
+  type record MAC_PDU_Length_Type {     /* NOTE:
+                                         * since F and L field are either both present or both omitted they are put into this record;
+                                         * to allow homogeneous (direct) encoding the PDU length is not defined as union;
+                                         * TTCN-3 does allow length restrictions to one lenght or a range of length but not to two specific lengthes;
+                                         * further restriction may be achieved by appropriate templates (parameter either 7 or 15 bit) */
+    B1_Type             Format,         /* F:
+                                         * The Format field indicates the size of the Length field as indicated in table 6.2.1-3.
+                                         * There is one F field per MAC PDU subheader except for the last subheader and sub-headers corresponding to fixed-sized MAC control elements. The size of the F field is 1 bit.
+                                         * If the size of the MAC SDU or MAC control element is less than 128 bytes, the UE shall set the value of the F field to 0, otherwise the UE shall set it to 1 */
+    B7_15_Type          Value           /* L:
+                                         * The Length field indicates the length of the corresponding MAC SDU or MAC control element in bytes.
+                                         * There is one L field per MAC PDU subheader except for the last subheader and sub-headers corresponding to fixed-sized MAC control elements.
+                                         * The size of the L field is indicated by the F field */
+  };
+
+  type record MAC_PDU_SubHeader_Type{
+    B2_Type             Reserved,       /* Reserved bits */
+    B1_Type             Extension,      /* E:
+                                         * The Extension field is a flag indicating if more fields are present in the MAC header or not.
+                                         * The E field is set to "1" to indicate another set of at least R/R/E/LCID fields.
+                                         * The E field is set to "0" to indicate that either a MAC SDU, a MAC control element or padding starts at the next byte */
+    B5_Type             LCID,           /* LCID:
+                                         * The Logical Channel ID field identifies the logical channel instance of the corresponding MAC SDU or the type of the corresponding MAC control element or padding as described in tables 6.2.1-1 and 6.2.1-2 for the DL and UL-SCH respectively.
+                                         * There is one LCID field for each MAC SDU, MAC control element or padding included in the MAC PDU. The LCID field size is 5 bits;
+                                         * NOTE: In case of DRX command the sub-header corresponds to a control element of length zero (i.e. there is no control element) */
+    MAC_PDU_Length_Type Length optional
+  };
+
+  type record of MAC_PDU_SubHeader_Type MAC_Header_Type;
+
+  //----------------------------------------------------------------------------
+  // MAC PDU Payload (TS 36.321, clause 6.1.2): MAC SDU and MAC control elements (cl. 6.1.3)
+  // NOTE: Rather than in C-ASPs all fields are coded as bitstrings to allow direct encoding
+
+  type record MAC_CTRL_ShortBSR_Type {                                          /* TS 36.321, clause 6.1.3.1 */
+    B2_Type     LCG,
+    B6_Type     Value
+  };
+
+  type record MAC_CTRL_LongBSR_Type {                                           /* TS 36.321, clause 6.1.3.1 */
+    B6_Type     Value_LCG1,
+    B6_Type     Value_LCG2,
+    B6_Type     Value_LCG3,
+    B6_Type     Value_LCG4
+  };
+
+  type C_RNTI MAC_CTRL_C_RNTI_Type;                                             /* TS 36.321, clause 6.1.3.2 */
+
+  /* DRX Command MAC Control Element: zero bits                                    TS 36.321, clause 6.1.3.3
+   * (DRX command is coded with LCID='11110'B acc. to Table 6.2.1-1);
+   * NOTE:
+   * zero bits cannot be detected by a decoder and information is available in the header
+   * => possible definition of a dummy element seems to redundant */
+
+  type ContentionResolutionId_Type MAC_CTRL_ContentionResolutionId_Type;        /* TS 36.321, clause 6.1.3.4
+                                                                                 * fix 48-bit size;
+                                                                                 * consists of a single field defined UE Contention Resolution Identity
+                                                                                 * (uplink CCCH SDU transmitted by MAC) */
+
+  type B8_Type MAC_CTRL_TimingAdvance_Type;                                     /* TS 36.321, clause 6.1.3.5
+                                                                                 * indicates the amount of timing adjustment in 0.5 ms that the UE has to apply;
+                                                                                 * the length of the field is [8] bits */
+
+  type record MAC_CTRL_PowerHeadRoom_Type {                                     /* TS 36.321, clause 6.1.3.6 */
+    B2_Type     Reserved,
+    B6_Type     Value
+  };
+
+  type set MAC_CTRL_ElementList_Type {
+    /* NOTE 1:
+     * for simplicication UL and DL are not distiguished even though the control elements are either UL or DL
+     * NOTE 2:
+     * type is defined as set: the ordering is not signifficant;
+     * nevertheless the ordering is well-defined by the sub-headers;
+     * for codec implementations it is in any case necessary to evaluate the sub-header information in order to encode/decode the payload */
+    MAC_CTRL_ShortBSR_Type                      ShortBSR               optional,        /* UL only */
+    MAC_CTRL_LongBSR_Type                       LongBSR                optional,        /* UL only */
+    MAC_CTRL_C_RNTI_Type                        C_RNTI                 optional,        /* UL only */
+    // DRX command CTRL Elem is 0 bits length
+    MAC_CTRL_ContentionResolutionId_Type        ContentionResolutionID optional,        /* DL only */
+    MAC_CTRL_TimingAdvance_Type                 TimingAdvance          optional,        /* DL only */
+    MAC_CTRL_PowerHeadRoom_Type                 PowerHeadRoom          optional         /* UL only */
+  };
+
+  //----------------------------------------------------------------------------
+  // MAC PDU:
+
+  type octetstring MAC_SDU_Type;
+  type record of MAC_SDU_Type
+    MAC_SDUList_Type;
+
+  type record MAC_PDU_Type {
+    MAC_Header_Type             Header,                         /* list of MAC PDU SubHeaders corresponding to MAC control elements and MAC SDUs */
+    MAC_CTRL_ElementList_Type   CtrlElementList       optional, /* Mac control elements;
+                                                                 * acc. to TS 36.321, clause 6.1.2 "MAC control elements, are always placed before any MAC SDU." */
+    MAC_SDUList_Type            SduList               optional, /* MAC SDUs, which can typically be RLC PDUs */
+    octetstring                 Padding               optional  /* Octet aligned Padding if more than or equal to 2 bytes */
+  };
+
+  type record of MAC_PDU_Type
+    MAC_PDUList_Type;
+
+  } // End sub-group MAC_PDU
+
+  //****************************************************************************
+  // RLC PDU definition: TM
+  //----------------------------------------------------------------------------
+
+  group RLC_PDU {
+
+  //****************************************************************************
+
+  group Common {  /* RLC PDU definition: common AM/UM field definitions */
+
+  type B2_Type RLC_FramingInfo_Type;    /* 00 -
+                                         * First byte of the Data field corresponds to the first byte of a RLC SDU.
+                                         * Last byte of the Data field corresponds to the last byte of a RLC SDU.
+                                         * 01 -
+                                         * First byte of the Data field corresponds to the first byte of a RLC SDU.
+                                         * Last byte of the Data field does not correspond to the last byte of a RLC SDU.
+                                         * 10 -
+                                         * First byte of the Data field does not correspond to the first byte of a RLC SDU.
+                                         * Last byte of the Data field corresponds to the last byte of a RLC SDU.
+                                         * 11 -
+                                         * First byte of the Data field does not correspond to the first byte of a RLC SDU.
+                                         * Last byte of the Data field does not correspond to the last byte of a RLC SDU. */
+
+  type record RLC_LengthIndicator_Type{
+    B1_Type     Extension,              /* 0 - Data field follows from the octet following the LI field following this E field
+                                         * 1 - A set of E field and LI field follows from the bit following the LI field following this E field */
+    B11_Type    LengthIndicator         /* Length Indicator */
+  };
+  type record of RLC_LengthIndicator_Type
+    RLC_LI_List_Type;
+
+  type record RLC_PDU_Header_FlexPart_Type {            /* Flexible part of the header with a number of K LIs */
+    RLC_LI_List_Type            LengthIndicator,        /* List of E, LI fields */
+    B4_Type                     Padding optional        /* optional 4 bit padding present in case of odd number of LI's */
+  };
+
+  } // End sub-sub-group Common
+
+  //****************************************************************************
+
+  group TM_Data { /* RLC PDU definition: UM  (TS 36.322, clause 6.2.1.2) */
+
+  type octetstring RLC_TMD_PDU_Type;    /* TS 36.322, clause 6.2.1.2 */
+
+  } // End sub-sub-group
+
+  //****************************************************************************
+
+  group UM_Data { /* RLC PDU definition: UM  (TS 36.322, clause 6.2.1.3)
+                   * NOTE:
+                   * To allow direct encoding the definition for RLC UM Data PDU is split into data PDU with 5/10 bit sequence number */
+
+  type record RLC_UMD_Header_FixPartShortSN_Type {      /* TS 36.322, clause 6.2.1.3 Figure 6.2.1.3-1, 6.2.1.3-3 and 6.2.1.3-4);
+                                                           one octet */
+    RLC_FramingInfo_Type        FramingInfo,            /* 2 bits FI */
+    B1_Type                     Extension,              /* 1 bit  E  */
+    B5_Type                     SequenceNumber          /* 5 bits SN */
+  };
+
+  type record RLC_UMD_Header_FixPartLongSN_Type {       /* TS 36.322, clause 6.2.1.3 Figure 6.2.1.3-2, 6.2.1.3-5 and 6.2.1.3-6);
+                                                           two octets */
+    B3_Type                     Reserved,               /* 3 bits  reserved */
+    RLC_FramingInfo_Type        FramingInfo,            /* 2 bits  FI */
+    B1_Type                     Extension,              /* 1 bit   E  */
+    B10_Type                    SequenceNumber          /* 10 bits SN */
+  };
+
+  type record RLC_UMD_HeaderShortSN_Type {
+    RLC_UMD_Header_FixPartShortSN_Type  FixPart,
+    RLC_PDU_Header_FlexPart_Type        FlexPart optional
+  };
+
+  type record RLC_UMD_HeaderLongSN_Type {
+    RLC_UMD_Header_FixPartLongSN_Type   FixPart,
+    RLC_PDU_Header_FlexPart_Type        FlexPart optional
+  };
+
+  type octetstring RLC_DataField_Type;                  /* restrictions imposed from LI size of 11 bits is not applicable when the LI's are not present */
+  type record of RLC_DataField_Type
+    RLC_DataFieldList_Type;                             /* One to one correspondence with sub headers (LengthIndicatorList_Type) */
+
+
+  // UMD PDU definitions:
+
+  type record RLC_UMD_PDU_ShortSN_Type {
+    RLC_UMD_HeaderShortSN_Type          Header,
+    RLC_DataFieldList_Type              Data
+  };
+
+  type record RLC_UMD_PDU_LongSN_Type {
+    RLC_UMD_HeaderLongSN_Type           Header,
+    RLC_DataFieldList_Type              Data
+  };
+
+  type union RLC_UMD_PDU_Type {
+    RLC_UMD_PDU_ShortSN_Type            ShortSN,
+    RLC_UMD_PDU_LongSN_Type             LongSN
+  };
+
+  } // End sub-sub-group UM_Data
+
+  //****************************************************************************
+
+  group AM_Data {  /* RLC PDU definition: AM (TS 36.322, clause 6.2.1.4 and 6.2.1.5) */
+
+  type record RLC_AMD_Header_FixPart_Type {            /* TS 36.322, clause 6.2.1.4 Figure 6.2.1.4-1, 6.2.1.4-2 and 6.2.1.4-3);
+                                                          2 or 4 octets */
+    B1_Type                     D_C,                   /* 0 - Control PDU
+                                                          1 - Data PDU */
+    B1_Type                     ReSeg,                 /* 0 - AMD PDU
+                                                          1 - AMD PDU segment */
+    B1_Type                     Poll,                  /* 0 - Status report not requested
+                                                          1 - Status report is requested */
+    RLC_FramingInfo_Type        FramingInfo,           /* 2 bit FI */
+    B1_Type                     Extension,             /* 1 bit  E  */
+    B10_Type                    SN                     /* Sequence numbers */
+  };
+
+  type record RLC_AMD_Header_SegmentPart_Type {        /* AMD PDU segment related info in PDU header acc. TS 36.322, clause 6.2.1.5 */
+    B1_Type                     LastSegmentFlag,       /* 0 - Last byte of the AMD PDU segment does not correspond to the last byte of an AMD PDU
+                                                        * 1 - Last byte of the AMD PDU segment corresponds to the last byte of an AMD PDU */
+    B15_Type                    SegOffset              /* The SO field indicates the position of the AMD PDU segment in bytes within the original AMD PDU.
+                                                        * Specifically, the SO field indicates the position within the Data field of the original AMD PDU
+                                                        * to which the first byte of the Data field of the AMD PDU segment corresponds to. */
+  };
+
+  type record RLC_AMD_Header_Type {
+    RLC_AMD_Header_FixPart_Type         FixPart,
+    RLC_AMD_Header_SegmentPart_Type     SegmentPart optional,   /* present in case of AMD Seg PDU only */
+    RLC_PDU_Header_FlexPart_Type        FlexPart    optional
+  };
+
+  type record RLC_AMD_PDU_Type {
+    RLC_AMD_Header_Type         Header,
+    RLC_DataFieldList_Type      Data
+  };
+
+  } // End sub-sub-group AM_Data
+
+  //****************************************************************************
+
+  group AM_Status {     /* AM Status PDU (TS 36.322, clause 6.2.1.6) */
+
+  type record RLC_Status_ACK_Type {
+    B10_Type            ACK_SN,         /* Acknowledgement SN (TS 36.322, clause 6.2.2.14) */
+    B1_Type             Extn1           /* 0 - a set of NACK_SN, E1 and E2 does not follow.
+                                         * 1 - a set of NACK_SN, E1 and E2 follows. */
+  };
+
+  type record RLC_Status_SegOffset_Type {
+    B15_Type            Start,          /* SOstart field indicates the position of the first byte of the portion
+                                         * of the AMD PDU in bytes within the Data field of the AMD PDU */
+    B15_Type            End             /* SOend field indicates the position of the last byte of the portion of the AMD PDU in bytes
+                                         * within the Data field of the AMD PDU. The special SOend value '111111111111111'B is used to
+                                         * indicate that the missing portion of the AMD PDU includes all bytes to the last byte of the AMD PDU */
+  };
+
+  type record RLC_Status_NACK_Type {
+    B10_Type                    NACK_SN,
+    B1_Type                     Extn1,          /* 0 - A set of NACK_SN, E1 and E2 does not follow.
+                                                 * 1 - A set of NACK_SN, E1 and E2 follows. */
+    B1_Type                     Extn2,          /* 0 - A set of SOstart and SOend does not follow for this NACK_SN.
+                                                 * 1 - A set of SOstart and SOend follows for this NACK_SN. */
+    RLC_Status_SegOffset_Type   SO optional
+  };
+
+  type record of RLC_Status_NACK_Type
+    RLC_Status_NACK_List_Type;
+
+  type bitstring RLC_Status_Padding_Type length (1..7);         /* NOTE:
+                                                                 * in TTCN-3 length restriction cannot be done inline in record definition
+                                                                 * => explicit type definition necessary */
+  type record RLC_AM_StatusPDU_Type {
+    B1_Type                     D_C,            /* 0 - Control PDU
+                                                 * 1 - Data PDU */
+    B3_Type                     Type,           /* 000 - STATUS PDU
+                                                 * 001..111 - Reserved (=> PDU to be discarded by the receiving entity for this release of the protocol) */
+    RLC_Status_ACK_Type         Ack,            /* ACK_SN and E1 bit */
+    RLC_Status_NACK_List_Type   NackList optional,              /* presence depends on Extn1 bit of Ack filed (RLC_Status_ACK_Type) */
+    RLC_Status_Padding_Type     Padding optional                /* 1..7 bit padding if needed for octet alignment */
+  };
+
+  } // End sub-sub-group AM_Status
+
+  //****************************************************************************
+
+  type enumerated RLC_Mode_Type {   // RLC modes, see TS 36.322, clause 4.2
+    TM_Mode,
+    UM_Mode,
+    AM_Mode
+  };
+
+  type union RLC_PDU_Type {
+    RLC_TMD_PDU_Type            TMD,
+    RLC_UMD_PDU_Type            UMD,
+    RLC_AMD_PDU_Type            AMD,
+    RLC_AM_StatusPDU_Type       Status
+  };
+
+  type record of RLC_PDU_Type RLC_PDUList_Type;
+
+  } // End sub-group RLC
+
+  //****************************************************************************
+
+  group PDCP { /* PDCP user plane SDU and PDU definitions
+                * NOTE:
+                * To allow direct encoding the definition for PDCP Data PDU is split into data PDU with long/short sequence number */
+
+  type octetstring PDCP_SDU_Type;
+  type record of PDCP_SDU_Type
+    PDCP_SDUList_Type;
+
+  //----------------------------------------------------------------------------
+  // PDCP user plane PDU definitions
+  //
+
+  type record PDCP_DataPdu_LongSN_Type {        /* User plane PDCP Data PDU with long sequence number (TS 36.323, clause 6.2.3) */
+    B1_Type             D_C,            /* 0 - Control PDU
+                                         * 1 - Data PDU */
+    B3_Type             Reserved,
+    B12_Type            SequenceNumber, /* 12 bit sequence number */
+    PDCP_SDU_Type       SDU             /* content (octetstring) */
+  };
+
+
+  type record PDCP_DataPdu_ShortSN_Type {       /* User plane PDCP Data PDU with short sequence number (TS 36.323, clause 6.2.4) */
+    B1_Type             D_C,            /* 0 - Control PDU
+                                         * 1 - Data PDU */
+    B7_Type             SequenceNumber, /* 7 bit sequence number */
+    PDCP_SDU_Type       SDU             /* content (octetstring) */
+  };
+
+
+  type record PDCP_Ctrl_ROHC_FB_PDU_Type {       /* PDCP Control PDU for interspersed ROHC feedback packet (TS 36.323, clause 6.2.5) */
+    B1_Type             D_C,            /* 0 - Control PDU
+                                         * 1 - Data PDU */
+    B3_Type             Type,           /* 000 - PDCP status report
+                                         * 001 - Header Compression Feedback Information
+                                         * 010..111 - reserved */
+    B4_Type             Reserved,
+    octetstring         ROHC_FB         /* Contains one ROHC packet with only feedback, i.e. a ROHC packet that is not associated with a PDCP */
+  };
+
+  type record PDCP_Ctrl_StatusReport_Type {       /* PDCP Control PDU for PDCP status report (TS 36.323, clause 6.2.6) */
+    B1_Type             D_C,            /* 0 - Control PDU
+                                         * 1 - Data PDU */
+    B3_Type             Type,           /* 000 - PDCP status report
+                                         * 001 - Header Compression Feedback Information
+                                         * 010..111 - reserved */
+    B12_Type            FMS,            /* PDCP SN of the first missing PDCP SDU. */
+    octetstring         Bitmap optional /* The MSB of the first octet of the type "Bitmap" indicates whether or not the PDCP SDU with the SN (FMS + 1) modulo 4096 has been received and, optionally decompressed correctly.
+                                         * 0 -
+                                         * PDCP SDU with PDCP SN = (FMS + bit position) modulo 4096 is missing in the receiver.
+                                         * The bit position of Nth bit in the Bitmap is N, i.e. the bit position of the first bit in the Bitmap is 1.
+                                         * 1 -
+                                         * PDCP PSU with PDCP SN = (FMS + bit position) modulo 4096 does not need to be retransmitted.
+                                         * The bit position of Nth bit in the Bitmap is N, i.e. the bit position of the first bit in the Bitmap is 1. */
+  };
+
+  type union PDCP_PDU_Type {
+    PDCP_DataPdu_LongSN_Type    DataLongSN,     /* user plane PDCP data PDU with 12 Bit Seq Number */
+    PDCP_DataPdu_ShortSN_Type   DataShortSN,    /* user plane PDCP data PDU with 7 Bit Seq Number */
+    PDCP_Ctrl_ROHC_FB_PDU_Type  RohcFeedback,   /* PDCP Control PDU for interspersed ROHC feedback packet */
+    PDCP_Ctrl_StatusReport_Type StatusReport    /* PDCP Control PDU for PDCP status report */
+  };
+
+  type record of PDCP_PDU_Type PDCP_PDUList_Type;
+
+  } // End sub-group PDCP
+
+  } with { encode "DRB Types"} // End group PDU_TypeDefs
+
+  //****************************************************************************
+
+  group DRB_Primitive_Definitions {  // Primitive definitions to send/receive data PDUs over DRB's
+
+  group DRB_Common {
+
+  type union U_PlaneDataList_Type {             /* MAC:
+                                                 * acc. to rel-8 protocols there is not more than one MAC PDU per TTI;
+                                                 * any MAC PDU is completely included in one subframe
+                                                 * RLC:
+                                                 * one or more RLC PDUs per TTI
+                                                 * (e.g. RLC Data + Status PDU on a logical channel;
+                                                 * more than one RLC Data PDU in one MAC PDU is valid too)
+                                                 * any RLC PDU is completely included in one subframe
+                                                 * PDCP:
+                                                 * one or more PDUs per TTI; one PDCP PDU may be included in more than one subframe */
+
+    MAC_PDUList_Type    MacPdu,                 /* SS configuration: RLC TM mode, MAC no header removal (PDCP is not configured) */
+    RLC_PDUList_Type    RlcPdu,                 /* SS configuration: RLC TM mode, MAC header removal (PDCP is not configured) */
+    PDCP_PDUList_Type   PdcpPdu,                /* SS configuration: RLC AM/UM mode, PDCP no header removal */
+    PDCP_SDUList_Type   PdcpSdu                 /* SS configuration: RLC AM/UM mode, PDCP header removal */
+  };
+
+  type union HarqProcessAssignment_Type {       /* in DL the HARQ process id may be specified by the test case or automatically assigned by SS */
+    HarqProcessId_Type          Id,             /* HARQ process as specified by the test case
+                                                 * NOTE1:
+                                                 * the scope of this type is only for data being sent in one TTI;
+                                                 * if data needs more than one TTI the HarqProcessId is undefined for the 2nd TTI onward what shall be handled as an error at the SS; SS may send a SYSTEM_IND indicating an error in this case;
+                                                 * NOTE2:
+                                                 * The initial value of the NDI shall be the same for all HARQ processes and cells */
+    Null_Type                   Automatic       /* HARQ process id automatically assigned by SS */
+  };
+
+  } // End sub-group DRB_Common
+
+  //----------------------------------------------------------------------------
+
+  group Downlink {
+
+  type record DRB_DataPerSubframe_DL_Type {     /* common definition for one or several PDUs/SDUs to be sent in the subframe given by the subframe offset;
+                                                 * NOTE 1:
+                                                 * For MAC and RLC PDUs a single PDU is always sent in one subframe;
+                                                 * SS shall raise an error indication (using SYSTEM_IND) when that is not possible
+                                                 * NOTE 2:
+                                                 * For PDCP the data may be spread over more than one subframe (segmented by the RLC);
+                                                 * the TTCN implemetation is responsible to calculate appropriate offsets accordingly;
+                                                 * the exact timing depends on (and is exactly specified by) configuration of the DL scheduling;
+                                                 * SS shall raise an error when there is any conflict */
+    integer                     SubframeOffset, /* subframe offset relative to the absolute timing information given in the common part of the ASP;
+                                                 * NOTE 1:
+                                                 * Notes:
+                                                 * Acc. to TS 36.523-3, clause 7.3.3 in case of TDD or half-duplex configuration only subframes available for DL are taken into consideration
+                                                 * NOTE 2:
+                                                 * if a PDCP PDU or SDU takes more than one subframe, SubframeOffset specifies the first TTI */
+    HarqProcessAssignment_Type  HarqProcess,    /* HARQ process to be used: specific value (0..7) or automatically assigned by SS;
+                                                 * in automatic mode SS chooses HARQ process out of the set configured by CcchDcchDtchConfigDL_Type.HarqProcessConfig
+                                                 * NOTE:
+                                                 * for PDCP SDUs or PDUs automatic mode shall be used; otherwise SS shall raise an error */
+    U_PlaneDataList_Type        PduSduList      /* list of PDUs/SDUs to be sent in one TTI */
+  };
+
+
+  type record of DRB_DataPerSubframe_DL_Type
+    DRB_DataPerSubframeList_DL_Type;            /* list of user plane data to be sent in sub-frames given by the SubframeOffset in the single elements of the list;
+                                                 * Timing:
+                                                 * the start time for the whole sequence is given by the timing info of the ASP (common information);
+                                                 * the timing for the respective data pdus is given by the SubframeOffset relative to the common timing info;
+                                                 * design consideration:
+                                                 * repetitions of this sequence are not foreseen
+                                                 * (in which case the subframe offset could not be related to the timing info of the ASP) */
+
+  type record U_Plane_Request_Type {            /* NOTE: formal type definition to allow later enhancements;
+                                                 * U_Plane_Request_Type defines a sequence of subframes in which data shall be sent */
+    DRB_DataPerSubframeList_DL_Type     SubframeDataList
+  };
+
+  } // End sub-group Downlink
+
+  //----------------------------------------------------------------------------
+
+  group Uplink {
+
+  type record DRB_DataPerSubframe_UL_Type {     /* common definition for one or several PDUs/SDUs being received in one subframe
+                                                 * or to receive one PDCP PDU or SDU being spread over more than one TTI;
+                                                 * NOTE:
+                                                 * There is a fix relation between HARQ process id and subframe in UL
+                                                 * => it is not necessary to include HARQ process id for UL data */
+    U_PlaneDataList_Type        PduSduList,     /* list of PDUs/SDUs being received in one TTI;
+                                                 * elements of the list appear in the same order as the PDUs/SDUs in the MAC PDU;
+                                                 * for PDCP when a PDU or SDU takes more than one TTI the list only contains this PDU or SDU */
+    integer                     NoOfTTIs        /* in case of PDCP:
+                                                 * number of TTIs the SDU or PDU has taken
+                                                 * NOTE 1: for the time being the NoOfTTIs is not checked by TTCN-3 and may be set to 1 by SS;
+                                                 * NOTE 2: the timing info in common part of the ASP refers to the last TTI
+                                                 * NOTE 3: when NoOfTTIs > 1 => PduSduList shall only contain one PDCP PDU or SDU
+                                                 * in case of MAC or RLC PDUs:
+                                                 * NoOfTTIs shall always be 1
+                                                 * (acc. to TS 36.321 MAC is not doing segmentation of RLC PDUs and acc. to TS 36.322, clause 6.2.2.2 the maximum RLC data is calculated to fit into a MAC PDU and RLC does segmentation accordingly) */
+  };
+
+  type record U_Plane_Indication_Type {         /* NOTE: formal type definition to allow later enhancements;
+                                                 * U_Plane_Indication_Type defines data being received in a single subframe
+                                                 * i.e. PDUs of subsequent TTIs are indicated in separated ASPs */
+    DRB_DataPerSubframe_UL_Type SubframeData
+  };
+
+  } // End sub-group Uplink
+
+  } // End group DRB_Primitive_Definitions
+
+  //****************************************************************************
+
+  group System_Interface {
+
+  //****************************************************************************
+  // ASP definitions
+  //****************************************************************************
+
+  type record DRB_COMMON_REQ {                  /* common ASP to send PDUs to DRBs */
+    ReqAspCommonPart_Type       Common,         /* CellId : identifier of the cell
+                                                 * RoutingInfo : DRB id
+                                                 * TimingInfo : starting point when to start sending sequence of data PDUs
+                                                 *   e.g.
+                                                 *     SFN = X, subframe number = x;
+                                                 *     U_Plane.SubframeDataList[i].SubframeOffset := offset_i;
+                                                 *   => U_Plane.SubframeDataList[i].PduSduList shall be sent out at
+                                                 *     SFN = X + ((x + offset_i) / 10);
+                                                 *     subframe number = (x + offset_i) % 10
+                                                 * ControlInfo : CnfFlag:=false; FollowOnFlag:=false */
+    U_Plane_Request_Type        U_Plane,
+    Null_Type                   SuppressPdcchForC_RNTI optional /* By default all DRB_COMMON_REQ scheduled DL PDU's are associated with an appropriate explicit configured or SS selected DL assignment allocation on PDCCH.
+                                                                 * For SuppressPdcch:=true in the sub frame in which DL PDU's are transmitted, there is no associated DL assignment allocation for configured C-RNTI. This will be used for SPS assignment based transmission or in any error scenarios;
+                                                                 * NOTE: this flag has no impact on PDCCH messages required for SPS activation */
+  };
+
+  type record DRB_COMMON_IND {                  /* common ASP to receive PDUs from DRBs */
+    IndAspCommonPart_Type       Common,         /* CellId : identifier of the cell
+                                                 * RoutingInfo : DRB id
+                                                 * TimingInfo : time when message has been received
+                                                 * NOTE 1:
+                                                 * For MAC and RCL PDUs per definition U_Plane_Indication_Type corresponse to exactly one subframe
+                                                 * => TimingInfo refers to this subframe
+                                                 * NOTE 2:
+                                                 * For PDCP a single PDU or SDU may take more than one TTI
+                                                 * => TimingInfo refers to the end of the PDU/SDU and the length is given by NoOfTTIs in U_Plane_Indication_Type
+                                                 * (the end of the PDU/SDU is the last RLC PDU being received; in case of retransmissins this is not necessarily the RLC PDU with the last SN) */
+    U_Plane_Indication_Type     U_Plane
+  };
+
+  //****************************************************************************
+  // Port definitions
+  //****************************************************************************
+
+  type port EUTRA_DRB_PORT message {
+    out DRB_COMMON_REQ;
+    in  DRB_COMMON_IND;
+  };
+
+  } // End group System_Interface
+
+}

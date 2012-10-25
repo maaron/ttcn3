@@ -1,0 +1,1142 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-05 15:12:54 +0200 (Wed, 05 Sep 2012) $
+// $Rev: 7330 $
+/******************************************************************************/
+
+module EUTRA_NASSteps {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+  import from IMS_PTC_CoordMsg all;
+  import from IP_PTC_CtrlMsgs all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  type enumerated EUTRA_ATTACH_Type {  /* @status    APPROVED */
+    /* @sic R5-101021, R5s110176, R5s110549 sic@ */
+    NORMAL,
+    EPS_Only,
+    Combined
+  };
+
+  type enumerated EUTRA_WaitForIMS_Type { waitForIMS, dontWaitForIMS };  /* @status    APPROVED */
+
+  function fl_AttachTypeCheck (EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return boolean
+  {
+    var boolean v_IsCombined := false;
+    select (p_ForcedAttach) {
+      case (Combined) {
+        v_IsCombined := true;
+      }
+      case (EPS_Only) {
+        v_IsCombined := false;
+      }
+      case (NORMAL) {
+        if (pc_Combined_Attach) {
+          if (pc_Attach) { // So both set to true
+            if (px_AttachTypeTested == COMBINED_ATTACH) { // only now check the PIXIT value
+              v_IsCombined := true;
+            }
+          } else { // only combined set to true
+            v_IsCombined := true;
+          }
+        } else if (not pc_Attach) { // so neither set to true
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Neither pc_Attach nor pc_Combined_Attach set to true");
+        }
+      }
+    }
+    return v_IsCombined;
+  }
+
+  function f_GetEAttachType(EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return NAS_AttDetValue_Type
+  { /* @sic R5-101021, R5-103673, R5s100795 sic@ */
+    var NAS_AttDetValue_Type v_EAttachType;
+    
+    if (p_ForcedAttach == EPS_Only) { //@sic R5s100795 sic@
+      v_EAttachType := tsc_EAttachType_EpsOnly; // Note at the end of attach procedure in 36.508 says that if required EpsOnly can be forced
+    }
+    else if (fl_AttachTypeCheck (p_ForcedAttach)) { // @sic R5s110176 sic@
+      v_EAttachType := tsc_EAttachType_Combined;
+    }
+    else {
+      v_EAttachType := tsc_EAttachType_EpsOnly;
+    }
+    return v_EAttachType;
+  }
+
+  function f_GetEDetachType(EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return NAS_AttDetValue_Type
+  {
+    var NAS_AttDetValue_Type v_EDetachType := tsc_DetachMO_EpsOnly;
+    
+    if (fl_AttachTypeCheck (p_ForcedAttach)) { // @sic R5s110176 sic@
+      v_EDetachType := tsc_DetachMO_Combined;
+    }
+    return v_EDetachType;
+  }
+
+  function f_GetEPSTAUType(EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return EPS_UpdateTypeValue
+  { // @sic R5s100029, R5-101021, R5-103673 sic@
+    var EPS_UpdateTypeValue v_TAUType := tsc_EpsUpdate_TaUpdate;
+
+    if (fl_AttachTypeCheck (p_ForcedAttach)) { // @sic R5s110176 sic@
+      v_TAUType := tsc_EpsUpdate_Combined_TaLaUpdate;
+    }
+    return v_TAUType;
+  }
+
+  function f_GetAdditionalUpdateType(EUTRA_ATTACH_Type p_ForcedAttach := NORMAL) runs on EUTRA_PTC return template AdditionalUpdateType
+  { /* @sic R5-103681 sic@ */
+    var template AdditionalUpdateType v_AdditionalUpdateType := omit;
+    if (fl_AttachTypeCheck (p_ForcedAttach)) { // @sic R5s110176 sic@
+      v_AdditionalUpdateType := cr_AdditionalUpdateTypeAny ifpresent;
+    }
+    return v_AdditionalUpdateType;
+  }
+
+  function f_GetAdditionalUpdateResult(template (omit) AdditionalUpdateType p_RcvdAddUpdateType,
+                                       EUTRA_ATTACH_Type p_ForcedAttach := NORMAL) runs on EUTRA_PTC return template (omit) AdditionalUpdateResult
+  { /* @sic R5-103681 sic@ */
+    var template (omit) AdditionalUpdateResult v_AdditionalUpdateResult := omit;
+    var AdditionalUpdateType v_RcvdAddUpdateType;
+
+    if (isvalue(p_RcvdAddUpdateType)) { // @sic R5s110078 sic@
+      v_RcvdAddUpdateType := valueof(p_RcvdAddUpdateType);
+      if (fl_AttachTypeCheck (p_ForcedAttach) and (v_RcvdAddUpdateType.addUpdateTypeValue == '1'B)) {  // SMS Only and Combined @sic R5s110176 sic@
+          v_AdditionalUpdateResult := cs_AdditionalUpdateResult_SMSOnly;
+      }
+    }
+    
+    return v_AdditionalUpdateResult;
+  }
+
+  function f_GetLAI(NAS_PlmnId p_PLMN,
+                    NAS_Lac    p_LAC,
+                    EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return template (omit) LocAreaId
+  {
+    var template(omit) LocAreaId v_LAI := omit;
+    if (fl_AttachTypeCheck (p_ForcedAttach)) { // @sic R5s110176 sic@
+      v_LAI := cs_LAI ('13'O, p_PLMN, p_LAC);
+    }
+    return v_LAI;
+  }
+
+  function f_EUTRA_GetCellLAI(EUTRA_CellId_Type p_CellId,
+                              EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return template (omit) LocAreaId
+  {
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode(p_CellId);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    return  f_GetLAI(v_PLMN,v_LAC, p_ForcedAttach); // @sic R5s110176 sic@
+  }
+
+  function f_GetMSId(EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return template (omit) MobileIdentity
+  { /* @sic R5-103763 sic@ */
+    var template(omit) MobileIdentity v_MSId := omit;
+    if (fl_AttachTypeCheck (p_ForcedAttach)) { // @sic R5s110176 sic@
+      v_MSId := cs_MobileIdTMSIorPTMSI('23'O, px_TMSI_Def); // @sic R5s110549 sic@
+    }
+    return v_MSId;
+  }
+
+  function f_GetPdnType() return PdnTypeValue
+  {
+    var PdnTypeValue v_PdnType := tsc_PdnType_IPv4;
+    if (pc_IPv6) {
+      if (pc_IPv4) {
+        v_PdnType := tsc_PdnType_IPv4v6;
+      } else {
+        v_PdnType := tsc_PdnType_IPv6;
+      }
+    }
+    return v_PdnType;
+  }
+
+  function f_EUTRA_FillNAS_SecurityCapability_TAU (TRACKING_AREA_UPDATE_REQUEST p_TAU_REQUEST) return UE_SecurityCapability
+  { /* @sic R5s110014 sic@ */
+    var UE_SecurityCapability v_SecurityCapability;
+    var template (omit) MS_NetworkCap v_MS_NetworkCap := omit;
+    
+    v_SecurityCapability.eiaCap := p_TAU_REQUEST.ueNetworkCapability.eiaCap;
+    
+    if (ispresent(p_TAU_REQUEST.msNetworkCapability)) {
+      v_MS_NetworkCap := p_TAU_REQUEST.msNetworkCapability;
+    }
+    v_SecurityCapability := f_EUTRA_FillNAS_SecurityCapability_Common (p_TAU_REQUEST.ueNetworkCapability, v_MS_NetworkCap);
+    
+    return v_SecurityCapability;
+  }
+
+  function f_EUTRA_FillNAS_SecurityCapability (ATTACH_REQUEST p_ATTACH_REQUEST) return UE_SecurityCapability
+  { /* @sic R5s110014 sic@ */
+    var UE_SecurityCapability v_SecurityCapability;
+    var template (omit) MS_NetworkCap v_MS_NetworkCap := omit;
+    
+    v_SecurityCapability.eiaCap := p_ATTACH_REQUEST.ueNetworkCapability.eiaCap;
+    
+    if (ispresent(p_ATTACH_REQUEST.msNetworkCapability)) {
+      v_MS_NetworkCap := p_ATTACH_REQUEST.msNetworkCapability;
+    }
+    v_SecurityCapability := f_EUTRA_FillNAS_SecurityCapability_Common (p_ATTACH_REQUEST.ueNetworkCapability, v_MS_NetworkCap);
+    
+    return v_SecurityCapability;
+  }
+
+  function f_EUTRA_FillNAS_SecurityCapability_Common(UE_NetworkCap p_UeNetworkCapability,
+                                                     template (omit) MS_NetworkCap p_MsNetworkCapability) return UE_SecurityCapability
+  { /* @sic R5s110014 sic@ */
+    var UE_SecurityCapability v_SecurityCapability;
+    var MS_NetworkCap v_MS_NetworkCap;
+    var B8_Type v_GEA := '00000000'B;
+    var integer v_Length := 2;
+    
+    v_SecurityCapability.eeaCap := p_UeNetworkCapability.eeaCap;
+    v_SecurityCapability.eiaCap := p_UeNetworkCapability.eiaCap;
+    
+    if (ispresent(p_UeNetworkCapability.ueaCap)) {
+      v_SecurityCapability.ueaCap := p_UeNetworkCapability.ueaCap;
+      v_Length := v_Length + 2; // if octet 5 is present, 6 will be too @sic R5s100485 sic@
+      if (ispresent(p_UeNetworkCapability.uiaCap)) {
+        v_SecurityCapability.uiaCap := p_UeNetworkCapability.uiaCap and4b '7f'O; // @sic R5s100520 sic@
+      } else {
+        v_SecurityCapability.uiaCap := '00'O; // @sic R5s100485 sic@
+      }
+    } else {
+      v_SecurityCapability.ueaCap := omit;
+      v_SecurityCapability.uiaCap := omit; // @sic R5s100184 sic@
+    }
+
+    if (isvalue (p_MsNetworkCapability)) {
+      v_MS_NetworkCap := valueof(p_MsNetworkCapability);
+      if (v_MS_NetworkCap.gea1 == '1'B) {
+        v_GEA := v_GEA or4b '01000000'B; // error corrected in delivery
+      }
+      if (v_MS_NetworkCap.gea2 == '1'B) {
+        v_GEA := v_GEA or4b '00100000'B; // error corrected in delivery
+      }
+      if (v_MS_NetworkCap.gea3 == '1'B) {
+        v_GEA := v_GEA or4b '00010000'B; // error corrected in delivery
+      }
+      if (v_MS_NetworkCap.gea4 == '1'B) {
+        v_GEA := v_GEA or4b '00001000'B; // error corrected in delivery
+      }
+      if (v_MS_NetworkCap.gea5 == '1'B) {
+        v_GEA := v_GEA or4b '00000100'B; // error corrected in delivery
+      }
+      if (v_MS_NetworkCap.gea6 == '1'B) {
+        v_GEA := v_GEA or4b '00000010'B; // error corrected in delivery
+      }
+      if (v_MS_NetworkCap.gea7 == '1'B) {
+        v_GEA := v_GEA or4b '00000001'B; // error corrected in delivery
+      }
+      v_Length := v_Length + 1;
+      v_SecurityCapability.geaCap := bit2oct (v_GEA); // Now store the completed GEA octet
+      if (v_Length == 3) { // UE didn't report any UTRAN capabilities, so set them to 0 @sic R5s100485 sic@
+        v_Length := 5;
+        v_SecurityCapability.ueaCap := '00'O;
+        v_SecurityCapability.uiaCap := '00'O;
+      }
+    } else {// MS Network Capability not present @sic R5s100184 sic@
+      v_SecurityCapability.geaCap := omit;
+    }
+    
+    v_SecurityCapability.iel := int2oct (v_Length, 1);  // Now store the length
+    
+    return v_SecurityCapability;
+  }
+
+  function f_EUTRA_Authentication_NAS_AS_Security(EUTRA_CellId_Type p_CellId,
+                                                  boolean p_EIT_Flag,
+                                                  ProcedureTransactionIdentifier p_PTI,
+                                                  boolean p_SecurityContextActive := true)
+    runs on EUTRA_PTC return template (value) AccessPointName
+  {
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_AuthParams := f_EUTRA_Security_Get();
+    var GutiParameters_Type v_Guti := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var NAS_PlmnId  v_PLMN := f_Asn2Nas_PlmnId (v_Guti.PLMN_Identity);
+    var template (value) AccessPointName v_APN;
+
+    // Authentication Request / Authentication Response
+    if (p_SecurityContextActive) { // @sic R5s100008 sic@
+       v_AuthParams:=f_EUTRA_NAS_Authentication(p_CellId,
+                                                tsc_SRB1,
+                                                v_AuthParams,
+                                                tsc_SHT_IntegrityProtected_Ciphered,
+                                                tsc_SHT_IntegrityProtected_Ciphered,
+                                                v_PLMN);
+    } else {
+      v_AuthParams:=f_EUTRA_NAS_Authentication(p_CellId,
+                                               tsc_SRB1,
+                                               v_AuthParams,
+                                               tsc_SHT_NoSecurityProtection,
+                                               (tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected), // @sic R5-102226 sic@
+                                               v_PLMN);
+    }
+    
+    // NAS Security Mode Command / NAS Security Mode Complete
+    v_NasCountUL := f_EUTRA_NAS_ActivateSecurity(p_CellId, v_AuthParams);
+    v_APN := f_ESM_InitAPN(p_CellId, p_EIT_Flag, p_PTI);  // @sic R5s100751 Additional changes sic@
+
+    // RRC Security Command / RRC Security Complete
+    v_AuthParams := f_EUTRA_RRC_ActivateSecurity(p_CellId, v_AuthParams, v_NasCountUL);
+    f_EUTRA_Security_Set(v_AuthParams);//Saving security parameters
+
+    return v_APN;
+  }
+
+  function f_EUTRA_DelayForUserPlaneSignalling(EUTRA_WaitForIMS_Type p_WaitForIMS := waitForIMS) runs on EUTRA_PTC
+  { /* NOTE: there is no reason to apply any tolerances for the delay */
+    /* @sic R5-123731 "Addition of guard timer to the procedure for IMS signalling" sic@ */
+    timer t_WaitForIMS;
+
+    if (pc_IMS and (p_WaitForIMS == waitForIMS)) {  // 36.508 cl. 4.5A.3  @sic R5-123731 sic@
+      t_WaitForIMS.start(10.0);
+      alt {
+        [] t_WaitForIMS.timeout {
+          // just continue
+        }
+        [] IMS[tsc_Index_PDN1].receive(cmr_IMS_Trigger) {
+          t_WaitForIMS.stop;
+          repeat;      // receive second trigger sent by IMS after registration has finished
+        }
+      }
+    } else {
+      f_Delay(1.2);
+    }
+  }
+
+  function f_EUTRA_NAS_AttachComplete(EUTRA_CellId_Type p_CellId,
+                                      HalfOctet_Type p_EpsBearerId,
+                                      EUTRA_WaitForIMS_Type p_WaitForIMS := waitForIMS) runs on EUTRA_PTC
+  {
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_IndicationWithPiggybacking(tsc_SHT_IntegrityProtected_Ciphered,
+                                                                      cr_508_ATTACH_COMPLETE,
+                                                                      cr_508_ActivateDefEpsBearerContextAccept(p_EpsBearerId))));
+    f_EUTRA_DelayForUserPlaneSignalling(p_WaitForIMS);   // @sic R5s110449 sic@
+  };
+
+  function f_EUTRA_RRC_ConnEst_DefWithNas(EUTRA_CellId_Type p_CellId,
+                                          RRC_TransactionIdentifier p_RRC_TI,
+                                          template (present) EstablishmentCause p_EstablishmentCause,
+                                          template (present) NAS_MSG_Indication_Type p_ExpectedNasMsg,
+                                          integer p_SelectedPlmnId := 1) runs on EUTRA_PTC return NAS_MSG_Indication_Type
+  { // @sic R5s110468: new parameter p_SelectedPlmnId sic@
+    var NAS_MSG_Indication_Type v_NasInd;
+
+    // receive RRC Connection Request on SRB0 (CCCH):
+    f_EUTRA_RRC_ConnectionRequest_Def(p_CellId, p_EstablishmentCause);    // @sic R5-120721 change 3 sic@
+    
+    // send RRC Connection Setup on SRB0 (CCCH) and switch on UL grant assignments:
+    f_EUTRA_RRC_ConnectionSetup_Def (p_CellId, -, p_RRC_TI);
+    
+    // UE shall establish SRB1 acc. to 36.331 cl. 5.3.3.4 and 5.3.9
+    // UE enters RRC_CONNECTED state
+    
+    // receive RRC Connection Setup Complete with piggy-backed NAS message on SRB1 (DCCH):
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(p_CellId,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(p_RRC_TI, ?, -, p_SelectedPlmnId), // @sic R5s110468 sic@
+                                                       p_ExpectedNasMsg);
+    return v_NasInd;
+  };
+
+  function f_EUTRA_TxDedicatedEpsBearerCtxtReq(EUTRA_CellId_Type p_CellId,
+                                               DRB_Identity p_DRB_Id,
+                                               EPS_BearerIdentity p_Id,
+                                               template (value) ProcedureTransactionIdentifier p_ProcTi, // octet
+                                               template (value) LinkedEpsBearerIdentity p_LinkedId, //  1/2 octet
+                                               template (value) EPS_QualityOfService p_QoS,
+                                               template (value) TrafficFlowTemplate p_Tft,
+                                               RLC_Mode_Type p_RLC_Mode_Type := AM_Mode)
+    runs on EUTRA_PTC
+  { /* RRC connection reconfiguration acc. to 36.331 cl. 5.3.5 */
+    // @desc send RRCConnectionReconfiguration with piggy-backed ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST
+    var template (value) NAS_DL_Message_Type v_ActDedicatedEPSBearerCxtReq :=
+      cs_508_ActDedicatedEPSBearerCxtReq(p_Id,
+                                         p_ProcTi,
+                                         p_LinkedId,
+                                         p_QoS,
+                                         p_Tft);
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var template (value) RadioResourceConfigDedicated v_RadioResourceConfigDedicated;
+
+    if (p_RLC_Mode_Type == AM_Mode) {
+      v_RadioResourceConfigDedicated := cs_508_RadioResourceConfigDedicated_AddAmDrb(p_DRB_Id);
+    }
+    else {
+      v_RadioResourceConfigDedicated := cs_508_RadioResourceConfigDedicated_AddUmDrb(p_DRB_Id);
+    }
+    
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(p_CellId,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_Common(v_RRC_TI,
+                                                                           omit,
+                                                                           omit,
+                                                                           v_RadioResourceConfigDedicated,
+                                                                           omit),
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   v_ActDedicatedEPSBearerCxtReq)));
+    
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(p_CellId,
+                                    cr_508_RRCConnectionReconfigurationComplete(v_RRC_TI)));
+  };
+
+  function f_EUTRA_UE_Detach_SwitchOffUe(EUTRA_CellId_Type p_CellId,
+                                         EUTRA_RRC_STATE_Type p_RRCState,
+                                         RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                         EUTRA_ATTACH_Type p_ForcedAttach := NORMAL,
+                                         template DetachType p_DetachType := omit,
+                                         integer p_SelectedPlmnId := 1) runs on EUTRA_PTC
+  { // @sic R5s11046: new parameter p_SelectedPlmnId sic@
+    var GutiParameters_Type v_Guti := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var template (present) NAS_MSG_Indication_Type v_ExpectedDetachRequest;
+    var template (present) DetachType v_DetachType;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEDetachType(p_ForcedAttach);  // @sic R5s100538, R5s110176 sic@
+    
+    if (ispresent(p_DetachType.typeOfDetach)) {  // @sic R5-103675 sic@
+      v_DetachType := p_DetachType;     // compiler warning cannot be suppressed as there is no way to convert 'template'to 'template (present)'
+    } else {
+      v_DetachType := cr_DetachType( '1'B, v_AttachType);
+    }
+    
+    v_ExpectedDetachRequest :=
+      cr_NAS_Indication((tsc_SHT_IntegrityProtected, tsc_SHT_IntegrityProtected_Ciphered),
+                          cr_508_DETACH_REQUEST_MO(cr_NAS_KeySetIdentifier (?, ?), // @sic R5s110031 sic@
+                                                   f_GutiParameters2MobileIdentity(omit, v_Guti),  // @sic R5s090225, R5s090310 sic@
+                                                   v_DetachType)); // @sic R5-103675 sic@
+      
+      if (pc_SwitchOnOff) // The UE can actually be switched off @sic R5s09225 sic@
+        {
+          f_UT_SwitchOffUE (UT, false); // @sic R5s100584 sic@
+          select (p_RRCState)
+          {
+            case (RRC_IDLE) {
+              f_EUTRA_RRC_ConnEst_DefWithNas( p_CellId,
+                                              p_RRC_TI, ?, // @sic R5s100766 sic@
+                                              cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                cr_508_DETACH_REQUEST_MO(cr_NAS_KeySetIdentifier (?, ?), //  @sic R5s110031 sic@
+                                                                                         f_GutiParameters2MobileIdentity(omit, v_Guti),
+                                                                                         v_DetachType)),
+                                              p_SelectedPlmnId); // @sic R5s110468 sic@
+            }
+            case (RRC_CONNECTED) {
+              alt {
+                [] SRB.receive(car_SRB1_NasPdu_IND(p_CellId, v_ExpectedDetachRequest)) { }
+                [] SRB.receive(car_SRB2_NasPdu_IND(p_CellId, v_ExpectedDetachRequest)) { }
+              }
+            }
+          }
+          //Now the connection can be released
+          f_EUTRA_RRC_ConnectionRelease(p_CellId, p_RRC_TI);
+        }
+      else // @sic R5s100584 sic@
+        {// The power must be removed from the UE
+          f_UT_PowerOffUE (UT);
+          //Reset all RBs
+          f_EUTRA_SS_SRBs_DRBs_Reset(p_CellId);   // @sic R5s110423 sic@
+        }
+      
+  } //end of f_EUTRA_UE_Detach_SwitchOffUe
+
+  function f_EUTRA_TrackingAreaUpdate_Accept_Complete(EUTRA_CellId_Type                             p_CellId,
+                                                      GutiParameters_Type                     p_GutiParams,
+                                                      B3_Type                                 p_EpsUpdate_TypeValue,
+                                                      template (omit) EPS_BearerContextStatus p_EPS_ContextStatus,
+                                                      AdditionalUpdateType                    p_AdditionalUpdateType,
+                                                      EUTRA_ATTACH_Type                       p_ForcedAttach,
+                                                      template (omit) PLMN_List               p_EPLMNlist := omit,
+                                                      template (omit) EPS_NetworkFeatureSupport p_NwkFeatSup := cs_EPS_NwkFtSup_IMSVoice) runs on EUTRA_PTC
+  {
+    var NAS_PlmnId       v_PLMN := f_Asn2Nas_PlmnId(p_GutiParams.PLMN_Identity);
+    var NAS_Lac          v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode(p_CellId);
+    var TrackingAreaCode v_Tac := f_EUTRA_CellInfo_GetTAC(p_CellId);
+    var template (omit)  LocAreaId               v_LAI := f_GetLAI(v_PLMN, v_LAC, p_ForcedAttach); // @sic R5s110176 sic@
+    var template (value) TrackingAreaIdList      v_TaiList := cds_TAIListNonConsecutive_tlv(v_PLMN, { bit2oct(v_Tac) }); // @sic R5s100029 sic@
+    var template (omit)  MobileIdentity          v_MSId := f_GetMSId(p_ForcedAttach); // @sic R5-103673 sic@
+    //    var template (omit)  EPS_BearerContextStatus v_EPS_ContextStatus; // @sic R5s100608 sic@
+    
+    /* Transmit TRACKING AREA UPDATE ACCEPT message */
+    /* In case MME has the cached security context it verifies the TAU Request message
+       and replies with TAU Accept message protected with the cached security context
+       ( 33.401 cl. 9.1.2 Idle mode procedures in E-UTRAN ) */
+    SRB.send(cas_SRB1_NasPdu_REQ(p_CellId,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_TAU_Accept_Common(p_EpsUpdate_TypeValue,
+                                                                     f_GutiParameters2MobileIdentity (tsc_IEI_Guti, p_GutiParams),
+                                                                     v_TaiList,
+                                                                     p_EPS_ContextStatus,
+                                                                     v_LAI,
+                                                                     v_MSId,
+                                                                     f_GetAdditionalUpdateResult(p_AdditionalUpdateType, p_ForcedAttach), // @sic R5s110176 sic@
+                                                                     -,
+                                                                     -,
+                                                                     p_EPLMNlist,
+                                                                     p_NwkFeatSup)))); // @sic R5-110771 sic@
+    
+    /* Receive TRACKING AREA UPDATE COMPLETE */
+    /* According to 24.301 cl: 5.5.3.2.4:
+       If the TRACKING AREA UPDATE ACCEPT message contained a GUTI,
+       the UE shall return a TRACKING AREA UPDATE COMPLETE message to
+       the MME to acknowledge the received GUTI */
+    SRB.receive(car_SRB1_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_TAU_Complete)));
+  }
+
+  function f_EUTRA_TrackingAreaUpdate_Step1_5(EUTRA_CellId_Type               p_CellId,
+                                              RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                              EUTRA_ATTACH_Type p_ForcedAttach := NORMAL,
+                                              template (present) EstablishmentCause p_EstablishmentCause := ?,
+                                              template (omit) PLMN_List p_EPLMNlist := omit,
+                                              template B3_Type p_EpsUpdate_TypeValue := omit)    // @sic R5s120617 sic@
+    runs on EUTRA_PTC
+  {
+    var NAS_MSG_Indication_Type v_NasInd;
+    var GutiParameters_Type v_GutiParams:= f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var B3_Type v_EpsUpdate_TypeValue := f_GetEPSTAUType(p_ForcedAttach); // @sic R5s100029, R5s110176 sic@
+    var template (omit) EPS_BearerContextStatus v_EPS_ContextStatus; // @sic R5s100608 sic@
+    
+    /* Step 1 - 3 */
+    /* The TAU Request shall be integrity-protected, but not confidentiality-protected.
+       UE uses the cached security context algorithms to protect the TAU Request message.
+       ( reuse of keys allocated during attach procedure )
+       ( 33.401 cl. 9.1.2 Idle mode procedures in E-UTRAN ) */
+    /* Check that TRACKING AREA UPDATE REQUEST message is present and conforms
+       with default message ( 36.508 Table 4.7.2-27: TRACKING AREA UPDATE REQUEST ) */
+    v_NasInd := f_EUTRA_TrackingAreaUpdate_Step1_3(p_CellId, // @sic R5s110632 sic@
+                                                   p_RRC_TI,
+                                                   p_ForcedAttach,
+                                                   p_EstablishmentCause,
+                                                   p_EpsUpdate_TypeValue );
+    v_EPS_ContextStatus := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus; // Send this back in the Accept
+    
+    /* Step 4 - 5: send TAU ACCEPT and receive TAU COMPLETE */
+    f_EUTRA_TrackingAreaUpdate_Accept_Complete(p_CellId,
+                                               v_GutiParams,
+                                               v_EpsUpdate_TypeValue,
+                                               v_EPS_ContextStatus,
+                                               v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType, // @sic R5s110078 sic@
+                                               p_ForcedAttach,
+                                               p_EPLMNlist);
+  }
+
+  function f_EUTRA_TrackingAreaUpdate(EUTRA_CellId_Type p_CellId,
+                                      RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                      EUTRA_ATTACH_Type p_ForcedAttach := NORMAL,
+                                      template (present) EstablishmentCause p_EstablishmentCause := ?, //@sic R5s100539 sic@
+                                      template B3_Type p_EpsUpdate_TypeValue := omit)    // @sic R5s120617 sic@
+    runs on EUTRA_PTC
+  { /* @sic R5s100707 additional MCC160 comments sic@ */
+    
+    /* Step 1..5: */
+    f_EUTRA_TrackingAreaUpdate_Step1_5(p_CellId, p_RRC_TI, p_ForcedAttach, p_EstablishmentCause, -, p_EpsUpdate_TypeValue);
+    
+    /* Step 6: Release RRC connection */
+    f_EUTRA_RRC_ConnectionRelease(p_CellId, p_RRC_TI);
+  }
+
+  function f_EUTRA_TrackingAreaUpdate_Step1_4_WithRelease(EUTRA_CellId_Type               p_CellId,
+                                                          RRC_TransactionIdentifier p_RRC_TI,
+                                                          EUTRA_ATTACH_Type         p_ForcedAttach,
+                                                          template (present) EstablishmentCause p_EstablishmentCause,
+                                                          template (omit) PLMN_List p_EPLMNlist := omit) runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams:= f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var B3_Type v_EpsUpdate_TypeValue := f_GetEPSTAUType(p_ForcedAttach);
+    var NAS_PlmnId       v_PLMN := f_Asn2Nas_PlmnId(v_GutiParams.PLMN_Identity);
+    var NAS_Lac          v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode(p_CellId);
+    var TrackingAreaCode v_Tac := f_EUTRA_CellInfo_GetTAC(p_CellId);
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template (omit) AdditionalUpdateType v_AdditionalUpdateType;
+    var template (omit) EPS_BearerContextStatus v_EPS_ContextStatus;
+    var template (omit)  LocAreaId v_LAI := f_GetLAI(v_PLMN, v_LAC, p_ForcedAttach);
+    var template (value) TrackingAreaIdList v_TaiList := cds_TAIListNonConsecutive_tlv(v_PLMN, { bit2oct(v_Tac) });
+    
+    v_NasInd := f_EUTRA_TrackingAreaUpdate_Step1_3(p_CellId,
+                                                   p_RRC_TI,
+                                                   p_ForcedAttach,
+                                                   p_EstablishmentCause);
+    v_EPS_ContextStatus := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus; // Send this back in the Accept
+    v_AdditionalUpdateType := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType; // Send this back in the Accept
+
+    /* Step 4: send TAU ACCEPT  */
+    /* Transmit TRACKING AREA UPDATE ACCEPT message with the GUTI not present */
+    /* In case MME has the cached security context it verifies the TAU Request message
+       and replies with TAU Accept message protected with the cached security context
+       ( 33.401 cl. 9.1.2 Idle mode procedures in E-UTRAN ) */
+    SRB.send(cas_SRB1_NasPdu_REQ(p_CellId,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_TAU_Accept_Common(v_EpsUpdate_TypeValue,
+                                                                     omit,
+                                                                     v_TaiList,
+                                                                     v_EPS_ContextStatus,
+                                                                     v_LAI,
+                                                                     omit,
+                                                                     f_GetAdditionalUpdateResult(v_AdditionalUpdateType, p_ForcedAttach),
+                                                                     -,
+                                                                     -,
+                                                                     p_EPLMNlist))));
+    // The SS releases the RRC connection
+    f_EUTRA_RRC_ConnectionRelease(p_CellId, tsc_RRC_TI_Def); // @sic R5s110777 sic@
+  }
+
+  function f_EUTRA_TrackingAreaUpdate_Step1_3(EUTRA_CellId_Type         p_CellId,
+                                              RRC_TransactionIdentifier p_RRC_TI,
+                                              EUTRA_ATTACH_Type         p_ForcedAttach,
+                                              template (present) EstablishmentCause p_EstablishmentCause,
+                                              template B3_Type p_EpsUpdate_TypeValue := omit)    // @sic R5s120617 sic@
+    runs on EUTRA_PTC return NAS_MSG_Indication_Type
+  {
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_KsiValue v_KsiValue := f_EUTRA_SecurityKSIasme_Get();
+    var template (present) B3_Type v_EpsUpdate_TypeValue := f_GetEPSTAUType(p_ForcedAttach); // @sic R5s100029, R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (p_ForcedAttach); // @sic R5s110176 sic@
+    
+    if (ispresent(p_EpsUpdate_TypeValue)) {
+      // if p_EpsUpdate_TypeValue is omit f_GetEPSTAUType shall be used otherwise use p_EpsUpdate_TypeValue.
+      v_EpsUpdate_TypeValue := p_EpsUpdate_TypeValue;     // compiler warning cannot be suppressed as there is no way to convert 'template'to 'template (present)'
+    }
+    
+    /* Step 1 - 3 */
+    /* The TAU Request shall be integrity-protected, but not confidentiality-protected.
+       UE uses the cached security context algorithms to protect the TAU Request message.
+       ( reuse of keys allocated during attach procedure )
+       ( 33.401 cl. 9.1.2 Idle mode procedures in E-UTRAN ) */
+    /* Check that TRACKING AREA UPDATE REQUEST message is present and conforms
+       with default message ( 36.508 Table 4.7.2-27: TRACKING AREA UPDATE REQUEST ) */
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(p_CellId,
+                                               p_RRC_TI,
+                                               p_EstablishmentCause,   //@sic R5s100539 sic@
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_TAU_Request (v_EpsUpdate_TypeValue,
+                                                                                     v_KsiValue,
+                                                                                     cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                                     v_AdditionalUpdateType))); // @sic R5-103681 sic@
+    // UE has now establish SRB1 acc. to 36.331 cl. 5.3.3.4 and entered RRC_CONNECTED state
+    return v_NasInd;
+  } // f_EUTRA_TrackingAreaUpdate_Step1_3
+
+  function f_EUTRA_TAU_Check(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    timer t_T3442 := f_EUTRA_SetTimerToleranceMax(p_CellId, nasTimer, 60.0);
+    
+    t_T3442.start;
+    alt {
+      [] t_T3442.timeout {}
+      [] SRB.check(receive(car_SRB0_RrcPdu_IND(?, cr_RRCConnectionRequest(cr_EstablishmentCause_Any))))
+        {
+          // there is an RRCConnectionRequest sent by the UE which can be received by TTCN-3 in a sub-sequent function
+          // @siclog "Exception Steps 1-3 TAU Request, Accept and RRC Connection Release" siclog@
+          f_EUTRA_TrackingAreaUpdate_Step1_4_WithRelease(p_CellId, tsc_RRC_TI_Def, Combined, mo_Signalling); //@sic R5s110757 sic@
+          repeat;
+        }
+    }
+  } // f_EUTRA_TAU_Check
+
+  function f_ESM_InformationTransfer(EUTRA_CellId_Type p_CellId,
+                                     ProcedureTransactionIdentifier p_PTI) runs on EUTRA_PTC return ESM_INFORMATION_RESPONSE
+  {
+    var SRB_COMMON_IND v_ReceivedMsg;
+    
+    SRB.send(cas_SRB1_NasPdu_REQ(p_CellId,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_Esm_Information_Request(p_PTI))));
+    
+    SRB.receive(car_SRB1_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_Esm_Information_Response(p_PTI))))
+      -> value v_ReceivedMsg;
+    return (v_ReceivedMsg.Signalling.Nas[0].Pdu.Msg.eSM_INFORMATION_RESPONSE);
+  }
+
+  function f_ESM_InformationTransfer_GetAPN(EUTRA_CellId_Type p_CellId,
+                                            ProcedureTransactionIdentifier p_PTI) runs on EUTRA_PTC return template (omit) AccessPointName
+  {
+    var template (omit) AccessPointName v_APN := omit;
+    var ESM_INFORMATION_RESPONSE v_ESM_INFORMATION_RESPONSE;
+
+    v_ESM_INFORMATION_RESPONSE := f_ESM_InformationTransfer (p_CellId, p_PTI);
+    if (ispresent(v_ESM_INFORMATION_RESPONSE.accessPointName)) {
+      v_APN := v_ESM_INFORMATION_RESPONSE.accessPointName;
+      v_APN.iei := omit;  // @sic R5s100140 sic@
+    }
+    return v_APN;
+  }
+
+  function f_ESM_InitAPN(EUTRA_CellId_Type p_CellId,
+                         boolean p_EIT_Flag,
+                         ProcedureTransactionIdentifier p_PTI,
+                         template (omit) AccessPointName p_APN := omit) runs on EUTRA_PTC return AccessPointName
+  {
+    var template (omit) AccessPointName v_APN := p_APN;
+    if (p_EIT_Flag) {
+      v_APN := f_ESM_InformationTransfer_GetAPN (p_CellId, p_PTI);
+    }
+    if (pc_IMS) { //@sic R5-110708 sic@
+      // the template works out the length of the overall field
+      v_APN := cs_AccessPointName (fl_GetAPNForIMS (p_CellId));
+    } else {
+      if (not isvalue(v_APN)) {
+        v_APN := cs_AccessPointName (px_AccessPointName);
+      }
+    }
+    return valueof(v_APN); /* valueof is applied to avoid any warning caused by the fact v_APN needs to be "template (omit)"
+                              but the function shall not return "template (omit)"
+                              Note: do to the valueof the return value does even not need to be "template (value)" */
+  }
+
+  function fl_GetAPNForIMS(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return octetstring
+  {
+    var GutiParameters_Type v_Guti_Params := f_EUTRA_CellInfo_GetGuti (p_CellId);
+    var PLMN_Identity v_PLMN := v_Guti_Params.PLMN_Identity;
+    var hexstring v_MCC := '000'H; // initialised with 3 digits which will be overwritten
+    var hexstring v_MNC := '000'H; // initialised with 3 digits which will be overwritten
+    var octetstring v_APN_Name, v_Label;
+    var MCC_MNC_Digit v_Digit;     // MCC-MNC-Digit ::= INTEGER (0..9)
+    var integer v_Incr := 0;
+    var integer I;
+    
+    if (lengthof(v_MNC) == 2) { // according to 23.003 if MNC is only 2 digits, a 0 is added on the left handside (i.e. first)
+      v_Incr := 1;
+    }
+    
+    for (I := 0; (I < lengthof(v_PLMN.mcc)) and(I < lengthof(v_MCC)); I := I + 1) {
+      /* v_PLMN.mcc consists of 3 digits; nevertheless to be sure v_MCC is checked as well */
+      v_Digit := v_PLMN.mcc[I];
+      v_MCC[I] := int2hex(v_Digit, 1);
+    }
+    
+    for (I := 0; (I < lengthof(v_PLMN.mnc)) and (I < lengthof(v_MNC)); I := I + 1) {
+      /* v_PLMN.mcc consists of 2 or 3 digits; nevertheless to be sure v_MNC is checked as well */
+      v_Digit := v_PLMN.mnc[I];
+      v_MNC[I+v_Incr] := int2hex(v_Digit, 1);
+    }
+    
+    // 23.003 describes APN as a concatanation of labels, each with a single octet length field first
+    v_Label := char2oct ("IMS");
+    v_APN_Name := int2oct(lengthof(v_Label), 1) & v_Label;
+    v_Label := char2oct ("apn");
+    v_APN_Name := v_APN_Name & int2oct(lengthof(v_Label), 1) & v_Label;
+    v_Label := char2oct ("epc");
+    v_APN_Name := v_APN_Name & int2oct(lengthof(v_Label), 1) & v_Label;
+    v_Label := char2oct ("mnc") & hex2oct(v_MNC);
+    v_APN_Name := v_APN_Name & int2oct(lengthof(v_Label), 1) & v_Label;
+    v_Label := char2oct ("mcc") & hex2oct(v_MCC);
+    v_APN_Name := v_APN_Name & int2oct(lengthof(v_Label), 1) & v_Label;
+    v_Label := char2oct ("3gppnetwork");
+    v_APN_Name := v_APN_Name & int2oct(lengthof(v_Label), 1) & v_Label;
+    v_Label := char2oct ("org");
+    v_APN_Name := v_APN_Name & int2oct(lengthof(v_Label), 1) & v_Label;
+
+    return v_APN_Name;
+  }
+
+  type record length (1..8) of EPS_QualityOfService EPS_QoSList_Type;   /* @status    APPROVED */
+
+  type record length (1..8) of TrafficFlowTemplate Tft_List_Type;       /* @status    APPROVED */
+
+  function f_EUTRA_ServiceRequestAndActivate_SRB2_DRB(EUTRA_CellId_Type p_CellId,
+                                                      UInt_Type p_NoOfAddDRBs_AM,
+                                                      UInt_Type p_NoOfAddDRBs_UM,
+                                                      template (omit) DRB_ToAddModList p_DRB_ToAddModList,
+                                                      template (omit) MAC_MainConfig_Type p_MAC_MainConfig,
+                                                      template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated,
+                                                      template (omit) EPS_QoSList_Type p_QoS,
+                                                      template (omit) Tft_List_Type p_Tft,
+                                                      boolean p_PDCP_StatusReportRequired := true,
+                                                      template (present) EstablishmentCause p_EstablishmentCause := ?) //@sic R5s100539 sic@
+    runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_KsiValue v_KsiValue;
+    
+    // =====================================================
+    // step 3-10 of procedure in 36.508 cl. 4.5.3.3
+    
+    // Step 3 - 5 of Generic RB establishment procedure
+    //Check the Service Request message
+    v_KsiValue := f_EUTRA_SecurityKSIasme_Get();
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(p_CellId,
+                                               v_RRC_TI,
+                                               p_EstablishmentCause, //@sic R5s100539 sic@
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(v_KsiValue)));
+    
+    /* Step 6 - 8 */
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg(p_CellId,
+                                         v_RRC_TI,
+                                         v_NasInd.SecurityProtection.NasCount,
+                                         p_NoOfAddDRBs_AM,
+                                         p_NoOfAddDRBs_UM,
+                                         p_DRB_ToAddModList,
+                                         p_MAC_MainConfig,
+                                         p_PhysicalConfigDedicated,
+                                         p_QoS,
+                                         p_Tft,
+                                         p_PDCP_StatusReportRequired);      /* @sic R5s100315 sic@ */
+    
+    /* Step 9 - 10 */
+    f_EUTRA_Activate_SRB2_DRB_ReceiveRrcAndNasMsg(p_CellId,
+                                                  v_RRC_TI,
+                                                  p_NoOfAddDRBs_AM,
+                                                  p_NoOfAddDRBs_UM);          /* @sic R5s100315 sic@ */
+  }
+
+  function f_EUTRA_Activate_SRB2_DRB_SendRrcMsg(EUTRA_CellId_Type p_CellId,
+                                                RRC_TransactionIdentifier p_RRC_TI,
+                                                NasCount_Type p_NasCountUL,
+                                                UInt_Type p_NoOfAddDRBs_AM := 0,
+                                                UInt_Type p_NoOfAddDRBs_UM := 0,
+                                                template (omit) DRB_ToAddModList p_DRB_ToAddModList := omit,
+                                                template (omit) MAC_MainConfig_Type p_MAC_MainConfig := omit,
+                                                template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated := omit,
+                                                template (omit) EPS_QoSList_Type p_QoS := omit,
+                                                template (omit) Tft_List_Type p_Tft := omit,
+                                                boolean p_PDCP_StatusReportRequired := true) runs on EUTRA_PTC
+  { /* @sic R5-102180: Establishment of SRB2 and DRBs is split into 2 procedures for sending/receiving sic@ */
+    
+    var EUTRA_SecurityParams_Type v_AuthParams := f_EUTRA_Security_Get();
+    
+    // =====================================================
+    //
+    
+    /* step 6-8 of procedure in 36.508 cl. 4.5.3.3 */
+    v_AuthParams := f_EUTRA_Authentication_InitAS(v_AuthParams, p_NasCountUL);
+    v_AuthParams := f_EUTRA_RRC_ActivateSecurity(p_CellId, v_AuthParams, p_NasCountUL);
+    f_EUTRA_Security_Set(v_AuthParams);
+
+    /* Step 8 of procedure in 36.508 cl. 4.5.3.3 */
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg_Step8(p_CellId,
+                                               p_RRC_TI,
+                                               p_NoOfAddDRBs_AM,
+                                               p_NoOfAddDRBs_UM,
+                                               p_DRB_ToAddModList,
+                                               p_MAC_MainConfig,
+                                               p_PhysicalConfigDedicated,
+                                               p_QoS,
+                                               p_Tft,
+                                               p_PDCP_StatusReportRequired);
+  }
+
+  function f_EUTRA_Activate_SRB2_DRB_SendRrcMsg_Step8(EUTRA_CellId_Type p_CellId,
+                                                      RRC_TransactionIdentifier p_RRC_TI,
+                                                      UInt_Type p_NoOfAddDRBs_AM := 0,
+                                                      UInt_Type p_NoOfAddDRBs_UM := 0,
+                                                      template (omit) DRB_ToAddModList p_DRB_ToAddModList := omit,
+                                                      template (omit) MAC_MainConfig_Type p_MAC_MainConfig := omit,
+                                                      template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated := omit,
+                                                      template (omit) EPS_QoSList_Type p_QoS := omit,
+                                                      template (omit) Tft_List_Type p_Tft := omit,
+                                                      boolean p_PDCP_StatusReportRequired := true) runs on EUTRA_PTC
+  {
+    var integer n, m, i, v_DRB_Id;
+    var EPS_BearerIdentity v_EpsBearerId;
+    var integer v_NoOfQos := 0;
+    var integer v_NoOfTft := 0;
+    var integer v_NoOfAddDRBs := p_NoOfAddDRBs_AM + p_NoOfAddDRBs_UM;  /* number of bearers to be configured additionally (i.e. apart from the default bearer)
+                                                                          if v_NoOfAddDRBs=0 => only the default DRB is established */
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (p_CellId); //Get FDD or TDD mode from Cell-configuration
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList;
+    var template (value) MAC_MainConfig_Type v_MAC_MainConfig;
+    var template (value) PhysicalConfigDedicated v_PhysicalConfigDedicated;
+    var template (omit)  NAS_MSG_RequestList_Type v_NAS_MsgList;
+    var template (value) RadioResourceConfigDedicated  v_RadioResourceConfigDedicated;
+    var template (value) DRX_Config v_DRX_Config;
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (p_CellId); //@sic R5-100786 sic@
+    var template (value) TimingInfo_Type v_TimingInfo := cs_TimingInfo_Now;   /* @sic R5-104796 DRX support sic@ */
+    var SubFrameTiming_Type v_SubFrameTiming;
+
+    // -----------------------------------------------------
+    // Check parameters are valid
+    if (isvalue(p_QoS)) {
+      v_NoOfQos := lengthof(p_QoS);
+    }
+    if (isvalue(p_Tft)) {
+      v_NoOfTft := lengthof(p_Tft);
+    }
+    if (v_NoOfQos != v_NoOfAddDRBs) {
+      FatalError (__FILE__, __LINE__, "invalid no. of QoS");
+    }
+    if (v_NoOfTft != v_NoOfAddDRBs) {
+      FatalError (__FILE__, __LINE__, "invalid no. of TFT");
+    }
+
+    // -----------------------------------------------------
+    // initialise v_DRB_ToAddModList
+
+    if (isvalue(p_DRB_ToAddModList)) {                  // explicit setting for DRB_ToAddMod
+      if (lengthof(p_DRB_ToAddModList) != v_NoOfAddDRBs+1) {
+        FatalError (__FILE__, __LINE__, "invalid no. of DRB_ToAddMod");
+      }
+      v_DRB_ToAddModList := valueof(p_DRB_ToAddModList);
+    } else {                                            // use default configuration
+      v_DRB_Id := tsc_DRB1;                             // default bearer
+      for (n := 0; n < (p_NoOfAddDRBs_AM + 1); n := n + 1) {                // default bearer included in the list (=> p_NoOfAddDRBs_AM + 1)
+        if (p_PDCP_StatusReportRequired == true) {
+          v_DRB_ToAddModList[n] := cs_508_DRB_ToAddMod_DEFAULT_AM (v_DRB_Id);
+        }
+        else {
+          v_DRB_ToAddModList[n] := cs_DRB_ToAddMod_NoPDCP_StatusReport (v_DRB_Id);
+        }
+        v_DRB_Id := v_DRB_Id + 1;
+      }
+      for (m := 0; m < p_NoOfAddDRBs_UM; m := m + 1) {
+        v_DRB_ToAddModList[n+m] := cs_508_DRB_ToAddMod_DEFAULT_UM (v_DRB_Id);
+        v_DRB_Id := v_DRB_Id + 1;
+      }
+    }
+
+    // -----------------------------------------------------
+    // initialise RRCConnectionReconfiguration
+    
+    if (isvalue(p_MAC_MainConfig)) {
+      v_MAC_MainConfig := valueof(p_MAC_MainConfig);
+    }
+    else {
+      if (p_NoOfAddDRBs_UM > 0) {                /* @sic R5-104796 DRX support sic@ */
+        v_MAC_MainConfig := cs_508_MAC_MainConfig_Explicit_RBC_DrxS; // short DRX cycle acc. to note in 36.508 table 4.6.3-16
+      }
+      else {
+        v_MAC_MainConfig := cs_508_MAC_MainConfig_Explicit_RBC_DrxL; // long DRX cycle acc. to note in 36.508 table 4.6.3-16
+      }
+    }
+    if (isvalue(p_PhysicalConfigDedicated)) {
+      v_PhysicalConfigDedicated := valueof(p_PhysicalConfigDedicated);
+    } else {
+      v_PhysicalConfigDedicated := cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                              v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                              v_AntennaInfo);
+    }
+    v_RadioResourceConfigDedicated := cs_508_RadioResourceConfigDedicated_SRB2(v_DRB_ToAddModList,
+                                                                               v_MAC_MainConfig,
+                                                                               v_PhysicalConfigDedicated);
+    // -----------------------------------------------------
+    // initialise NAS messages
+
+    if (v_NoOfAddDRBs == 0) {
+      v_NAS_MsgList := omit;                          // no NAS messages to be sent
+    } else {
+      for (i := 0; i < v_NoOfAddDRBs; i := i+1) {     // only for the additional DRBs (there is no ActDedEPSBearerCxtReq for the already existing default bearer)
+        // get EpsBearerId from the corresponding DRB_ToAddModList; DRB_ToAddModList[0] is the default bearer which needs to be skipped
+        v_EpsBearerId := int2hex(valueof(v_DRB_ToAddModList[i+1].eps_BearerIdentity), 1);  // i+1 to skip default DRB; valueof cannot be avoided here
+
+        v_NAS_MsgList[i] := cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                           cs_ActDedEPSBearerCxtReq_QoS(v_EpsBearerId, valueof(p_QoS[i]), valueof(p_Tft[i])));    // valueof to avoid compiler warnings: neither p_QoS nor p_Tft can be omit as v_NoOfAddDRBs > 0
+      }
+    }
+
+    if (p_NoOfAddDRBs_UM > 0) {    /* @sic R5-104796 DRX support sic@ */
+      if (ispresent(v_MAC_MainConfig.explicitValue.drx_Config)) {                /* @sic R5120095 sic@ */
+        v_DRX_Config := valueof(v_MAC_MainConfig.explicitValue.drx_Config);      /* valueof is ok as v_MAC_MainConfig.explicitValue.drx_Config is checked with 'ispresent' beforehand */
+        f_EUTRA_SS_DrxCtrlConfig(p_CellId, cs_DrxCtrl_Config(v_DRX_Config));     /* configure DRX at the SS; @sic R5s100630 R5s120054 sic@ */
+        
+        v_SubFrameTiming := f_EUTRA_GetNextSendOccasion (p_CellId, 100 + ((v_NoOfAddDRBs - 1) * 20));  /* @sic R5-115770 change 5 sic@ */
+        v_TimingInfo := cs_TimingInfo(v_SubFrameTiming.SFN.Number, v_SubFrameTiming.Subframe.Number);
+      }
+    }
+    else {
+      /* do nothing; for the time being we don't need any DRX configuration at the SS for DRX_L */
+    }
+
+    /* Step 8 */
+    SRB.send(cas_SRB1_RrcNasPduList_REQ(p_CellId,
+                                        v_TimingInfo,
+                                        cs_RRCConnectionReconfiguration_Common(p_RRC_TI,
+                                                                               omit,
+                                                                               omit,
+                                                                               v_RadioResourceConfigDedicated,
+                                                                               omit),
+                                        v_NAS_MsgList));
+  }
+
+  function f_EUTRA_Activate_SRB2_DRB_ReceiveRrcAndNasMsg(EUTRA_CellId_Type p_CellId,
+                                                         RRC_TransactionIdentifier p_RRC_TI,
+                                                         UInt_Type p_NoOfAddDRBs_AM := 0,
+                                                         UInt_Type p_NoOfAddDRBs_UM := 0) runs on EUTRA_PTC
+  { /* @sic R5s100315 sic@ */
+    var integer v_NoOfExpectedRrcMsgs := 1;
+    var integer v_NoOfExpectedNasMsgs := p_NoOfAddDRBs_AM + p_NoOfAddDRBs_UM;  /* number of bearers to be configured additionally (i.e. apart from the default bearer)
+                                                                                  if v_NoOfAddDRBs=0 => only the default DRB is established */
+    // =====================================================
+    // step 9-10 of procedure in 36.508 cl. 4.5.3.3:
+    // Step 9 and 10 can occur in any order.  Step 10 only occurs for number of Activate messages sent
+    while (v_NoOfExpectedRrcMsgs + v_NoOfExpectedNasMsgs > 0) {
+      alt {
+        [v_NoOfExpectedRrcMsgs > 0] SRB.receive(car_SRB1_RrcPdu_IND(p_CellId,
+                                                                    cr_508_RRCConnectionReconfigurationComplete(p_RRC_TI)))
+          {
+            v_NoOfExpectedRrcMsgs := v_NoOfExpectedRrcMsgs - 1;
+          }
+        [v_NoOfExpectedNasMsgs > 0] SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                                                      cr_508_ActDedicatedEPSBearerCxtAccept(?))))
+          {
+            v_NoOfExpectedNasMsgs := v_NoOfExpectedNasMsgs - 1;
+          }
+      }
+    }
+  }
+
+  function f_EUTRA_RRCConnectionReconfigurationWithAttachAcceptAllParams(EUTRA_CellId_Type p_CellId,
+                                                                         HalfOctet_Type p_EpsBearerId,
+                                                                         RRC_TransactionIdentifier p_RRC_TI,
+                                                                         ProcedureTransactionIdentifier p_EPS_TI,
+                                                                         NAS_AttDetValue_Type p_EpsAttachResultValue,
+                                                                         template (omit) PDN_Address p_PDN_Address,
+                                                                         template (omit) MobileIdentity p_Guti,
+                                                                         template (value) TrackingAreaIdList p_TaiList,
+                                                                         template (omit) LocAreaId p_LAI,
+                                                                         template (omit) MobileIdentity p_MSId,
+                                                                         template (omit) ESM_Cause p_Cause,  // @sic R5-104703 sic@
+                                                                         template (omit) AccessPointName p_APN,
+                                                                         template (omit) ProtocolConfigOptions p_Pco, // @sic R5-104703 sic@ Default value is PPP
+                                                                         template (omit) AdditionalUpdateResult p_AdditionalUpdateResult, // @sic R5-110796 sic@
+                                                                         template (value) GPRS_Timer p_T3412 := cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5), // @sic R5s100780 sic@
+                                                                         template (omit) GPRS_Timer p_T3402 := omit, // @sic R5s100780 sic@
+                                                                         template (omit) GPRS_Timer p_T3423 := omit, // @sic R5s100780 sic@
+                                                                         template (omit) PLMN_List p_EquivalentPlmnList := omit, // @sic R5s100780 sic@
+                                                                         template (omit) EmergNumList p_EmergNumList := omit, // @sic R5s100780 sic@
+                                                                         template (omit) EPS_NetworkFeatureSupport p_NtwkFeatSupport := cs_EPS_NwkFtSup_IMSVoice, //  @sic R5s100780 sic@
+                                                                         template (omit) GPRS_Timer3 p_T3412Extd := omit) // @sic R5s120178 Baseline Moving sic@
+    runs on EUTRA_PTC
+  { /* RRC connection reconfiguration acc. to 36.331 cl. 5.3.5 */
+    /* @sic R5-110796 Addition of 9.2.1.2.1d: f_GetAdditionalUpdateResult(p_RcvdAddUpdateType, p_ForcedAttach) replaced by p_AdditionalUpdateResult (p_RcvdAddUpdateType, p_ForcedAttach removed sic@ */
+    
+    var template (value) NAS_MSG_Request_Type v_NAS_MSG_Request;
+    var template (value) AccessPointName v_APN;
+    
+    if (pc_IMS) { //@sic R5-110708 sic@
+      v_APN := cs_AccessPointName (fl_GetAPNForIMS (p_CellId));
+    } else {
+      if (isvalue(p_APN)) {
+        v_APN := valueof(p_APN);
+      } else {
+        v_APN := cs_AccessPointName (px_AccessPointName);
+      }
+    }
+    
+    v_NAS_MSG_Request := cs_NAS_RequestWithPiggybacking(tsc_SHT_IntegrityProtected_Ciphered,
+                                                        cs_ATTACH_ACCEPT_Common(p_EpsAttachResultValue,
+                                                                                p_T3412,
+                                                                                p_TaiList,
+                                                                                p_Guti,
+                                                                                p_LAI,
+                                                                                p_MSId,
+                                                                                omit, // @sic R5-104703 sic@
+                                                                                p_T3402,
+                                                                                p_T3423,
+                                                                                p_EquivalentPlmnList,
+                                                                                p_EmergNumList,
+                                                                                p_NtwkFeatSupport,  // @sic R5-103674 sic@
+                                                                                p_AdditionalUpdateResult,
+                                                                                 p_T3412Extd), // @sic R5s1120178 Baseline Moving sic@
+                                                        cs_508_ActivateDefEpsBearerContextRequest(p_EpsBearerId,
+                                                                                                  p_EPS_TI,
+                                                                                                  v_APN,
+                                                                                                  p_PDN_Address,
+                                                                                                  p_Cause, // @sic R5-104703 sic@
+                                                                                                  p_Pco));
+    f_IP_ChangeEutraCell(IP, p_CellId);       /* @sic R5-113734 change 8 sic@ */
+    f_EUTRA_RRCConnectionReconfiguration_SRB2_1AM_DRB_Est(p_CellId,
+                                                          p_RRC_TI,
+                                                          v_NAS_MSG_Request);
+  };
+
+  function f_EUTRA_RRCConnectionReconfigurationWithPiggyNAS_DrbReconfig(EUTRA_CellId_Type p_CellId,
+                                                                        RRC_TransactionIdentifier p_RRC_TI,
+                                                                        DRB_IdentityList_Type p_DrbList,
+                                                                        template (value) NAS_MSG_RequestList_Type p_NAS_MsgList,
+                                                                        RLC_Mode_Type p_RLC_Mode_Type := AM_Mode)
+    runs on EUTRA_PTC
+  {
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList;
+    var integer i;
+    
+    // EPS bearer contexts are to be activated with default parameters.
+    if (p_RLC_Mode_Type == AM_Mode) {  // @sic R5s110340 ch. 8 sic@
+      for (i:=0; i<lengthof(p_DrbList); i:=i+1) {
+        v_DRB_ToAddModList[i] := cs_508_DRB_ToAddMod_DEFAULT_AM (p_DrbList[i]);
+      }
+      SRB.send(cas_SRB1_RrcNasPduList_REQ (p_CellId,
+                                           cs_TimingInfo_Now,
+                                           cs_RRCConnectionReconfiguration_DRB_Reconfig (p_RRC_TI,
+                                                                                         v_DRB_ToAddModList),
+                                           p_NAS_MsgList));
+    }
+    else {
+      for (i:=0; i<lengthof(p_DrbList); i:=i+1) {
+        v_DRB_ToAddModList[i] := cs_508_DRB_ToAddMod_DEFAULT_UM (p_DrbList[i]);
+      }
+      SRB.send(cas_SRB1_RrcNasPduList_REQ (p_CellId,
+                                           cs_TimingInfo_Now,
+                                           cs_RRCConnectionReconfiguration_DRB_Reconfig (p_RRC_TI,
+                                                                                         v_DRB_ToAddModList,
+                                                                                         cs_508_MAC_MainConfig_Explicit_RBC_DrxS),
+                                           p_NAS_MsgList));
+    }
+    
+    //Receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND (p_CellId,
+                                     cr_508_RRCConnectionReconfigurationComplete(p_RRC_TI)));
+  }
+
+  function f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig(EUTRA_CellId_Type p_CellId,
+                                                                 RRC_TransactionIdentifier p_RRC_TI,
+                                                                 EPS_BearerIdentity p_EpsBearerId,
+                                                                 template (value) ProcedureTransactionIdentifier p_ProcTransId,
+                                                                 template (value) AccessPointName p_AccessPointName,
+                                                                 template (value) PDN_Address p_PDN_Address,
+                                                                 template (omit) ProtocolConfigOptions p_PCO,
+                                                                 RLC_Mode_Type p_RLC_Mode_Type := AM_Mode)
+    runs on EUTRA_PTC
+  { // send RRCConnectionReconfiguration with piggy-backed ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST
+    var template (value) NAS_DL_Message_Type v_ActDefaultEPSBearerCxtReq :=
+      cs_508_ActivateDefEpsBearerContextRequest(p_EpsBearerId,
+                                                p_ProcTransId,
+                                                p_AccessPointName,
+                                                p_PDN_Address,
+                                                -,
+                                                p_PCO);
+    
+    f_IP_ChangeEutraCell(IP, p_CellId);       /* @sic R5-113734 change 8 sic@ */
+    f_EUTRA_RRCConnectionReconfigurationWithPiggyNAS_DrbReconfig(p_CellId,
+                                                                 p_RRC_TI,
+                                                                 {tsc_DRB2},
+                                                                 {cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered, v_ActDefaultEPSBearerCxtReq)},
+                                                                 p_RLC_Mode_Type);
+  }
+
+}

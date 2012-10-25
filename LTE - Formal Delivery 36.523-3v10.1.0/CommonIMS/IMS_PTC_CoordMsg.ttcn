@@ -1,0 +1,100 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-05 15:12:54 +0200 (Wed, 05 Sep 2012) $
+// $Rev: 7330 $
+/******************************************************************************/
+
+module IMS_PTC_CoordMsg {
+  import from CommonDefs all;
+  import from UpperTesterCommon all;
+  import from NAS_CommonTypeDefs all;
+
+  type record IMS_IPCAN_Cmd_Type {                                // generic type to allow the IMS PTC to control IPCAN (at least) for 34.229 test cases
+    charstring Cmd,
+    Ut_ParameterList_Type ParameterList optional
+  };
+
+  type union IMS_Coordination_MSG {
+    Null_Type                   TriggerEvent,                      // any trigger of confirmation
+    IMS_IPCAN_Cmd_Type          IpcanCommand,                      // IMS -> IPCAN: command to be done at IPCAN
+    ProtocolConfigOptions.pco   ProtocolConfigurationOptions       // IMS <-> IPCAN: PCOs to be used in NAS signalling
+  };
+
+
+  type port IMS_CO_ORD_PORT message
+  {
+    out IMS_Coordination_MSG;
+    in  IMS_Coordination_MSG;
+  };
+  
+  //----------------------------------------------------------------------------
+
+  template (value) IMS_Coordination_MSG cms_IMS_Trigger :=
+  {
+    TriggerEvent := true
+  };
+
+  template IMS_Coordination_MSG cmr_IMS_Trigger :=
+  {
+    TriggerEvent := true
+  };
+  
+
+  //----------------------------------------------------------------------------
+  /*
+   * @desc      to immediately detect programming errors (shall normally not happen)
+   * @param     p_Port
+   * @status
+   */
+  altstep a_IMS_IPCAN_Default(IMS_CO_ORD_PORT p_Port)
+  {
+    [] p_Port.receive {
+      FatalError(__FILE__, __LINE__, "unexpected coordination message");
+    }
+  }
+  
+  /*
+   * @desc      Wait for a synchonisation message from IMS/IPCAN PTC
+   * @param     p_Port
+   * @status
+   */
+  function f_IMS_IPCAN_WaitForTrigger(IMS_CO_ORD_PORT p_Port)
+  {
+    alt {
+      [] p_Port.receive(cmr_IMS_Trigger) {}
+      [] a_IMS_IPCAN_Default(p_Port) {}
+    }
+  }
+
+  //----------------------------------------------------------------------------
+  /*
+   * @desc      send message to IMS/IPCAN PTC
+   * @param     p_Port
+   * @param     p_Msg
+   * @status
+   */
+  function f_IMS_IPCAN_SendCoOrdMsg(IMS_CO_ORD_PORT p_Port,
+                                    template (value) IMS_Coordination_MSG p_Msg := cms_IMS_Trigger)
+  {
+    p_Port.send (p_Msg);
+  }
+
+  function f_IMS_IPCAN_CheckForTrigger(IMS_CO_ORD_PORT p_Port) return boolean
+  {
+    timer t_Timer := 0.0;
+    t_Timer.start;
+    
+    alt {
+      [] p_Port.receive(cmr_IMS_Trigger) { return true; }
+      [] a_IMS_IPCAN_Default(p_Port) {}
+      [] t_Timer.timeout {}
+    }
+    return false;
+  }
+
+}

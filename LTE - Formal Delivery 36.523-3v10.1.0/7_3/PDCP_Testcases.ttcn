@@ -1,0 +1,1414 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:59:37 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7311 $
+/******************************************************************************/
+
+module PDCP_Testcases {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_SecurityDefinitionsAndExternalFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+  import from L2_CommonFunctions all;
+  import from L2_CommonTemplates all;
+  import from NAS_AuthenticationCommon all;
+
+group PDCP_SS_TypesAndConstants {
+
+type record PDCP_SS_State_Type {        /* @status    APPROVED */
+  //Configuration information
+  //RLC modes, see 36.322 cl. 4.2
+  RLC_Mode_Type RLC_Mode,
+  //PDCP SN, see 36.323 cl. 6.3.2
+  PDCP_SNLength_Type PDCP_SN_Size,   // sizes 5, 7, 12 defined
+  //PDCP state variables, see 36.323 cl. 7.1
+  integer Next_PDCP_TX_SN,    // indicates the PDCP sequence number of the next PDCP SDU
+  integer TX_HFN,             // indicates the HFN value for the generation of the COUNT value used for PDCP PDUs for a given PDCP entity
+                              // not used now as TX_COUNT will always be 0 in the current tests
+  O4_Type TX_COUNT,           // TX COUNT value used for PDCP PDUs for a given PDCP entity
+                              // not used now as TX_COUNT will always be 0 in the current tests
+  integer Next_PDCP_RX_SN,    // indicates the next expected PDCP sequence number
+  integer RX_HFN,             // indicates the HFN value for the generation of the COUNT value used for the received PDCP PDUs for a given PDCP entity
+                              // not used now as RX_COUNT will always be 0 in the current tests
+  O4_Type RX_COUNT,           // RX COUNT value used for PDCP PDUs for a given PDCP entity
+                              // not used now as RX_COUNT will always be 0 in the current tests
+  //PDCP timers, see 36.323 cl. 7.2
+  float Discard_Timer,        // a new timer is started upon reception of an SDU from upper layer
+  //PDCP constants, see 36.323 cl. 7.3
+  integer Reordering_Window,  // indicates the size of the reordering window
+  integer Maximum_PDCP_SN,    // depends upon the size of PDCP sequence numbers used
+  //PDCP36.509 state variables, see 36.509 cl. 7.4
+  integer UL_PDCP_SDU_size,   // UL PDCP SDU size for returned UL PDCP SDUs
+  boolean UL_PDCP_SDU_scaling,// to enable/disable scaling of UL PDCP SDU size
+  RadioBearerId_Type RB_Id,   // to store the DRB Id used depending on RLC Mode
+  CipheringAlgorithm_Type CipheringAlgorithm,
+                              // ciphering algorithm
+  B128_Key_Type KUPenc        // ciphering key for the user plane
+};
+
+} // end of group PDCP_SS_TypesAndConstants
+
+group PDCP_Functions {
+
+function fl_InitPDCP_Record(out PDCP_SS_State_Type p_PDCP_Rec,
+                            RLC_Mode_Type p_RLC_Mode,
+                            PDCP_SNLength_Type p_PDCP_SN_Size)
+{
+  p_PDCP_Rec.RLC_Mode := p_RLC_Mode;
+  p_PDCP_Rec.PDCP_SN_Size := p_PDCP_SN_Size;
+  p_PDCP_Rec.Next_PDCP_TX_SN := 0;
+  p_PDCP_Rec.TX_HFN := 0;
+  p_PDCP_Rec.Next_PDCP_RX_SN := 0;
+  p_PDCP_Rec.RX_HFN := 0;
+  if ( p_RLC_Mode == UM_Mode) {
+    p_PDCP_Rec.Discard_Timer := 100.0;
+    p_PDCP_Rec.RB_Id := tsc_RbId_DRB2;
+  } else {
+    p_PDCP_Rec.Discard_Timer := 500.0;
+    p_PDCP_Rec.RB_Id := tsc_RbId_DRB1;
+  };
+  p_PDCP_Rec.Reordering_Window := 2048;
+  select (p_PDCP_SN_Size) {
+    case (PDCP_SNLength12) {
+      p_PDCP_Rec.Maximum_PDCP_SN := tsc_Maximum_PDCP_SN_12;
+    }
+    case (PDCP_SNLength7) {
+      p_PDCP_Rec.Maximum_PDCP_SN := tsc_Maximum_PDCP_SN_7;
+    }
+    case (PDCP_SNLength5) {
+      p_PDCP_Rec.Maximum_PDCP_SN := tsc_Maximum_PDCP_SN_5;
+    }
+    case else {
+      FatalError(__FILE__, __LINE__, "PDCP_SN_Size incorrect");
+    }
+  }
+  p_PDCP_Rec.UL_PDCP_SDU_size := 100;
+  p_PDCP_Rec.UL_PDCP_SDU_scaling := false;
+  p_PDCP_Rec.CipheringAlgorithm := eea0;  // provisional initialization
+  p_PDCP_Rec.KUPenc := tsc_AuthUndefinedB128; // provisional initialization
+  p_PDCP_Rec.TX_COUNT := int2oct(0, 4);
+  p_PDCP_Rec.RX_COUNT := int2oct(0, 4);
+}
+
+function f_EUTRA_CellConfig_DefPlusUM_PDCP_SN7(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+{
+  f_EUTRA_CellConfig_Def ( p_CellId );
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB(p_CellId,
+                                               cs_OneDRB_ConfigUM(tsc_DRB2,
+                                                                  cds_PDCP_Config_DRB_UM_SN7));
+};
+
+function f_UPSend(inout PDCP_SS_State_Type p_PDCP_Rec,
+                  EUTRA_CellId_Type p_CellId,
+                  template (value) octetstring p_PdcpSdu,
+                  template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now)
+  runs on EUTRA_PTC
+{ // @sic R5s100347 sic@
+  var template (value) PDCP_PDU_Type v_Pdu;
+  var octetstring v_CipheredSdu;
+
+  v_CipheredSdu := fx_AsCiphering (valueof (p_PdcpSdu),
+                                   p_PDCP_Rec.CipheringAlgorithm,
+                                   p_PDCP_Rec.KUPenc,
+                                   int2oct(p_PDCP_Rec.Next_PDCP_TX_SN, 4),
+                                   int2bit(p_PDCP_Rec.RB_Id.Drb - 1, 5));   /* @sic R5-101050: BearerId changed to 5 bits sic@ */
+  // for the time being TX_HFN will always be 0, so Next_PDCP_TX_SN is used instead of TX_COUNT !!!
+  // Build PDCP pdu to be sent
+  if ( p_PDCP_Rec.PDCP_SN_Size == PDCP_SNLength12) {
+    v_Pdu := cs_PDCP_DataLongSN (p_PDCP_Rec.Next_PDCP_TX_SN, v_CipheredSdu);
+  } else if ( p_PDCP_Rec.PDCP_SN_Size == PDCP_SNLength7){
+    v_Pdu := cs_PDCP_DataShortSN (p_PDCP_Rec.Next_PDCP_TX_SN, v_CipheredSdu);
+
+  } else {
+    FatalError(__FILE__, __LINE__, "PDCP_SN_Size incorrect");
+  }
+  DRB.send (cas_DRB_PDCP_PDU_Req(p_CellId,
+                                 p_TimingInfo,
+                                 p_PDCP_Rec.RB_Id,
+                                 v_Pdu));
+  if (p_PDCP_Rec.Next_PDCP_TX_SN == p_PDCP_Rec.Maximum_PDCP_SN)
+  {
+    p_PDCP_Rec.Next_PDCP_TX_SN := 0;
+    p_PDCP_Rec.TX_HFN := p_PDCP_Rec.TX_HFN + 1; // currently not used further
+  }
+  else
+  {
+    p_PDCP_Rec.Next_PDCP_TX_SN := p_PDCP_Rec.Next_PDCP_TX_SN + 1;
+  }
+} // f_UPSend
+
+function fl_DecipherAndMatchReceivedSDU(inout PDCP_SS_State_Type p_PDCP_Rec,
+                                        octetstring p_CipheredSdu,
+                                        template (present) octetstring p_ExpectedPdcpSdu) runs on EUTRA_PTC
+{
+  var octetstring v_DecipheredSdu := fx_AsDeciphering (p_CipheredSdu,
+                                                       p_PDCP_Rec.CipheringAlgorithm,
+                                                       p_PDCP_Rec.KUPenc,
+                                                       int2oct(p_PDCP_Rec.Next_PDCP_RX_SN, 4),
+                                                       int2bit(p_PDCP_Rec.RB_Id.Drb - 1, 5));   /* @sic R5-101050: BearerId changed to 5 bits sic@ */
+
+  if (not match(v_DecipheredSdu, p_ExpectedPdcpSdu))
+    {
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Unexpected PDCP SDU");
+    }
+
+  if (p_PDCP_Rec.Next_PDCP_RX_SN == p_PDCP_Rec.Maximum_PDCP_SN)
+    {
+      p_PDCP_Rec.Next_PDCP_RX_SN := 0;
+      p_PDCP_Rec.RX_HFN := p_PDCP_Rec.RX_HFN + 1; // currently not used further
+    }
+  else
+    {
+      p_PDCP_Rec.Next_PDCP_RX_SN := p_PDCP_Rec.Next_PDCP_RX_SN + 1;
+    }
+}
+
+function f_UPRcv(inout PDCP_SS_State_Type p_PDCP_Rec,
+                 EUTRA_CellId_Type p_CellId,
+                 template (present) octetstring p_PdcpSdu)
+  runs on EUTRA_PTC
+{
+  var integer v_Next_PDCP_RX_SN := p_PDCP_Rec.Next_PDCP_RX_SN;
+  var template (present) PDCP_PDU_Type v_ExpectedPdu;
+  var PDCP_SDU_Type v_ReceivedSdu;
+  var DRB_COMMON_IND v_ReceivedPdu;
+
+  // for the time being RX_HFN will always be 0, so Next_PDCP_RX_SN is used instead of RX_COUNT !!!
+  // Build SN template to be used
+  select (p_PDCP_Rec.PDCP_SN_Size) {
+    case (PDCP_SNLength12) {
+      v_ExpectedPdu := cr_PDCP_DataLongSN(int2bit(v_Next_PDCP_RX_SN, 12), p_PdcpSdu);
+    }
+    case (PDCP_SNLength7) {
+      v_ExpectedPdu := cr_PDCP_DataShortSN(int2bit(v_Next_PDCP_RX_SN, 7), p_PdcpSdu);
+    }
+    case else {
+      FatalError(__FILE__, __LINE__, "PDCP_SN_Size incorrect");
+    }
+  }
+  DRB.receive (car_DRB_PDCP_PDU_Ind(p_CellId,
+                                    p_PDCP_Rec.RB_Id,
+                                    v_ExpectedPdu)) -> value v_ReceivedPdu;
+
+
+  select (p_PDCP_Rec.PDCP_SN_Size) {
+    case (PDCP_SNLength12) {
+      v_ReceivedSdu := v_ReceivedPdu.U_Plane.SubframeData.PduSduList.PdcpPdu[0].DataLongSN.SDU;
+    }
+    case (PDCP_SNLength7) {
+      v_ReceivedSdu := v_ReceivedPdu.U_Plane.SubframeData.PduSduList.PdcpPdu[0].DataShortSN.SDU;
+    }
+  }
+  fl_DecipherAndMatchReceivedSDU(p_PDCP_Rec, v_ReceivedSdu, p_PdcpSdu);  /* @sic R5s100579 Additional changes sic@ */
+} // f_UPRcv
+
+function f_UPRcv2PDUs (inout PDCP_SS_State_Type p_PDCP_Rec,
+                       EUTRA_CellId_Type p_CellId,
+                       template (present) octetstring p_PdcpSdu1,
+                       template (present) octetstring p_PdcpSdu2)
+  runs on EUTRA_PTC
+{
+  var integer v_Next_PDCP_RX_SN := p_PDCP_Rec.Next_PDCP_RX_SN;
+  var PDCP_SDU_Type v_ReceivedSdu1;
+  var PDCP_SDU_Type v_ReceivedSdu2;
+  var DRB_COMMON_IND v_ReceivedPdu;
+
+  // for the time being RX_HFN will always be 0, so Next_PDCP_RX_SN is used instead of RX_COUNT !!!
+  // Build SN template to be used
+  
+  if (p_PDCP_Rec.PDCP_SN_Size != PDCP_SNLength12)
+    {
+      FatalError(__FILE__, __LINE__, "PDCP_SN_Size incorrect");
+    }
+  DRB.receive (car_DRB1_PDCP_DataListLongSN_2(p_CellId,
+                                              cr_PDCP_DataPdu_LongSN(int2bit(v_Next_PDCP_RX_SN, 12), p_PdcpSdu1),
+                                              cr_PDCP_DataPdu_LongSN(int2bit((v_Next_PDCP_RX_SN + 1), 12), p_PdcpSdu2)))-> value v_ReceivedPdu;
+
+  v_ReceivedSdu1 := v_ReceivedPdu.U_Plane.SubframeData.PduSduList.PdcpPdu[0].DataLongSN.SDU;
+  v_ReceivedSdu2 := v_ReceivedPdu.U_Plane.SubframeData.PduSduList.PdcpPdu[1].DataLongSN.SDU;
+
+  fl_DecipherAndMatchReceivedSDU(p_PDCP_Rec, v_ReceivedSdu1, p_PdcpSdu1);
+  fl_DecipherAndMatchReceivedSDU(p_PDCP_Rec, v_ReceivedSdu2, p_PdcpSdu2);
+} // f_UPRcv2PDUs
+
+function f_UPRcv3PDUs (inout PDCP_SS_State_Type p_PDCP_Rec,
+                       EUTRA_CellId_Type p_CellId,
+                       template (present) octetstring p_PdcpSdu1,
+                       template (present) octetstring p_PdcpSdu2,
+                       template (present) octetstring p_PdcpSdu3)
+  runs on EUTRA_PTC
+{
+  var integer v_Next_PDCP_RX_SN := p_PDCP_Rec.Next_PDCP_RX_SN;
+  var PDCP_SDU_Type v_ReceivedSdu1;
+  var PDCP_SDU_Type v_ReceivedSdu2;
+  var PDCP_SDU_Type v_ReceivedSdu3;
+  var DRB_COMMON_IND v_ReceivedPdu;
+
+  // for the time being RX_HFN will always be 0, so Next_PDCP_RX_SN is used instead of RX_COUNT !!!
+  // Build SN template to be used
+  
+  if (p_PDCP_Rec.PDCP_SN_Size != PDCP_SNLength12)
+    {
+      FatalError(__FILE__, __LINE__, "PDCP_SN_Size incorrect");
+    }
+  DRB.receive (car_DRB1_PDCP_DataListLongSN_3(p_CellId,
+                                              cr_PDCP_DataPdu_LongSN(int2bit(v_Next_PDCP_RX_SN, 12), p_PdcpSdu1),
+                                              cr_PDCP_DataPdu_LongSN(int2bit((v_Next_PDCP_RX_SN + 1), 12), p_PdcpSdu2),
+                                              cr_PDCP_DataPdu_LongSN(int2bit((v_Next_PDCP_RX_SN + 2), 12), p_PdcpSdu3)))-> value v_ReceivedPdu;
+
+  v_ReceivedSdu1 := v_ReceivedPdu.U_Plane.SubframeData.PduSduList.PdcpPdu[0].DataLongSN.SDU;
+  v_ReceivedSdu2 := v_ReceivedPdu.U_Plane.SubframeData.PduSduList.PdcpPdu[1].DataLongSN.SDU;
+  v_ReceivedSdu3 := v_ReceivedPdu.U_Plane.SubframeData.PduSduList.PdcpPdu[2].DataLongSN.SDU;
+
+  fl_DecipherAndMatchReceivedSDU(p_PDCP_Rec, v_ReceivedSdu1, p_PdcpSdu1);
+  fl_DecipherAndMatchReceivedSDU(p_PDCP_Rec, v_ReceivedSdu2, p_PdcpSdu2);
+  fl_DecipherAndMatchReceivedSDU(p_PDCP_Rec, v_ReceivedSdu3, p_PdcpSdu3);
+} // f_UPRcv3PDUs
+
+} // end of group PDCP_Functions
+
+group PDCP_Templates {
+
+template DRB_COMMON_IND car_DRB1_PDCP_DataListLongSN_2(EUTRA_CellId_Type p_CellId,
+                                                       template (present) PDCP_DataPdu_LongSN_Type p_PDCP_PDULongSN1,
+                                                       template (present) PDCP_DataPdu_LongSN_Type p_PDCP_PDULongSN2) :=
+{ /* @status    APPROVED */
+Common := cr_IndAspCommonPart_RB (p_CellId, tsc_RbId_DRB1),
+  U_Plane := {
+    SubframeData := {
+      PduSduList := {
+        PdcpPdu := {
+          {DataLongSN := p_PDCP_PDULongSN1},
+          {DataLongSN := p_PDCP_PDULongSN2}
+        }
+      },
+      NoOfTTIs := ?
+    }
+  } // U_Plane
+}; // car_DRB1_PDCP_DataListLongSN_2
+
+template DRB_COMMON_IND car_DRB1_PDCP_DataListLongSN_3(EUTRA_CellId_Type p_CellId,
+                                                       template (present) PDCP_DataPdu_LongSN_Type p_PDCP_PDULongSN1,
+                                                       template (present) PDCP_DataPdu_LongSN_Type p_PDCP_PDULongSN2,
+                                                       template (present) PDCP_DataPdu_LongSN_Type p_PDCP_PDULongSN3) :=
+{ /* @status    APPROVED */
+Common := cr_IndAspCommonPart_RB (p_CellId, tsc_RbId_DRB1),
+  U_Plane := {
+    SubframeData := {
+      PduSduList := {
+        PdcpPdu := {
+          {DataLongSN := p_PDCP_PDULongSN1},
+          {DataLongSN := p_PDCP_PDULongSN2},
+          {DataLongSN := p_PDCP_PDULongSN3}
+        }
+      },
+      NoOfTTIs := ?
+    }
+  } // U_Plane
+}; // car_DRB1_PDCP_DataListLongSN_3
+
+template (value) PDCP_PDU_Type cs_PDCP_StatusRep ( B12_Type p_FMS,
+                                                   template (omit) octetstring p_Bitmap) :=
+{ /* @status    APPROVED */
+  StatusReport := {
+    D_C := tsc_D_C_CtrlPDU,
+    Type := tsc_PDU_Type_StatusRep,
+    FMS := p_FMS,
+    Bitmap := p_Bitmap
+  }
+};
+
+template PDCP_DataPdu_LongSN_Type cr_PDCP_DataPdu_LongSN ( template (present) B12_Type p_SN,
+                                                           template (present) octetstring p_PdcpSdu) :=
+{ /* @desc Template used for receiving a PDCP PDU with long SN */
+  /* @status    APPROVED */
+  D_C := tsc_D_C_DataPDU,
+  Reserved := tsc_R_Bit & tsc_R_Bit & tsc_R_Bit,
+  SequenceNumber := p_SN,
+  SDU := p_PdcpSdu
+};
+
+template PDCP_PDU_Type cr_PDCP_DataShortSN ( template (present) B7_Type p_SN,
+                                             template (present) octetstring p_PdcpSdu) :=
+{ /* @desc Template used for receiving a PDCP PDU with short SN */
+  /* @status    APPROVED */
+  DataShortSN := {
+    D_C := tsc_D_C_DataPDU,
+    SequenceNumber := p_SN,
+    SDU := p_PdcpSdu
+  }
+};
+
+template PDCP_PDU_Type cr_PDCP_StatusRep ( B12_Type p_FMS,
+                                           template (omit) octetstring p_Bitmap) :=
+{ /* @status    APPROVED */
+  StatusReport := {
+    D_C := tsc_D_C_CtrlPDU,
+    Type := tsc_PDU_Type_StatusRep,
+    FMS := p_FMS,
+    Bitmap := p_Bitmap
+  }
+};
+
+template (value) RadioBearer_Type cs_DRB1_ConfigAM_PDCP_Mode :=
+{ /* @status    APPROVED */
+  Id := {
+    Drb := tsc_DRB1
+  },
+  Config := {
+    AddOrReconfigure := {
+      Pdcp := {
+        Config := {
+          Rb := omit,
+          TestMode := {
+            Info := {
+              PDCP_NonROHC_Mode := {       // @sic R5w100002r1 sic@
+                SN_Size := PDCP_SNLength12
+              }
+            }
+          }
+        }
+      },
+      Rlc := cs_RLC_Configuration_AM,      // @sic R5s090314: Additional comments sic@
+      LogicalChannelId := tsc_DRB1+2,
+      Mac := cs_MAC_Configuration_AM,      // @sic R5s090314: Additional comments sic@
+      DiscardULData := omit                // @sic RAN5 #55 sidebar meeting sic@
+    }
+  }
+};
+
+template (value) RadioBearer_Type cds_DRB1_ConfigAM_PDCP_Mode_RLC_Nack
+modifies cs_DRB1_ConfigAM_PDCP_Mode :=
+{ /* @status    APPROVED */
+  Config := {
+    AddOrReconfigure := {
+      Rlc := {
+        TestMode := {
+          Info := { NotACK_NextRLC_PDU := Start }
+        }
+      }
+    }
+  }
+};
+
+template (value) RadioBearer_Type cds_DRB1_ConfigAM_PDCP_Mode_SetVTS (RLC_AM_SequenceNumber_Type p_VTS)
+modifies cs_DRB1_ConfigAM_PDCP_Mode :=
+{ /* @status    APPROVED */
+  Config := {
+    AddOrReconfigure := {
+      Rlc := {
+        TestMode := {
+          Info := { ModifyVTS := p_VTS }
+        }
+      }
+    }
+  }
+};
+
+template (value) RadioBearer_Type cs_DRB2_ConfigUM_PDCP_Mode(PDCP_SNLength_Type p_PDCP_SN_Size) :=
+{ /* @status    APPROVED */
+  Id := {
+    Drb := tsc_DRB2
+  },
+  Config := {
+    AddOrReconfigure := {
+      Pdcp := {
+        Config := {
+          Rb := omit,
+          TestMode := {
+            Info := {
+              PDCP_NonROHC_Mode := {       // @sic R5w100002r1 sic@
+                SN_Size := p_PDCP_SN_Size
+              }
+            }
+          }
+        }
+      },
+      Rlc := cs_RLC_Configuration_UM,      // @sic R5s090314: Additional comments sic@
+      LogicalChannelId := tsc_DRB2+2,
+      Mac := cs_MAC_Configuration_UM,      // @sic R5s090314: Additional comments sic@
+      DiscardULData := omit                // @sic RAN5 #55 sidebar meeting sic@
+    }
+  }
+};
+
+} // end of group PDCP_Templates
+
+function f_TC_7_3_1_1_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100012 sic@ @sic R5s100298 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  // Use 12 bits SN length
+  fl_InitPDCP_Record(v_PDCP_Rec, AM_Mode, PDCP_SNLength12);
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info:=f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+
+  // Cell configuration, with one AM DRB at the SS side
+  f_EUTRA_CellConfig_Def (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled
+  f_EUTRA_RbEst_Def_DisableBSR_PHR ( eutra_Cell1 );
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB (eutra_Cell1, cs_DRB1_ConfigAM_PDCP_Mode);
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_7_3_1_1_TestBody (v_PDCP_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  // leaving UE test state 4
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // TC_7_3_1_1_EUTRA
+
+function f_EUTRA_7_3_1_1_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec)
+  runs on EUTRA_PTC
+{ // @sic R5s100012 sic@ @sic R5s100xxx sic@
+  var integer i;
+  var template (value) octetstring v_IPData :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());    /* @sic R5s120470 sic@ */
+
+  // EXCEPTION: Steps 1 and 2 shall be repeated for k=0 to
+  // Maximum_PDCP_SN (increment=1).
+  //@siclog "Step 1" siclog@
+  // SS sends a PDCP Data PDU on DRB1 containing one IP packet
+  // without header compression.
+  //@siclog "Step 2" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=0 for the
+  // first iteration and then incremented by 1 at each iteration?
+  for (i:= 0; i <= p_PDCP_Rec.Maximum_PDCP_SN; i := i+1) {
+    f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+    f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+  } // for
+
+  //@siclog "Step 3" siclog@
+  // SS sends a PDCP Data PDU on DRB1 containing one IP packet
+  // without header compression.
+  //@siclog "Step 4" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=0?
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+
+  //@siclog "Step 5" siclog@
+  // SS sends a PDCP Data PDU on DRB1 containing one IP packet
+  // without header compression.
+  //@siclog "Step 6" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=1?
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+} // f_EUTRA_7_3_1_1_TestBody
+
+function f_TC_7_3_1_2_EUTRA() runs on EUTRA_PTC
+{ // @sic R5-100082 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  fl_InitPDCP_Record(v_PDCP_Rec, UM_Mode, PDCP_SNLength7);
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info(eutra_Cell1);
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM_PDCP_SN7(eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cds_PDCP_Config_DRB_UM_SN7, // @sic R5s100302 sic@
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cs_508_DRB_DL_UM_RLC);
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB( eutra_Cell1, cs_DRB2_ConfigUM_PDCP_Mode(v_PDCP_Rec.PDCP_SN_Size) );
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA( eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_7_3_1_2_TestBody (v_PDCP_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  // leaving UE test state 4
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // TC_7_3_1_2_EUTRA
+
+function f_EUTRA_7_3_1_2_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec)
+runs on EUTRA_PTC
+{ // @sic R5-100283 sic@
+  var integer i;
+  var template (value) octetstring v_IPData :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());    /* @sic R5s120470 sic@ */
+
+  // EXCEPTION: Steps 1 and 2 shall be repeated for k=0 to
+  // Maximum_PDCP_SN (increment=1).
+  //@siclog "Step 1" siclog@
+  // SS sends a PDCP Data PDU on DRB2 containing one IP packet
+  // without header compression.
+  //@siclog "Step 2" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=0 for the
+  // first iteration and then incremented by 1 at each iteration?
+  for (i:= 0; i <= p_PDCP_Rec.Maximum_PDCP_SN; i := i+1) {
+    f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+    f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+  } // for
+
+  //@siclog "Step 3" siclog@
+  // SS transmits a PDCP Data PDU on DRB2 containing one
+  // IP packet without header compression (SN=0).
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+  //@siclog "Step 4" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=0?
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+
+  //@siclog "Step 5" siclog@
+  // SS sends a PDCP Data PDU on DRB2 containing one IP packet
+  // without header compression.
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+  //@siclog "Step 6" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=1?
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+} // f_EUTRA_7_3_1_2_TestBody
+
+function f_TC_7_3_1_3_EUTRA() runs on EUTRA_PTC
+{ // @sic R5-100283 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type  v_EUTRA_FDD_TDD_Info;
+
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  fl_InitPDCP_Record(v_PDCP_Rec, UM_Mode, PDCP_SNLength12);
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled
+  f_EUTRA_RbEst_508_UM_DisableBSR_PHR ( eutra_Cell1 );
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cs_DRB2_ConfigUM_PDCP_Mode(v_PDCP_Rec.PDCP_SN_Size) );
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA ( eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_7_3_1_3_TestBody (v_PDCP_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  // leaving UE test state 4
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // TC_7_3_1_3_EUTRA
+
+function f_EUTRA_7_3_1_3_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec)
+  runs on EUTRA_PTC
+{
+  var integer i;
+  var template (value) octetstring v_IPData :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());    /* @sic R5s120470 sic@ */
+  
+  // EXCEPTION: Steps 1 and 2 shall be repeated for k=0 to
+  // Maximum_PDCP_SN (increment=1).
+  //@siclog "Step 1" siclog@
+  // SS sends a PDCP Data PDU on DRB2 containing one IP packet
+  // without header compression.
+  //@siclog "Step 2" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=0 for the
+  // first iteration and then incremented by 1 at each iteration?
+  for (i:= 0; i <= p_PDCP_Rec.Maximum_PDCP_SN; i := i+1) {
+    f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+    f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+  } // for
+  
+  //@siclog "Step 3" siclog@
+  // SS transmits a PDCP Data PDU on DRB2 containing one
+  // IP packet without header compression (SN=0).
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+  //@siclog "Step 4" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=0?
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+  
+  //@siclog "Step 5" siclog@
+  // SS sends a PDCP Data PDU on DRB2 containing one IP packet
+  // without header compression.
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData);
+  //@siclog "Step 6" siclog@
+  // CHECK: Does UE transmit a PDCP Data PDU with SN=1?
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+} // f_EUTRA_7_3_1_3_TestBody
+
+function f_TC_7_3_5_2_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100305 sic@ @sic R5-104794 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type  v_EUTRA_FDD_TDD_Info;
+  var template (value) PhysicalConfigDedicated v_PhysicalConfigDedicated;
+
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  // Use 12 bits SN length
+  fl_InitPDCP_Record(v_PDCP_Rec, AM_Mode, PDCP_SNLength12);
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info:=f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+  f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 );
+  
+  // Cell configuration, with one AM DRB at the SS side
+  f_EUTRA_CellConfig_Def (eutra_Cell1);
+  // Setup cell 2
+  f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell2, tsc_C_RNTI_Def3 );
+  f_EUTRA_CellConfig_Def( eutra_Cell2 );
+
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled, dsrTRansMax=n64   // @sic R5s110121 R5-110724 sic@
+  v_PhysicalConfigDedicated := f_PhysicalConfigDedicated_Dsr_TransMax( eutra_Cell1 );
+  f_EUTRA_GenericRbEst_DisableBSR_PHR ( eutra_Cell1, 0, 0, omit, omit, v_PhysicalConfigDedicated, omit, omit);
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cs_DRB1_ConfigAM_PDCP_Mode );
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA ( eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+
+  // configure PDCP test mode for Cell 2
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell2, cs_DRB1_ConfigAM_PDCP_Mode );
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_7_3_5_2_TestBody (v_PDCP_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  // leaving UE test state 4
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell2, E3_TESTMODE);
+
+} // f_TC_7_3_5_2_EUTRA
+
+function f_EUTRA_7_3_5_2_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec) runs on EUTRA_PTC
+{ // @sic R5s100466 sic@
+  var octetstring v_Data1 :=  f_GetN_OctetsFromPRBS(0,36);
+  var octetstring v_Data2 :=  f_GetN_OctetsFromPRBS(36,36);
+  var octetstring v_Data3 :=  f_GetN_OctetsFromPRBS(72,36);
+  var octetstring v_Data4 :=  f_GetN_OctetsFromPRBS(108,36);
+  var octetstring v_Data5 :=  f_GetN_OctetsFromPRBS(144,36);
+
+  //@siclog "Step 1" siclog@
+  // SS creates 5 PDCP Data PDUs and the next PDCP TX SN
+  // is set to "0" first iteration and then incremented by 1 at each iteration
+  // The contents of the PDCP SDU is prefabricated in ICMP packets crs_IPv4_AnyIcmpEchoReply_[1..5]
+  // When the PDCP SDUs are to be sent the header is added.
+
+  // EXCEPTION: Step 2 and 3A shall be repeated for k=0 to 1(increment=1).
+  //@siclog "Step 2" siclog@
+  // SS sends a PDCP Data via PDU RLC_AM RB with the following
+  // content to the UE D/C field = 1 (PDCP Data PDU) and PDCP SN = k
+  // After having sent a PDU, the SS sets Next PDCP TX SN = k+1
+  // Sent different IPpacket for each PDCP PDU
+  //@siclog "Step 3" siclog@
+  // The UE sends the PDCP Data PDU#k via RLC-AM RB with the following
+  // content to the UE D/C field  = 1 (PDCP Data PDU) and PDCP SN = k.
+  // Data is previously received data from PDU #k.
+  // The SS acknowledges the received data.(???)
+  //@siclog "Step 3A" siclog@
+  // Wait for the expiry of t-PollRetransmit
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data1);
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_Data1);
+  f_Delay( f_EUTRA_SetTimerToleranceMax (eutra_Cell1, l2Timer, 0.08));
+  
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data2);
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_Data2);
+  f_Delay( f_EUTRA_SetTimerToleranceMax (eutra_Cell1, l2Timer, 0.08));
+
+  //@siclog "Step 4" siclog@
+  // Configure SS not to allocate UL grant to the UE in Cell 1
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync ( eutra_Cell1, cs_TimingInfo_Now );
+
+  // EXCEPTION: Step 5 shall be repeated for m=2 to 4 (increment=1).
+  //@siclog "Step 5" siclog@
+  // The SS sends the PDCP Data PDU #m via RLC-AM RB with the following
+  // content to the UE: D/C field = 1 (PDCP Data PDU) and PDCP SN = m.
+  // After having sent a PDU, the SS set Next_PDCP_TX_SN = m+1.
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data3);
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data4);
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data5);
+
+  //@siclog "Step 5A" siclog@
+  // The SS changes Cell 2 parameters according to the row "T1" in table 7.3.5.2.3.2.0-1.
+  f_EUTRA_SetCellPower (eutra_Cell2 , -79 );
+  //@siclog "Step 5B" siclog@
+  // Configure SS to allocate Default UL grant to the UE in Cell 2   @sic R5s100524: done in f_EUTRA_508RRC_IntraLTE_HO_InterCell sic@
+  //@siclog "Step 6" siclog@
+  // The SS requests UE to make a handover to Cell2 with the
+  // RRCConnectionReconfiguration message sent on Cell 1.
+  //@siclog "Step 7" siclog@
+  // SS assigns UL grant during the Random Access procedure to allow the UE to send only
+  // RRCConnectionReconfigurationComplete message.
+  //@siclog "Step 8" siclog@
+  // The UE on Cell 2 transmits a  RRCConnectionReconfigurationComplete message.
+  f_EUTRA_508RRC_IntraLTE_HO_InterCell ( eutra_Cell1,  // @sic R5s100430 change 2; R5s100524; R5s110033; R5s110121 sic@
+                                         eutra_Cell2,
+                                         { cs_DRB1_ConfigAM_PDCP_Mode },
+                                         tsc_C_RNTI_Def3,
+                                         -,
+                                         cs_DciInfo_CcchDcchDtchUL_Explicit(2,2),
+                                         cs_UL_GrantConfig_Stop,
+                                         -,
+                                         n64); // @sic R5s110168 change 5.1 sic@
+  //@siclog "Step 8A" siclog@
+  // The UE sends DCP Control PDU via RLC-AM RB with the following content to the SS:
+  //          D/C field  = 0 (PDCP control PDU) and PDU Type =000, FMS field = 5.
+  DRB.receive (car_DRB_PDCP_PDU_Ind( eutra_Cell2,
+                                     p_PDCP_Rec.RB_Id,
+                                     cr_PDCP_StatusRep( int2bit(5, tsc_PDCP_SN_Size_12), omit )));
+  //@siclog "Step 8B" siclog@
+  // The SS generates a PDCP status report message and sends it to UE: D/C field = 0 (PDCP control PDU) and PDU Type =000, FMS field = 2.
+  DRB.send (cas_DRB_PDCP_PDU_Req( eutra_Cell2,
+                                  cs_TimingInfo_Now,
+                                  p_PDCP_Rec.RB_Id,
+                                  cs_PDCP_StatusRep ( int2bit(2,tsc_PDCP_SN_Size_12), omit )));
+
+  //@siclog "Step 8C" siclog@
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell2); // @sic R5s110121 sic@
+  // EXCEPTION: Step 9 shall be repeated for m=2 to 4 (increment=1).
+  //@siclog "Step 9" siclog@
+  // Check: Does the UE send the PDCP Data PDU #m via RLC-AM RB with the following content to the SS:
+  // D/C field = 1 (PDCP Data PDU) and PDCP SN = m?
+  // Data is previously received data from PDU #m.
+  f_UPRcv3PDUs (p_PDCP_Rec, eutra_Cell2, v_Data3, v_Data4, v_Data5); // @sic R5s110121 sic@
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9");
+
+} // f_EUTRA_7_3_5_2_TestBody
+
+function f_TC_7_3_5_3_EUTRA() runs on EUTRA_PTC
+{ /* PDCP handover/Non-lossless handover PDCP Sequence Number maintenance */
+  // @sic R5s100298 sic@ @sic R5-104794 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  // Use 12 bits SN length
+  fl_InitPDCP_Record(v_PDCP_Rec, UM_Mode, PDCP_SNLength12);
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+  f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 );
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Setup cell 2
+  f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell2, tsc_C_RNTI_Def3 );
+  f_EUTRA_CellConfig_DefPlusUM( eutra_Cell2 );
+  
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled
+  f_EUTRA_RbEst_508_UM_DisableBSR_PHR ( eutra_Cell1 );
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cs_DRB2_ConfigUM_PDCP_Mode(v_PDCP_Rec.PDCP_SN_Size) );
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA ( eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+  
+  // configure PDCP test mode for Cell 2
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell2, cs_DRB2_ConfigUM_PDCP_Mode(v_PDCP_Rec.PDCP_SN_Size) );
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  
+  f_EUTRA_7_3_5_3_TestBody (v_PDCP_Rec);
+  
+  f_EUTRA_TestBody_Set(false);
+
+  // leaving UE test state 4
+  // @sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  // postamble
+  f_EUTRA_Postamble (eutra_Cell2, E3_TESTMODE);
+  
+} // f_TC_7_3_5_3_EUTRA
+
+function f_EUTRA_7_3_5_3_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec)
+runs on EUTRA_PTC
+{ // @sic R5s100466 sic@
+  var octetstring v_Data1 := f_GetN_OctetsFromPRBS(0, 36);
+  var octetstring v_Data2 := f_GetN_OctetsFromPRBS(36,36);
+  var octetstring v_Data3 := f_GetN_OctetsFromPRBS(72,36);
+
+  //@siclog "Step 1" siclog@
+  // The SS creates 3 PDCP Data PDUs and the Next_PDCP_TX_SN is set to "0".
+  // The contents of the PDCP SDU is prefabricated in ICMP packets crs_IPv4_AnyIcmpEchoReply_[1..5]
+  // When the PDCP SDUs are to be sent the header is added.
+
+  // EXCEPTION: Step 2 and 3 shall be repeated for k=0 to 1(increment=1).
+  //@siclog "Step 2" siclog@
+  // The SS sends the PDCP Data PDU #k via RLC-UM RB with the following
+  // content to the UE: D/C field  = 1 (PDCP Data PDU) and PDCP SN = k.
+  // After having sent a PDU, the SS set Next_PDCP_TX_SN= k+1.
+  //@siclog "Step 3" siclog@
+  // The UE sends the PDCP Data PDU#k via RLC-UM RB with the following
+  // content to the UE D/C field  = 1 (PDCP Data PDU) and PDCP SN = k.
+  // Data is previously received data from PDU #k.
+  // The SS acknowledges the received data.
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data1);
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_Data1);
+
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data2);
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_Data2);
+
+  //@siclog "Step 3A" siclog@
+  // The SS changes Cell 2 parameters according to the row "T1" in table 7.3.5.3.3.2.0-1.
+  f_EUTRA_SetCellPower (eutra_Cell2 , -79 );
+  //@siclog "Step 3B" siclog@
+  // Configure SS to allocate Default UL grant to the UE in Cell 2   @sic R5s100524: done in f_EUTRA_508RRC_IntraLTE_HO_InterCell sic@
+  //@siclog "Step 4" siclog@
+  // The SS requests UE to make a handover to Cell2 with the
+  // RRCConnectionReconfiguration message sent on Cell 1.
+  //@siclog "Step 4A" siclog@
+  // SS assigns UL grant during the Random Access procedure to allow the UE to send only
+  // RRCConnectionReconfigurationComplete message.
+  //@siclog "Step 5" siclog@
+  // The UE transmits a  RRCConnectionReconfigurationComplete message.
+  f_EUTRA_508RRC_IntraLTE_HO_InterCell ( eutra_Cell1,   // @sic R5s100430 change 2; R5s100524 sic@
+                                         eutra_Cell2,
+                                         {cs_OneDRB_ConfigAM(tsc_DRB1), cs_DRB2_ConfigUM_PDCP_Mode(p_PDCP_Rec.PDCP_SN_Size) },
+                                         tsc_C_RNTI_Def3);
+  //@siclog "Step 6" siclog@
+  // The SS sends the PDCP Data PDU #2 via RLC-UM RB with the following
+  // content to the UE: D/C field  = 1 (PDCP Data PDU) and PDCP SN = 2.
+  // After having sent a PDU, the SS set Next_PDCP_TX_SN= k+1.
+  f_UPSend(p_PDCP_Rec, eutra_Cell2, v_Data3);
+
+  //@siclog "Step 7" siclog@
+  // Check: Does the UE sends the PDCP Data PDU #2 via RLC-UM RB with the following
+  // content back to the SS: D/C field = 1 (PDCP Data PDU) and PDCP SN = 0.
+  // Data is previously received data PDU #2.
+  p_PDCP_Rec.Next_PDCP_RX_SN := 0;
+  f_UPRcv (p_PDCP_Rec, eutra_Cell2, v_Data3);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+
+} // f_EUTRA_7_3_5_3_TestBody
+
+function f_TC_7_3_5_4_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100307 sic@  @sic R5-104794 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+  var template (value) PhysicalConfigDedicated v_PhysicalConfigDedicated;
+
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  // Use 12 bits SN length
+  fl_InitPDCP_Record(v_PDCP_Rec, AM_Mode, PDCP_SNLength12);
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+  f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 );
+
+  // Cell configuration, with one AM DRB at the SS side
+  f_EUTRA_CellConfig_Def (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  // Setup cell 2
+  f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell2, tsc_C_RNTI_Def3 );
+  f_EUTRA_CellConfig_Def ( eutra_Cell2 );
+
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled, DsrTransMax=n64 // @sic R5-110724 sic@
+  v_PhysicalConfigDedicated := f_PhysicalConfigDedicated_Dsr_TransMax( eutra_Cell1 );
+  f_EUTRA_GenericRbEst_DisableBSR_PHR ( eutra_Cell1, 0, 0, omit, omit, v_PhysicalConfigDedicated, omit, omit);
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cs_DRB1_ConfigAM_PDCP_Mode );
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA ( eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+
+  // configure PDCP test mode for Cell 2
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell2, cs_DRB1_ConfigAM_PDCP_Mode );
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_7_3_5_4_TestBody (v_PDCP_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  // leaving UE test state 4
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell2, E3_TESTMODE);
+
+} // f_TC_7_3_5_4_EUTRA
+
+function f_EUTRA_7_3_5_4_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec)
+runs on EUTRA_PTC
+{ // @sic R5s100466 sic@ @sic R5-110724 sic@
+  // @sic R5-093516 + R5-095037 sic@
+  
+  var SubFrameTiming_Type v_Timing;
+  var octetstring v_Data1 := f_GetN_OctetsFromPRBS(0, 36);
+  var octetstring v_Data2 := f_GetN_OctetsFromPRBS(36,36);
+  var octetstring v_Data3 := f_GetN_OctetsFromPRBS(72,36);
+  var octetstring v_Data4 := f_GetN_OctetsFromPRBS(108,36);
+
+  //@siclog "Step 1" siclog@
+  // SS creates 4 PDCP Data PDUs and the next PDCP TX SN
+  // is set to "0".
+  // The contents of the PDCP SDU is prefabricated in ICMP packets crs_IPv4_AnyIcmpEchoReply_[1..5]
+  // When the PDCP SDUs are to be sent the header is added.
+  
+  //@siclog "Step 2" siclog@
+  // The SS sends the PDCP Data PDU #0 via RLC-AM RB with the following content to the UE:
+  // D/C field = 1 (PDCP Data PDU) and PDCP SN =0.
+  // The SS sets Next_PDCP_TX_SN = 1.
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data1);
+  
+  //@siclog "Step 3" siclog@
+  // The UE sends a PDCP Data PDU #0 via RLC-AM RB with the following content back to the SS:
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN = 0
+  // data: previously received packet.
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_Data1);
+  
+  //@siclog "Step 4" siclog@
+  // The SS is configured on Cell 1 to send no RLC ACK to the UE.
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cds_DRB1_ConfigAM_PDCP_Mode_RLC_Nack );
+  
+  //@siclog "Step 4A" siclog@
+  // Configure SS not to allocate UL grant to the UE in Cell 1
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync ( eutra_Cell1, cs_TimingInfo_Now );
+  
+  //@siclog "Step 5" siclog@
+  // After 100ms the SS sends the PDCP Data PDU #1 via RLC-AM RB with the following content to the UE:
+  // D/C field = 1 (PDCP Data PDU) and PDCP SN =1.
+  // The SS sets Next_PDCP_TX_SN = 2.
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1); //100 ms in future
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data2, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+  //@siclog "Step 5A" siclog@
+  // The SS waits for 60 ms and then allocates 1 UL grants (UL grant allocation type 2, Default UL Grant size)
+  // to enable UE to return PDCP Data PDU
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+  f_EUTRA_OneULGrantTransmission(eutra_Cell1,
+                                 cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                 9, 25);
+  
+  //@siclog "Step 6" siclog@
+  // The UE sends a PDCP Data PDU #1 via RLC-AM RB with the following content back to the SS:
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN = 1
+  // data: previously received packet.
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_Data2);
+  
+  //@siclog "Step 6A" siclog@
+  // The SS changes Cell 2 parameters according to the row "T1" in table 7.3.5.4.3.2-1.
+  f_EUTRA_SetCellPower (eutra_Cell2 , -79 );
+  //@siclog "Step 6B" siclog@
+  // The SS ignores scheduling requests and does not allocate any uplink grant in cell 2.
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync ( eutra_Cell2, cs_TimingInfo_Now );
+
+  //@siclog "Step 7" siclog@
+  // The SS requests UE to make a handover to Cell 2 with the
+  // RRCConnectionReconfiguration message sent on Cell 1.
+  // as per table 7.3.5.4.3.2-1 the PDCP discard and the statusReportRequired IE are to be set
+  // however, as the values are default values there is no need for such a setting
+  // the defaults have been set in the preamble and omitting the IE means to keep the previous settings
+  //@siclog "Step 7A" siclog@
+  // SS assigns UL grant during the Random Access procedure to allow the UE to send only
+  // RRCConnectionReconfigurationComplete message.
+  //@siclog "Step 8" siclog@
+  // The UE transmits a RRCConnectionReconfigurationComplete message on Cell 2.
+  f_EUTRA_508RRC_IntraLTE_HO_InterCell ( eutra_Cell1,  // @sic R5s100430 change 2; R5s100524 sic@
+                                         eutra_Cell2,
+                                         { cs_DRB1_ConfigAM_PDCP_Mode },
+                                         tsc_C_RNTI_Def3,
+                                         -,
+                                         -,
+                                         cs_UL_GrantConfig_Stop,
+                                         cs_UL_GrantConfig_Stop,
+                                         n64); // @sic R5s110168 change 5.2 sic@
+  //@siclog "Step 8A" siclog@
+  // The SS generates a PDCP status report message and sends it to UE:
+  // D/C field = 0 (PDCP control PDU) and PDU Type = 000, FMS field = 2.
+  DRB.send (cas_DRB_PDCP_PDU_Req( eutra_Cell2,
+                                  cs_TimingInfo_Now,
+                                  p_PDCP_Rec.RB_Id,
+                                  cs_PDCP_StatusRep ( int2bit(2,tsc_PDCP_SN_Size_12), omit )));
+  //@siclog "Step 8B" siclog@
+  // SS waits for 500 ms to ensure UE PDCP has discarded PDCP PDU and is ready to transmit PDCP status report
+  // and then assigns 1 UL grant (UL grant allocation type 3) of size 72 bits
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell2, 500); //500 ms in future
+  f_EUTRA_OneULGrantTransmission(eutra_Cell2,
+                                 cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                 2, 2);
+  //@siclog "Step 9" siclog@
+  // Check: Does the UE send PDCP Control PDUs via RLC-AM RB with the following content to the SS:
+  // D/C field  = 0 (PDCP control PDU) and PDU Type = 000, FMS field = 2.
+  DRB.receive (car_DRB_PDCP_PDU_Ind( eutra_Cell2,
+                                     p_PDCP_Rec.RB_Id,
+                                     cr_PDCP_StatusRep( int2bit(2, tsc_PDCP_SN_Size_12), omit )));
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9");
+
+  //@siclog "Step 10" siclog@
+  // Void
+
+  //@siclog "Step 10A" siclog@
+  // Configure SS to allocate Default UL grant to the UE in Cell 2
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell2);
+
+  // EXCEPTION: Step 11 shall be repeated for k=2 to 3 (increment=1).
+  //@siclog "Step 11" siclog@
+  // The SS sends the PDCP Data PDU #k via RLC-AM RB with the following content to the UE:
+  // D/C field = 1 (PDCP Data PDU) and PDCP SN = k.
+  // After having sent a PDU, the SS sets Next_PDCP_TX_SN = k + 1.
+  // Both PDCP PDUs are scheduled with 100 ms in between to ensure they are looped back individually
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell2); //100 ms in future
+  f_UPSend(p_PDCP_Rec, eutra_Cell2, v_Data3, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 100);
+  f_UPSend(p_PDCP_Rec, eutra_Cell2, v_Data4, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number)); // @sic R5s100562 sic@
+  
+  //@siclog "Step 12" siclog@
+  // Check: Does the UE send a PDCP Data PDU#2 via RLC-AM RB with the following content back to the SS:
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN = 2
+  // data: previously received packet.
+  f_UPRcv (p_PDCP_Rec, eutra_Cell2, v_Data3);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 12");
+  
+  //@siclog "Step 13" siclog@
+  // Check: Does the UE send a PDCP Data PDU#3 via RLC-AM RB with the following content back to the SS:
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN = 3
+  // data: previously received packet.
+  f_UPRcv (p_PDCP_Rec, eutra_Cell2, v_Data4);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 13");
+  
+} // f_EUTRA_7_3_5_4_TestBody
+
+function f_TC_7_3_5_5_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100309 sic@  @sic R5-104794 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  // Use 12 bits SN length
+  fl_InitPDCP_Record(v_PDCP_Rec, AM_Mode, PDCP_SNLength12);
+  // do we need a record per cell ?
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info:=f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+  f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 );
+
+  // Cell configuration, with one AM DRB at the SS side
+  f_EUTRA_CellConfig_Def (eutra_Cell1);
+  // Setup cell 2
+  f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell2, tsc_C_RNTI_Def3 );
+  f_EUTRA_CellConfig_Def ( eutra_Cell2 );
+
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled
+  f_EUTRA_RbEst_Def_DisableBSR_PHR ( eutra_Cell1 );
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cs_DRB1_ConfigAM_PDCP_Mode );
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA ( eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+
+  // configure PDCP test mode for Cell 2
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell2, cs_DRB1_ConfigAM_PDCP_Mode );
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_7_3_5_5_TestBody (v_PDCP_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  // leaving UE test state 4
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell2, E3_TESTMODE);
+
+} // TC_7_3_5_5_EUTRA
+
+function f_EUTRA_7_3_5_5_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec) runs on EUTRA_PTC
+{ // @sic R5s100466 sic@
+  var octetstring v_Data1 := f_GetN_OctetsFromPRBS(0,36);
+  var octetstring v_Data2 := f_GetN_OctetsFromPRBS(36,36);
+  var octetstring v_Data3 := f_GetN_OctetsFromPRBS(72,36);
+  var template (value) DciUlInfo_Type v_DciUlInfo_TargetCell;
+
+  timer t_WatchDog := 5.0;
+
+  //@siclog "Step 1" siclog@
+  // The Next PDCP_TX_SN is set to "0". The SS creates a PDCP Data PDU #0.
+  // The contents of the PDCP SDU is prefabricated in ICMP packets crs_IPv4_AnyIcmpEchoReply_[1..5]
+  // When the PDCP SDUs are to be sent the header is added.
+
+  //@siclog "Step 2" siclog@
+  // The SS sends the PDCP Data PDU#0 in RLC PDU #0 via RLC-AM RB with the following content to the UE:
+  // PDCP Data PDU #0; D/C field  = 1 (PDCP Data PDU) and PDCP SN=0
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data1);
+
+  //@siclog "Step 3" siclog@
+  // The UE transmits a PDCP Data PDU via RLC-AM RB with the following content back to the SS
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN=0
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_Data1);
+
+  //@siclog "Step 4" siclog@
+  // The Next PDCP_TX_SN is set to "1". The SS creates a PDCP Data PDU #1.
+  //@siclog "Step 5" siclog@
+  // The Next PDCP_TX_SN is set to "2". The SS creates a PDCP Data PDU #2.
+  p_PDCP_Rec.Next_PDCP_TX_SN := 2;
+  // increment VT(S) at the RLC level by 1 so that it becomes 2
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cds_DRB1_ConfigAM_PDCP_Mode_SetVTS ( 2 ) );
+  //@siclog "Step 6" siclog@
+  // The SS sends the PDCP Data PDU#2 via RLC-AM RB with the following content to the UE:
+  // PDCP Data PDU#2 (D/C field  = 1 (PDCP Data PDU) and PDCP SN=2)
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_Data3);
+
+  //@siclog "Step 7" siclog@
+  // Check: Does the UE transmit a PDCP DATA PDU #2?
+  t_WatchDog.start;
+  alt {
+    [] DRB.receive (car_DRB_PDCP_PDU_Ind(eutra_Cell1, p_PDCP_Rec.RB_Id, ?))
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 7");
+      }
+    [] t_WatchDog.timeout
+      {
+      }
+  }; // alt
+  
+  //@siclog "Step 7A" siclog@
+  // The SS changes Cell 2 parameters according to the row "T1" in table 7.3.5.5.3.2.0-1.
+  f_EUTRA_SetCellPower (eutra_Cell2 , -79 );
+  //@siclog "Step 7B" siclog@
+  // Configure SS to allocate UL grant to the UE in Cell 2
+  v_DciUlInfo_TargetCell := cs_DciInfo_CcchDcchDtchUL_Explicit(2, 2); /* Nprb = 2, Itbs = 2
+                                                                         @sic R5s100524: UL grant confiuration done in f_EUTRA_508RRC_IntraLTE_HO_InterCell sic@ */
+  //@siclog "Step 8" siclog@
+  // The SS requests UE to make a handover to Cell 2 with the RRCConnectionReconfiguration message.
+  //@siclog "Step 8A" siclog@
+  // SS assigns UL grant during the Random Access procedure to allow the UE to send only
+  // RRCConnectionReconfigurationComplete message.
+  //@siclog "Step 9" siclog@
+  // The UE transmits a RRCConnectionReconfigurationComplete message in the new cell.
+  f_EUTRA_508RRC_IntraLTE_HO_InterCell ( eutra_Cell1,  // @sic R5s100430 change 2; R5s100524 sic@
+                                         eutra_Cell2,
+                                         { cs_DRB1_ConfigAM_PDCP_Mode },
+                                         tsc_C_RNTI_Def3,
+                                         -,
+                                         v_DciUlInfo_TargetCell);
+  //@siclog "Step 9A" siclog@
+  // The UE sends PDCP Control PDU via RLC-AM RB with the following content to the SS:
+  // D/C field  = 0 (PDCP control PDU) and PDU Type =000, FMS field = 1, Bitmap = 0x80.
+  DRB.receive (car_DRB_PDCP_PDU_Ind( eutra_Cell2,
+                                     p_PDCP_Rec.RB_Id,
+                                     cr_PDCP_StatusRep( int2bit(1, tsc_PDCP_SN_Size_12), '80'O )));
+  //@siclog "Step 9B" siclog@
+  // The SS generates a PDCP status report message and sends it to UE:
+  // D/C field = 0 (PDCP control PDU) and PDU Type =000, FMS field = 1.
+  DRB.send (cas_DRB_PDCP_PDU_Req( eutra_Cell2,
+                                  cs_TimingInfo_Now,
+                                  p_PDCP_Rec.RB_Id,
+                                  cs_PDCP_StatusRep ( int2bit(1,tsc_PDCP_SN_Size_12), omit )));
+  //@siclog "Step 9C" siclog@
+  // Configure SS to allocate Default UL grant to the UE in Cell 2
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell2);
+  
+  //@siclog "Step 10" siclog@
+  // The SS sends the PDCP Data PDU#0 via RLC-AM RB with the following content to the UE:
+  // PDCP Data PDU #0(D/C field  = 1 (PDCP Data PDU) and PDCP SN=0)
+  p_PDCP_Rec.Next_PDCP_TX_SN := 0;
+  f_UPSend(p_PDCP_Rec, eutra_Cell2, v_Data1);
+  
+  //@siclog "Step 11" siclog@
+  // Check: Does the UE transmit PDCP Data PDU via RLC-AM RB with the following content back to the SS?
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN=0. Data: previously received packet in PDCP Data PDU #0
+  t_WatchDog.start;
+  alt {
+    [] DRB.receive (car_DRB_PDCP_PDU_Ind(eutra_Cell2, p_PDCP_Rec.RB_Id, ?))
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 11");
+      }
+    [] t_WatchDog.timeout
+      {
+      }
+  }; // alt
+  
+  // inhibit loopback
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync(eutra_Cell2, cs_TimingInfo_Now);
+
+  //@siclog "Step 12" siclog@
+  // The SS sends the PDCP Data PDU#1 via RLC-AM RB with the following content to the UE:
+  // PDCP Data PDU #1(D/C field  = 1 (PDCP Data PDU) and PDCP SN=1)
+  f_UPSend(p_PDCP_Rec, eutra_Cell2, v_Data2);
+  
+  //@siclog "Step 13" siclog@
+  // Check: Does the UE transmit a PDCP Data PDU via RLC-AM RB with the following content back to the SS?
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN=1. Data: previously received packet in PDCP Data PDU #1
+  
+  //@siclog "Step 14" siclog@
+  // Check: Does the UE transmit PDCP Data PDU via RLC-AM RB with the following content back to the SS?
+  // D/C field  = 1 (PDCP Data PDU) and PDCP SN=2, data: previously received packet in PDCP Data PDU #2
+
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell2);
+  f_UPRcv2PDUs (p_PDCP_Rec, eutra_Cell2, v_Data2, v_Data3);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 13");
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 14");
+  
+} // f_EUTRA_7_3_5_5_TestBody
+
+function f_TC_7_3_6_1_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100147 sic@ @sic R5s100347 sic@ @sic R5s100298 sic@
+  var PDCP_SS_State_Type v_PDCP_Rec;
+  var template (value) EUTRA_FDD_TDD_CellInfo_Type  v_EUTRA_FDD_TDD_Info;
+  var template (value) PhysicalConfigDedicated v_PhysicalConfigDedicated;  // => apply default setting acc. 36.508 cl. 4.8.2.1.6 */
+  
+  // Initialization, generic setup, DRB loopback
+  f_EUTRA_Init(c1);
+  // Use 12 bits SN length
+  fl_InitPDCP_Record(v_PDCP_Rec, UM_Mode, PDCP_SNLength12);
+  // get FDD_TDD_Info
+  v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  // PDCP Discard_Timer shall be 500 ms
+  v_PhysicalConfigDedicated := f_PhysicalConfigDedicated_Dsr_TransMax( eutra_Cell1 );
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cds_DRB_PDCP_Conf_UM_ModifyDiscardTime(ms500),
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cs_508_DRB_DL_UM_RLC,
+                                  omit,
+                                  v_PhysicalConfigDedicated);
+  
+  // reconfigure DRB locally to set the required PDCP test mode
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB ( eutra_Cell1, cs_DRB2_ConfigUM_PDCP_Mode(v_PDCP_Rec.PDCP_SN_Size) );
+  // closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA ( eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_7_3_6_1_TestBody (v_PDCP_Rec);
+  f_EUTRA_TestBody_Set(false);
+  
+  // leaving UE test state 4
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+  
+} // f_TC_7_3_6_1_EUTRA
+
+function f_EUTRA_7_3_6_1_TestBody(inout PDCP_SS_State_Type p_PDCP_Rec)
+  runs on EUTRA_PTC
+{
+  var integer k;
+  var SubFrameTiming_Type v_Timing;
+  var template (value) octetstring v_IPData1 :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE(), -, 1);    /* @sic R5s120470 sic@ */
+  var template (value) octetstring v_IPData2 :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE(), -, 2);    /* @sic R5s120470 sic@ */
+  var template (value) octetstring v_IPData3 :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE(), -, 3);    /* @sic R5s120470 sic@ */
+  var template (value) octetstring v_IPData4 :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE(), -, 4);    /* @sic R5s120470 sic@ */
+  var template (value) octetstring v_IPData5 :=  f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE(), -, 5);    /* @sic R5s120470 sic@ */
+
+  //@siclog "Step 1" siclog@
+  // SS creates 5 PDCP Data PDUs and the next PDCP TX SN
+  // is set to "0" first iteration and then incremented by 1 at each iteration
+  // The contents of the PDCP SDU is prefabricated in ICMP packets crs_IPv4_AnyIcmpEchoReply_[1..5]
+  // When the PDCP SDUs are to be sent the header is added in steps 3 and 5.
+
+  //@siclog "Step 2" siclog@
+  // SS ignores scheduling requests and does not allocate any uplink grant
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync ( eutra_Cell1, cs_TimingInfo_Now );
+
+  // EXCEPTION: Step 3 shall be repeated for k=0 to 2 (increment=1)
+  //@siclog "Step 3" siclog@
+  // SS sends a PDCP Data via PDU RLC_UM RB with the following
+  // content to the UE D/C field = 1 (PDCP Data PDU) and PDCP SN = k
+  // After having sent a PDU, the SS sets Next PDCP TX SN = k+1
+  // Sent different IPpacket for each PDCP PDU
+  for (k:= 0; k <= 2; k := k+1) {
+    if (k==0)
+      {
+        f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData1);
+      }
+    else if (k==1)
+      {
+        f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData2);
+      }
+    else
+      {
+        f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData3);
+      }
+  } // for
+  
+  //@siclog "Step 4" siclog@
+  // Wait for Discard Timer (500ms) + 10 TTI
+  f_Delay( f_EUTRA_SetTimerToleranceMax (eutra_Cell1, l2Timer, 0.5 ));
+  
+  //@siclog "Step 5" siclog@
+  // SS sends a PDCP Data PDU via RLC_UM RB with the following
+  // content to the UE: D/C field = 1 (PDCP Data PDU) and PDCP SN = k
+  // After having sent a PDU, the SS set Next PDCP TX SN = k+1
+  // Exception: step 5 shall be repeated for k=3 to 4 (increment 1)
+  // Both PDCP PDUs are scheduled with 100 ms in between to ensure they are looped back individually
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1); //100 ms in future
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData4, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 100);
+  f_UPSend(p_PDCP_Rec, eutra_Cell1, v_IPData5, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+  //@siclog "Step 6" siclog@
+  // SS resumes normal UL grant allocation
+  // according to 36.523-3 this will be in less than 80 ms
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+  
+  //@siclog "Step 7" siclog@
+  // Check: Does UE transmit a PDCP Data PDU with PDCP SN=3?
+  p_PDCP_Rec.Next_PDCP_RX_SN := 3;
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData4);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+  
+  //@siclog "Step 8" siclog@
+  // Check: Does UE transmit a PDCP Data PDU with PDCP SN=4?
+  f_UPRcv (p_PDCP_Rec, eutra_Cell1, v_IPData5);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+  
+} // f_EUTRA_7_3_6_1_TestBody
+
+}

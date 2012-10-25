@@ -1,0 +1,128 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-07-16 23:50:04 +0200 (Mon, 16 Jul 2012) $
+// $Rev: 7022 $
+/******************************************************************************/
+
+module IMS_IP_Config {
+
+  import from CommonDefs all;
+  import from IMS_Component all;
+  import from IP_ASP_TypeDefs all;
+  import from IMS_ASP_TypeDefs all;
+  import from IMS_Constants all;
+
+  //****************************************************************************
+  // ASP Templates:
+  //----------------------------------------------------------------------------
+
+  template (value) IMS_ProtectedPorts_Type cs_IMS_ProtectedPorts(PortNumber_Type p_Port_us,
+                                                                 PortNumber_Type p_Port_uc,
+                                                                 PortNumber_Type p_Port_ps := tsc_IMS_Port_ps,
+                                                                 PortNumber_Type p_Port_pc := tsc_IMS_Port_pc) :=
+  {
+    Port_us := p_Port_us,
+    Port_uc := p_Port_uc,
+    Port_ps := p_Port_ps,
+    Port_pc := p_Port_pc
+  };
+
+  template (value) IMS_SPIs_Type cs_IMS_SPIs(IPsec_SPI_Type p_SPI_us,
+                                             IPsec_SPI_Type p_SPI_uc) :=
+  {
+    SPI_us := p_SPI_us,
+    SPI_uc := p_SPI_uc,
+    SPI_ps := omit,  // to be assigned by the IP_PTC
+    SPI_pc := omit   // to be assigned by the IP_PTC
+  };
+
+  template (value) IMS_SecurityInfo_Type cs_IMS_SecurityInfo(IP_AddrInfo_Type p_NW_Address,
+                                                             IP_AddrInfo_Type p_UE_Address,
+                                                             template (value) IMS_ProtectedPorts_Type p_ProtectedPorts,
+                                                             template (value) IMS_SPIs_Type           p_SPIs,
+                                                             IPsec_IntegrityAlgorithm_Type p_IntegrityAlgorithm,
+                                                             IPsec_CipheringAlgorithm_Type p_CipheringAlgorithm) :=
+  {
+    NW_Address         := p_NW_Address,
+    UE_Address         := p_UE_Address,
+    ProtectedPorts     := p_ProtectedPorts,
+    SPIs               := p_SPIs,
+    IntegrityAlgorithm := p_IntegrityAlgorithm,
+    CipheringAlgorithm := p_CipheringAlgorithm
+  };
+
+  template (value) IMS_PortsAndSecurityConfigReq_Type cs_IMS_PortsAndSecurityConfig(template (omit)  PortNumber_Type p_UnprotectedPort_us,
+                                                                                    template (value) IMS_SecurityInfo_Type p_SecurityInfo) :=
+  {
+    UnprotectedPort_us := p_UnprotectedPort_us,
+    SecurityInfo       := p_SecurityInfo
+  };
+
+  template (value) IPsec_SecurityKeys_Type cs_IPsecKeys(bitstring p_MD5_96Key,
+                                                        bitstring p_SHA_1_96Key,
+                                                        bitstring p_DES_EDE3_CBCKey,
+                                                        bitstring p_AES_CBCKey) :=
+  {
+    MD5_96Key       := p_MD5_96Key,
+    SHA_1_96Key     := p_SHA_1_96Key,
+    DES_EDE3_CBCKey := p_DES_EDE3_CBCKey,
+    AES_CBCKey      := p_AES_CBCKey
+  };
+
+  template (value) IMS_CONFIG_REQ cas_IMS_InstallKey_REQ(template (value) IPsec_SecurityKeys_Type p_InstallKey) := {InstallKey := p_InstallKey};
+  template (value) IMS_CONFIG_REQ cas_IMS_PortsAndSecurityConfig_REQ(template (value) IMS_PortsAndSecurityConfigReq_Type p_PortsAndSecurityConfig) := {PortsAndSecurityConfig := p_PortsAndSecurityConfig};
+  
+  template IMS_CONFIG_CNF car_IMS_InstallKey_CNF := {InstallKey := true};
+  template IMS_CONFIG_CNF car_IMS_PortsAndSecurityConfig_CNF := {PortsAndSecurityConfig := ?};
+
+  //============================================================================
+  // configuration of the IP PTC:
+
+  function f_IMS_InstallIPsecKeys(B128_Type p_IK,
+                                  B128_Type p_CK) runs on IMS_PTC
+  { /* Computation of the IPsec keys according to "Key extension functions for IPsec ESP" in TS 33.203 Annex I;
+       the keys are sent to the SS via the IP PTC */
+    var B64_Type v_Bitestring1 := substr(p_CK,  0, 64);
+    var B64_Type v_Bitestring2 := substr(p_CK, 64, 64);
+    var B128_Type v_MD5_96Key        := p_IK;
+    var B160_Type v_SHA_1_96Key      := p_IK & int2bit(0, 32); // 160 bits
+    var B192_Type v_DES_EDE3_CBCKey  := v_Bitestring1 & v_Bitestring2 & v_Bitestring1;  // 192 bits
+    var B128_Type v_AES_CBCKey       := p_CK; // 128 bits
+
+
+    IMS_CTRL.send(cas_IMS_InstallKey_REQ(cs_IPsecKeys(v_MD5_96Key, v_SHA_1_96Key, v_DES_EDE3_CBCKey, v_AES_CBCKey)));
+    IMS_CTRL.receive(car_IMS_InstallKey_CNF);
+  }
+
+  function f_IMS_PortsAndSecurityConfig(template (omit)  PortNumber_Type p_UnprotectedPort_us,
+                                        template (value) IMS_ProtectedPorts_Type p_ProtectedPorts,
+                                        IP_AddrInfo_Type p_NW_Address,
+                                        IP_AddrInfo_Type p_UE_Address,
+                                        template (value) IMS_SPIs_Type p_SPIs,
+                                        IPsec_IntegrityAlgorithm_Type p_IntegrityAlgorithm,
+                                        IPsec_CipheringAlgorithm_Type p_CipheringAlgorithm) runs on IMS_PTC return IMS_PortsAndSecurityConfigCnf_Type
+  { /* configure IMS security; the IP PTC returns SPIs which it has assigned */
+    var IMS_CONFIG_CNF v_IMS_CONFIG_CNF;
+
+    if (valueof(p_SPIs.SPI_us) == valueof(p_SPIs.SPI_uc)) {
+      FatalError(__FILE__, __LINE__, "SPI_us and SPI_uc shall have different values");
+    }
+
+    IMS_CTRL.send(cas_IMS_PortsAndSecurityConfig_REQ(cs_IMS_PortsAndSecurityConfig(p_UnprotectedPort_us,
+                                                                                   cs_IMS_SecurityInfo(p_NW_Address,
+                                                                                                       p_UE_Address,
+                                                                                                       p_ProtectedPorts,
+                                                                                                       p_SPIs,
+                                                                                                       p_IntegrityAlgorithm,
+                                                                                                       p_CipheringAlgorithm))));
+    IMS_CTRL.receive(car_IMS_PortsAndSecurityConfig_CNF) -> value v_IMS_CONFIG_CNF;
+
+    return v_IMS_CONFIG_CNF.PortsAndSecurityConfig;
+  }
+
+}

@@ -1,0 +1,235 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 10:04:48 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7281 $
+/******************************************************************************/
+
+module ETWS {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_SysInfo_Templates all;
+  import from EUTRA_Timing all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  const MessageIdentifier_Type tsc_ETWS_MsgID_EartQ_Tsunami := '0001000100000010'B;   /* ETWS message identifier for earthquake and tsunami message
+                                                                                         @status    APPROVED */
+
+  const SerialNumber_Type  tsc_ETWS_SerialNumber_CellWide := '0011000000000000'B;     /* ETWS serial number: Cell wide, Activate emergency user alert,Activate popup, For each update, incremented by one
+                                                                                         @status    APPROVED */
+
+  const DataCodingScheme_Type tsc_ETWS_DataCodingScheme := '00'O;                     /* @status    APPROVED */
+
+  function f_TC_14_1_EUTRA() runs on EUTRA_PTC
+  { /* ETWS reception in RRC_IDLE state / Duplicate detection */
+    var WarningMessageSegment_List v_WarningMsgSegList ;
+    var template (value) SegmentedSI_List_Type v_SegmentedSI_List;
+    var SystemFrameNumber_Type v_Timing_SFN;
+    var SubFrameTiming_Type v_Timing;
+    var boolean v_UT_COMMON_CNF_Result1, v_UT_COMMON_CNF_Result2; //@sic R5-120638 sic@
+
+    f_EUTRA_Init(c1);
+    
+    //Prepare CB Data segments to include in SIB11 segments
+    v_WarningMsgSegList := f_SegmentWarningCB_Data(px_PWS_CB_DataPage1, px_PWS_CB_DataPage2);
+    v_SegmentedSI_List := {
+      {
+        cs_SystemInformation_Common(cs_SI_SIB11(cs_SystemInformationBlockType11_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                                    tsc_ETWS_SerialNumber_CellWide,
+                                                                                    notLastSegment,
+                                                                                    0,
+                                                                                    v_WarningMsgSegList[0],
+                                                                                    tsc_ETWS_DataCodingScheme))),
+        cs_SystemInformation_Common(cs_SI_SIB11(cs_SystemInformationBlockType11_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                                    tsc_ETWS_SerialNumber_CellWide,
+                                                                                    notLastSegment,
+                                                                                    1,
+                                                                                    v_WarningMsgSegList[1],
+                                                                                    tsc_ETWS_DataCodingScheme))),
+        cs_SystemInformation_Common(cs_SI_SIB11(cs_SystemInformationBlockType11_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                                    tsc_ETWS_SerialNumber_CellWide,
+                                                                                    lastSegment,
+                                                                                    2,
+                                                                                    v_WarningMsgSegList[2],
+                                                                                    tsc_ETWS_DataCodingScheme)))
+      }
+    };
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def(eutra_Cell1);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //The SS include an ETWS message with new messageIdentifier and serialNumber in SystemInformationBlockType10 and SystemInformationBlockType11 and transmit a Paging message including etws-Indication on Cell 1 (NOTE1).
+    //NOTE1: SystemInformationBlockType11 contain 3 segments.
+    
+    //Change SYSINFO combination to 8
+    f_EUTRA_SetSysinfoCombinationC8_ETWS(eutra_Cell1,
+                                         cs_SystemInformationBlockType10_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                             tsc_ETWS_SerialNumber_CellWide,
+                                                                             tsc_WarningType_EartQ_Tsunami,
+                                                                             omit),
+                                         v_SegmentedSI_List);
+    
+    //Broadcast the modified systemInfomation with SIB10 and SIB11 and Page UE
+    f_EUTRA_ModifySysinfo_PWS(eutra_Cell1, false, true, RRC_IDLE, true_); // @sic R5-121854 sic@
+    
+    //@siclog "Step 2" siclog@
+    //Check: Does the UE indicate the contents of the "warning message" to the user, and alert or activate alerting the user?
+    //NOTE2: The data indication and user alerting are the UE implementation issues
+    v_UT_COMMON_CNF_Result1 := f_UT_CheckETWS_CMAS(UT, px_PWS_CB_DataPage1, px_PWS_CB_DataPage2);
+    //@sic R5-120638 sic@
+    v_UT_COMMON_CNF_Result2 := f_UT_CheckETWS_CMAS_Alert(UT);
+    if ((v_UT_COMMON_CNF_Result1 == true) and (v_UT_COMMON_CNF_Result2 == true)){
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 14.1 Step 2");
+    }
+
+    //@siclog "Step 3" siclog@
+    //The SS wait for 10s.
+    f_Delay(10.0);
+    
+    //@siclog "Step 4" siclog@
+    //The SS include an ETWS message with same messageIdentifier and serialNumber in SystemInformationBlockType10 and SystemInformationBlockType11 and transmit a Paging message including etws-Indication on Cell 1 (NOTE1).
+    //Get the current SFN and subframe
+    v_Timing := f_EUTRA_GetCurrentTiming(eutra_Cell1);
+    
+    //Add processing delay to current SFN
+    v_Timing_SFN := (v_Timing.SFN.Number + tsc_SfnDelay) mod 1024;
+    f_EUTRA_UE_PageSysinfoMod(eutra_Cell1, v_Timing_SFN, RRC_IDLE, omit, true_);
+    
+    //@siclog "Step 5" siclog@
+    //Check: Does the UE indicate the contents of the "warning message" to the user,or alert or activate alerting the user?
+    //NOTE2: The data indication and user alerting are the UE implementation issues
+    v_UT_COMMON_CNF_Result1 := f_UT_CheckETWS_CMAS(UT, "", "");
+    //@sic R5-120638, R5s120119 sic@
+    v_UT_COMMON_CNF_Result2 := f_UT_CheckETWS_CMAS_NoAlert(UT);
+    if ((v_UT_COMMON_CNF_Result1 == false) or (v_UT_COMMON_CNF_Result2 == false)) {
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 14.1 Step 5");
+    }
+    
+    f_EUTRA_TestBody_Set(false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble(eutra_Cell1, E1_IDLE);
+    
+  } // end of f_TC_14_1_EUTRA
+
+  function f_TC_14_2_EUTRA() runs on EUTRA_PTC
+  { /* ETWS reception in RRC_CONNECTED state / Duplicate detection */
+    var WarningMessageSegment_List v_WarningMsgSegList;
+    var template (value) SegmentedSI_List_Type v_SegmentedSI_List;
+    var SystemFrameNumber_Type v_Timing_SFN;
+    var SubFrameTiming_Type v_Timing;
+    var boolean v_UT_COMMON_CNF_Result1, v_UT_COMMON_CNF_Result2; //@sic R5-120638 sic@
+    
+    f_EUTRA_Init(c1);
+    
+    //Prepare CB Data segments to include in SIB11 segments
+    v_WarningMsgSegList := f_SegmentWarningCB_Data(px_PWS_CB_DataPage1, px_PWS_CB_DataPage2);
+    v_SegmentedSI_List := {
+      {
+        cs_SystemInformation_Common(cs_SI_SIB11(cs_SystemInformationBlockType11_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                                    tsc_ETWS_SerialNumber_CellWide,
+                                                                                    notLastSegment,
+                                                                                    0,
+                                                                                    v_WarningMsgSegList[0],
+                                                                                    tsc_ETWS_DataCodingScheme))),
+        cs_SystemInformation_Common(cs_SI_SIB11(cs_SystemInformationBlockType11_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                                    tsc_ETWS_SerialNumber_CellWide,
+                                                                                    notLastSegment,
+                                                                                    1,
+                                                                                    v_WarningMsgSegList[1],
+                                                                                    tsc_ETWS_DataCodingScheme))),
+        cs_SystemInformation_Common(cs_SI_SIB11(cs_SystemInformationBlockType11_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                                    tsc_ETWS_SerialNumber_CellWide,
+                                                                                    lastSegment,
+                                                                                    2,
+                                                                                    v_WarningMsgSegList[2],
+                                                                                    tsc_ETWS_DataCodingScheme)))
+      }
+    };
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def(eutra_Cell1);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def(eutra_Cell1);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //The SS include an ETWS message with new messageIdentifier and serialNumber in SystemInformationBlockType10 and SystemInformationBlockType11 and transmit a Paging message including etws-Indication on Cell 1 (NOTE1).
+    //NOTE1: SystemInformationBlockType11 contain 3 segments.
+    
+    //Change SYSINFO combination to 8
+    f_EUTRA_SetSysinfoCombinationC8_ETWS(eutra_Cell1,
+                                         cs_SystemInformationBlockType10_Def(tsc_ETWS_MsgID_EartQ_Tsunami,
+                                                                             tsc_ETWS_SerialNumber_CellWide,
+                                                                             tsc_WarningType_EartQ_Tsunami,
+                                                                             omit),
+                                         v_SegmentedSI_List);
+    
+    //Broadcast the modified systemInfomation with SIB10 and SIB11 and Page UE
+    f_EUTRA_ModifySysinfo_PWS(eutra_Cell1, false, true, RRC_CONNECTED, true_); // @sic R5-121854 sic@
+    
+    //@siclog "Step 2" siclog@
+    //Check: Does the UE indicate the contents of the "warning message" to the user,and alert or activate alerting the user?
+    //NOTE2: The data indication and user alerting are the UE implementation issues
+    v_UT_COMMON_CNF_Result1 := f_UT_CheckETWS_CMAS(UT, px_PWS_CB_DataPage1, px_PWS_CB_DataPage2);
+    //@sic R5-120638 sic@
+    v_UT_COMMON_CNF_Result2 := f_UT_CheckETWS_CMAS_Alert(UT);
+    if ((v_UT_COMMON_CNF_Result1 == true) and (v_UT_COMMON_CNF_Result2 == true)) {
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 14.2 Step 2");
+    }
+    
+    //@siclog "Step 3" siclog@
+    //The SS wait for 10s.
+    f_Delay(10.0);
+    
+    //@siclog "Step 4" siclog@
+    //The SS include an ETWS message with same messageIdentifier and serialNumber in SystemInformationBlockType10 and SystemInformationBlockType11 and transmit a Paging message including etws-Indication on Cell 1 (NOTE1).
+    //NOTE1: SystemInformationBlockType11 contain 3 segments.
+    //Get the current SFN and subframe
+    v_Timing := f_EUTRA_GetCurrentTiming(eutra_Cell1);
+    
+    //Add processing delay to current SFN
+    v_Timing_SFN := (v_Timing.SFN.Number + tsc_SfnDelay) mod 1024;
+    f_EUTRA_UE_PageSysinfoMod(eutra_Cell1, v_Timing_SFN, RRC_CONNECTED, omit, true_);
+    
+    //@siclog "Step 5" siclog@
+    //Check: Does the UE indicate the contents of the "warning message" to the user,or alert or activate alerting the user?
+    //NOTE2: The data indication and user alerting are the UE implementation issues
+    v_UT_COMMON_CNF_Result1 := f_UT_CheckETWS_CMAS(UT, "", "");
+    //@sic R5-120638, R5s120119 sic@
+    v_UT_COMMON_CNF_Result2 := f_UT_CheckETWS_CMAS_NoAlert(UT);
+    if ((v_UT_COMMON_CNF_Result1 == false) or (v_UT_COMMON_CNF_Result2 == false)) {
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 14.2 Step 5");
+    }
+   
+    f_EUTRA_TestBody_Set(false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble(eutra_Cell1, E2_CONNECTED); //@sic R5-103875 sic@
+    
+  } // end of f_TC_14_2_EUTRA
+
+}

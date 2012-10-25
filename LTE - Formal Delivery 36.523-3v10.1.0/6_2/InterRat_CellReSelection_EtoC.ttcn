@@ -1,0 +1,490 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+module InterRat_CellReSelection_EtoC {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+
+  function f_TC_6_2_2_3_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT Cell selection / From E-UTRA RRC_IDLE to HRPD Idle / Serving cell becomes non-suitable (SServingCell<0) */
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -60 );
+    //Set Sys. info for Cell 1 to be used in creation (according to Table 6.2.2.3.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //Cell reselection priority changed to 5 (according to Table 6.2.2.3.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_HRPD(eutra_Cell1,5 );
+    //the specific values of  t_ReselectionCDMA timer =0 , threshX-High =30, threshX-L0w =32 are same  as default
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    
+    f_EUTRA_TestBody_Set(true);
+
+    //Set cell power level according to T1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    //Step 1A: SS waits [10s] to allow the UE to read the system information
+    //@sic R5s110741 sic@
+    f_Delay (10.0);
+
+    //@siclog "Step 2" siclog@
+    //Step 2: Set cell power level according to T2
+    f_EUTRA_SetCellPower ( eutra_Cell1, -120 );
+    
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+
+    f_EUTRA_TestBody_Set(false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+
+  }//end of f_TC_6_2_2_3_EUTRA
+
+  function f_TC_6_2_3_7_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle / HRPD cell is higher reselection priority than E-UTRA */
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -60 );
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.7.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  threshX-High =30, threshX-L0w =32 are same  as default
+    //Cell reselection priority changed to 5 (according to Table 6.2.3.7.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_HRPD(eutra_Cell1,5 );
+    //t_ReselectionCDMA timer changed to 7 (according to Table 6.2.3.7.3.2-2)
+    f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_HRPD(eutra_Cell1,7);
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    //------------------------------------------------
+    //Start TestBody
+    f_EUTRA_TestBody_Set(true);
+
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    
+    f_EUTRA_TestBody_Set(false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_3_8_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle / HRPD cell is Lower reselection priority than E-UTRA */
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -60 );
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.8.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  t_ReselectionCDMA timer =0 , threshX-High =30, threshX-L0w =32
+    // (according to Table 6.2.3.8.3.2-2) are same  as default
+    //Cell reselection priority changed to 5 (according to Table 6.2.3.8.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_HRPD(eutra_Cell1,3 );
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    f_EUTRA_TestBody_Set(true);
+
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SetCellPower ( eutra_Cell1, -70 );
+    
+    //Wait for co-ordination message to set power level as per T2
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    
+    //@siclog "Step 5" siclog@
+    //Set cell power level according to T2
+    f_EUTRA_SetCellPower ( eutra_Cell1, -120 );
+    
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    f_EUTRA_TestBody_Set(false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  } //end of f_TC_6_2_2_8_EUTRA
+
+  function f_TC_6_2_2_4_EUTRA ( ) runs on EUTRA_PTC
+  { // Inter-RAT cell selection / From E-UTRA RRC_IDLE to 1xRTT Dormant / Serving cell becomes non-suitable (SServingCell<0)
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -75 );
+    //Set Sys. info for Cell 1 to be used in creation (according to Table 6.2.2.4.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //Cell reselection priority changed to 5 (according to Table 6.2.2.4.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_RTT1X(eutra_Cell1,5 );
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    
+    f_EUTRA_TestBody_Set(true);
+
+    //Set cell power level according to T1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+     //Step 1A: SS waits [10s] to allow the UE to read the system information
+     //@sic R5s110741 sic@
+    f_Delay (10.0);
+    //@siclog "Step 2" siclog@
+    //Step 2: Set cell power level according to T2
+    f_EUTRA_SetCellPower ( eutra_Cell1, -120 );
+    
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+
+    f_EUTRA_TestBody_Set(false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  } // end of f_TC_6_2_3_4_EUTRA
+
+  function f_TC_6_2_3_9_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell is higher reselection priority than E-UTRA */
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c6);
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -75 );
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.9.3.3-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  threshX-High =30, threshX-L0w =32 are same  as default
+    //Cell reselection priority changed to 5 (according to Table 6.2.3.9.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_RTT1X(eutra_Cell1,5 );
+    //t_ReselectionCDMA timer changed to 7 (according to Table 6.2.3.9.3.2-2)
+    f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_RTT1X (eutra_Cell1,7);
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    //------------------------------------------------
+    //Start TestBody
+    f_EUTRA_TestBody_Set(true);
+    
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd(CDMA2000, cms_IRAT_Trigger);
+
+    
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+      
+    f_EUTRA_TestBody_Set(false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  } // end of f_TC_6_2_3_9_EUTRA
+
+  function f_TC_6_2_3_10_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell is lower reselection priority than E-UTRA */
+
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -75 );
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.10.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  t_ReselectionCDMA timer =0 , threshX-High =30, threshX-L0w =32
+    // (according to Table 6.2.3.10.3.2-2) are same  as default
+    //Cell reselection priority changed to 3 (according to Table 6.2.3.10.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_RTT1X(eutra_Cell1,3 );
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    //------------------------------------------------
+    //Start TestBody
+    f_EUTRA_TestBody_Set(true);
+    
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SetCellPower ( eutra_Cell1, -100 );
+
+    //Wait for co-ordination message to set power level as per T2
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+
+    //@siclog "Step 4" siclog@
+    //Set cell power level according to T2
+    f_EUTRA_SetCellPower ( eutra_Cell1, -120 );
+
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    f_EUTRA_TestBody_Set(false);
+    
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  } // end of f_TC_6_2_3_10_EUTRA
+
+  function f_TC_6_2_3_7a_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle / HRPD cell is higher reselection priority than E-UTRA (Srxlev > ThreshHRPD, HighP) */
+    
+    var CellRes_Prio_Type v_CellRes_Prio_initial := 4;
+    var ReselectionThreshold v_ThreshServingLow_Cell1 := 10;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -60 );
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.7a.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  threshX-High =30, threshX-L0w =32 are same  as default
+    //Cell reselection priority changed to 5 (according to Table 6.2.3.7a.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_HRPD(eutra_Cell1,5 );
+    //t_ReselectionCDMA timer changed to 7 (according to Table 6.2.3.7.3a.2-2)
+    f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_HRPD(eutra_Cell1,7);
+    
+    // --- Update SIB3 ---
+    //* @desc Set system information according to specific message contents
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio ( eutra_Cell1, v_CellRes_Prio_initial );
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow ( eutra_Cell1, v_ThreshServingLow_Cell1 );
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLowQ_r9 ( eutra_Cell1, 3 ); //@sic R5s120517 sic@
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLowQ_r9 ( eutra_Cell1, 20 );//@sic R5-123248 sic@
+    //threshServingLowQ-r9 is TBD yet, in the meantime the function is setting just omit
+    // Wait for defined value in 36.523-1 and set the call in 2nd parameter instead of the existing predefined value
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    //------------------------------------------------
+    //Start TestBody
+    f_EUTRA_TestBody_Set(true);
+
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    
+    f_EUTRA_TestBody_Set(false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_3_8a_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to HRPD Idle /
+     *  HRPD cell is lower reselection priority than E-UTRA (Squal < ThreshServing, LowQ and Srxlev > ThreshHRPD, LowP */
+    
+    var CellRes_Prio_Type v_CellRes_Prio_initial := 4;
+    var ReselectionThreshold v_ThreshServingLow_Cell1 := 5;  //@sic R5s120554 sic@
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -60 );
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.8a.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  t_ReselectionCDMA timer =0 , threshX-High =30, threshX-L0w =32
+    // (according to Table 6.2.3.8a.3.2-2) are same  as default
+    //Cell reselection priority changed to 5 (according to Table 6.2.3.8a.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_HRPD(eutra_Cell1,3 );
+     //t_ReselectionCDMA timer changed to 7 (according to Table 6.2.3.8a.3.2-2)
+     //@sic R5s120554 sic@
+    f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_HRPD(eutra_Cell1,7);
+    // --- Update SIB3 ---
+    //* @desc Set system information according to specific message contents
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio ( eutra_Cell1, v_CellRes_Prio_initial );
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow ( eutra_Cell1, v_ThreshServingLow_Cell1 );
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLowQ_r9 ( eutra_Cell1, 26 ); //@sic R5s120517 sic@
+    //threshServingLowQ-r9 is TBD yet, in the meantime the function is setting just omit
+    // Wait for defined value in 36.523-1 and set the call in 2nd parameter instead of the existing predefined value
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    f_EUTRA_TestBody_Set(true);
+    
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SetCellPower ( eutra_Cell1, -70 );
+    
+    //Wait for co-ordination message to set power level as per T2
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    
+    //@siclog "Step 5" siclog@
+    //Set cell power level according to T2
+    f_EUTRA_SetCellPower ( eutra_Cell1, -120 );
+    
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    f_EUTRA_TestBody_Set(false);
+
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_6_2_3_9a_EUTRA() runs on EUTRA_PTC
+  { /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell is higher reselection priority than E-UTRA (Srxlev > Thresh1xRTT, HighP) */
+    
+    var CellRes_Prio_Type v_CellRes_Prio_initial := 4;
+    //var ReselectionThreshold v_ThreshServingLow_Cell1 := 10;//@sic R5s120517 sic@
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6  );
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -75 );
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.9a.3.3-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin ( eutra_Cell1, -55 );
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  threshX-High =30, threshX-L0w =32 are same  as default
+    //Cell reselection priority changed to 5 (according to Table 6.2.3.9a.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_RTT1X(eutra_Cell1,5 );
+    //t_ReselectionCDMA timer changed to 7 (according to Table 6.2.3.9a.3.2-2)
+    f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_RTT1X (eutra_Cell1,7);
+    
+    // --- Update SIB3 ---
+    //* @desc Set system information according to specific message contents
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio ( eutra_Cell1, v_CellRes_Prio_initial );
+    //f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow ( eutra_Cell1, v_ThreshServingLow_Cell1 );//@sic R5s120517 sic@
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLowQ_r9 ( eutra_Cell1, 3     );//@sic R5s120517 sic@
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLowQ_r9 ( eutra_Cell1, 20 );//@sic R5-123251 sic@
+    //threshServingLowQ-r9 is TBD yet, in the meantime the function is setting just omit
+    // Wait for defined value in 36.523-1 and set the call in 2nd parameter instead of the existing predefined value
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    
+    //------------------------------------------------
+    //Start TestBody
+    f_EUTRA_TestBody_Set(true);
+    
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    
+    f_EUTRA_TestBody_Set(false);
+    
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  } // end of f_TC_6_2_3_9a_EUTRA
+
+  function f_TC_6_2_3_10a_EUTRA ( ) runs on EUTRA_PTC
+  {  /* Inter-RAT cell reselection / From E-UTRA RRC_IDLE to 1xRTT Dormant / 1xRTT cell is lower reselection priority than E-UTRA (Squal < ThreshServing, LowQ and Srxlev > Thresh1xRTT, LowP) */
+    
+    var CellRes_Prio_Type v_CellRes_Prio_initial := 4;
+    var ReselectionThreshold v_ThreshServingLow_Cell1 := 5; //@sic R5s120524 sic@
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c6);
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell1, -75);
+    //Set Sys info for Cell 1 to be used in creation (according to Table 6.2.3.10a.3.2-1)
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin(eutra_Cell1, -55);
+    //Qrxlevminoffset is not present by default
+    // SearchWindow is already 5 by default
+    //the specific values of  t_ReselectionCDMA timer =0 , threshX-High =30, threshX-L0w =32
+    // (according to Table 6.2.3.10.3.2-2) are same  as default
+    //Cell reselection priority changed to 3 (according to Table 6.2.3.10a.3.2-2)
+    f_EUTRA_CellInfo_SetCellPrioritySIB8_RTT1X(eutra_Cell1,3 );
+    //t_ReselectionCDMA timer changed to 7 (according to Table 6.2.3.10a.3.2-2)
+    f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_RTT1X (eutra_Cell1,7);//@sic R5s120524 sic@
+    // --- Update SIB3 ---
+    //* @desc Set system information according to specific message contents
+    f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio ( eutra_Cell1, v_CellRes_Prio_initial );
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow ( eutra_Cell1, v_ThreshServingLow_Cell1 );
+    f_EUTRA_CellInfo_SetSysInfo_ThreshServingLowQ_r9 ( eutra_Cell1, 26 );//@sic R5s120524 sic@
+    //threshServingLowQ-r9 is TBD yet, in the meantime the function is setting just omit
+    // Wait for defined value in 36.523-1 and set the call in 2nd parameter instead of the existing predefined value
+    
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Preamble to ensure USIM is updated with valid TAI and to bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+
+    //------------------------------------------------
+    //Start TestBody
+    f_EUTRA_TestBody_Set(true);
+
+    //Send co-ordination message to Set cell power level according to T1 step 1
+    f_IRAT_SendCoOrd(CDMA2000, cms_IRAT_Trigger);
+    //@siclog "Step 1" siclog@
+    f_EUTRA_SetCellPower(eutra_Cell1, -100);
+    
+   //Wait for co-ordination message to set power level as per T2
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+
+    //@siclog "Step 4" siclog@
+    //Set cell power level according to T2
+    f_EUTRA_SetCellPower(eutra_Cell1, -120);
+
+    //Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(CDMA2000);
+    f_EUTRA_TestBody_Set(false);
+    
+    //Remove the non-serving cells
+    f_EUTRA_ReleaseAllCells( );
+  } // end of f_TC_6_2_3_10a_EUTRA
+
+}

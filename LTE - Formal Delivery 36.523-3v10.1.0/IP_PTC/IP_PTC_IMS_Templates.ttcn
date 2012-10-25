@@ -1,0 +1,107 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-03-24 21:56:53 +0100 (Sat, 24 Mar 2012) $
+// $Rev: 6427 $
+/******************************************************************************/
+
+module IP_PTC_IMS_Templates {
+  import from CommonDefs all;
+  import from IMS_ASP_TypeDefs all;
+  import from IP_ASP_TypeDefs all;
+  import from IP_ASP_Common all;
+
+  //****************************************************************************
+  // ASP Templates to be used at the IP side to configure IP:
+  //----------------------------------------------------------------------------
+
+  template IMS_CONFIG_REQ car_IMS_InstallKey_REQ := {InstallKey := ?};
+  template IMS_CONFIG_REQ car_IMS_PortsAndSecurityConfig_REQ := {PortsAndSecurityConfig := ?};
+
+  template (value) IMS_CONFIG_CNF cas_IMS_InstallKey_CNF := {InstallKey := true};
+  template (value) IMS_CONFIG_CNF cas_IMS_PortsAndSecurityConfig_CNF(template (value) IMS_PortsAndSecurityConfigCnf_Type p_PortsAndSecurityConfig) := {PortsAndSecurityConfig := p_PortsAndSecurityConfig};
+
+  template (value) IMS_PortsAndSecurityConfigCnf_Type cs_PortsAndSecurityConfigCnf(template (value) IMS_ProtectedPorts_Type p_ProtectedPorts,
+                                                                                   template (value) IMS_SPIs_Type p_SPIs) :=
+  {
+    ProtectedPorts := p_ProtectedPorts,
+    SPIs := p_SPIs
+  };
+
+  //****************************************************************************
+  // Comon templates and functions to configure IPsec
+  //----------------------------------------------------------------------------
+
+  template (value) IPsec_SecurityAssociation_Type cs_IPsec_SA(IPsec_SPI_Type                p_SPI,
+                                                              charstring                    p_SrcAddress,
+                                                              charstring                    p_DestAddress,
+                                                              UInt16_Type                   p_SrcPort,
+                                                              UInt16_Type                   p_DestPort,
+                                                              template (omit) IPsec_IntegrityAlgorithm_Type p_IntegrityAlgorithm := omit,
+                                                              template (omit) IPsec_CipheringAlgorithm_Type p_CipheringAlgorithm := omit) :=
+  {
+    SPI := p_SPI,
+    SrcAddress := p_SrcAddress,
+    DestAddress := p_DestAddress,
+    SrcPort := p_SrcPort,
+    DestPort := p_DestPort,
+    IntegrityAlgorithm := p_IntegrityAlgorithm,
+    CipheringAlgorithm := p_CipheringAlgorithm
+  };
+
+  function f_SPIs_SetNetworkValues(IMS_SPIs_Type p_SPIs) return IMS_SPIs_Type
+  { /* search for unique SPI
+       Acc. to RFCs (e.g. RFC3406, RFC4302) the SPIs have local significance and source and destination address shall be taken into account to find the corresponding SA;
+       as typically one end of the secure connection tells the other end which SPI it is using for its SAD, both ends may even use the same SPIs;
+       nevertheless in this function we will ensure that in the 4-tuple of SPIs needed for IMS in a given PDN all values are distinct. */
+    var IMS_SPIs_Type v_SPIs := p_SPIs;
+    var integer v_SPI_uc;
+    var integer v_SPI_us;
+    var integer v_SPI := 256;  // According to RFC 2406, SPI values from 0 to 255 are reserved
+
+    if (not isvalue(v_SPIs.SPI_us) or not isvalue(v_SPIs.SPI_uc)) {
+      FatalError(__FILE__, __LINE__, "SPIs missing for the UE side");
+    }
+    v_SPI_uc := v_SPIs.SPI_us;
+    v_SPI_us := v_SPIs.SPI_uc;
+    if (v_SPI_uc == v_SPI_us) {
+      FatalError(__FILE__, __LINE__, "SPIs of UE side have the same values");
+    }
+
+    while (not isvalue(v_SPIs.SPI_ps) or not isvalue(v_SPIs.SPI_pc)) {
+      if ((v_SPI != v_SPI_uc) and (v_SPI != v_SPI_us)) {
+        if (not isvalue(v_SPIs.SPI_ps)) {
+          v_SPIs.SPI_ps := v_SPI;
+        } else {
+          v_SPIs.SPI_pc := v_SPI;
+        }
+      }
+      v_SPI := v_SPI + 1;
+    }
+    return v_SPIs;
+  }
+
+  function f_IPsec_SA_List(IMS_SecurityInfo_Type p_SecurityInfo,
+                           template (omit) IPsec_IntegrityAlgorithm_Type p_IntegrityAlgorithm := omit,
+                           template (omit) IPsec_CipheringAlgorithm_Type p_CipheringAlgorithm := omit)
+    return template (value) IPsec_SecurityAssociationList_Type
+  {
+    var template (value) IPsec_SecurityAssociationList_Type v_SA_List;
+    var charstring v_UE_AddrStr := f_IP_AddrInfo_AddrStr(p_SecurityInfo.UE_Address);
+    var charstring v_NW_AddrStr := f_IP_AddrInfo_AddrStr(p_SecurityInfo.NW_Address);
+    var IMS_ProtectedPorts_Type v_Ports := p_SecurityInfo.ProtectedPorts;
+    var IMS_SPIs_Type v_SPIs := p_SecurityInfo.SPIs;
+
+    //............................SPI............SRC ADDR......DEST ADDR.....SRC PORT.........DEST PORT................................................
+    v_SA_List[0] := cs_IPsec_SA(v_SPIs.SPI_ps, v_UE_AddrStr, v_NW_AddrStr, v_Ports.Port_uc, v_Ports.Port_ps, p_IntegrityAlgorithm, p_CipheringAlgorithm);
+    v_SA_List[1] := cs_IPsec_SA(v_SPIs.SPI_us, v_NW_AddrStr, v_UE_AddrStr, v_Ports.Port_pc, v_Ports.Port_us, p_IntegrityAlgorithm, p_CipheringAlgorithm);
+    v_SA_List[2] := cs_IPsec_SA(v_SPIs.SPI_uc, v_NW_AddrStr, v_UE_AddrStr, v_Ports.Port_ps, v_Ports.Port_uc, p_IntegrityAlgorithm, p_CipheringAlgorithm);
+    v_SA_List[3] := cs_IPsec_SA(v_SPIs.SPI_pc, v_UE_AddrStr, v_NW_AddrStr, v_Ports.Port_us, v_Ports.Port_pc, p_IntegrityAlgorithm, p_CipheringAlgorithm);
+
+    return v_SA_List;
+  }
+}

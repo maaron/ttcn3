@@ -1,0 +1,613 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2011, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:11:13 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7313 $
+/******************************************************************************/
+module RRC_ConnRel {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_Parameters all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SysInfo_Templates all;
+  import from EUTRA_Timing all;
+  import from Parameters all;
+
+  template (value) IdleModeMobilityControlInfo cs_IdleModeMobCntrlInfo_3Entries ( ARFCN_ValueEUTRA p_Dl_CarrierFreq_Cell1,
+                                                                                  integer          p_Prio1,
+                                                                                  ARFCN_ValueEUTRA p_Dl_CarrierFreq_Cell2,
+                                                                                  integer          p_Prio2,
+                                                                                  ARFCN_ValueEUTRA p_Dl_CarrierFreq_Cell3,
+                                                                                  integer          p_Prio3 ) :=
+  { /* @status    APPROVED */
+    freqPriorityListEUTRA := {
+      {
+        carrierFreq := p_Dl_CarrierFreq_Cell1,
+        cellReselectionPriority := p_Prio1
+      },
+      {
+        carrierFreq := p_Dl_CarrierFreq_Cell2,
+        cellReselectionPriority := p_Prio2
+      },
+      {
+        carrierFreq := p_Dl_CarrierFreq_Cell3,
+        cellReselectionPriority := p_Prio3
+      }
+    },
+    freqPriorityListGERAN := omit,
+    freqPriorityListUTRA_FDD := omit,
+    freqPriorityListUTRA_TDD := omit,
+    bandClassPriorityListHRPD := omit,
+    bandClassPriorityList1XRTT := omit,
+    t320 := omit
+  };
+
+  function f_TC_8_1_3_1_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var float v_WaitTime; //Time to allow UE to move to RRC_IDLE
+    
+    f_EUTRA_Init ( c1 );
+    
+    v_WaitTime := f_EUTRA_SetTimerToleranceMax ( eutra_Cell1, nonProtocolTimer, 5.0 ); //@sic R5w100302 sic@
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1);
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease ( eutra_Cell1 );
+    
+    //@siclog "Step 2" siclog@
+    //Wait for 5 seconds
+    f_Delay ( v_WaitTime );
+    
+    //@siclog "Step 3" siclog@
+    //Check if UE is in RRC_IDLE
+    f_EUTRA_508Check_IdleState ( eutra_Cell1 );
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }
+
+  function f_TC_8_1_3_4_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell1, v_CarrierFreq_Cell23;
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency;
+    var Ul_Bandwidth_Type v_UL_Bandwidth := f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth);
+    var Dl_Bandwidth_Type v_DL_Bandwidth := px_ePrimaryBandChannelBandwidth;
+    
+    //Initialise all cell, security and mobile parameters
+    //* SIB5 is init. in f_EUTRA_InitSystemInformation5 with default values according to 36.508 cl. 6.3.1.2
+    f_EUTRA_Init ( c3 );
+    
+    //Get band dependent parameters
+    v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam ( v_DL_Bandwidth, v_UL_Bandwidth );
+    
+    //Get cell specific parameter
+    v_CarrierFreq_Cell23 := f_EUTRA_CellInfo_GetEARFCN ( eutra_Cell23 );
+    v_CarrierFreq_Cell1 := f_EUTRA_CellInfo_GetEARFCN ( eutra_Cell1 );
+    
+    //Set System Information for Cell 1 & 23 according to Table 8.1.3.4.3.3-3.
+    //This will overwrite the default SIB5 init. by function f_EUTRA_Init.
+    f_EUTRA_SetSIB5_InterFreqCarrierFreqList_F2(eutra_Cell1, cs_InterFreqCarrierFreq_CRPri (v_CarrierFreq_Cell23,
+                                                                                            v_ChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                            omit)); //@sic R5-106628 sic@
+    
+    f_EUTRA_SetSIB5_InterFreqCarrierFreqList_F1(eutra_Cell23, cs_InterFreqCarrierFreq_CRPri (v_CarrierFreq_Cell1,
+                                                                                             v_ChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                             omit)); //@sic R5-106628 sic@
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell23 );
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    
+    //Set inital cell power level for Cell 1 and Cell 23
+    //* Cell power levels are selected according to [18] so that
+    //* camping on Cell 1 is guaranteed according to 36.523-1 cl. 8.1.3.4.3.1
+    f_EUTRA_SetCellPower ( eutra_Cell23, tsc_SuitableCellRS_EPRE );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Transmit RRCConnectionRelease
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_Cell1,
+                                           cs_RRCConnectionRelease ( v_RRC_TI,
+                                                                     v_ReleaseCause,
+                                                                     cs_RedirectionInfo_Eutra ( v_CarrierFreq_Cell23.dl_CarrierFreq ),
+                                                                     omit ) );
+    //@siclog "Step 2" siclog@
+    //Check if UE camps on Cell 23
+    f_EUTRA_508CheckCampOnNewEutraCell ( eutra_Cell23 );
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble ( eutra_Cell23, E1_IDLE );
+  }
+
+  function f_TC_8_1_3_5_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var float v_WaitTime := 5.0;//Time to allow UE to move to RRC_IDLE
+    var CarrierFreqEUTRA v_CarrierFreq_Cell1, v_CarrierFreq_Cell3, v_CarrierFreq_Cell6;
+    var ReselectionThreshold v_ThreshXHigh_Cell6 := 11;
+    var ReselectionThreshold v_ThreshXLow_Cell3 := 11; //@sic R5s100541 Change 1.1 sic@
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency;
+    var Ul_Bandwidth_Type v_UL_Bandwidth := f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth);
+    var Dl_Bandwidth_Type v_DL_Bandwidth := px_ePrimaryBandChannelBandwidth;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1 := {
+      cs_CellPower ( eutra_Cell3, -73 ),
+      cs_CellPower ( eutra_Cell6, -73 )
+    };
+    
+    //Initialise all cell, security and mobile parameters
+    //SIB5 is init. in f_EUTRA_InitSystemInformation5 with default values according to 36.508 cl. 6.3.1.2
+    f_EUTRA_Init (c3);
+    
+    //Set TAC according to 8.1.3.5.3.1
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell3, tsc_IdleMode_TAC_Cell2); //@sic R5-106570 sic@
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell6, tsc_IdleMode_TAC_Cell2); //@sic R5-106570 sic@
+    
+    //Get band dependent parameters
+    v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam (v_DL_Bandwidth, v_UL_Bandwidth);
+    
+    //Get cell specific parameters
+    v_CarrierFreq_Cell1 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell1);
+    v_CarrierFreq_Cell3 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell3);
+    v_CarrierFreq_Cell6 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell6);
+    
+    //Set SIB5 information accordig to Table 8.1.3.5.3.3-2 and 36.508 cl. 6.3.1.2
+    //v_CarrierFreq_Cell3 is f2
+    //v_CarrierFreq_Cell6 is f3
+    //f5 is not included since this is not a interband test case
+    f_EUTRA_CellInfo_SetSIB5 (eutra_Cell1, cs_508_SystemInformationBlockType5_Def ( { cs_InterFreqCarrierFreq_ThreshXLow (v_CarrierFreq_Cell3,//@sic R5s100541 sic@
+                                                                                                                          v_ChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                          v_ThreshXLow_Cell3),
+                                                                                      cs_InterFreqCarrierFreq_ThreshXHigh (v_CarrierFreq_Cell6,
+                                                                                                                           v_ChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                           v_ThreshXHigh_Cell6)}));
+
+    //Set SIB5 information accordig to Table 8.1.3.5.3.3-3 and 36.508 cl. 6.3.1.2
+    f_EUTRA_SetSIB5_InterFreqCarrierFreqList_F2(eutra_Cell6, cs_InterFreqCarrierFreq_CRPri (v_CarrierFreq_Cell3,//f2
+                                                                                            v_ChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                            1)); //@sic R5-106277 sic@
+    
+
+    //Set maximum cell powel level for Cell 1, 3 & 6 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell3, -73);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell6, -73);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell6);
+    f_EUTRA_CellConfig_Def (eutra_Cell3);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Set initial cell power level according to T0
+    //Power levels are already according to T0
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Transmit RRCConnectionRelease
+    f_EUTRA_RRC_ConnectionRelease_Common (eutra_Cell1,
+                                          cs_RRCConnectionRelease ( v_RRC_TI,
+                                                                    v_ReleaseCause,
+                                                                    omit,
+                                                                    cs_IdleModeMobCntrlInfo_3Entries ( v_CarrierFreq_Cell1.dl_CarrierFreq,
+                                                                                                       4,
+                                                                                                       v_CarrierFreq_Cell3.dl_CarrierFreq,
+                                                                                                       1,
+                                                                                                       v_CarrierFreq_Cell6.dl_CarrierFreq,
+                                                                                                       5 ) ) );
+    
+    //@siclog "Step 2" siclog@
+    //Wait 5 s. for UE to enter RRC_IDLE
+    f_Delay (v_WaitTime);
+    
+    //@siclog "Step 3" siclog@
+    //Set RS EPRE of Cell 3 & Cell 6 according to T1
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+
+    //@siclog "Step 4" siclog@
+    //Void
+    
+    //@siclog "Step 5" siclog@
+    //Check if UE is in E-UTRA RRC_IDLE state
+    f_EUTRA_508CheckCampOnNewEutraCell (eutra_Cell6); //@sic R5-106570 sic@
+
+    f_EUTRA_TestBody_Set (false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell6, E1_IDLE);
+  }
+
+  function f_TC_8_1_3_6_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var template (value) RedirectedCarrierInfo v_RedirectedCarrierInfo;
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+    
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -75);
+
+    
+    //Coordinate with UTRAN component to receive UTRAN frequencies
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+    
+    //Set Sys. info for Cell 1 according to Table 6.2.3.5.3.2-2
+    //* cellReselectionPriority is already set to 3 in initialisation (cs_CarrierFreqUTRA_FDD)
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE); //@sic R5s100871 : Change 11 sic@
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Get the security parameters and send them to UTRAN PTC
+    f_EUTRA_SendAuthParameters(eutra_Cell1, UTRAN);//@sic R5s100871 : Change 11 sic@
+    
+    //Set cell power level according to T0
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    f_EUTRA_SetCellPower (eutra_Cell1, -75);
+
+    //Set the Redirect Information in the RRCConnectionRelease message (step 1)
+    if ( f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD ) {// @sic R5-115770 sic@
+      v_RedirectedCarrierInfo := cs_RedirectionInfo_UtraFdd ( v_UTRANSysInfo.Utran[0].FDD.Freq );//[0] corresponds to Utran cell 5 according to the Init-function.
+    }
+    else {
+      v_RedirectedCarrierInfo := cs_RedirectionInfo_UtraTdd ( v_UTRANSysInfo.Utran[0].TDD.Freq );
+    }
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_Cell1,
+                                           cs_RRCConnectionRelease ( v_RRC_TI,
+                                                                     v_ReleaseCause,
+                                                                     v_RedirectedCarrierInfo,
+                                                                     omit ) );
+
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger ( UTRAN );
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //Remove the non-camping cell
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_8_1_3_7_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var boolean v_CSInOtherRAT := false;
+    var IRAT_Coordination_MSG v_IRAT_Coordination_MSG;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c4);
+    
+    //Set maximum cell powel level for Cell 1 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -70);  // @sic R5s120068 sic@
+
+    //Send Cell information to UTRA PTC
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN,
+                                         f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Since Authentication parameters were updated in the idle updated procedure...
+    //...receive updated parameters...
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    UTRAN.receive (cmr_IRAT_OctetData) -> value v_IRAT_Coordination_MSG; // @sic R5-123734 sic@
+    
+    //Wait for end of preamble and then set power levels according to T0
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_SuitableCellRS_EPRE);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    if (pc_UTRA_FeatrGrp_2){//UE supports measurements and reporting of EUTRA cells in connected mode
+      f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+      f_EUTRA_SetCellPower (eutra_Cell1, -70);
+    }
+    
+    //@siclog "Step 18" siclog@
+    // Check: Does the test result of generic test procedure in TS 36.508 Table 6.4.2.7A-2 indicate that the UE is camped on E-UTRAN Cell 1?
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    f_EUTRA_IdleMode_TAU_UponMobility_FromOtherRAT (eutra_Cell1, v_CSInOtherRAT, false, false, v_IRAT_Coordination_MSG.OctetData); // @sic R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Tell UTRA PTC that test case is over
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    //Perform postamble
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_8_1_3_8_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var IRAT_CoOrd_SysInfo_Type v_GERANSysInfo;
+    var integer v_T0_Cell_Specific_RS_EPRE_Cell1 := -75;
+    var SystemInformationBlockType7 v_SystemInformationBlockType7;
+    var template (value) RedirectedCarrierInfo v_RedirectedCarrierInfo;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//EUTRA-GERAN configuration
+    
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -75 );
+    
+    //Get SIB7... @sic R5-120604 sic@
+    v_SystemInformationBlockType7 := f_EUTRA_CellInfo_GetSib7(eutra_Cell1);
+    //...and update carrierFreqsInfoList for cell 24...
+    v_SystemInformationBlockType7.carrierFreqsInfoList[0].commonInfo.cellReselectionPriority := 3;
+    //...the save back the SIB7
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell1,
+                             v_SystemInformationBlockType7);
+
+    //Coordinate with GERAN component to receive GERAN frequencies
+    v_GERANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    // then get latest security params and send them over
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+
+    //Set cell power level according to T0
+    f_EUTRA_SetCellPower ( eutra_Cell1, v_T0_Cell_Specific_RS_EPRE_Cell1 );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //Set the Redirect Information in the RRCConnectionRelease message (step 1)
+    v_RedirectedCarrierInfo :=   //[0] corresponds to Geran cell 24 according to the Init-function.
+      cs_RedirectionInfo_Geran_NoNeighCells ( v_GERANSysInfo.Geran[0].Arfcn,
+                                              v_GERANSysInfo.Geran[0].BandIndicator );
+
+    //@siclog "Step 1" siclog@
+    //Step 1: Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_Cell1,
+                                           cs_RRCConnectionRelease ( v_RRC_TI,
+                                                                     v_ReleaseCause,
+                                                                     v_RedirectedCarrierInfo,
+                                                                     omit  ) );
+
+    //First trigger: tell GERAN side to start with step2
+    f_IRAT_SendCoOrd ( GERAN, cms_IRAT_Trigger );
+
+    //Wait for RAU REQ at GERAN side
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+    //@siclog "Step 1D" siclog@
+    //The SS changes cell 1 level according to the row "T1" in table 8.1.3.8.3.2-0
+    //Attenuate EUTRAN cell to ensure UE does not reselect back
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_NonSuitableCellRS_EPRE  ); // @sic R5s120208 sic@
+
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger ( GERAN );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Remove the non-camping cell
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_8_1_3_11_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell1, v_CarrierFreq_Cell10;
+    var ChannelBandwidthDependency_Type v_PrimaryChannelBandwidthDependency;
+    var ChannelBandwidthDependency_Type v_SecondaryChannelBandwidthDependency;
+    
+    //Initialise all cell, security and mobile parameters
+    //SIB5 is init. in f_EUTRA_InitSystemInformation5 with default values according to 36.508 cl. 6.3.1.2
+    f_EUTRA_Init ( c3 );
+
+    //Set TAC according to 8.1.3.11.3.1
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell10, tsc_IdleMode_TAC_Cell2); //different TAC for TAU procedure
+    //Get band dependent parameters
+    v_PrimaryChannelBandwidthDependency := f_EUTRA_BandDependentParam ( px_ePrimaryBandChannelBandwidth,
+                                                                        f_ConvertDL_BandwidthToUL( px_ePrimaryBandChannelBandwidth ) );
+    v_SecondaryChannelBandwidthDependency := f_EUTRA_BandDependentParam ( px_eSecondaryBandChannelBandwidth,
+                                                                         f_ConvertDL_BandwidthToUL( px_eSecondaryBandChannelBandwidth ) );
+    //Get cell specific parameter
+    v_CarrierFreq_Cell1 := f_EUTRA_CellInfo_GetEARFCN ( eutra_Cell1 );
+    v_CarrierFreq_Cell10 := f_EUTRA_CellInfo_GetEARFCN ( eutra_Cell10 );
+
+    //Set SIB5 information accordig to Table 8.1.3.11.3.3-2
+    //v_CarrierFreq_Cell10 is f5
+     f_EUTRA_CellInfo_SetSIB5 (eutra_Cell1, cs_508_SystemInformationBlockType5_Def ( { cs_InterFreqCarrierFreq_CRPri
+                                                                                                   (v_CarrierFreq_Cell10,
+                                                                                       v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                     3)
+                                                                                      }) );//@sic R5s120433 sic@
+
+    f_EUTRA_CellInfo_SetSIB5 (eutra_Cell10, cs_508_SystemInformationBlockType5_Def ( { cs_InterFreqCarrierFreq_CRPri
+                                                                                                              (v_CarrierFreq_Cell1,
+                                                                                        v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                      3)
+                                                                                      }) );//@sic R5s120433 sic@
+
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell10 );
+
+    // First switch cell back on
+    f_EUTRA_SetCellPower ( eutra_Cell1, tsc_SuitableCellRS_EPRE );
+
+    // Switch on UE
+
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+
+    //Set inital cell power level for Cell 10
+    f_EUTRA_SetCellPower ( eutra_Cell10, tsc_SuitableCellRS_EPRE );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //SS transmits an RRCConnectionRelease message (IE redirectedCarrierInfo including eutra CarrierFreq of Cell 10.
+    f_EUTRA_RRC_ConnectionRelease_Common ( eutra_Cell1,
+                                           cs_RRCConnectionRelease ( v_RRC_TI,
+                                                                     v_ReleaseCause,
+                                                                     cs_RedirectionInfo_Eutra ( v_CarrierFreq_Cell10.dl_CarrierFreq ),
+                                                                     omit ) );
+
+    //@siclog "Step2" siclog@
+    //Check if UE camps on Cell 10
+    f_EUTRA_508CheckCampOnNewEutraCell ( eutra_Cell10 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch/power off UE
+    f_EUTRA_Postamble ( eutra_Cell10, E1_IDLE );
+  }
+
+  function f_TC_8_1_3_12_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell1, v_CarrierFreq_Cell3, v_CarrierFreq_Cell10;
+    var ReselectionThreshold v_ThreshXHigh := 11;
+    var ReselectionThreshold v_ThreshXLow := 11;
+    var ChannelBandwidthDependency_Type v_PrimaryChannelBandwidthDependency;
+    var ChannelBandwidthDependency_Type v_SecondaryChannelBandwidthDependency;
+    var template (value) CellPowerList_Type v_CellPowerList_T0toT1 := {
+      cs_CellPower ( eutra_Cell3, -73 ),
+      cs_CellPower ( eutra_Cell10, -73 )
+    };
+        
+    //Initialise all cell, security and mobile parameters
+    //SIB5 is init. in f_EUTRA_InitSystemInformation5 with default values according to 36.508 cl. 6.3.1.2
+    f_EUTRA_Init ( c3 );
+
+    //Set TAC according to 8.1.3.12.3.1
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell10, tsc_IdleMode_TAC_Cell2); ////different TAC for TAU procedure
+    
+    //Get band dependent parameters
+    v_PrimaryChannelBandwidthDependency := f_EUTRA_BandDependentParam ( px_ePrimaryBandChannelBandwidth,
+                                                                        f_ConvertDL_BandwidthToUL( px_ePrimaryBandChannelBandwidth ) );
+    v_SecondaryChannelBandwidthDependency := f_EUTRA_BandDependentParam ( px_eSecondaryBandChannelBandwidth,
+                                                                          f_ConvertDL_BandwidthToUL( px_eSecondaryBandChannelBandwidth ) );
+    
+    //Get cell specific parameters
+    v_CarrierFreq_Cell1 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell1);
+    v_CarrierFreq_Cell3 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell3);
+    v_CarrierFreq_Cell10 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell10);
+    
+    //Set SIB5 information accordig to Table 8.1.3.12.3.3-2 and Table 8.1.3.12.3.3-3
+    //@sic R5s120450 sic@
+    //v_CarrierFreq_Cell3 is f2
+    //v_CarrierFreq_Cell10 is f5
+    f_EUTRA_CellInfo_SetSIB5 (eutra_Cell1, cs_508_SystemInformationBlockType5_Def ( { cs_InterFreqCarrierFreq_ThreshXLow (v_CarrierFreq_Cell3,
+                                                                                                                          v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                          v_ThreshXLow),
+                                                                                      cs_InterFreqCarrierFreq_ThreshXHigh (v_CarrierFreq_Cell10,
+                                                                                                                           v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                           v_ThreshXHigh)}) );
+    
+    f_EUTRA_CellInfo_SetSIB5 (eutra_Cell10, cs_508_SystemInformationBlockType5_Def ( { cs_InterFreqCarrierFreq_CRPri (v_CarrierFreq_Cell1,//f1
+                                                                                                                       v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                      omit),
+                                                                                      cs_InterFreqCarrierFreq_CRPri (v_CarrierFreq_Cell3,//f2
+                                                                                                                     v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth,
+                                                                                                                   1)}));
+    
+    //Set maximum cell powel level for Cell 1, 3 & 10 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -73);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell3, -73);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell10, -73);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell3);
+    f_EUTRA_CellConfig_Def (eutra_Cell10);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    //Generic test procedure in TS 36.508 subclause 4.5.3.3 is performed to make the UE enter state Generic RB Established (state 3) on cell 1.
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //The SS transmits an RRCConnectionRelease message including the freqPriorityListEUTRA on Cell 1.
+    f_EUTRA_RRC_ConnectionRelease_Common (eutra_Cell1,
+                                          cs_RRCConnectionRelease ( v_RRC_TI,
+                                                                    v_ReleaseCause,
+                                                                    omit,
+                                                                    cs_IdleModeMobCntrlInfo_3Entries ( v_CarrierFreq_Cell1.dl_CarrierFreq,
+                                                                                                       4,
+                                                                                                       v_CarrierFreq_Cell3.dl_CarrierFreq,
+                                                                                                       1,
+                                                                                                       v_CarrierFreq_Cell10.dl_CarrierFreq,
+                                                                                                       5 ) ) );
+    
+    //@siclog "Step 2" siclog@
+    //Wait for5 s for the UE to enter E-UTRA RRC_IDLE state on Cell 1.
+    f_Delay (5.0);
+    
+    //@siclog "Step 3" siclog@
+    //The SS changes Cell 2 and Cell 10 levels according to the row "T1" in table 8.1.3.12a.3.2-1.
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_T0toT1 );
+    
+    //@siclog "Step 4 " siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 steps 1 to 5 of subclause 6.4.2.7 indicate that the UE is camped on E-UTRAN Cell 10?
+    f_EUTRA_508CheckCampOnNewEutraCell ( eutra_Cell10 );
+    
+    f_EUTRA_TestBody_Set ( false );
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble ( eutra_Cell10, E1_IDLE );
+  }
+
+}

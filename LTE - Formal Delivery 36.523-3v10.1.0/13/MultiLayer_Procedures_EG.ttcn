@@ -1,0 +1,419 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 17:49:06 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7324 $
+/******************************************************************************/
+
+module MultiLayer_Procedures_EG {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonIP all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  function f_TC_13_1_10_EUTRA() runs on EUTRA_PTC
+  {
+    var octetstring v_Nas_SecurityParamFromEUTRA;
+    var NasCount_Type v_NasCountDL;
+    var GutiParameters_Type v_GutiParams;
+    var IRAT_CoOrd_SysInfo_Type v_GERANSysInfo;
+    var CarrierFreqGERAN v_CarrierFreqGERAN_Cell24;
+    var PhysCellIdGERAN v_GERAN_PhysChId_Cell24;
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE()) };      /* @sic R5s120470 sic@ */
+    
+    f_EUTRA_Init(c5);
+    
+    //Coordinate with GERAN component to receive GERAN frequencies
+    v_GERANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    v_CarrierFreqGERAN_Cell24 := {
+      arfcn         := v_GERANSysInfo.Geran[0].Arfcn,
+      bandIndicator := f_ConvertGERAN_Band(v_GERANSysInfo.Geran[0].BandIndicator)
+    };
+    v_GERAN_PhysChId_Cell24 := {
+      networkColourCode := v_GERANSysInfo.Geran[0].Ncc,
+      baseStationColourCode := v_GERANSysInfo.Geran[0].Bcc
+    };
+    
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_Cell1);
+                             
+    //Bring UE to initial state
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_UT_ConfigureCombinedAttach(UT);
+    f_EUTRA_Preamble_InterRAT (eutra_Cell1, STATE2A_TESTLOOP_ModeB, GERAN, Combined);
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    f_EUTRA_CloseUE_TestLoopModeB (eutra_Cell1, '00'O);
+    
+    //Set power level according to Pre-test condition
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 1.
+    DRB.send(cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell1, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));     /* @sic R5s120470 sic@ */
+
+    //@siclog "Table 13.1.10.3.2-2 Step 1" siclog@
+    //The UE loops back the IP packet received in Step 1 on the RAB associated with the PDP context active on Cell 1.
+    DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList(eutra_Cell1, tsc_RbId_DRB1, ?, v_PDCP_SDUList_DRB1));              /* @sic R5s120470 sic@ */
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.1.10 Table 13.1.10.3.2-2 Step 1");
+
+    //@siclog "Step 2" siclog@
+    //Transmit a DLInformationTransfer message containing a CS SERVICE NOTIFICATION message.
+    SRB.send (cas_SRB1_NasPdu_REQ(eutra_Cell1,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_508_Service_Notification)));
+    //@siclog "Step 3a1" siclog@
+    //If needed, the incomming call is accepted through user interface
+    if (not pc_ImmConnect) {
+      f_UT_AnswerCSCall (UT);
+    }
+
+    //@siclog "Step 4" siclog@
+    //Verify that the UE sends Extended Service Request
+    SRB.receive (car_SRB2_NasPdu_IND(eutra_Cell1,
+                                     cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                       cr_508_EXT_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get(), bit2oct(v_GutiParams.M_TMSI)))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.1.10 Step 4");
+    
+    //@siclog "Step 5" siclog@
+    //Stop periodic TA on source cell...
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    //Get NAS DL Count
+    v_NasCountDL := f_EUTRA_SS_NAS_CountGetDLNext();
+    //nas-securityParamFromEUTRA is the 4 least significant bits of the NAS downlink COUNT value according to Table 13.1.4.3.3-6
+    v_Nas_SecurityParamFromEUTRA := substr(v_NasCountDL, 3, 1);
+    //Transmit a MobilityFromEUTRACommand message on Cell 1.
+    SRB.send (cas_SRB1_RrcPdu_REQ (eutra_Cell1,
+                                   cs_TimingInfo_Now,
+                                   cs_MobilityFromEutraCommand_CellChangeOrder (tsc_RRC_TI_Def,
+                                                                                ms4000,   //@sic R5-123659 sic@
+                                                                                v_GERAN_PhysChId_Cell24,
+                                                                                v_CarrierFreqGERAN_Cell24,
+                                                                                -,
+                                                                                -,
+                                                                                true))); // @sic R5s120509 subject to prose CR approval sic@
+    //Ask GERAN PTC to take over by sending auth parameters
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //And remove the cell(s)
+    f_EUTRA_ReleaseAllCells();
+  }
+
+function f_TC_13_1_7_EUTRA() runs on EUTRA_PTC
+  {
+    var IRAT_CoOrd_SysInfo_Type v_GERANSysInfo;
+    var GutiParameters_Type v_GutiParams;
+    var ReleaseCause v_ReleaseCause := other;
+    var SystemInformationBlockType7 v_SystemInformationBlockType7;
+    var CarrierFreqsGERAN v_CarrierFreqsGERAN;
+    
+    f_EUTRA_Init (c5);
+    
+    //Get SIB7...
+    v_SystemInformationBlockType7 := f_EUTRA_CellInfo_GetSib7(eutra_Cell1);
+    //...and store the carrier freqs to use in the RRC Conn Release message
+    v_CarrierFreqsGERAN := v_SystemInformationBlockType7.carrierFreqsInfoList[0].carrierFreqs;
+    
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_Cell1);
+    
+    //Coordinate with GERAN component to receive GERAN frequencies
+    v_GERANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-123126 sic@
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble_InterRAT (eutra_Cell1, STATE2_IDLEUPDATE, GERAN, Combined); // @sic R5-123126 sic@
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Transmit paging messsage
+    f_EUTRA_UE_Page (eutra_Cell1,
+                     cs_DomainNasPaging_OneRecord(cs_PagingUE_Identity_S_TMSI(v_GutiParams.MME_Code,
+                                                                              v_GutiParams.M_TMSI),
+                                                  cs)); // @sic R5-123126 sic@
+    //@siclog "Step 2a1" siclog@
+    //Answer call if needed
+    if (not pc_ImmConnect) {
+      f_UT_AnswerCSCall (UT);
+    }
+    
+    //@siclog "Step 2" siclog@
+    //Receive RRC Connection Request on cell 1
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);    // @sic R5-120721 change 3 sic@
+    
+    //@siclog "Step 3" siclog@
+    //Transmit RRC Connection Setup messsage
+    f_EUTRA_RRC_ConnectionSetup_Def (eutra_Cell1);
+    
+    //@siclog "Step 4-5" siclog@
+    //Receive RRC Conneection Setup complete message including Extended Service Request
+    //FFS - Prose CR needed
+    f_EUTRA_RRCConnectionSetupComplete_Def(eutra_Cell1,                                       // @sic R5s120121 MCC160 implementation sic@
+                                           cr_508_RRCConnectionSetupComplete(tsc_RRC_TI_Def, ?, omit),
+                                           cr_NAS_Indication(tsc_SHT_IntegrityProtected, // @sic R5s120498 sic@
+                                                             cr_508_EXT_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get(),
+                                                                                        bit2oct(v_GutiParams.M_TMSI))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.1.7 Step 5");
+    
+    //@siclog "Step 6" siclog@
+    //Transmit RRC Connection release message
+    f_EUTRA_RRC_ConnectionRelease_Common (eutra_Cell1,
+                                          cs_RRCConnectionRelease (tsc_RRC_TI_Def,
+                                                                   v_ReleaseCause,
+                                                                   cs_RedirectionInfo_Geran(v_CarrierFreqsGERAN),
+                                                                   omit));
+    //Ask GERAN PTC to take over by sending auth parameters
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    f_EUTRA_TestBody_Set (false);
+    
+    //And remove the cell(s)
+    f_EUTRA_ReleaseAllCells();
+  }
+
+  function f_TC_13_1_8_EUTRA() runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams;
+    var SystemInformationBlockType7 v_SystemInformationBlockType7;
+    var ReleaseCause v_ReleaseCause := other;
+    var CarrierFreqsGERAN v_CarrierFreqsGERAN;
+    
+    f_EUTRA_Init (c5);
+    
+    //Get SIB7...
+    v_SystemInformationBlockType7 := f_EUTRA_CellInfo_GetSib7(eutra_Cell1);
+    //...and update carrierFreqsInfoList for cell 24...
+    v_CarrierFreqsGERAN := v_SystemInformationBlockType7.carrierFreqsInfoList[0].carrierFreqs;
+    
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_Cell1);
+       
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+
+    f_UT_ConfigureCombinedAttach (UT); // @sic R5-123126 sic@
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE, Combined); // @sic R5-123660 sic@
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+
+    //Set power levels according to T0
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Cause UE to originate CS call
+    f_UT_RequestCSCall (UT);
+    
+    //@siclog "Step 2" siclog@
+    //Receive Extended service request message
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_Cell1,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_EXT_SERVICE_REQUEST_MO(f_EUTRA_SecurityKSIasme_Get(),
+                                                                                bit2oct(v_GutiParams.M_TMSI)))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Test Case 13.1.8 Step 2");
+    
+    //@siclog "Step 3" siclog@
+    //Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease_Common (eutra_Cell1,
+                                          cs_RRCConnectionRelease (tsc_RRC_TI_Def,
+                                                                   v_ReleaseCause,
+                                                                   cs_RedirectionInfo_Geran(v_CarrierFreqsGERAN),
+                                                                   omit));
+
+    //Ask GERAN PTC to take over by sending auth parameters
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    f_EUTRA_TestBody_Set (false);
+    
+    //And remove the cell(s)
+    f_EUTRA_ReleaseAllCells();
+  }
+
+  function f_TC_13_1_9_EUTRA() runs on EUTRA_PTC
+  { /* Call setup from E-UTRA RRC_IDLE / CS fallback to GSM with CCO without NACC / MO call */
+    var IRAT_CoOrd_SysInfo_Type v_GERANSysInfo;
+    var CarrierFreqGERAN v_CarrierFreqGERAN_Cell24;
+    var PhysCellIdGERAN v_GERAN_PhysChId_Cell24;
+    var GutiParameters_Type v_GutiParams;
+    var EUTRA_SecurityParams_Type v_SecurityParams;
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList;
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info;
+    var NasCount_Type v_NasCountUL;
+    var NAS_MSG_Indication_Type v_NasInd;
+    
+    v_DRB_ToAddModList[0] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1);
+    
+    f_EUTRA_Init (c5);
+
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_Cell1);
+    v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_Cell1);
+    v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+
+    //Coordinate with GERAN component to receive GERAN frequencies
+    v_GERANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    v_CarrierFreqGERAN_Cell24 := {
+      arfcn         := v_GERANSysInfo.Geran[0].Arfcn,
+      bandIndicator := f_ConvertGERAN_Band(v_GERANSysInfo.Geran[0].BandIndicator)
+    };
+    v_GERAN_PhysChId_Cell24 := {
+      networkColourCode := v_GERANSysInfo.Geran[0].Ncc,
+      baseStationColourCode := v_GERANSysInfo.Geran[0].Bcc
+    };
+    
+    //Create and configure cell
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    f_UT_ConfigureCombinedAttach (UT);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble_InterRAT (eutra_Cell1, STATE2_IDLEUPDATE, GERAN, Combined);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Cause UE to originate CS call
+    f_UT_RequestCSCall (UT);
+    
+    //@siclog "Step 2" siclog@
+    //Generic test procedure 36.508, clause 6.4.3.5 is performed.
+    //@siclog "36.508 cl. 6.4.3.5" siclog@
+    //Answer call if needed
+    if ( not pc_ImmConnect ) {
+      f_UT_AnswerCSCall (UT);
+    }
+    
+    //@siclog "36.508 cl. 6.4.3.5 step 2a1-2a3" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_Cell1,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_EXT_SERVICE_REQUEST_MO(f_EUTRA_SecurityKSIasme_Get(),
+                                                                                           bit2oct(v_GutiParams.M_TMSI))));
+    //@siclog "Step 3-4" siclog@
+    //AS SecurityModeCommand & SecurityModeComplete
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Security_Get();
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_Cell1,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    //@siclog "Step 5" siclog@
+    //Transmit RRCConnectionReconfiguration
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_Cell1,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2(v_DRB_ToAddModList,
+                                                                                                                 cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                 cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                            v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                            v_AntennaInfo)),
+                                                                        omit)));
+    //@siclog "Step 6" siclog@
+    //Receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_Cell1,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    //@siclog "Step 7" siclog@
+    //Stop periodic TA on source cell...
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    //...and transmit MobilityFromEUTRACommand
+    SRB.send ( cas_SRB1_RrcPdu_REQ ( eutra_Cell1,
+                                     cs_TimingInfo_Now,
+                                     cs_MobilityFromEutraCommand_CellChangeOrder (tsc_RRC_TI_Def,
+                                                                                  ms4000,                   // @sic R5-123661 sic@
+                                                                                  v_GERAN_PhysChId_Cell24,
+                                                                                  v_CarrierFreqGERAN_Cell24, -, -, true)));
+    
+    //Ask GERAN PTC to take over by sending auth parameters
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    f_EUTRA_TestBody_Set (false);
+    
+    //And remove the cell(s)
+    f_EUTRA_ReleaseAllCells();
+  }
+
+  function f_TC_13_3_2_2_EUTRA ( ) runs on EUTRA_PTC
+  { /* Inter-system connection re-establishment / E-UTRAN to GPRS / Further data are to be transferred */
+
+    const octetstring tsc_IP_PDU_delay := 'FF'O;    // IP_PDU_delay = 255 sec
+    var PDCP_SDUList_Type v_PDCP_SDUList_DRB1 := { f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE()) };      /* @sic R5s120470 sic@ */
+    
+    //Initialise all cells & security
+    f_EUTRA_Init(c5);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    f_EUTRA_Preamble(eutra_Cell1, STATE2A_TESTLOOP_ModeB);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    f_EUTRA_CloseUE_TestLoopModeB (eutra_Cell1, tsc_IP_PDU_delay);
+    //Tell the GERAN PTC to take over the test case. When doing this also update the authentication parameters
+    f_EUTRA_SendAuthParameters(eutra_Cell1, GERAN);
+    //Start of test body
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //The SS transmits one IP packet to the UE on the DRB associated with the default EPS bearer context on Cell 1
+    DRB.send(cas_DRB_COMMON_REQ_PDCP_SDU(eutra_Cell1, tsc_RbId_DRB1, cs_TimingInfo_Now, v_PDCP_SDUList_DRB1));     /* @sic R5s120470 sic@ */
+
+    //@siclog "Step 2" siclog@
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE);
+    
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    f_EUTRA_TestBody_Set (false);
+    
+    //Remove the cell(s)
+    f_EUTRA_ReleaseAllCells();
+  }
+
+}

@@ -1,0 +1,835 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 00:32:42 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7245 $
+/******************************************************************************/
+
+module UTRAN_CapabilityFunctions {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from NAS_24008TypeDefs all;
+  import from Parameters all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_Parameters all;
+  import from UTRAN_RRC_CommonTemplates all;
+  import from UTRAN_RRC_RAB_Templates all;
+  import from UTRAN_RRC_RAB_Templates_r9 all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TypeDefs all;
+
+  type HandoverToUTRANCommand_r8_IEs.specificationMode.complete HandoverToUTRANCommand_r8_Complete_Type;   /* @status    APPROVED */
+
+  type HandoverToUTRANCommand_r9_IEs.specificationMode.complete HandoverToUTRANCommand_r9_Complete_Type;   /* @status    APPROVED */
+
+  template (value) HandoverToUTRANCommand cs_HandoverToUTRANCommand_r8(CipheringAlgorithm_r7 p_CiphAlg,
+                                                                       template (omit) B16_Type p_New_H_RNTI,
+                                                                       template (value) HandoverToUTRANCommand_r8_Complete_Type p_HandoverToUTRANCommand_Complete,
+                                                                       template (omit) E_RNTI p_E_RNTI := omit) :=
+  { /* @status    APPROVED */
+    criticalExtensions := { //r3
+      criticalExtensions := {//r4
+        criticalExtensions := {//r5
+          criticalExtensions := {//r6
+            criticalExtensions := {//r7
+              r8 := {
+                handoverToUTRANCommand_r8 := {
+                  new_U_RNTI := cs_URNTI_Short,
+                  cipheringAlgorithm := p_CiphAlg,
+                  supportForChangeOfUE_Capability := false,
+                  new_H_RNTI := p_New_H_RNTI,
+                  newPrimary_E_RNTI := p_E_RNTI,  // @sic R5s120397 sic@
+                  newSecondary_E_RNTI := omit,
+                  dummy := omit,       /* @sic R5s120178 BASELINE MOVING 2012 (defaultConfigForCellFACH renamed to dummy) sic@ */
+                  specificationMode := {
+                    complete := p_HandoverToUTRANCommand_Complete
+                  },
+                  maxAllowedUL_TX_Power := tsc_MaxAllowPwr
+                },
+                v7d0NonCriticalExtensions := omit
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) HandoverToUTRANCommand cs_HandoverToUTRANCommand_r9(CipheringAlgorithm_r7 p_CiphAlg,
+                                                                       template (omit) B16_Type p_New_H_RNTI,
+                                                                       template (value) HandoverToUTRANCommand_r9_Complete_Type p_HandoverToUTRANCommand_Complete,
+                                                                       template (omit) E_RNTI p_E_RNTI := omit) :=
+  { /* @status    APPROVED */
+    criticalExtensions := { //r3
+      criticalExtensions := {//r4
+        criticalExtensions := {//r5
+          criticalExtensions := {//r6
+            criticalExtensions := {//r7
+             criticalExtensions := {//r8
+                r9 := {
+                  handoverToUTRANCommand_r9 := {
+                    new_U_RNTI := cs_URNTI_Short,
+                    cipheringAlgorithm := p_CiphAlg,
+                    supportForChangeOfUE_Capability := false,
+                    new_H_RNTI := p_New_H_RNTI,
+                    newPrimary_E_RNTI := p_E_RNTI,
+                    newSecondary_E_RNTI := omit,
+                    defaultConfigForCellFACH := omit,
+                    specificationMode := {
+                    complete := p_HandoverToUTRANCommand_Complete
+                    },
+                    maxAllowedUL_TX_Power := tsc_MaxAllowPwr
+                  },
+                  nonCriticalExtensions := omit
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SRB_InformationSetupList_r8 cs_SRB_InformationSetupList_r8_DCH :=
+  { /* @status    APPROVED */
+    cs_SRB_InfoSetupUM_DCH_r8( tsc_UL_DCCH1, 1, 1, tsc_DL_DCCH1),
+    cs_SRB_InfoSetupAM_DCH_r8( tsc_UL_DCCH2, 2, 2, tsc_DL_DCCH2),
+    cs_SRB_InfoSetupAM_DCH_r8( tsc_UL_DCCH3, 3, 3, tsc_DL_DCCH3),
+    cs_SRB_InfoSetupAM_DCH_r8( tsc_UL_DCCH4, 4, 4, tsc_DL_DCCH4)
+  };
+
+  template (value) DL_CommonInformation_r8 cds_DL_CommonInformationRB_ForHO_FDD ( SF512_AndPilot          p_Sf,
+                                                                                  PositionFixedOrFlexible p_PositionFixedOrFlexible,
+                                                                                  boolean p_TfciExistence := true)
+    modifies cs_DL_CommonInformationRB_SetUp_FDD :=
+  { /* @status    APPROVED */
+    dl_dpchInfoCommon := {
+      dl_DPCH_InfoCommon := {
+        cfnHandling := {
+          initialise := NULL
+        }
+      }
+    },
+    modeSpecificInfo := {
+      fdd := {
+        defaultDPCH_OffsetValue := tsc_DefaultDPCH_OffsetValue
+      }
+    }
+  };
+
+  template (value) HandoverToUTRANCommand_r8_Complete_Type cs_HandoverToUTRANCommand_Complete_64kPS_FDD(bitstring                      p_RAB_Id,
+                                                                                                        UL_ScramblingCode              p_UL_ScramblingCode,
+                                                                                                        PrimaryScramblingCode          p_PrimScramblingCode,
+                                                                                                        template (value) FrequencyInfo p_FrequencyInfo
+                                                                                                        ) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_DCH,
+    rab_InformationSetupList := {
+      //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1
+      cs_RAB_InfoSetupDCH_PS_64k (p_RAB_Id, cs_RLC_InfoAM_Def)
+    },
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: UL Transport channel information common for all transport channels
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_FDD,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Added or Reconfigured UL TrCH information
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: DL Transport channel information common for all transport channels
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_FDD ( cs_TFCS_Cmpl0_1_2_3_4_5_6_7_8_9_Rx ),
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Added or Reconfigured DL TrCH information
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCH_PS_64k,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Uplink DPCH info
+    ul_DPCH_Info := cs_UL_DPCH_Info_FDD( tsc_UL_DPDCH_SF_64k_PS, pl0_96, p_UL_ScramblingCode ),
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    //@sic R5s110216 sic@
+    dl_CommonInformation := cds_DL_CommonInformationRB_ForHO_FDD ( tsc_DL_DPCH1_SFP_64k_PS, flexible ),
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Downlink information for each radio link list
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r7_FDD ( p_PrimScramblingCode, tsc_DL_DPCH1_ChC_64k_PS, tsc_DL_DPCH1_2ndScrC ),
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+    template (value) HandoverToUTRANCommand_r8_Complete_Type cs_HandoverToUTRANCommand_Complete_64kPS_DCH4_FDD (
+                                                                                                        bitstring                      p_RAB_Id,
+                                                                                                        UL_ScramblingCode              p_UL_ScramblingCode,
+                                                                                                        PrimaryScramblingCode          p_PrimScramblingCode,
+                                                                                                        template (value) FrequencyInfo p_FrequencyInfo
+                                                                                                        ) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_DCH,
+    rab_InformationSetupList := {
+      //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1
+      cs_RAB_Info_PS_Common(p_RAB_Id, tsc_RB20, cs_PDCP_Info_DCH_PS, cs_RLC_InfoAM_Def, cs_RB_MappingInfo_PS(tsc_DL_DCH4, tsc_UL_DCH4))
+    },
+
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: UL Transport channel information common for all transport channels
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_FDD,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Added or Reconfigured UL TrCH information
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k(tsc_UL_DCH4),
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: DL Transport channel information common for all transport channels
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_FDD ( cs_TFCS_Cmpl0_1_2_3_4_5_6_7_8_9_Rx ),
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Added or Reconfigured DL TrCH information
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCH_PS_64k (tsc_DL_DCH4, tsc_UL_DCH4), // @sic R5s120119 sic@
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Uplink DPCH info
+    ul_DPCH_Info := cs_UL_DPCH_Info_FDD( tsc_UL_DPDCH_SF_64k_PS, pl0_96, p_UL_ScramblingCode ),
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    //@sic R5s110216 sic@
+    dl_CommonInformation := cds_DL_CommonInformationRB_ForHO_FDD ( tsc_DL_DPCH1_SFP_64k_PS, flexible ),
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Downlink information for each radio link list
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r7_FDD ( p_PrimScramblingCode, tsc_DL_DPCH1_ChC_64k_PS, tsc_DL_DPCH1_2ndScrC ),
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+  template (value) HandoverToUTRANCommand_r9_Complete_Type cs_HandoverToUTRANCommand_Complete_64kPS_DCH4_TDD (bitstring                      p_RAB_Id,
+                                                                                                         CellParametersID               p_CellParametersID,
+                                                                                                         template (value) FrequencyInfo p_FrequencyInfo) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_Info_PS_Common(p_RAB_Id, tsc_RB20, cs_PDCP_Info_DCH_PS, cs_RLC_InfoAM_Def, cs_RB_MappingInfo_PS(tsc_DL_DCH4, tsc_UL_DCH4))
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_TDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k (tsc_UL_DCH4),
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_TDD,
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCH_PS_64k_r9, // @sic R5s120119 sic@
+    ul_DPCH_Info := cs_UL_DPCH_64k_PS_TDD,
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r7_TDD ( p_CellParametersID, cs_DL_DPCH_InfoPerRL_r7_64k_PS_TDD ),
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+  template (value) HandoverToUTRANCommand_r9_Complete_Type cs_HandoverToUTRANCommand_Complete_64kPS_TDD (bitstring                      p_RAB_Id,
+                                                                                                         CellParametersID               p_CellParametersID,
+                                                                                                         template (value) FrequencyInfo p_FrequencyInfo) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupDCH_PS_64k (p_RAB_Id, cs_RLC_InfoAM_Def)
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_TDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_TDD,
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCH_PS_64k_r9,
+    ul_DPCH_Info := cs_UL_DPCH_64k_PS_TDD,
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r7_TDD ( p_CellParametersID, cs_DL_DPCH_InfoPerRL_r7_64k_PS_TDD ),
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+  template (value) HandoverToUTRANCommand_r8_Complete_Type cs_HandoverToUTRANCommand_Complete_HSDPA_FDD (bitstring                      p_RAB_Id,
+                                                                                                         UL_ScramblingCode              p_UL_ScramblingCode,
+                                                                                                         PrimaryScramblingCode          p_PrimScramblingCode,
+                                                                                                         template (value) FrequencyInfo p_FrequencyInfo ) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_DCH,
+    rab_InformationSetupList := {
+      //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1
+      cs_RAB_InfoSetupDCH_PS_HSDPA (p_RAB_Id, cs_RLC_InfoAM_HSDPA)
+    },
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1: UL Transport channel information common for all transport channels
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_FDD,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1: Added or Reconfigured UL TrCH information
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1: DL Transport channel information common for all transport channels
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_FDD ( cs_TFCS_Cmpl0_1_Rx ),
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1: Added or Reconfigured DL TrCH information
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoList_1DCH_HS_PS_HSDPA_FDD,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1: Uplink DPCH info
+    ul_DPCH_Info := cds_UL_DPCH_InfoACK_HSDPA_FDD ( tsc_UL_DPDCH_SF_64k_PS, pl0_96, p_UL_ScramblingCode ),
+    ul_EDCH_Information := omit,
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1
+    dl_HSPDSCH_Information := cs_DL_HSPDSCH_Information_FDD ( cs_HS_SCCH_Info_FDD,
+                                                              cs_Measurement_Feedback_Info ),
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A10 in TS 34.108 clause 9.1.1: Downlink information common for all radio links
+    dl_CommonInformation := cds_DL_CommonInformationRB_ForHO_FDD ( tsc_DL_DPCH1_SFP_SRB_3_4k, fixed, false ),// @sic R5s110683 sic@
+    //According to the corresponding IE in the RADIO BEARER SETUP message using condition A3 in TS 34.108 clause 9.1.1: Downlink information for each radio link list
+    dl_InformationPerRL_List := cds_DL_InfoPerRL_HSDPA_r7_FDD ( p_PrimScramblingCode, tsc_Sfc256_C0, tsc_DL_DPCH1_2ndScrC ),
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+  template (value) HandoverToUTRANCommand_r9_Complete_Type cs_HandoverToUTRANCommand_Complete_HSDPA_TDD(bitstring p_RAB_Id,
+                                                                                                        CellParametersID p_CellParametersID,
+                                                                                                        template (value) FrequencyInfo p_FrequencyInfo ) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_DCH,
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupDCH_PS_HSDPA (p_RAB_Id, cs_RLC_InfoAM_HSDPA)
+    },
+    ul_CommonTransChInfo := cs_UL_CommTrChInfoDCH_PS_64k_TDD,
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCH_PS_64k,
+    dl_CommonTransChInfo := cs_DL_CommonTransChInfoDCH_TDD ( cs_TFCS_Cmpl0_1_Rx ),
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoList_1DCH_HS_PS_HSDPA_TDD,
+    ul_DPCH_Info := cs_UL_DPCH_64k_PS_TDD,
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := cs_DL_HSPDSCH_Information_TDD ( cs_HS_SCCH_Info_TDD, cs_HS_PDSCH_Midamble_Configuration_TDD128 ),//FFS - check values
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r7_TDD ( p_CellParametersID, cs_DL_DPCH_InfoPerRL_SRB_TDD ),//ffs - check values
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+  template UE_SecurityInformation2 cr_UE_SecurityInformation2 :=
+  { /* @status    APPROVED */
+    start_PS := ? // @sic R5-113674 sic@
+  };
+
+  template InterRATHandoverInfo cr_UeCapabilitiesRAT_Container_UTRAN (template UE_SecurityInformation2 p_UE_SecurityInformation2 := omit) :=
+  { /* Values according to 36.523-1 Table 8.5.4.1.3.3-5: ueCapabilitiesRAT-Container-UTRAN */
+    /* @status    APPROVED */
+    predefinedConfigStatusList := {
+      absent := NULL
+    },
+    uE_SecurityInformation := ?,
+    ue_CapabilityContainer := {
+      present_ := ?
+    },
+    v390NonCriticalExtensions := {
+      present_ := {
+        interRATHandoverInfo_v390ext := ?,
+        v3a0NonCriticalExtensions := {
+          interRATHandoverInfo_v3a0ext := ?,
+          laterNonCriticalExtensions := {
+            interRATHandoverInfo_v3d0ext := ?,
+            interRATHandoverInfo_r3_add_ext := ?,
+            v3g0NonCriticalExtensions := {
+              interRATHandoverInfo_v3g0ext := ?,
+              v4b0NonCriticalExtensions := {
+                interRATHandoverInfo_v4b0ext := ?,
+                v4d0NonCriticalExtensions := {
+                  interRATHandoverInfo_v4d0ext := ?,
+                  v590NonCriticalExtensions := {
+                    interRATHandoverInfo_v590ext := ?,
+                    v690NonCriticalExtensions := {
+                      interRATHandoverInfo_v690ext := {
+                        ue_SecurityInformation2 := p_UE_SecurityInformation2, // @sic R5s110350 sic@
+                        ue_RadioAccessCapabilityComp := *,
+                        ue_RadioAccessCapabilityComp2 := ?
+                      },
+                      v6b0NonCriticalExtensions := * // @sic R5s110244 sic@
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r7 cs_DL_InfoPerRL_HSUwithFDPCH_FDD (PrimaryScramblingCode p_ScrmbCode) :=
+  { /* @status    APPROVED */
+    {
+      modeSpecificInfo := {
+        fdd := {
+          primaryCPICH_Info := {
+            primaryScramblingCode := p_ScrmbCode
+          },
+          servingHSDSCH_RL_indicator := true,
+          servingEDCH_RL_indicator := true
+        }
+      },
+      dl_dpchInfo := {
+        dl_FDPCH_InfoPerRL := cs_DL_DPCH_InfoPerRL_FDPCH_FDD
+      },
+      e_AGCH_Information := cs_E_AGCH_Info_FDD_r7,
+      modeSpecificInfo2 := {
+        fdd := {
+          e_HICH_Info := {
+            e_HICH_Information := cs_E_HICH_Info
+          },
+          e_RGCH_Info := omit
+        }
+      },
+      cell_id := omit
+    }
+  };
+
+  template (value) DL_InformationPerRL_List_r7 cs_DL_InfoPerRL_HSUwithFDPCH_TDD ( CellParametersID                      p_CellParametersID,
+                                                                               template (value) DL_DPCH_InfoPerRL_r7 p_DL_DPCH_InfoPerRL_r7 ) :=
+  { /* According to condition A3 in TS 34.108 clause 9.1.1: Downlink information for each radio link list */
+    /* @status    APPROVED */
+    {
+      modeSpecificInfo := {
+        tdd := {
+          tdd := {
+            tddOption := {
+              tdd128 := {
+                tstd_Indicator := false
+              }
+            },
+            cellParametersID := p_CellParametersID,
+            sctd_Indicator := false
+          }
+        }
+      },
+      dl_dpchInfo := {
+        dl_DPCH_InfoPerRL := p_DL_DPCH_InfoPerRL_r7
+      },
+      e_AGCH_Information := omit,
+      modeSpecificInfo2 := {
+        tdd := {
+          tdd128 := {
+            e_HICH_Info := {
+                n_E_HICH := 4,
+                e_HICH_InfoList := {
+                      {
+                        ei := 0,
+                        timeslotNumber := 6,
+                        channelisation_Code := cc16_15,
+                        midambleAllocationMode := {defaultMidamble := NULL},
+                        midambleConfiguration := 8
+                      }
+                    }
+                }
+          }
+        }
+      },
+      cell_id := omit
+    }
+  };
+
+  template (value) E_DPDCH_SchedulingTransmConfiguration cs_E_DPDCH_SchedulingTransmConfiguration_NoGrant :=
+  { /* @status    APPROVED */
+    ms2_SchedTransmGrantHARQAlloc := omit,
+    servingGrant := omit
+  };
+
+  template (value) UL_EDCH_Information_r8 cs_UL_EDCH_Information_FDD :=
+  { /* @status    APPROVED */
+    mac_es_e_resetIndicator := true_,
+    modeSpecificInfo := {
+      fdd := {
+        e_DPCCH_Info := cs_E_DPCCH_Info,
+        e_DPDCH_Info := cs_E_DPDCH_Info,
+        schedulingTransmConfiguration := cs_E_DPDCH_SchedulingTransmConfiguration_NoGrant,
+        ul_16QAM_Settings := omit
+      }
+    }
+  };
+
+  template (value) UL_EDCH_Information_r9 cs_UL_EDCH_Information_TDD :=
+  { /* @status    APPROVED */
+    mac_es_e_resetIndicator := true_,
+    modeSpecificInfo := {
+      tdd := {
+        e_RUCCH_Info := cs_E_RUCCH_Info,
+        e_PUCH_Info := cs_E_PUCH_Info,
+        non_ScheduledTransGrantInfo := omit
+      }
+    }
+  };
+
+  template (value) E_DCH_AddReconf_MAC_d_Flow_r7 cs_E_DCH_AddReconf_MAC_d_Flow_DCCH_r7_FDD :=
+  { /* @status    APPROVED */
+    mac_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DCCH,
+    mac_d_FlowPowerOffset := tsc_E_DCH_MAC_d_FlowPowerOffset,
+    mac_d_FlowMaxRetrans := tsc_E_DCH_MAC_d_FlowMaxRetrans_DCCH,
+    mac_d_FlowRetransTimer := omit,
+    mac_d_FlowMultiplexingList := omit,
+    transmissionGrantType := {
+      non_ScheduledTransGrantInfo := {
+        modeSpecificInfo := {
+          fdd := {
+            maxMAC_e_PDUContents := 162,
+            ms2_NonSchedTransmGrantHARQAlloc := omit
+          }
+        }
+      }
+    }
+  };
+
+  template (value) E_DCH_AddReconf_MAC_d_Flow_r7 cs_E_DCH_AddReconf_MAC_d_Flow_DCCH_r7_TDD :=
+  { /* @status    APPROVED */
+    mac_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DCCH,
+    mac_d_FlowPowerOffset := tsc_E_DCH_MAC_d_FlowPowerOffset,
+    mac_d_FlowMaxRetrans := tsc_E_DCH_MAC_d_FlowMaxRetrans_DCCH,
+    mac_d_FlowRetransTimer := omit,
+    mac_d_FlowMultiplexingList := omit,
+    transmissionGrantType := {
+      non_ScheduledTransGrantInfo := {
+        modeSpecificInfo := {
+          tdd := NULL
+        }
+      }
+    }
+  };
+
+  template (value) E_DCH_AddReconf_MAC_d_Flow_r7 cs_E_DCH_AddReconf_MAC_d_Flow_DTCH_r7 :=
+  { /* @status    APPROVED */
+    mac_d_FlowIdentity := tsc_E_DCH_MAC_d_FlowId_DTCH1,
+    mac_d_FlowPowerOffset := tsc_E_DCH_MAC_d_FlowPowerOffset,
+    mac_d_FlowMaxRetrans := tsc_E_DCH_MAC_d_FlowMaxRetrans_DTCH,
+    mac_d_FlowRetransTimer := omit,
+    mac_d_FlowMultiplexingList := omit,
+    transmissionGrantType := {
+      scheduledTransmissionGrantInfo := NULL
+    }
+  };
+
+  template (value) UL_AddReconfTransChInformation_r8 cs_UL_AddReconfTransChInfoE_DCH_FDD :=
+  { /* @status    APPROVED */
+    e_dch := {
+      ul_MAC_HeaderType := omit,
+      modeSpecific := {
+        fdd := {
+          tti := f_Get_EDCH_TTI_Value()
+        }
+      },
+      harq_Info := rvtable,
+      addReconf_MAC_d_FlowList := { //condition A14 for Radio Bearer Setup in TS 34.108
+        cs_E_DCH_AddReconf_MAC_d_Flow_DCCH_r7_FDD,
+        cs_E_DCH_AddReconf_MAC_d_Flow_DTCH_r7
+      }
+    }
+  };
+
+   template (value) UL_AddReconfTransChInformation_r8 cs_UL_AddReconfTransChInfoE_DCH_TDD :=
+  { /* @status    APPROVED */
+    e_dch := {
+      ul_MAC_HeaderType := omit,
+      modeSpecific := {
+        tdd := NULL
+      },
+      harq_Info := rvtable,
+      addReconf_MAC_d_FlowList := { //condition A14 for Radio Bearer Setup in TS 34.108
+        cs_E_DCH_AddReconf_MAC_d_Flow_DCCH_r7_TDD,
+        cs_E_DCH_AddReconf_MAC_d_Flow_DTCH_r7
+      }
+    }
+  };
+
+  template (value) UL_AddReconfTransChInfoList_r8 cs_UL_AddReconfTransChInfoListE_DCH_FDD :=
+  { /* @status    APPROVED */
+    cs_UL_AddReconfTransChInfoE_DCH_FDD
+  };
+
+  template (value) UL_AddReconfTransChInfoList_r8 cs_UL_AddReconfTransChInfoListE_DCH_TDD :=
+  { /* @status    APPROVED */
+    cs_UL_AddReconfTransChInfoE_DCH_TDD
+  };
+
+  template (value) SRB_InformationSetup_r8 cs_SRB_InfoSetupAM_E_HS_r8(LogicalChannelIdentity     p_LogicalChannelIdUL,
+                                                                      DDI                        p_DDI,
+                                                                      MAC_LogicalChannelPriority p_LogicalChannelPriorityDCH,
+                                                                      LogicalChannelIdentity     p_LogicalChannelIdDL) :=
+  { /* @status    APPROVED */
+    rb_Identity := omit,
+    rlc_InfoChoice := {
+      rlc_Info := cs_RLC_InfoAM_Common(cds_UL_AM_RLC_SRB, cds_DL_AM_RLC_SRB_r7)
+    },
+    rb_MappingInfo := {
+      cs_RB_MappingOptionSRB_EDCH_HSDSCH_r8(p_LogicalChannelIdUL, p_DDI, p_LogicalChannelPriorityDCH, p_LogicalChannelIdDL)
+    }
+  };
+
+  template (value) SRB_InformationSetup_r8 cs_SRB_InfoSetupUM_E_HS_r8(LogicalChannelIdentity     p_LogicalChannelIdUL,
+                                                                      DDI                        p_DDI,
+                                                                      MAC_LogicalChannelPriority p_LogicalChannelPriorityDCH,
+                                                                      LogicalChannelIdentity     p_LogicalChannelIdDL) :=
+  { /* @status    APPROVED */
+    rb_Identity := omit,
+    rlc_InfoChoice := {
+      rlc_Info := cs_RLC_InfoUM_Common
+    },
+    rb_MappingInfo := {
+      cs_RB_MappingOptionSRB_EDCH_HSDSCH_r8(p_LogicalChannelIdUL, p_DDI, p_LogicalChannelPriorityDCH, p_LogicalChannelIdDL)
+    }
+  };
+
+  template (value) SRB_InformationSetupList_r8 cs_SRB_InformationSetupList_r8_E_HS :=
+  { /* @status    APPROVED */
+    cs_SRB_InfoSetupUM_E_HS_r8( tsc_UL_DCCH1, tsc_E_DCH_DDI_1, tsc_UL_MAC_Prt1, tsc_DL_DCCH1),
+    cs_SRB_InfoSetupAM_E_HS_r8( tsc_UL_DCCH2, tsc_E_DCH_DDI_2, tsc_UL_MAC_Prt2, tsc_DL_DCCH2),
+    cs_SRB_InfoSetupAM_E_HS_r8( tsc_UL_DCCH3, tsc_E_DCH_DDI_3, tsc_UL_MAC_Prt3, tsc_DL_DCCH3),
+    cs_SRB_InfoSetupAM_E_HS_r8( tsc_UL_DCCH4, tsc_E_DCH_DDI_4, tsc_UL_MAC_Prt4, tsc_DL_DCCH4)
+  };
+
+  template (value) HandoverToUTRANCommand_r8_Complete_Type cs_HandoverToUTRANCommand_Complete_HSPA_FDD (UL_ScramblingCode              p_UL_ScramblingCode,
+                                                                                                        PrimaryScramblingCode          p_PrimScramblingCode,
+                                                                                                        template (value) FrequencyInfo p_FrequencyInfo ) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_E_HS,            /* According to the corresponding IE in the RRC CONNECTION SETUP message using condition A3 in TS 34.108 clause 9.1.1 */
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupHSUPA_RB25_1MuxOption                                     /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+    },
+    ul_CommonTransChInfo := {                                                   /* Same content as the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+      tfc_Subset := omit,
+      prach_TFCS := omit,
+      modeSpecificInfo := omit,
+      tfc_SubsetList := omit
+    },
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListE_DCH_FDD,     /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                   Added or Reconfigured UL TrCH information */
+    dl_CommonTransChInfo := {                                                   /* Same content as the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+      sccpch_TFCS := omit,
+      modeSpecificInfo := omit
+    },
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSPA_FDD,          /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                                   Added or Reconfigured DL TrCH information
+                                                                                                   @sic R5s120397 sic@ */
+    ul_DPCH_Info := cs_UL_DPCH_OnlyHS_PDSCH_FDD (p_UL_ScramblingCode),                          /* Same as the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+    ul_EDCH_Information := cs_UL_EDCH_Information_FDD,                                          /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1: E-DCH info */
+    dl_HSPDSCH_Information := cs_DL_HSPDSCH_Information_FDD(cs_HS_SCCH_Info_FDD,
+                                                            cs_Measurement_Feedback_Info),      /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+     
+    dl_CommonInformation := cs_DL_CommonInformationF_DPCH_FDD,                                  /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                                   Downlink information common for all radio links */
+      
+    dl_InformationPerRL_List := cs_DL_InfoPerRL_HSUwithFDPCH_FDD(p_PrimScramblingCode),         /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                                   Downlink information for each radio link list */
+      
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+   template (value) HandoverToUTRANCommand_r9_Complete_Type cs_HandoverToUTRANCommand_Complete_HSPA_TDD(CellParametersID p_CellParametersID,
+                                                                                                        template (value) FrequencyInfo p_FrequencyInfo ) :=
+  { /* @status    APPROVED */
+    srb_InformationSetupList := cs_SRB_InformationSetupList_r8_E_HS,            /* According to the corresponding IE in the RRC CONNECTION SETUP message using condition A3 in TS 34.108 clause 9.1.1 */
+    rab_InformationSetupList := {
+      cs_RAB_InfoSetupHSUPA_RB25_1MuxOption                                     /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+    },
+    ul_CommonTransChInfo := {                                                   /* Same content as the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+      tfc_Subset := omit,
+      prach_TFCS := omit,
+      modeSpecificInfo := omit,
+      tfc_SubsetList := omit
+    },
+    ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListE_DCH_TDD,     /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                   Added or Reconfigured UL TrCH information */
+    dl_CommonTransChInfo := {                                                   /* Same content as the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+      sccpch_TFCS := omit,
+      modeSpecificInfo := omit
+    },
+    dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoList_2DCH_HS_PS_HSPA_TDD,          /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                                   Added or Reconfigured DL TrCH information
+                                                                                                   @sic R5s120397 sic@ */
+    ul_DPCH_Info := cs_UL_DPCH_OnlyHS_PDSCH_TDD,                                                /* Same as the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+    ul_EDCH_Information := cs_UL_EDCH_Information_TDD,                                          /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1: E-DCH info */
+    dl_HSPDSCH_Information := cs_DL_HSPDSCH_Information_TDD(cs_HS_SCCH_Info_TDD,
+                                                            cs_HS_PDSCH_Midamble_Configuration_TDD128),      /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1 */
+     
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,                                               /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                                   Downlink information common for all radio links */
+      
+    dl_InformationPerRL_List := cs_DL_InfoPerRL_HSUwithFDPCH_TDD(p_CellParametersID, cs_DL_DPCH_InfoPerRL_SRB_TDD), /* According to the corresponding IE in the RADIO BEARER SETUP message using condition A14 in TS 34.108 clause 9.1.1:
+                                                                                                                       Downlink information for each radio link list */
+      
+    frequencyInfo := p_FrequencyInfo,
+    multi_frequencyInfo := omit
+  };
+
+  function fl_U_EncodeHandoverToUtran_Common_r8(template (omit) B16_Type p_New_H_RNTI,
+                                                template (value) HandoverToUTRANCommand_r8_Complete_Type p_HandoverToUTRANCommand_Complete,
+                                                template (omit) E_RNTI p_E_RNTI := omit) // @sic R5s120397 sic@
+    return octetstring
+  {
+    var bitstring v_Bitstring := encvalue(cs_HandoverToUTRANCommand_r8(px_UTRAN_CipheringAlgorithm, p_New_H_RNTI, p_HandoverToUTRANCommand_Complete, p_E_RNTI));
+    var octetstring v_Octetstring := bit2oct(f_OctetAlignedBitString(v_Bitstring)); /* Make bitstring aligned with octetstring (padding at the end) */
+    return v_Octetstring;
+  }
+
+  function fl_U_EncodeHandoverToUtran_Common_r9(template (omit) B16_Type p_New_H_RNTI,
+                                                template (value) HandoverToUTRANCommand_r9_Complete_Type p_HandoverToUTRANCommand_Complete,
+                                                template (omit) E_RNTI p_E_RNTI := omit) // @sic R5s120397 sic@
+    return octetstring
+  {
+    var bitstring v_Bitstring := encvalue(cs_HandoverToUTRANCommand_r9(px_UTRAN_CipheringAlgorithm, p_New_H_RNTI, p_HandoverToUTRANCommand_Complete, p_E_RNTI));
+    var octetstring v_Octetstring := bit2oct(f_OctetAlignedBitString(v_Bitstring)); /* Make bitstring aligned with octetstring (padding at the end) */
+    return v_Octetstring;
+  }
+
+  function f_U_EncodeHandoverToUtran_64kPS_FDD(UL_ScramblingCode     p_UL_ScramblingCode,
+                                               PrimaryScramblingCode p_PrimScramblingCode,
+                                               integer               p_UARFCN)
+    return octetstring
+  { /* @sic R5s110683 additional changes sic@ */
+    return fl_U_EncodeHandoverToUtran_Common_r8(omit, cs_HandoverToUTRANCommand_Complete_64kPS_FDD(tsc_RAB_DefPS,
+                                                                                                p_UL_ScramblingCode,
+                                                                                                p_PrimScramblingCode,
+                                                                                                cs_FreqInfo_FDD(p_UARFCN)));
+  }
+
+  function f_U_EncodeHandoverToUtran_64kPS_TDD(CellParametersID p_CellParametersID,
+                                               integer p_UARFCN)
+    return octetstring
+  { /* @sic R5s110683 additional changes sic@ */
+    return fl_U_EncodeHandoverToUtran_Common_r9(omit, cs_HandoverToUTRANCommand_Complete_64kPS_TDD(tsc_RAB_DefPS,
+                                                                                                p_CellParametersID,
+                                                                                                cs_FreqInfo_TDD(p_UARFCN)));
+  }
+
+  function f_U_EncodeHandoverToUtran_64kPS_DCH4_FDD(UL_ScramblingCode     p_UL_ScramblingCode,
+                                                    PrimaryScramblingCode p_PrimScramblingCode,
+                                                    integer               p_UARFCN)
+    return octetstring
+  {
+    return fl_U_EncodeHandoverToUtran_Common_r8(omit, cs_HandoverToUTRANCommand_Complete_64kPS_DCH4_FDD(tsc_RAB_DefPS,
+                                                                                                     p_UL_ScramblingCode,
+                                                                                                     p_PrimScramblingCode,
+                                                                                                     cs_FreqInfo_FDD(p_UARFCN)));
+  }
+
+  function f_U_EncodeHandoverToUtran_64kPS_DCH4_TDD(CellParametersID p_CellParametersID,
+                                                    integer p_UARFCN)
+    return octetstring
+  {
+    return fl_U_EncodeHandoverToUtran_Common_r9(omit, cs_HandoverToUTRANCommand_Complete_64kPS_DCH4_TDD(tsc_RAB_DefPS,
+                                                                                                     p_CellParametersID,
+                                                                                                     cs_FreqInfo_TDD(p_UARFCN)));
+  }
+
+  function f_U_EncodeHandoverToUtran_HSDPA_FDD(UL_ScramblingCode     p_UL_ScramblingCode,
+                                               PrimaryScramblingCode p_PrimScramblingCode,
+                                               integer               p_UARFCN)
+  return octetstring
+  { /* @sic R5s110683 additional changes sic@ */
+    return fl_U_EncodeHandoverToUtran_Common_r8(tsc_H_RNTI, cs_HandoverToUTRANCommand_Complete_HSDPA_FDD(tsc_RAB_DefPS,
+                                                                                                      p_UL_ScramblingCode,
+                                                                                                      p_PrimScramblingCode,
+                                                                                                      cs_FreqInfo_FDD (p_UARFCN)));
+  }
+
+  function f_U_EncodeHandoverToUtran_HSDPA_TDD(CellParametersID p_CellParametersID,
+                                               integer          p_UARFCN )
+    return octetstring
+  {
+    return fl_U_EncodeHandoverToUtran_Common_r9(tsc_H_RNTI, cs_HandoverToUTRANCommand_Complete_HSDPA_TDD(tsc_RAB_DefPS,
+                                                                                                      p_CellParametersID,
+                                                                                                      cs_FreqInfo_TDD (p_UARFCN)));
+  }
+
+  function f_U_EncodeHandoverToUtran_HSPA_FDD(UL_ScramblingCode p_UL_ScramblingCode,
+                                              PrimaryScramblingCode p_PrimScramblingCode,
+                                              integer p_UARFCN) return octetstring
+  {
+    return fl_U_EncodeHandoverToUtran_Common_r8(tsc_H_RNTI,
+                                                cs_HandoverToUTRANCommand_Complete_HSPA_FDD(p_UL_ScramblingCode, p_PrimScramblingCode, cs_FreqInfo_FDD(p_UARFCN)),
+                                                tsc_E_RNTI); // @sic R5s120397 sic@
+  }
+
+  function f_U_EncodeHandoverToUtran_HSPA_TDD(CellParametersID p_CellParametersID,
+                                              integer p_UARFCN) return octetstring
+  {
+    return fl_U_EncodeHandoverToUtran_Common_r9(tsc_H_RNTI,
+                                                cs_HandoverToUTRANCommand_Complete_HSPA_TDD(p_CellParametersID, cs_FreqInfo_TDD(p_UARFCN)),
+                                                tsc_E_RNTI);
+  }
+
+  function f_U_DecodeAndCheckInterRatHandoverInfo ( octetstring p_Octetstring ) return boolean
+  { //36.331 cl. 6.3.6: The octet string contains the INTER RAT HANDOVER INFO message defined in TS 25.331
+    var boolean v_MatchResult;
+    var InterRATHandoverInfo v_Received_UeCapabilitiesRAT_Container_UTRAN := f_U_DecodeInterRatHandoverInfo (p_Octetstring); // @sic R5-120764 sic@
+    var template UE_SecurityInformation2 v_UE_SecurityInformation2 := omit;
+    
+    if (pc_FeatrGrp_8) { // @sic R5s110350 sic@
+      v_UE_SecurityInformation2 := cr_UE_SecurityInformation2;
+    }
+    v_MatchResult := match ( v_Received_UeCapabilitiesRAT_Container_UTRAN, cr_UeCapabilitiesRAT_Container_UTRAN (v_UE_SecurityInformation2));
+    return v_MatchResult;
+  }
+
+  function f_U_DecodeInterRatHandoverInfo ( octetstring p_Octetstring ) return InterRATHandoverInfo
+  { //36.331 cl. 6.3.6: The octet string contains the INTER RAT HANDOVER INFO message defined in TS 25.331
+    var InterRATHandoverInfo v_Received_UeCapabilitiesRAT_Container_UTRAN;
+    var bitstring v_Bitstring := oct2bit(p_Octetstring);
+    var integer v_Result := decvalue(v_Bitstring, v_Received_UeCapabilitiesRAT_Container_UTRAN );
+
+    if (v_Result != 0) {
+      FatalError(__FILE__, __LINE__, "UE UTRAN Capability cannot be decoded");
+    }
+    
+    return v_Received_UeCapabilitiesRAT_Container_UTRAN;
+  }
+
+  function f_U_DecodeInterRatHandoverInfo_AndGetStartPSValue ( octetstring p_Octetstring ) return B20_Type
+  {
+    var InterRATHandoverInfo v_RxdRATContainer_UTRAN := f_U_DecodeInterRatHandoverInfo (p_Octetstring);
+    var B20_Type v_StartPS := v_RxdRATContainer_UTRAN.v390NonCriticalExtensions.present_.v3a0NonCriticalExtensions.laterNonCriticalExtensions.v3g0NonCriticalExtensions.v4b0NonCriticalExtensions.v4d0NonCriticalExtensions.v590NonCriticalExtensions.v690NonCriticalExtensions.interRATHandoverInfo_v690ext.ue_SecurityInformation2.start_PS;
+    
+    return v_StartPS;
+  }
+
+  function f_U_DecodeInterRatHandoverInfo_AndGetStartCSValue ( octetstring p_Octetstring ) return B20_Type
+  {
+    var InterRATHandoverInfo v_RxdRATContainer_UTRAN := f_U_DecodeInterRatHandoverInfo (p_Octetstring);
+    var B20_Type v_StartCS := v_RxdRATContainer_UTRAN.uE_SecurityInformation.present_.start_CS;
+    
+    return v_StartCS;
+  }
+
+  function f_U_DecodeRRCDataInd_Msg(octetstring p_Octetstring) return RRCDataIndType
+  {
+    var RRCDataIndType v_Received_Msg;
+    var bitstring v_Bitstring := oct2bit(p_Octetstring);
+    var integer v_Result := decvalue(v_Bitstring, v_Received_Msg);
+    if (v_Result != 0) {
+      FatalError(__FILE__, __LINE__, "RRC Data Ind message cannot be decoded");
+    }
+    return v_Received_Msg;
+  }
+
+  function f_U_DecodeAndMatch_LocUpdReq_Msg(octetstring p_Octetstring,
+                                            template LOCATIONUPDATINGREQUEST p_ExpectedReq_Msg ) return boolean
+  {
+    var RRCDataIndType v_Received_Msg;
+    var boolean v_Match := false;
+    var bitstring v_Bitstring := oct2bit(p_Octetstring);
+    
+    //Decode the message/octetstring
+    if (decvalue(v_Bitstring, v_Received_Msg) != 0) {
+      FatalError(__FILE__, __LINE__, "Location Updating Request message cannot be decoded");
+    }
+    
+    //Match the received decoded template with the expected template
+    if (match(v_Received_Msg.locationUpdatingRequest, p_ExpectedReq_Msg)) {
+      v_Match := true;
+    }
+    return v_Match;
+  }
+
+  function f_UTRAN_ConvertIntegerToEUTRA_MeasurementBandwidth(integer p_EUTRA_DL_Bandwidth) return EUTRA_MeasurementBandwidth
+  {
+    var EUTRA_MeasurementBandwidth v_MeasurementBandwidth;   // defined in UTRAN_RRC_ASN1_Definitions
+    
+    select  (p_EUTRA_DL_Bandwidth) {
+      case (6) {                                          //1.4MHz
+        v_MeasurementBandwidth := mbw6;
+      }
+      case (15) {                                         //3MHz
+        v_MeasurementBandwidth := mbw15;
+      }
+      case (25) {                                         //5MHz
+        v_MeasurementBandwidth := mbw25;
+      }
+      case (50) {                                         //10MHz
+        v_MeasurementBandwidth := mbw50;
+      }
+      case (75) {                                         //15MHz
+        v_MeasurementBandwidth := mbw75;
+      }
+      case (100) {                                        //20MHz
+        v_MeasurementBandwidth := mbw100;
+      }
+      case else {
+        FatalError (__FILE__,__LINE__, "invalid value for ChannelBandwidth");
+      }
+    }
+    return v_MeasurementBandwidth;
+  }
+
+}

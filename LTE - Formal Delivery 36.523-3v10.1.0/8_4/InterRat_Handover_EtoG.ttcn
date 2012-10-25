@@ -1,0 +1,193 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 19:03:24 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7271 $
+/******************************************************************************/
+
+module InterRat_Handover_EtoG {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_Measurement_Templates all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_8_4_3_2and3_Step1(RRC_TransactionIdentifier p_RRC_TI,
+                                                                                     ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq,
+                                                                                     AllowedMeasBandwidth p_EUTRA_MeasurementBandwidth,
+                                                                                     ARFCN_ValueGERAN p_StartingARFCN,
+                                                                                     BandIndicatorGERAN p_BandIndicator,
+                                                                                     template (value) ExplicitListOfARFCNs p_ExplicitListOfARFCNs ) :=
+  /* @status    APPROVED */
+    cs_508_RRCConnectionReconfiguration_ConditionMEAS(p_RRC_TI,
+                                                      cs_MeasConfig(omit,
+                                                                    cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                                                                       cs_508_MeasObjectEUTRA_GENERIC( p_EUTRA_DL_CarrierFreq,
+                                                                                                                                       p_EUTRA_MeasurementBandwidth ),
+                                                                                                       tsc_IdMeasObject_f11,
+                                                                                                       cs_508_MeasObjectGERAN_GENERIC( p_StartingARFCN,
+                                                                                                                                       p_BandIndicator,
+                                                                                                                                       p_ExplicitListOfARFCNs)),
+                                                                    
+                                                                    omit,
+                                                                    cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_B2_GERAN,
+                                                                                                       cs_508_ReportConfigInterRAT_B2_GERAN( -69, -79 )),
+                                                                    omit,
+                                                                    cs_MeasIdToAddModList_1Entry(1, tsc_IdMeasObject_f11, tsc_IdReportConfig_B2_GERAN),
+                                                                    cs_QuantityConfig(cs_QuantityConfigEUTRA( omit, omit ),
+                                                                                      omit,
+                                                                                      cs_QuantityConfigGERAN( rssi, fc0 ),
+                                                                                      omit),
+                                                                    cs_508_MeasGapConfig_GP2)); // @sic R5s110743, R5s120372 sic@
+
+  template (value) SI_OrPSI_GERAN cs_SI_GERAN (octetstring p_SI1,
+                                               octetstring p_SI3,
+                                               octetstring p_SI13) :=
+  { /* @status    APPROVED */
+    si := {
+      p_SI1,
+      p_SI3,
+      p_SI13
+    }
+  };
+
+  function f_TC_8_4_3_2_EUTRA() runs on EUTRA_PTC
+  { /* Inter-RAT cell change order / From E-UTRA data RRC_CONNECTED to GPRS / Without NACC */
+    fl_TC_8_4_3_2and3(omit, false, ms4000); //NetworkControlOrder; SystemInformation
+  }
+
+  function f_TC_8_4_3_3_EUTRA() runs on EUTRA_PTC
+  { /* Inter-RAT cell change order / From E-UTRA data to GPRS / With NACC */
+    fl_TC_8_4_3_2and3('00'B, true, ms2000); //NetworkControlOrder; SystemInformation
+  }
+
+  function fl_TC_8_4_3_2and3(template (omit) B2_Type         p_NetworkControlOrder,
+                             boolean p_NeedSysInfo,
+                             CellChangeOrder.t304 p_T304) runs on EUTRA_PTC
+  {
+    var Frequency_IE_Type v_Frequency_IE_Cell1; // @sic R5s120372 sic@
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1; // @sic R5s120372 sic@
+    var IRAT_CoOrd_SysInfo_Type v_GERANSysInfo, v_GERANSysInfof12, v_GERANSysInfof13;
+    var CarrierFreqGERAN v_CarrierFreqGERAN_Cell24;
+    var PhysCellIdGERAN v_GERAN_PhysChId_Cell24;
+    var IRAT_Coordination_MSG v_SI1, v_SI3, v_SI13;
+    var template (omit) SI_OrPSI_GERAN  v_SystemInformation := omit;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var integer v_T0_RS_EPRE_Cell1 := -60;
+    var integer v_T1_RS_EPRE_Cell1 := -80;
+    
+    //* @desc Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c5 );//Combination 5 in TS 36.508 section 4.4.3.1.1
+    
+    if (p_NeedSysInfo) { // 8.4.3.3, wait for SI data from GERAN
+      GERAN.receive (cmr_IRAT_OctetData) -> value v_SI1;
+      GERAN.receive (cmr_IRAT_OctetData) -> value v_SI3;
+      GERAN.receive (cmr_IRAT_OctetData) -> value v_SI13;
+      v_SystemInformation := cs_SI_GERAN (v_SI1.OctetData, v_SI3.OctetData, v_SI13.OctetData);
+    }
+    
+    //Set maximum cell powel level for Cell 1 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -60); // @sic R5s120372 sic@
+    
+    //* @desc Create and configure cell
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //* @desc Bring UE to RB Established (state 3)
+    // Do normal preamble
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    // then get latest security params and send them over
+    f_EUTRA_SendAuthParameters (eutra_Cell1, GERAN);
+    
+    //Set EPRE for T0
+    f_EUTRA_SetCellPower( eutra_Cell1, v_T0_RS_EPRE_Cell1 );
+    
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1); // @sic R5s120372 sic@
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam(v_Frequency_IE_Cell1.DL_ChBandwidth, v_Frequency_IE_Cell1.UL_ChBandwidth); // @sic R5s120372 sic@
+    
+    //* @desc Wait for configuration of GERAN cell and get Cell Parameters for GERAN cell
+    v_GERANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    v_GERANSysInfof12 := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    v_GERANSysInfof13 := f_IRAT_WaitForCoOrd_SysInfo (GERAN);
+    
+    v_CarrierFreqGERAN_Cell24 := {
+      arfcn         := v_GERANSysInfo.Geran[0].Arfcn,
+      bandIndicator := f_ConvertGERAN_Band(v_GERANSysInfo.Geran[0].BandIndicator)
+    };
+    v_GERAN_PhysChId_Cell24 := {
+      networkColourCode := v_GERANSysInfo.Geran[0].Ncc,
+      baseStationColourCode := v_GERANSysInfo.Geran[0].Bcc
+    };
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    //@siclog "Step 1-2" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message to setup inter RAT measurement on Cell 1;
+    //Receive RRCConnectionReconfigurationComplete
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,
+                                                    cs_RRCConnectionReconfiguration_8_4_3_2and3_Step1(v_RRC_TI,
+                                                                                                      v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                      v_ChBandDependency_Cell1.AllowedMeasBandwidth,
+                                                                                                      v_GERANSysInfo.Geran[0].Arfcn,
+                                                                                                      f_ConvertGERAN_Band(v_GERANSysInfo.Geran[0].BandIndicator),
+                                                                                                      f_ConvertGERANNeighCell (v_GERANSysInfof12.Geran[0].Arfcn, v_GERANSysInfof13.Geran[0]. Arfcn))); // @sic R5-120604, R5s120290, R5s120372 sic@
+    //@siclog "Step 3" siclog@
+    //  The SS changes Cell1 and Cell 24 parameters according to the values specified for T1
+    f_EUTRA_SetCellPower( eutra_Cell1, v_T1_RS_EPRE_Cell1 );
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger); // Send trigger to GERAN side to change parameters
+    
+    //@siclog "Step 4" siclog@
+    // The UE transmit a MeasurementReport message to report the event B2 for Cell 24
+    SRB.receive( car_SRB1_RrcPdu_IND( eutra_Cell1,
+                                      cr_MeasurementReport_Geran_1Entry( 1, v_GERAN_PhysChId_Cell24 ) ) );
+    
+    
+    //Stop periodic TA on source cell
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    
+    //@siclog "Step 5" siclog@
+    //The SS transmits a MobilityFromEUTRACommand message
+    SRB.send ( cas_SRB1_RrcPdu_REQ ( eutra_Cell1,
+                                     cs_TimingInfo_Now,
+                                     cs_MobilityFromEutraCommand_CellChangeOrder ( v_RRC_TI,
+                                                                                   p_T304,                 // @sic R5-123732 sic@
+                                                                                   v_GERAN_PhysChId_Cell24,
+                                                                                   v_CarrierFreqGERAN_Cell24,
+                                                                                   p_NetworkControlOrder,
+                                                                                   v_SystemInformation)));
+    
+    // Send trigger to GERAN side to do step6
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    // Release DRX configuration
+    f_EUTRA_SS_DrxCtrlConfig(eutra_Cell1, cs_DrxCtrl_None);
+    
+    // Release SRBs and DRBs
+    f_EUTRA_SS_SRBs_DRBs_Release(eutra_Cell1, cs_TimingInfo_Now);
+    
+    f_IRAT_WaitForCoOrd_Trigger(GERAN);  // wait for UTRAN side to finish
+    f_EUTRA_TestBody_Set(false);
+    
+    //* @desc Release non camping cell
+    f_EUTRA_ReleaseAllCells ( );
+  }
+
+}

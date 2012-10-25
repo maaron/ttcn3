@@ -1,0 +1,839 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-05-29 17:19:39 +0200 (Tue, 29 May 2012) $
+// $Rev: 6682 $
+/******************************************************************************/
+
+module NAS_CommonTypeDefs {
+  /* Module containing type definitions for EPS, UTRAN and/or GERAN */
+
+import from CommonDefs all;
+
+//****************************************************************************
+// Common Type definitions:
+//----------------------------------------------------------------------------
+
+//****************************************************************************
+//****************************************************************************
+
+type O1_Type                  Octet_Type;
+type hexstring                HalfOctet_Type length(1);
+
+type HalfOctet_Type           IEI4_Type; /* 4 bit info element identifier for type 1 IEs */
+type Octet_Type               IEI8_Type; /* 8 bit info element identifier */
+
+type O1_Type                  Type4Length_Type;
+type O2_Type                  Type6Length_Type;
+
+type HalfOctet_Type           SpareHalfOctet;
+
+type hexstring   NAS_Mcc length(3);   //* @desc Type which can be used to represent an MCC (as string of 3 decimal digits).
+
+//****************************************************************************
+// NAS PROTOCOL DEFINITIONS: IEs
+//----------------------------------------------------------------------------
+// General Info Elements (24.301 cl. 9)
+//----------------------------------------------------------------------------
+
+type B4_Type     ProtocolDiscriminator;                    /* 24.301 cl. 9.2 and 24.007 cl. 11.2.3.1.1 */
+type B4_Type     SkipIndicator;                            /* 24.007 cl. 11.2.3.1.2 */
+type B8_Type     MessageType;                              /* 24.301 cl. 9.8 */
+
+type B3_Type     NAS_AttDetValue_Type;
+type B3_Type     KeySeq;                                   /* ciphering key sequence
+                                                              3G TS 24008 cl. 10.5.1.2 */
+type O3_Type     NAS_PlmnId;
+
+type O4_Type     NAS_Tmsi;
+type O4_Type     NAS_P_Tmsi;
+
+type O2_Type     NAS_Lac;
+type O1_Type     NAS_Rac;
+
+type hexstring   BcdDigit_Hex length(1);
+type bitstring   BcdDigit_Bit length(4);
+
+type B3_Type              NAS_IdType;
+type B8_Type              NAS_CauseValue_Type;
+
+type B1_Type TmsiStatusValue;
+
+type enumerated PS_MODE {VOICE_CENTRIC, DATA_CENTRIC};        /* @status  @sic R5s120274 sic@   */
+type enumerated CS_PS_MODE {VOICE_CENTRIC, DATA_CENTRIC};     /* @status    APPROVED */
+// This is here because it's the best place for it
+  const NAS_Lac tsc_LAC_Def := '0001'O ;                                /* Default NAS LAC, the value may need to be updated in CS combined/CS fallback test cases
+                                                                           @status    APPROVED
+                                                                           @sic R5s090180 sic@ */
+
+
+//-----------------------------------------------------------------------------
+// Defined in 24.008, but also referenced from 24.301
+//-----------------------------------------------------------------------------
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008, section 10.5.6.1
+// -----------------------------------------------------------------------------
+type record AccessPointName {                                 /* 24.301 cl. 9.9.4.1 -> 24.008 cl. 10.5.6.1 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  octetstring                 nameValue length(1..100)
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008, section 10.5.3.14
+// -----------------------------------------------------------------------------
+type record AddUpdateParams {
+  IEI4_Type            iei  optional,
+  B2_Type              spare,                           // @sic R5s120178 Baseline Moving sic@
+  B1_Type              csmo,                            // @sic R5s120178 Baseline Moving sic@
+  B1_Type              csmt
+};
+// =============================================================================
+// Structured Type Definition
+// Ciphering Key Sequence Number
+// 3G TS 24.008 cl. 10.5.1.2
+// -----------------------------------------------------------------------------
+type record CiphKeySeqNum {
+  IEI4_Type            iei  optional,                   // '1000'B
+  B1_Type              spare1,
+  KeySeq               keySeq
+};
+
+// =============================================================================
+// Structured Type Definition
+// Priority Level
+// 3G TS 24.008 cl. 10.5.6.19 / 24.301 9.9.4.2A
+// -----------------------------------------------------------------------------
+type record ConnectivityType {
+  IEI4_Type            iei,
+  B4_Type              connectivityValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008, section 10.5.5.5/ 24.301 cl. 9.9.3.7
+// -----------------------------------------------------------------------------
+type record DetachType {
+  // IEI is always skipped
+  B1_Type                     switchOff,
+  NAS_AttDetValue_Type        typeOfDetach
+};
+
+// =============================================================================
+// Structured Type Definition
+// Device Properties
+// 3G TS 24.008 cl. 10.5.7.8
+// -----------------------------------------------------------------------------
+type record DeviceProperties {
+  IEI4_Type            iei,
+  B3_Type              spare,
+  B1_Type              lowPriority
+};
+
+// =============================================================================
+// Structured Type Definition
+// DRX paramter
+// 3GPP 24.008 / 10.5.5.6
+// -----------------------------------------------------------------------------
+type record DRXparameter {
+  IEI8_Type            iei   optional,        // '00100111'B (hex 27)
+  B8_Type              splitPGcycleCode,      // Split PG cycle code
+  B4_Type              cnDRXcoef,             // CN specific DRX cycle length coefficient
+  B1_Type              splitOnCCCH,           // Split on CCCCH
+  B3_Type              nonDRXtimer            // non-DRX timer
+};
+
+// =============================================================================
+// Structured Type Definition
+// Emergency Service Category
+// 3GPP 24.008 / 10.5.4.33
+// -----------------------------------------------------------------------------
+type record EmergServCat {
+  B1_Type              spare,
+  B7_Type              emergSCValue             // Emergency Service Category value
+};
+
+type record length (1..10) of charstring EmergencyLocalNumberList;
+// =============================================================================
+// Structured Type Definition
+// Emergency Number
+// 3G TS 24.008 cl. 10.5.3.13
+// -----------------------------------------------------------------------------
+type record EmergNum {
+  Type4Length_Type   len,                   // length
+  EmergServCat       emergServCat,          // Emergency Service Category
+  octetstring        digits length(0..10)   // BCD numbers
+};
+
+// =============================================================================
+// Structured Type Definition
+// Emergency Number List
+// 3G TS 24.008 cl. 10.5.3.13
+// -----------------------------------------------------------------------------
+type record EmergNumList {
+  IEI8_Type            iei,                   // '00110100'B (34 hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  record length (1..10) of EmergNum  emergNum             // Emergency Number
+};
+
+// =============================================================================
+// Structured Type Definition
+// GPRS timer
+// 3GPP 24.008 / 10.5.7.3
+// -----------------------------------------------------------------------------
+type record GPRS_Timer {                                       /* 24.301 cl. 9.9.3.14 -> 24.008 cl. 10.5.7.3 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  GprsTimerUnit               unit,
+  B5_Type                     timerValue
+};
+
+type B3_Type GprsTimerUnit;
+
+// =============================================================================
+// Structured Type Definition
+// GPRS timer
+// 3GPP 24.008 / 10.5.7.4
+// -----------------------------------------------------------------------------
+type record GPRS_Timer2 {
+  IEI8_Type            iei,               // @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length  @sic R5s110420 sic@
+  GprsTimerUnit        unit,                      // Unit
+  B5_Type              gprsTimerValue             // Timer  value
+};
+
+// =============================================================================
+// Structured Type Definition
+// GPRS timer
+// 3GPP 24.008 / 10.5.7.4a
+// -----------------------------------------------------------------------------
+type record GPRS_Timer3 {
+  IEI8_Type            iei,
+  Type4Length_Type     iel,                   // length
+  GprsTimerUnit        unit,                  // Unit
+  B5_Type              gprsTimerValue         // Timer  value
+};
+
+// =============================================================================
+// Structured Type Definition
+// IMEISV Request
+// 3GPP 24.008 /  10.5.5.10
+// -----------------------------------------------------------------------------
+type record IMEISV_Request {                                  /* 24.301 cl. 9.9.3.16 -> 24.008 cl. 10.5.5.10 */
+  IEI4_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B1_Type                     spare,
+  B3_Type                     requestValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// Location Area Identification Value
+// 3G TS 24.008 cl. 10.5.1.3
+// -----------------------------------------------------------------------------
+type record LocAreaId {
+  IEI8_Type   iei          optional,
+  NAS_PlmnId  plmn,        // MCC  + MNC 3 digits each
+  NAS_Lac     lac          // LAC
+};
+
+// =============================================================================
+// Structured Type Definition
+// RoutingAreaId
+// 3GPP 24.008 /  10.5.5.15
+// -----------------------------------------------------------------------------
+type record RoutingAreaId             {                       /* 24.301 cl. 9.9.3.24 -> 24.008 cl. 10.5.5.15 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  LocAreaId                   lai,                            /* MCC  + MNC + LAC */
+  O1_Type                     rac                             /* RAC */
+};
+
+// =============================================================================
+// Structured Type Definition
+// 24.007, clause 10.5.6.9
+// -----------------------------------------------------------------------------
+type record LLC_SAPI {                                        /* 24.301 cl. 9.9.4.4 -> 24.008 cl. 10.5.6.9 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B4_Type                     spare,
+  B4_Type                     llcSapiValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// Mobile Identity
+// 3G TS 24.008 cl. 10.5.1.4
+// Maximum number of digits is 16 (IMEISV). Filler may be used.
+// -----------------------------------------------------------------------------
+type record MobileIdentity {
+  IEI8_Type            iei optional,                   // '00100011'B
+  Type4Length_Type     iel,
+  BcdDigit_Bit         idDigit1,                // 1st identitity digit
+  B1_Type              oddEvenInd,              // Odd/even indicator
+  NAS_IdType           typeOfId,                // Type of identity
+  octetstring          otherDigits length(0..10) // Other identity digits (10 octets rather than 8 to cover Guti as well)
+};
+
+// =============================================================================
+// Structured Type Definition
+// Mobile Station Classmark 2
+// 3G TS 24.008 cl. 10.5.1.6
+// -----------------------------------------------------------------------------
+type record MS_Clsmk2 {
+  IEI8_Type            iei  optional,
+  Type4Length_Type     iel,    // @sic R5s110420 sic@
+  B1_Type              spare1_1,              // Spare bit
+  B2_Type              revLvl,                // Revision Level
+  B1_Type              eSIND,                 // Early Sending Indication
+  B1_Type              a5_1,                  // Algorithm A5/1 Support
+  B3_Type              rFPwrCap,              // RF Power Capability
+  B1_Type              spare1_2,              // Spare bit
+  B1_Type              pSCap,                 // Pseudo Synchronisation Capability
+  B2_Type              sSSI,                  // SS Screen Indicator
+  B1_Type              sMCap,                 // Short Message Capability
+  B1_Type              vBS,                   // VBS Capability
+  B1_Type              vGCS,                  // VGCS Capability
+  B1_Type              fC,                    // Frequency Capability
+  B1_Type              cM3,                   // Classmark 3 Indicator
+  B1_Type              spare1_3,              // Spare bit
+  B1_Type              lCSVA,                 // LCS VA Capability
+  B1_Type              uCS2,                  // UCS2 Encoding  Support
+  B1_Type              soLSA,                 // SoLSA  Support
+  B1_Type              cMSP,                  // CM Service Prompt Support
+  B1_Type              a5_3,                  // Algorithm A5/3 Support
+  B1_Type              a5_2                   // Algorithm A5/2 Support
+};
+
+// =============================================================================
+// Structured Type Definition
+// Mobile station classmark 3
+// 3GPP TS 24.008 clause  10.5.1.7
+// The information element has 34 octets maximum length
+// -----------------------------------------------------------------------------
+type record MS_Clsmk3 {
+  IEI8_Type            iei                        optional, // 0x20
+  Type4Length_Type     iel                        optional, // OCTETSTRING [1]
+  B1_Type              spareBit,                            // spare bit @sic R5s120178 Baseline Moving sic@
+  B3_Type              multibandSupported,                  //  @sic R5s120178 Baseline Moving sic@
+  B1_Type              a5_7,                                // a5/7 algorithm supported @sic R5s120178 Baseline Moving sic@
+  B1_Type              a5_6,                                // a5/6 algorithm supported @sic R5s120178 Baseline Moving sic@
+  B1_Type              a5_5,                                // a5/5 algorithm supported @sic R5s120178 Baseline Moving sic@
+  B1_Type              a5_4,                                // a5/4 algorithm supported @sic R5s120178 Baseline Moving sic@
+  B4_Type              associatedRadioCapabilty2  optional, // present if multibandSupported = 101 or 110
+  B4_Type              spareBits1                 optional, // present if multibandSupported = 001 or 010 or 100
+  B4_Type              associatedRadioCapabilty1  optional, // present if multibandSupported = 001 or 010 or 100 or 101 or 110
+  B1_Type              maskBit1                   optional,
+  B3_Type              rGSM_RadioCapability       optional, // R-GSM band associated radio capability not present if maskBit1 = 0
+  B1_Type              maskBit2                   optional,
+  B5_Type              multiSlotClass             optional, // multi slot class not present if multiSlotClass = 0
+  B1_Type              uCS2Treatment              optional,
+  B1_Type              extMeasurementCapability   optional, // extended measurement capability
+  B1_Type              maskBit3                   optional,
+  MS_MeasCapability    msMeasurementCapability    optional, // MS measurement capability
+                                                            // not present if maskBit3 = 0
+  B1_Type              maskBit4                   optional,
+  B5_Type              msPositioningMethod        optional, // MS positioning method capability
+                                                            // not present if maskBit4 = 0
+  B1_Type              maskBit5                   optional,
+  B5_Type              eDGE_MultiSlot             optional, // EDGE multi slot capability
+                                                            // not present if maskB5_Type = 0
+  B1_Type              maskBit6                   optional,
+  EDGE_Struct          psk8_Struct                optional, // 8PSK struct
+                                                            // not present if maskB6_Type = 0
+  B1_Type              maskBit7                   optional,
+  B2_Type              gSM400BandsSupported       optional, // not present if maskBIt7 = 0
+  B4_Type              gSM400AssociatedRadioCapability  optional, // not present if gSM400BandsSupported = 00 or maskB7_Type = 0
+  B1_Type              maskBit8                   optional,
+  B4_Type              gSM850AssociatedRadiioCapability optional, // not present if maskBIt8 = 0
+  B1_Type              maskBit9                   optional,
+  B4_Type              pCS1900AssociatedRadiioCapability optional, // not present if maskBIt9 = 0
+  B1_Type              uMTS_FDD_RAT_Capability    optional,
+  B1_Type              uMTS384TDD_RAT_Capability  optional,
+  B1_Type              cDMA2000_RAT_Capability    optional,
+  B1_Type              maskBit10                  optional,
+  B2_Type              dTM_GPRS_MultiSlotSubclass optional, // not present if maskBit10 = 0
+  B1_Type              singleSlotDTM              optional, // not present if maskBit10 = 0
+  B1_Type              maskBit11                  optional, // not present if maskBit10 = 0
+  B2_Type              dTM_EGPRS_MultiSlorSubclass optional, // not present if maskBit10 = 0 or maskBit11 = 0
+  B1_Type              maskBit12                  optional,
+  B4_Type              singleBandSupport          optional, // not present if maskBit12 = 0
+  B1_Type              maskBit13                  optional,
+  B4_Type              gSM700AssociatedRadioCapability optional, // not present if maskBit13 = 0
+  B1_Type              uMTS128TDD_RAT_Capability  optional,
+  B1_Type              gERANFeatPack1             optional,
+  B1_Type              mask14                     optional,
+  B2_Type              extDTM_GPRS_MultiSlotSubclass  optional, // not present if maskBit14 = 0
+  B2_Type              etxDTM_EGPRS_MultiSlotSubclass optional, // not present if maskBit14 = 0
+  B1_Type              mask15                     optional,
+  B2_Type              highMultislotCap           optional, // not present if mask15 = 0
+  B1_Type              mask16                     optional,
+  B4_Type              gERANIuModeLength          optional, // not present if maskBit16 = 0
+  B1_Type              gERANFLOIuCap              optional,
+  bitstring            gERANIuModeSpareBits length(0..14)  optional, // not present if maskBit16 = 0
+  B1_Type              gERANFeatPack2             optional,
+  B2_Type              gMSKMultislotPowerProfile  optional,
+  B2_Type              pSKMultislotPowerProfile   optional,
+  B1_Type              mask17                     optional, // rel 6 features
+  B2_Type              tGSM400BandsSupported      optional, // not present if maskBit17 = 0
+  B4_Type              tGSM400AssocRadioCap       optional, // not present if maskBit17 = 0
+  B1_Type              spare                      optional, // Set to 0 @sic R5s110176 Baseline Moving sic@
+  B2_Type              dlAdvancedRxPerf           optional,
+  B1_Type              dTMEhancCap                optional,
+  B1_Type              mask19                     optional,
+  B3_Type              dTMGPRSHighMultislotClass  optional, // not present if maskBit19 = 0
+  B1_Type              offsetReq                  optional, // not present if maskBit19 = 0
+  B1_Type              mask20                     optional, // not present if maskBit19 = 0
+  B3_Type              dTMEGPRSHighMultislotClass optional, // not present if maskBit19 and maskBit20 = 0
+  B1_Type              rptdACCHCap                optional,
+  B1_Type              mask21                     optional,
+  B4_Type              gsm710AssocRadioCap        optional, // not present if maskBit21 = 0
+  B1_Type              mask22                     optional,
+  B4_Type              tgsm810AssocRadioCap       optional, // not present if maskBit22 = 0
+  B1_Type              cipheringModeSettingCap    optional,
+  B1_Type              addPositionCap             optional,
+  B1_Type              eutraFDDSupport            optional, // rel 8 features
+  B1_Type              eutraTDDSupport            optional,
+  B1_Type              eutraMeasAndReporting      optional, // @sic R5s100135 sic@
+  B1_Type              priorityBasedReselection   optional,  // @sic R5s110176 Baseline Moving sic@
+  B1_Type              utraCSGCellsReporting      optional,  // @sic R5s110176 Baseline Moving sic@
+  B2_Type              vamosLevel                 optional, // @sic R5s110176 Baseline Moving sic@
+  B2_Type              tighterCap                 optional, // @sic R5s120178 Baseline Moving sic@
+  B1_Type              selectCipheringDLSACCH     optional, // @sic R5s120178 Baseline Moving sic@
+  bitstring            spareBits2                 optional
+};
+
+// =============================================================================
+// Structured Type Definition
+// Reference : 3GPP TS 24.008 clause 10.5.1.7
+// -----------------------------------------------------------------------------
+type record EDGE_Struct {
+  B1_Type              modulationCapability,
+  B1_Type              pwrMask1,
+  B2_Type              eDGE_RF_PowerCapability1  optional, // not present if pwrMask1 = 0
+  B1_Type              pwrMask2,
+  B2_Type              eDGE_RF_PowerCapability2  optional // not present if pwrMask2 = 0
+};
+
+// =============================================================================
+// Structured Type Definition
+// Reference : 3GPP TS 24.008 clause 10.5.1.7
+// -----------------------------------------------------------------------------
+type record MS_MeasCapability {
+  B4_Type              sMS_VALUE,
+  B4_Type              sM_VALUE
+};
+
+// =============================================================================
+// Structured Type Definition
+// MS network capability
+// 3GPP 24.008 /  10.5.5.12
+// -----------------------------------------------------------------------------
+type record MS_NetworkCap {                            /* 24.301 cl. 9.9.3.18 -> 24.008 cl. 10.5.5.12 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  Type4Length_Type            iel,                      // @sic R5s110420 sic@
+  B1_Type                     gea1,
+  B1_Type                     smCapDedicated,
+  B1_Type                     smCapGPRS,
+  B1_Type                     ucs2,
+  B2_Type                     ssScreeningIndicator,
+  B1_Type                     soLSACap,
+  B1_Type                     revLevelIndicator,
+  B1_Type                     pfcFeatureMode,
+  B1_Type                     gea2,
+  B1_Type                     gea3,
+  B1_Type                     gea4,
+  B1_Type                     gea5,
+  B1_Type                     gea6,
+  B1_Type                     gea7,
+  B1_Type                     lcsVACap,
+  B1_Type                     psHOtoUTRAN_IuModeCap,
+  B1_Type                     psHOtoEUTRAN_S1ModeCap,
+  B1_Type                     emmCombinedCap,         // @sic R5s110176 Baseline Moving sic@
+  B1_Type                     isrSupport,
+  B1_Type                     srvccToGERAN_UTRANCap,
+  B1_Type                     epcCap,
+  B1_Type                     nfCap optional,         // @sic R5s110176 Baseline Moving, not present for Rel-8 R5s110242 sic@
+  bitstring                   spareBits length (0..43) optional
+};
+
+// =============================================================================
+// Structured Type Definition
+// PacketFlowIdentifier
+// 24.008, section 10.5.6.11
+// -----------------------------------------------------------------------------
+type record PacketFlowIdentifier {                            /* 24.301 cl. 9.9.4.5 -> 24.008 cl. 10.5.6.11 */
+  IEI8_Type                   iei,   // @sic R5s110420 sic@
+  Type4Length_Type            iel,   // @sic R5s110420 sic@
+  B1_Type                     spare,
+  B7_Type                     idValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// PLMN list
+// 3G TS 24.008 cl. 10.5.1.13
+// -----------------------------------------------------------------------------
+type record PLMN_List {                         /* 24.301 cl. 9.9.2.4 -> 24.008 cl. 10.5.1.13 */
+  IEI8_Type                   iei,              // @sic R5s110420 sic@
+  Type4Length_Type            iel,              // @sic R5s110420 sic@
+  record length(1..15) of
+  NAS_PlmnId                  plmnList          /* list of PLMNs */
+};
+
+// =============================================================================
+// Structured Type Definition
+// MS network feature support
+// 3GPP 24.008 /  10.5.5.15
+// -----------------------------------------------------------------------------
+type record MS_NetworkFeatureSupport {                            /* 24.301 cl. 9.9.2.0A -> 24.008 cl. 10.5.5.15 */
+  IEI4_Type                   iei,
+  B3_Type                     spare,
+  B1_Type                     extdPeriodicTimers
+};
+
+type PLMN_List.plmnList NAS_PlmnIdList_Type;
+
+// =============================================================================
+// Structured Type Definition
+// ProtocolConfigOptions
+// 3G TS 24.008 cl. 10.5.6.3
+// -----------------------------------------------------------------------------
+type record ProtocolConfigOptions {                    /* 24.301 cl. 9.9.4.8 -> 24.008 cl. 10.5.6.3 */
+  IEI8_Type                   iei,          // @sic R5s110420 sic@
+  Type4Length_Type            iel,
+  B1_Type                     ext,
+  B4_Type                     spare,
+  B3_Type                     configProtocol,
+  record length (0..83) of
+  ProtocolContainer         pco optional
+};
+
+type record ProtocolContainer {
+  O2_Type                   protocolID,                     /* id is always 2 octets */
+  Type4Length_Type          protocolLength,
+  octetstring               content               optional
+};
+
+// =============================================================================
+// Structured Type Definition
+// P-TMSI signature
+// 3GPP 24.008 /  10.5.5.8
+// -----------------------------------------------------------------------------
+type record PTMSI_Signature {                                 /* 24.301 cl. 9.9.3.23 -> 24.008 cl. 10.5.5.8 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  Type4Length_Type            iel                   optional, // only present in 24.008 version of DETACH REQUEST message
+  O3_Type                     signatureValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// 24.008, clause 10.5.6.5
+// -----------------------------------------------------------------------------
+type record QualityOfService {                                /* 24.301 cl. 9.9.4.9 -> 24.008 cl. 10.5.6.5 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  B2_Type                     spare1,
+  B3_Type                     delayClass,
+  B3_Type                     relabilityClass,
+  B4_Type                     peakThroughput,
+  B1_Type                     spare2,
+  B3_Type                     precedenceClass,
+  B3_Type                     spare3,
+  B5_Type                     meanThroughput,
+  B3_Type                     trafficClass,
+  B2_Type                     deliveryOrder,
+  B3_Type                     deliveryErrorSDU,
+  B8_Type                     maxSduSize,
+  B8_Type                     maxBitRateUL,
+  B8_Type                     maxBitRateDL,
+  B4_Type                     residualBER,
+  B4_Type                     sduErrorRatio,
+  B6_Type                     transferDelay,
+  B2_Type                     trafficHandlingPrio,
+  B8_Type                     guaranteedBitRateUL,
+  B8_Type                     guaranteedBitRateDL,
+  B3_Type                     spare4,
+  B1_Type                     signallingInd,
+  B4_Type                     sourceStatisticsDescriptor,
+  B8_Type                     maxBitRateDL_Ext             optional,
+  B8_Type                     guaranteedBitRateDL_Ext      optional,
+  B8_Type                     maxBitRateUL_Ext             optional,
+  B8_Type                     guaranteedBitRateUL_Ext      optional
+};
+
+// =============================================================================
+// Structured Type Definition
+// Radio priority
+// 3GPP 24.008 / 10.5.7.2
+// -----------------------------------------------------------------------------
+type record RadioPriority {                                   /* 24.301 cl. 9.9.4.10 -> 24.008 cl. 10.5.7.2 */
+  IEI4_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  B1_Type                     spare,
+  B3_Type                     levelValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// Codec
+// 3G TS 24.008 cl. 10.5.4.32
+// -----------------------------------------------------------------------------
+type record Codec {
+  O1_Type          sysId,       // system identifcation
+  Type4Length_Type len,                   // length
+  B8_Type          bitMap1to8,  // codec bitmap bits 1-8
+  B8_Type          bitMap9to16 optional // codec bitmap bits 9-16
+};
+
+// =============================================================================
+// Structured Type Definition
+// Supported Codec List
+// 3G TS 24.008 cl. 10.5.4.32
+// -----------------------------------------------------------------------------
+type record CodecList {
+  IEI8_Type            iei,                   // '01000000'B (40 hex) @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  record of Codec      codec// list of codecs
+};
+
+// =============================================================================
+// Structured Type Definition
+// TMSI status
+// 3GPP 24.008 cl. 10.5.6.17
+// -----------------------------------------------------------------------------
+type record Request_Type {                                     /* 24.301 cl. 9.9.4.11 */
+  // IEI is always skipped
+  B1_Type                     spare,
+  B3_Type                     typeValue
+};
+
+// =============================================================================
+// Structured Type Definition
+// TMSI status
+// 3GPP 24.008 cl. 10.5.5.4
+// -----------------------------------------------------------------------------
+type record TMSI_Status {
+  IEI4_Type            iei  optional,
+  B3_Type              spare3,
+  TmsiStatusValue      flag                     // Flag
+};
+
+// =============================================================================
+// Structured Type Definition
+// TrafficFlowTemplate
+// 3GPP 24.008 /  10.5.6.12
+// -----------------------------------------------------------------------------
+type record TrafficFlowTemplate {                             /* 24.301 cl. 9.9.4.13 -> 24.008 cl. 10.5.6.12 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  B3_Type                     tftOperationCode,
+  B1_Type                     eBit,
+  B4_Type                     noOfPktFilter,
+  record of PacketFilter      packetFilterList      optional,
+  record of TftParameter      parameterList         optional
+};
+
+type record TftParameter {
+  IEI8_Type                   iei,
+  Type4Length_Type            iel,
+  octetstring                 contents
+};
+
+type record PacketFilter {
+  IEI8_Type                   iei,
+  B8_Type                     precedence            optional,
+  Type4Length_Type            iel                   optional,
+  PacketFilterContents        contents              optional
+};
+
+type record of PacketFilterComponent PacketFilterContents;
+
+type record PacketFilterComponent {
+  O1_Type                     id,
+  PacketFilterComponentValue  packetFilterComponentValue
+};
+
+type union PacketFilterComponentValue {
+  O8_Type    ipv4RemoteAddress,
+  O32_Type   ipv6RemoteAddress,
+  O1_Type    protocolIdNextHeader,
+  O2_Type    singleLocalPort,
+  O4_Type    localPortRange,
+  O2_Type    singleRemotePort,
+  O4_Type    remotePortRange,
+  O4_Type    securityParameterIndex,
+  O2_Type    typeOfServiceTrafficClass,
+  O3_Type    flowLabel
+};
+
+type record UE_NetworkCap {                                   // 24.301 cl. 9.9.3.34
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel                   optional, /* present in case of LV or TLV; omit in case of V */
+  O1_Type                     eeaCap,                         // @sic R5s100135 sic@
+  O1_Type                     eiaCap,                         // @sic R5s100135 sic@
+  O1_Type                     ueaCap                optional, // @sic R5s100135 sic@
+  O1_Type                     uiaCap                optional, // @sic R5s100135 sic@
+  O1_Type                     srvccCap              optional, // @sic R5s100135 sic@
+  octetstring                 spare                 optional  // @sic R5s100135 sic@
+};
+
+// =============================================================================
+// Structured Type Definition
+// Authentication Parameter  AUTN
+// 3G TS 24.008 cl. 10.5.3.1.1
+// -----------------------------------------------------------------------------
+type record AUTN {                                            /* 24.301 cl. 9.9.3.2 -> 24.008 cl. 10.5.3.1.1 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,                            // @sic R5s110420 sic@
+  B128_Type                   aUTN                            /* (as for UMTS) */
+};
+
+// =============================================================================
+// Structured Type Definition
+// Authentication Failure Parameter  (TLV)
+// 3G TS 24.008 cl. 10.5.3.2.2
+// -----------------------------------------------------------------------------
+type record AuthenticationFailureParameter {
+  IEI8_Type            iei,              // '00100010'B for MM (22 hex)
+                                         // '00110000'B for GMM (30 hex)
+  Type4Length_Type     iel,              // M 1 octet
+  B112_Type            auts              // AUTS, 14 octets
+};
+
+// =============================================================================
+// Structured Type Definition
+// Authentication Parameter  RAND (TV, 17 octets)
+// 3G TS 24.008 cl. 10.5.3.1
+// -----------------------------------------------------------------------------
+type record RAND {
+  IEI8_Type            iei optional,         // '00100001'B (21 hex)
+  B128_Type            randValue    // Authentication Parameter RAND value
+};
+
+type record DaylightSavingTime {                              /* 24.301 cl. 9.9.3.5 -> 24.008 cl. 10.5.3.12 */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel                   optional, /* present in case of LV or TLV; omit in case of V */
+  B6_Type                     spare,
+  B2_Type                     val
+};
+
+type record NetworkName {                                     /* 24.301 cl. 9.9.3.21 -> 24.008 cl. 10.5.3.5a */
+  IEI8_Type                   iei                   optional, /* present in case of TLV; omit in case of LV */
+  Type4Length_Type            iel,
+  B1_Type                     ext,
+  B3_Type                     codingScheme,
+  B1_Type                     addCI,
+  B3_Type                     spareBitCnt,
+  octetstring                 text                            /* type is FFS */
+};
+
+type record TimeZone {                                        /* 24.301 cl. 9.9.3.26 -> 24.008 cl. 10.5.3.8 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  O1_Type                     timeZone
+};
+
+type record TimeZoneAndTime {                                 /* 24.301 cl. 9.9.3.27 -> 24.008 cl. 10.5.3.9 */
+  IEI8_Type                   iei                   optional, /* present in case of TV; omit in case of V */
+  O1_Type                     year,
+  O1_Type                     month,
+  O1_Type                     day,
+  O1_Type                     hour,
+  O1_Type                     minute,
+  O1_Type                     second,
+  O1_Type                     timeZone
+};
+
+// =============================================================================
+// Structured Type Definition
+// 3G TS 24.008 cl. 10.5.5.28
+// @sic R5s110176 Baseline Moving sic@
+// -----------------------------------------------------------------------------
+type record VoiceDomainPref {
+  IEI8_Type            iei  optional,              // 01111110'B
+  Type4Length_Type     iel  optional,                   // length
+  B5_Type              spareBits,
+  B1_Type              ueUsageSetting,
+  B2_Type              voiceDomainPrefEUTRA        // @sic R5s110233 sic@
+};
+
+type record IdentityType {                                    /* 24.301 cl. 9.9.3.15 -> 24.008 cl. 10.5.3.4 */
+  // IEI is always skipped
+  B1_Type                     spare,
+  NAS_IdType                  typeOfId
+};
+
+  // =============================================================================
+  // Structured Type Definition
+  // REGISTER
+  // ue->n or n->ue, 3GPPP TS 24.080, 2.4
+  // -----------------------------------------------------------------------------
+  type record REGISTER {
+    TI              ti,                     // transaction identifier BITSTRING [4]
+    ProtocolDiscriminator sS_ProtocolDiscriminator, // "1011" Protocol discriminator for supplementary services BITSTRING [4]
+    MessageType     msgType,                // message type BITSTRING [8]
+    FacilityIE      facility_Str,           // M, BER enconded ASN.1 object
+    SS_VersionInd   sS_VersionInd optional  // O for ue->n, N/A for n->ue
+  };
+  
+  // =============================================================================
+  // Structured Type Definition
+  // FACILITY
+  // ue->n or n->ue, 3GPPP TS 24.080, 2.3 and 24.008, 10.4
+  // -----------------------------------------------------------------------------
+  type record FACILITY {
+    TI              ti,                   // transaction identifier BITSTRING [4]
+    ProtocolDiscriminator sS_ProtocolDiscriminator, // "1011" Protocol discriminator for supplementary services BITSTRING [4]
+    MessageType     msgType,              // message type BITSTRING [8], for n->ue "00111010", for ue->n "xx111010" (see 24.007)
+    FacilityIE      facility_Str          // M, BER enconded ASN.1 object
+  };
+  
+// =============================================================================
+// Structured Type Definition
+// Facility Information Element
+// 3GPPP TS 24.080, 3.6 / 24.008, 10.5.4.15
+// -----------------------------------------------------------------------------
+type record FacilityIE {
+  IEI8_Type        iei optional,         // Facility IE identifier
+  Type4Length_Type iel,         // length of Facility contents
+  octetstring      components   // ASN.1 definitions BER encoded
+};
+
+// =============================================================================
+// Structured Type Definition
+// Transaction identifier
+// 3G TS 24.007 cl. 11.2.3.1.3
+// -----------------------------------------------------------------------------
+type record TI {
+  B1_Type              tiFlag,                // Flag
+  B3_Type              tiVal                    // TIO
+};
+
+// =============================================================================
+// Structured Type Definition
+// SS version indicator
+// 3G TS 24.008 cl. 10.5.4.24
+// 1. Usually this IE has only one octet of content.
+// Exact definition see TS 24.080
+// -----------------------------------------------------------------------------
+type record SS_VersionInd {
+  IEI8_Type            iei,              // '01111111'B @sic R5s110420 sic@
+  Type4Length_Type     iel,                   // length @sic R5s110420 sic@
+  O1_Type              sS_VersionInfo // ss version information
+};
+
+  // =============================================================================
+  // Structured Type Definition
+  // RESETUEPOSITIONINGSTOREDINFORMATION
+  // n->ue, 3GPPP TS 34.109, 6.10/36.509 6.9
+  // -----------------------------------------------------------------------------
+  type record RESETUEPOSITIONINGSTOREDINFORMATION {
+    SkipIndicator   skipIndicator,                // "0000" skip indicator BITSTRING [4]
+    ProtocolDiscriminator  protocolDiscriminator, // M, "1111" Protocol discriminator for test procedure messages BITSTRING [4]
+    MessageType     msgType,                      // M, message type BITSTRING [8]
+    B8_Type         uePositioningTech             // M, BITSTRING [8]
+  };
+  
+}  with { encode "NAS Types" }

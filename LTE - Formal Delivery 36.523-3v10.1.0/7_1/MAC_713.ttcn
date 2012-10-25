@@ -1,0 +1,1599 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 16:47:24 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7266 $
+/******************************************************************************/
+module MAC_713 {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+  import from L2_CommonFunctions all;
+  import from L2_CommonTemplates all;
+  import from MAC_Functions all;
+  import from MAC_Templates all;
+
+  function f_TC_7_1_3_1_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC
+       7.1.3.1 : Correct handling of DL assignment / dynamic case
+    */
+    var C_RNTI v_C_RNTI;
+    var MAC_SDU_Type v_EncodedRlcPdu1;
+    
+    timer t_Watchdog := 1.0;
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble ( eutra_Cell1,STATE2A_TESTLOOP_ModeA );
+    // creates cell and performs registration
+    f_EUTRA_LoopBackActivation_State4_7131();
+    // Go to state 4 to return no data in UL;
+    f_Delay(0.660); // 600 ms previous time alignment timer
+    //@sic R5s100068 sic@
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1, cs_MAC_TestMode_NoHeaderManipulationDLOnly);
+    // configure SS for default UL grant allocation at SR reception but no automatic PUCCH synch as time alignment timer is infinit;
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def);
+    //@sic R5s100462 sic@
+    // to configure SS to report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable );
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2); // @sic R5-101050 sic@
+    
+    //@siclog "Steps 1 - 2" siclog@
+    // Note Step 1 automatically taken care by SS
+    // 16B PDCP SDU + 2B PDCP H + 2B RLC Header +1 B MAC SH +1B Pad SH  = 22 B= 136 bits
+    //MAC PDU wi hh gth no padding
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll,
+                                                            int2bit (0,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0, crs_PDCP_SDU_16B)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_1SubHeader_1Padding(tsc_LchId_DRB1, v_EncodedRlcPdu1))));
+    
+    
+    t_Watchdog.start;
+    //@siclog "Step 3" siclog@
+    SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack ));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+    t_Watchdog.stop;
+    
+    // store cell info parameters for C-RNTI
+    v_C_RNTI := f_EUTRA_CellInfo_GetC_RNTI(eutra_Cell1);
+    // To configure SS to use a different C-RNTI that available at UE
+    f_SS_ConfigActiveCellInfo(eutra_Cell1, cs_TimingInfo_Now, cs_NewC_RNTI_ConfigReq(tsc_C_RNTI_Def2));
+    
+    //@siclog "Steps 4 - 5" siclog@
+    // Note Step 4 automatically taken care by SS
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll,
+                                                            int2bit (1, 10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN1, crs_PDCP_SDU_16B)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_1SubHeader_1Padding(tsc_LchId_DRB1, v_EncodedRlcPdu1))));
+    t_Watchdog.start(0.6); // 600 ms to avoid UE entering DRX
+    //@siclog "Step 6" siclog@
+    alt {
+      []SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack ))
+        {
+          t_Watchdog.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 6: UE is sending HARQ ACK when sent addressed to different CRNTI");
+        }
+      [] t_Watchdog.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+        }
+    };
+    //test body ends
+    f_EUTRA_TestBody_Set(false);
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    // To configure SS to use same C-RNTI that available at UE
+    f_SS_ConfigActiveCellInfo(eutra_Cell1, cs_TimingInfo_Now, cs_NewC_RNTI_ConfigReq(v_C_RNTI));
+    // to configure SS to stop report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable );
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode); //@sic R5s100354 sic@
+    
+    // To deactivate test loop mode before RRC release
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );//@sic R5-103875 sic@
+  };
+
+  function f_TC_7_1_3_3_EUTRA ( ) runs on EUTRA_PTC
+  { /* 7.1.3.3 : MAC PDU header handling */
+    var octetstring v_EncodedRlcPdu1;
+    var octetstring v_EncodedRlcPdu2;
+    var octetstring v_EncodedRlcPdu3;
+    var octetstring v_EncodedRlcPdu4;
+    var octetstring v_EncodedRlcPdu5;
+    var octetstring v_EncodedRlcPdu6;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble ( eutra_Cell1,STATE2A_TESTLOOP_ModeA );
+    f_EUTRA_AS_CipheringAlgorithm_Set(eea0); // set null AS ciphering algorithm
+    // creates cell and performs registration
+    
+    //@sic R5s090337 sic@
+    f_EUTRA_LoopBackActivation_State4_Def_DisableBSR_PHR(eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_1DRB(0,tsc_DRB1) );
+    // step to configure SS RLC/PDCP and MAC in No header manipulation mode on SS Side for DRB
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NoHeaderManipulationDL_UL);
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2); // @sic R5-101050 sic@
+    // preconfig SS for UL Grant of 24 bits
+    f_EUTRA_StartExplicitULGrantTransmissionOnSR_Reception(eutra_Cell1,
+                                                           cs_TimingInfo_Now,
+                                                           1, 1); /* Nprb = 1, Itbs = 1          Table 7.1.7.2.1-1 of 36.213
+                                                                     Imcs = 1 -> Itbs = 1   MCS index of table 8.6.1-1 of 36.213 */
+    
+    
+    //@siclog "Step 1" siclog@
+    // 128B PDCP SDU + 2B PDCP H + 2B RLC Header +3B MAC SH+ 1B Pad SH + 5B Pad = 141 B= 1128 bits
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                            int2bit (0,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0, crs_PDCP_SDU_L128)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_1SubHeader_Padding_Large(tsc_LchId_DRB1,
+                                                                                                crs_Padding_5Bytes,
+                                                                                                v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 2" siclog@
+    //Local function f_RLC_Status_PDU_Rx (SN) to retrieve de RLC Status PDU with a given SN
+    f_RLC_Status_PDU_Rx (tsc_LchId_DRB1,1);
+    
+    //@siclog "Step 3" siclog@
+    // 38B PDCP SDU + 2B PDCP H + 2B RLC Header +2B MAC SH+ 1B Pad SH + 4B Pad = 49 B= 392 bits
+    //Same as step1 but with short subheaders length (F=1)
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                            int2bit (1,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN1, crs_PDCP_SDU_L38)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_1SubHeader_Padding_RLCPDU_Short(crs_Padding_4Bytes,
+                                                                                                        tsc_LchId_DRB1, v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 4" siclog@
+    f_RLC_Status_PDU_Rx (tsc_LchId_DRB1,2);
+    
+    //@siclog "Step 5" siclog@
+    // 128B PDCP SDU + 2B PDCP H + 2B RLC Header +1 B MAC SH  = 133 B= 1064 bits
+    // MAC PDU with no padding
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                            int2bit (2,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN2, crs_PDCP_SDU_L128)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB1, v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 6" siclog@
+    f_RLC_Status_PDU_Rx (tsc_LchId_DRB1,3);
+    
+    //@siclog "Step 7" siclog@
+    // 1 MAC PDU = 5 RLC PDU; 1RLC PDU =1 PDCP PDU
+    // MAC Header = 3 + 4*2 + 1=12 bytes.
+    // MAC SDU's =130 => RLC SDU=128, PDCP SDU= 126
+    // 5 MAC SDU's of 43 => RLC SDU= 41, PDCP SDU =39.
+    // Total MAC PDU = 12 + 130+ 5*43 = 357 B = 2856.
+    //@sic R5s-090171 sic@
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll,
+                                                            int2bit (3,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN3, crs_PDCP_SDU_L126)))));
+    v_EncodedRlcPdu2 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll,
+                                                            int2bit (4,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN4, crs_PDCP_SDU_L39)))));
+    v_EncodedRlcPdu3 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll,
+                                                            int2bit (5,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN5, crs_PDCP_SDU_L39)))));
+    v_EncodedRlcPdu4 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll,
+                                                            int2bit (6,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN6, crs_PDCP_SDU_L39)))));
+    v_EncodedRlcPdu5 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll,
+                                                            int2bit (7,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN7, crs_PDCP_SDU_L39)))));
+    v_EncodedRlcPdu6 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                            int2bit (8,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN8, crs_PDCP_SDU_L39)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_Step7(tsc_LchId_DRB1,
+                                                                                              v_EncodedRlcPdu1,
+                                                                                              v_EncodedRlcPdu2,
+                                                                                              v_EncodedRlcPdu3,
+                                                                                              v_EncodedRlcPdu4,
+                                                                                              v_EncodedRlcPdu5,
+                                                                                             v_EncodedRlcPdu6))));
+    //@siclog "Step 8" siclog@
+    f_RLC_Status_PDU_Rx (tsc_LchId_DRB1, 9);
+
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    f_DelayForDLPDU_Tx(); //@sic R5s110740 delay of 100 ms for status PDU transmission sic@
+    // step to configure SS RLC/PDCP and MAC in No header manipulation mode on SS Side for DRB
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode); //@sic R5s100272 sic@
+    
+    // configure SS in normal grant transmission
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    
+    // To deactivate test loop mode before RRC release
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );//@sic R5-103875 sic@
+  };
+
+  function f_TC_7_1_3_4_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC
+     * 7.1.3.4 : Correct HARQ process handling[DCCH /DTCH]
+     */
+    //@sic R5-104710 sic@
+    var integer j :=0, k :=0, v_Nack_Count := 0;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Mode;
+    var Dl_Bandwidth_Type v_Dl_Bandwidth;
+    var Combination_Type  v_Combination;
+    // var template (value) DciDlInfoCommon_Type v_DciDlInfoCommon;
+
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+    // creates cell and performs registration
+    //@sic R5s100049 sic@
+    f_EUTRA_LoopBackActivation_State4_TA_Infinity_LB_NoScaling();
+    //@sic R5-101183 sic@
+    f_Delay(0.660); // 600 ms previous time alignment timer
+    // Go to state 4
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def);
+    //@sic R5s100068 R5s100463 sic@
+    // to configure SS to report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    //f_EUTRA_SS_CommonL1MacIndCtrlConfig(eutra_Cell1, cas_HarqErrorIndication_REQ(eutra_Cell1,tsc_L1Mac_IndicationMode_Disable));//@sic R5s100520 sic@
+    // to configure SS to report reception of SR
+    //@sic R5s100021 sic@
+    //f_SS_ConfigSchedulingRequestIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2); // @sic R5-101050 sic@
+    v_Dl_Bandwidth := f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1);
+    v_Combination  := f_EUTRA_CellInfo_GetCombination(eutra_Cell1);
+    
+    v_EUTRA_FDD_TDD_Mode :=f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    if (v_EUTRA_FDD_TDD_Mode == FDD)
+      {
+        k:= 7; // HARQ process 0..7
+      }
+    else if (v_EUTRA_FDD_TDD_Mode == TDD)
+      {
+        k:= 6; // HARQ process 0..6
+      }
+    
+    for (j :=0; j <= k; j:= j+1)
+      {
+        
+        v_Nack_Count :=0; //@sic R5s100875 sic@
+        //@siclog "Step 1" siclog@
+        
+        
+        f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_CcchDcchDtchDL_Config_REQ(eutra_Cell1,               // @sic R5s110320 additional Changes sic@
+                                                                               cs_TimingInfo_Now,
+                                                                               cs_DciDLInfo_Explicit(cs_DciDlInfoExplicit(6,
+                                                                                                                          dci_1A,
+                                                                                                                          ra_2_Localised,
+                                                                                                                          1,
+                                                                                                                          5)))); // @sic R5s110013 p_FirstRbIndex =5  sic@
+        // Tb size =328b; 2B PDCP H + 2B RLC H + 1 B MAC Header =40 bits
+        // PDCP SDU = 328 -40 = 288 b =36B
+        DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU (eutra_Cell1,
+                                               tsc_RbId_DRB1,
+                                               cs_TimingInfo_Now,
+                                               cs_PDCP_SDUList_1 (crs_PDCP_SDU_36B),
+                                               cs_HarqProcessAssignment_Specific(j)));
+        
+        t_Watchdog.start;
+        //@siclog "Step 2" siclog@
+        SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack ));
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+        
+        
+        //@siclog "Step 3" siclog@
+        // MAC PDU retransmision automatically performed by SS
+        //@siclog "Step 4" siclog@
+        alt {
+          []SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack ))
+            {
+              f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+              t_Watchdog.stop;
+            }
+          [v_Nack_Count<3]SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack ))
+            {
+              v_Nack_Count := v_Nack_Count +1;
+              repeat;
+            }
+          [] t_Watchdog.timeout
+            {
+              f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 4: UE did not send HARQ ACK");
+            }
+        }
+        
+        //@siclog "Step5" siclog@
+        //Taken care by SS
+        //@sic R5s100021 sic@
+        //t_Watchdog.start;
+        //SYSIND.receive ( car_SchedulingReq_IND (eutra_Cell1, ?));
+        //f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "");
+        //t_Watchdog.stop;
+        
+        //@siclog "Step 6" siclog@
+        // Send UL Grant automatically taken care of
+        //@siclog "Step 7" siclog@
+        t_Watchdog.start;
+        DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList (eutra_Cell1, tsc_RbId_DRB1, ?, cr_PDCP_SDUList_1(crs_PDCP_SDU_36B)));
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+        t_Watchdog.stop;
+        //@sic R5s100021 sic@
+        // allow for possible 1 HARQ ACK for RLC Status PDU transmitted in DL
+        t_Watchdog.start(1.0);
+        alt {
+          [] SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack ))
+            {
+              t_Watchdog.timeout;
+            }
+          [] SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack ))
+            {
+              repeat;
+            }
+          [] t_Watchdog.timeout
+            {
+              // do nothing
+            }
+        }
+      } // end of for loop
+    
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    // to configure SS to stop report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+    
+
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_CcchDcchDtchDL_Config_REQ(eutra_Cell1,        //@sic R5s110320 additional changes sic@
+                                                                           cs_TimingInfo_Now,
+                                                                           cs_DciDLInfo_Auto(cs_DciInfo_CcchDcchDtchDL(v_Dl_Bandwidth))));
+    // to configure SS to stop report reception of SR
+    //@sic R5s100021 sic@
+    //f_SS_ConfigSchedulingRequestIndMode(eutra_Cell1,tsc_L1Mac_IndicationMode_Disable );
+    
+    // To deactivate test loop mode before RRC release
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );//@sic R5-103875 sic@;
+  };
+
+  function f_TC_7_1_3_5_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC/7.1
+     * 7.1.3.5 : Correct HARQ process handling [CCCH]
+     */
+    var octetstring v_EncodedRRCConnectionSetup;
+    var template (value) RachProcedureConfig_Type v_RachProcedureConfig;
+    // variables for handling racing problem @sic R5s090132 sic@
+    var template (omit) SRB_COMMON_IND v_SrbIndByRef:=omit;    // not used (needed when other information of the RRC message needs to be access)
+    var template (omit) SYSTEM_IND v_SysIndByRef:=omit;        // to store SYSTEM_IND if it takes over the RRC message
+    var boolean v_RRCConReq := false, v_HARQ_Ind := false, v_HARQ_Ind2 := false, v_RRCConSetupCmpl := false;
+    var SRB_COMMON_IND v_SRB_COMMON_IND;
+    var SYSTEM_IND v_SYSTEM_IND;
+    var SubFrameTiming_Type v_Timing_SysInd,v_Timing_SysInd2, v_Timing_SrbIndReq, v_Timing_SrbIndCmpl;
+    var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+    var NAS_MSG_Indication_Type v_NAS_Ind; //@sic R5-102180 sic@
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+
+    timer t_Watchdog:=2.0; // General purpose wait timer set as T300 value
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1); //@sic R5s100189 sic@
+    // Modify SIB's for test case Specific values.
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1,n8 );
+    f_EUTRA_CellInfo_SetSysInfo_T300 (eutra_Cell1, ms2000);
+    f_EUTRA_CellInfo_SetMAC_ContResTimer (eutra_Cell1, sf64);
+    //@sic R5s100116 sic@
+    if (v_EUTRA_FDD_TDD_Mode == FDD)
+      {
+        f_EUTRA_CellInfo_SetPRACH_ConfigurationIndex(eutra_Cell1, 1);
+      }
+    else if (v_EUTRA_FDD_TDD_Mode == TDD)
+      {
+        f_EUTRA_CellInfo_SetPRACH_ConfigurationIndex(eutra_Cell1, 0);
+      }
+    
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble ( eutra_Cell1 , STATE2_IDLEUPDATE);
+    
+    // creates cell and performs registration
+
+    v_EncodedRRCConnectionSetup := f_RRC_DL_CCCH_Encvalue (f_EUTRA_508_RRCConnectionSetup(eutra_Cell1));   /* @sic R5-120721 change 3 sic@ */
+    v_RachProcedureConfig := cs_RachProcedureConfig_7135 ( v_EncodedRRCConnectionSetup,
+                                                           f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                           f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1) );// @sic R5-103846 sic@
+                                                                                      /*
+                                                                                      cs_RachProcedureConfig_7135 has four entries
+                                                                                         step 3 CRC error
+                                                                                         Step 9 not matching ContResolution ID
+                                                                                         Step 19 CRC error
+                                                                                         Step 19 success
+                                                                                      */
+    f_EUTRA_SS_ConfigRachProcedure(eutra_Cell1, omit, v_RachProcedureConfig );
+    // Preconfigures SS for RACH response for RAR and contention resolution
+    
+    // Configure SS to enable report of PRACH preamble reception
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    
+    // to configure SS to start report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    // Preconfig SS for default UL grant allocation on SR reception.
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1,cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def);
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    v_Auth_Params := f_EUTRA_Security_Get();  //@sic R5-102180 sic@
+    // Test body starts
+    
+    //@siclog "Step 1" siclog@
+    f_EUTRA_UE_Page_Def ( eutra_Cell1 );
+    
+    //@siclog "Step 2" siclog@
+    t_Watchdog.start;
+    SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1, ?));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    t_Watchdog.stop;
+
+    //@siclog "Step 3" siclog@
+    // Automatically taken care of
+    //@siclog "Steps 4 - 5" siclog@
+    t_Watchdog.start;
+    alt {
+      []SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ? ))
+        {
+          t_Watchdog.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 4: UE sending a ACK/NACK");
+        }
+      []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1,?))
+        {
+          t_Watchdog.stop;
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+        }
+    }
+    
+    //@siclog "Step 6" siclog@
+    // Automatically taken care of
+    /*
+    //@siclog "Steps 7 - 8" siclog@
+    t_Watchdog.start;
+    alt {
+      []SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack )) // step 7
+        {
+          t_Watchdog.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE sending a ACK");
+        }
+      [] SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) ) // step 8
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "");
+          t_Watchdog.stop;
+        }
+    };
+
+    //@siclog "Step 9" siclog@
+    // Automatically taken care of
+    //@siclog "Steps 10 - 11" siclog@
+    t_Watchdog.start;
+    alt {
+      []SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack )) // step 10
+        {
+          t_Watchdog.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE sending a NACK");
+        }
+      []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1,?)) // step 11
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "");
+          t_Watchdog.stop;
+        }
+    };
+    */
+    //@siclog "Step 8" siclog@
+    // And possibly step 11.
+    //@siclog "Steps 7 - 10" siclog@
+    // step 7 and step 10 to match in default handler.
+    //@siclog "Step 9" siclog@
+    // Automatically taken care off
+    f_EUTRA_RacingCond_AwaitRrcMessageBeforeSysInd(car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ),
+                                                   v_SrbIndByRef, v_SysIndByRef );  /* @sic R5s100138 Change 1 Note 5 sic@ */
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+    // If step 11 not received then receive else to match
+    f_EUTRA_RacingCond_MatchSysInd(v_SysIndByRef,
+                                   car_PRACH_Preamble_IND_Any (eutra_Cell1, ?)); /* @sic R5s100138 Change 1 Note 5 sic@ */
+
+    //@siclog "Step 12" siclog@
+    // Automatically taken care of
+    // Note Racing should not be between steps 13 and 16 as UE has to wait for mac-ContentionResolutionTimer  which is 48 ms
+    // before initiating the next PRACH procedure.
+    //@siclog "Step 13" siclog@
+    t_Watchdog.start;
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);   /* @sic R5-120721 change 3 sic@ */
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 13");
+    t_Watchdog.stop;
+    
+    //@siclog "Step 14" siclog@
+    // Automatically taken care of
+    //@siclog "Steps 15 - 16" siclog@
+    t_Watchdog.start;
+    alt {
+      []SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack ))
+        {
+          t_Watchdog.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 15: UE sending a NACK");
+        }
+      []SYSIND.receive ( car_PRACH_Preamble_IND_Any (eutra_Cell1,?))
+        {
+          t_Watchdog.stop;
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 16");
+        }
+    }
+    
+    //@siclog "Step 17" siclog@
+    // Automatically taken care of
+    
+    t_Watchdog.start;
+    alt {
+      //@siclog "Step 18" siclog@
+      //@siclog "Step 19" siclog@
+      // Automatically taken care of
+      [not v_RRCConReq] SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1, cr_RRCConnectionRequest ( ? ) ) ) -> value v_SRB_COMMON_IND
+        {
+          v_Timing_SrbIndReq := v_SRB_COMMON_IND.Common.TimingInfo.SubFrame; // timestamp when RRCConnectReq has been received
+          v_RRCConReq := true;
+          if (not (v_HARQ_Ind and v_RRCConSetupCmpl and v_HARQ_Ind2)) {repeat}
+          
+        }
+      //@siclog "Step 20" siclog@
+      [not v_HARQ_Ind] SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack )) -> value v_SYSTEM_IND
+        {
+          
+          v_HARQ_Ind := true;
+          v_Timing_SysInd := v_SYSTEM_IND.Common.TimingInfo.SubFrame;     // timestamp when SYSTEM_IND has been received
+          
+          if (not (v_RRCConReq and v_RRCConSetupCmpl and v_HARQ_Ind2)) {repeat}
+          
+        }
+      //@siclog "Step 21" siclog@
+      [not v_RRCConSetupCmpl] SRB.receive ( car_SRB1_RrcNasPdu_IND ( eutra_Cell1, cr_508_RRCConnectionSetupComplete ( tsc_RRC_TI_Def, ? ),
+                                                                     cr_NAS_Indication ( tsc_SHT_IntegrityProtected,
+                                                                                         cr_508_SERVICE_REQUEST ( v_Auth_Params.KSIasme ) ) ) )-> value v_SRB_COMMON_IND
+        {
+          v_Timing_SrbIndCmpl := v_SRB_COMMON_IND.Common.TimingInfo.SubFrame; // timestamp when RRCConnectSetup complete has been received
+          v_RRCConSetupCmpl := true;
+          v_NAS_Ind := v_SRB_COMMON_IND.Signalling.Nas[0];
+          if (not ( v_RRCConReq and v_HARQ_Ind and v_HARQ_Ind2)) {repeat}// RRC connection shall be received before RRC connection setup complet;
+                                                                         // checked to guarantee run time errors if any un initialised timing info check in if statement below;
+        }
+      [not v_HARQ_Ind2] SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack )) -> value v_SYSTEM_IND
+        // HARQ for RLC Status PDU for RRC Connection Setup Complete
+        {
+          v_HARQ_Ind2 := true;
+          v_Timing_SysInd2 := v_SYSTEM_IND.Common.TimingInfo.SubFrame;     // timestamp when SYSTEM_IND has been received
+          
+          if (not ( v_RRCConReq and v_HARQ_Ind and v_RRCConSetupCmpl )) {repeat} // note HARQ for Setup shall come before HARQ for HARQ for Status PDU
+         
+        }
+    }
+    t_Watchdog.stop;
+    if (not f_EUTRA_RacingCond_CheckSequence({v_Timing_SrbIndReq, v_Timing_SysInd, v_Timing_SrbIndCmpl, v_Timing_SysInd2})) {
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "Step 18 - 20 - 21: got unexpected message order");
+    }
+    else {
+      //@sic R5s110473 sic@
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 18 - 20 -21 ");
+    }
+    
+    // to configure SS to stop report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1,tsc_L1Mac_IndicationMode_Disable );
+    //@siclog "Steps 22 - 23 - 24 - 25" siclog@
+    // @sic R5-102180 sic@
+    // Steps 6 to 9 of the generic radio bearer establishment procedure (TS 36.508 5.4.3.3-1) are executed
+    // to successfully complete the service request procedure
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);//@sic R5s100189 sic@
+    f_EUTRA_ServiceReqPostamble_508Steps6_9 (eutra_Cell1, v_NAS_Ind);
+    
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    // Configure SS to disable report of  PRACH preamble reception
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1 ,tsc_L1Mac_IndicationMode_Disable);
+    // Preconfigures SS for RACH response for default RAR and contention resolution
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED );//@sic R5-103875 sic@
+  };
+
+  function fl_EUTRA_ModifySysinfo_CrcError(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var SubFrameTiming_Type v_SubFrameTiming;
+
+    f_EUTRA_SetSB1_ValueTag (p_CellId, true);
+    
+    v_SubFrameTiming.SFN.Number := f_EUTRA_ModifySysinfo_ValueTag(p_CellId,-,RRC_CONNECTED);// @sic R5-110803 change 4: add new parameter sic@
+    v_SubFrameTiming.Subframe.Number := 0;
+    
+    f_SS_ConfigCRC_ErrorMode (eutra_Cell1, cs_DL_SCH_CRC_SI_RNTI_Error(Erroneous), cs_TimingInfo(v_SubFrameTiming.SFN.Number, v_SubFrameTiming.Subframe.Number));
+    
+    v_SubFrameTiming := f_EUTRA_TimingInfoAdd(v_SubFrameTiming, 100);
+    f_SS_ConfigCRC_ErrorMode (eutra_Cell1, cs_DL_SCH_CRC_SI_RNTI_Error(Normal), cs_TimingInfo(v_SubFrameTiming.SFN.Number, v_SubFrameTiming.Subframe.Number));
+  }
+
+  function f_TC_7_1_3_6_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC
+     * 7.1.3.6 : Correct HARQ process handling[BCCH]
+     */
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Mode;
+    var EUTRA_CellInfo_Type v_CellInfo;
+    var PRACH_ConfigSIB v_PRACH_ConfigSIB;
+    var SubFrameTiming_Type v_SubFrameInfo;
+    var Dl_Bandwidth_Type v_DlBandwidth;
+    var integer v_RBAllocation := 75; // for 5 MHz// @sic R5-103846 sic@
+    
+    
+    timer t_Watchdog := 5.0;
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    v_DlBandwidth := f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    //@sic R5s100116 sic@
+    f_EUTRA_Preamble ( eutra_Cell1,STATE2A_TESTLOOP_ModeA );
+    f_EUTRA_LoopBackActivation_State4_TA_Infinity_LB_NoScaling();
+    f_Delay(0.660);
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def);
+    
+    //@sic R5-101183 sic@
+    // creates cell and performs registration
+    // to configure SS to report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1,tsc_L1Mac_IndicationMode_Enable );
+    // config for PReamble reception indication
+    f_EUTRA_SS_ConfigRachPreambleIndMode ( eutra_Cell1 ,tsc_L1Mac_IndicationMode_Enable);
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    // Test body to be added.
+    f_EUTRA_CellInfo_SetRootSeqInd(eutra_Cell1,v_EUTRA_FDD_TDD_Mode);
+    // Configure SS for CRC error always on SI-RNTI
+    
+    //@siclog "Step 1 - 6" siclog@
+    // Tx  NEw Sys info:
+    fl_EUTRA_ModifySysinfo_CrcError(eutra_Cell1);
+    //@siclog "Step 2 - 7" siclog@
+    t_Watchdog.start(13.0);//@sic R5s100538 sic@
+    alt {
+      []SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?,? ))
+        {
+          t_Watchdog.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 2: UE is sending HARQ ACK/ NACK ");
+        }
+      [] t_Watchdog.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+        }
+    };
+    
+    // @sic R5-103846 sic@
+    //@siclog "Steps 3 - 4 - 5 void" siclog@
+    //@siclog "Step 8" siclog@
+    //update SS for changed PRACH Info
+    
+    v_CellInfo := f_EUTRA_CellInfo_Get (eutra_Cell1);
+    v_PRACH_ConfigSIB := v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.prach_Config;
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_CellConfig_UpdatePRACH_Info_REQ(eutra_Cell1,
+                                                                                 cs_TimingInfo_Now,
+                                                                                 v_PRACH_ConfigSIB));
+    
+    // to configure SS to stop report reception of HARQ ACK or NACK
+    // RAR Grant is of 256 bits suitable for PDCP SDU of 16 bits and MCE C-RNTI
+    
+    select (v_DlBandwidth) {
+      case (n50) {  // 10 mhz
+        v_RBAllocation := 150;
+      }
+      case (n100) { // 20 mhz
+        v_RBAllocation := 300;
+      }
+      case else {   // 5 mhz
+        v_RBAllocation := 75;
+      }
+    }
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1, omit, cs_RachProcedureConfig_CRNTI(f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                                    v_DlBandwidth,
+                                                                                    v_RBAllocation,4));
+    //@siclog "Step 8" siclog@
+    // To stop UL Grant Transmision
+    f_EUTRA_StopULGrantTransmission_No_PUCCH_Sync ( eutra_Cell1, cs_TimingInfo_Now );
+    //@siclog "Step 9" siclog@
+    
+    // Calculate timing info such that UE is in DRX on Duration
+    v_SubFrameInfo := f_EUTRA_GetNextSendOccasion(eutra_Cell1); // @sic R5s110219 change 4 MCC160 implementation sic@
+    v_SubFrameInfo := f_EUTRA_GetDrxOnDuration(eutra_Cell1, v_SubFrameInfo, cs_508_DRX_Config_DrxL);  // force consideration of DRX even for DRX_L
+    
+    DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU (eutra_Cell1,
+                                           tsc_RbId_DRB1,
+                                           cs_TimingInfo(v_SubFrameInfo.SFN.Number, v_SubFrameInfo.Subframe.Number),
+                                           cs_PDCP_SDUList_1 (crs_PDCP_SDU_16B)));
+    //@siclog "Step 10" siclog@
+    //@sic R5s100592 sic@
+    SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, ack ));
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1,tsc_L1Mac_IndicationMode_Disable );
+    //@siclog "Step 11" siclog@
+    t_Watchdog.start;
+    
+    SYSIND.receive ( car_PRACH_Preamble_IND (eutra_Cell1, ?, ?));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 11: UE sent PRACH Preamble in step 11");
+    //@siclog "Step 12" siclog@
+    // Taken care of SS preconfig;
+    //@siclog "Step 13" siclog@
+    DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList (eutra_Cell1,tsc_RbId_DRB1, cr_TimingInfo_Any, cr_PDCP_SDUList_1(crs_PDCP_SDU_16B)));
+    t_Watchdog.stop;
+    //@siclog "Step 14" siclog@
+    // Automatically taken care of
+    
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    // config for PReamble reception indication
+    f_EUTRA_SS_ConfigRachPreambleIndMode ( eutra_Cell1 ,tsc_L1Mac_IndicationMode_Disable);
+    // To deactivate test loop mode before RRC release
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1,
+                                    omit,
+                                    cs_RachProcedureConfig_CRNTI( f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1), v_DlBandwidth, v_RBAllocation, 5 ));//@sic R5s100189 sic@
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );//@sic R5-103875 sic@
+  };  // End of 7.1.3.6
+
+  function f_TC_7_1_3_7_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC
+       7.1.3.7 : MAC-Padding
+    */
+    var SubFrameTiming_Type v_Timing, v_Timing2;
+    var octetstring v_EncodedRlcPdu1;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble ( eutra_Cell1,STATE2A_TESTLOOP_ModeA );
+    f_EUTRA_AS_CipheringAlgorithm_Set(eea0); // set null AS ciphering algorithm
+    // creates cell and performs registration
+    
+    //@sic R5S090337 sic@
+    f_EUTRA_LoopBackActivation_State4_Def_DisableBSR_PHR(eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_1DRB(0,tsc_DRB1));
+    // step to configure SS RLC/PDCP and MAC in No header manipulation mode on SS Side for DRB
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NoHeaderManipulationDL_UL);
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2); // @sic R5-101050 sic@
+    // preconfig SS for UL Grant of 24 bits
+    f_EUTRA_StartExplicitULGrantTransmissionOnSR_Reception( eutra_Cell1,
+                                                            cs_TimingInfo_Now,
+                                                            1, 1); /* Nprb = 1, Itbs = 1          Table 7.1.7.2.1-1 of 36.213
+                                                                      Imcs = 1 -> Itbs = 1   MCS index of table 8.6.1-1 of 36.213 */
+    
+    
+    //@siclog "Step 1" siclog@
+    // 37B PDCP SDU + 2B PDCP H + 2B RLC Header +2B MAC SH+ 1B Pad SH + 7B Pad = 51 B= 408 bits
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                            int2bit (0,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0, crs_PDCP_SDU_L37)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_1SubHeader_Padding_RLCPDU_Short(crs_Padding_7Bytes,
+                                                                                                       tsc_LchId_DRB1,
+                                                                                                       v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 2" siclog@
+    //Local function f_RLC_Status_PDU_Rx (SN) to retrieve de RLC Status PDU with a given SN
+    f_RLC_Status_PDU_Rx (tsc_LchId_DRB1, 1);
+    
+    //@siclog "Step 3" siclog@
+    // 41B PDCP SDU + 2B PDCP H + 2B RLC H+ 1B PAD H + 1B MacSH = 47B =376
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                            int2bit (1,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN1, crs_PDCP_SDU_L41)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_1SubHeader_1Padding( tsc_LchId_DRB1, v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 4" siclog@
+    f_RLC_Status_PDU_Rx (tsc_LchId_DRB1, 2);
+
+    //@siclog "Step 5" siclog@
+    //SS sets DL assignment for TBS of 16 bits, automatically taken care of
+    
+    //100 ms to wait for having an accurate reference to start
+    v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1);  // per default 100ms in advance
+    //@siclog "Step 6" siclog@
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_TimingAdvance_0)));
+    
+    //@siclog "Step 7" siclog@
+    //SS sets DL assignment for TBS of 24 bits, automatically taken care of
+    
+    //@siclog "Step 8" siclog@
+    // 50% of time alignment timer = 0.5  * 750 = 375 ms.
+    v_Timing2 := f_EUTRA_TimingInfoAdd(v_Timing, 375); //375 ms in future
+    
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo(v_Timing2.SFN.Number, v_Timing2.Subframe.Number),
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_TimingAdvance_1Padding)));
+    
+    //@siclog "Step 9" siclog@
+    // 70% of time alignment timer = 0.7 * 750 = 525 ms.
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing2, 525); //525 ms in future
+    
+    //@siclog "Step 9A" siclog@
+    //42B PDCP SDU + 2B PDCP H + 2B RLC H+ 1B MacSH = 47B =376
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll,
+                                                            int2bit (2,10),
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN2, crs_PDCP_SDU_L42)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB1,v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 10" siclog@
+    f_RLC_Status_PDU_Rx (tsc_LchId_DRB1, 3);
+
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    f_DelayForDLPDU_Tx(); //@sic R5s110740 delay of 100 ms for status PDU transmission sic@
+    // step to configure SS RLC/PDCP and MAC in No header manipulation mode on SS Side for DRB
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode); //@sic R5s100272 sic@
+    
+    // configure SS in normal grant transmission
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    
+    // To deactivate test loop mode before RRC release
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );//@sic R5-103875 sic@
+  };
+
+  function f_TC_7_1_3_9_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC
+     * 7.1.3.9 : MAC reset-DL
+     */
+    const HarqProcessId_Type tsc_HARQ_Process := 3; // selected the highest allowed HARQ process in TDD config 0
+    
+    var SubFrameTiming_Type v_Timing;
+    var SubFrameTiming_Type v_Timing2;
+    var SRB_COMMON_IND v_SRB_COMMON_IND;
+    var SYSTEM_IND v_ReceivedSYSIND;
+    var float v_HarqIndWindowSize;
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    //@sic R5s110576 sic@
+    var template (value) RadioBearerList_Type v_DRB :={cs_OneDRB_ConfigAM(tsc_DRB1, cds_PDCP_Config_DRB_AM_NoPDCP_StatusReport, //@sic R5s110687 sic@
+                                                                          cs_RLC_Configuration_AM(cds_TX_AM_RLC_t_PollRetransmit(ms250)))};
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList := {cs_508_DRB_ToAddMod_Common (tsc_DRB1,
+                                                                                             cds_PDCP_Config_DRB_AM_NoPDCP_StatusReport,//@sic R5s110687 sic@
+                                                                                             cs_508_RLC_Config_DRB_AM(cds_TX_AM_RLC_t_PollRetransmit(ms250)),
+                                                                                             cs_508_LogicalChannelConfig_DRB_AM)};
+    
+    var octetstring v_EncodedPdcpPdu;
+    var octetstring v_EncodedRlcPdu;
+    timer t_Watchdog:=5.0; // General purpose wait timer
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    f_EUTRA_Init (c1);
+    // Config Cell 1 for 1 AM DRB
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    f_EUTRA_SetCellPower (eutra_Cell1, -85);
+    //@sic R5s100456, cell config moved above set attenuation  sic@
+    // bring up cell 2 with T0 setting
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell2, -79);
+    f_EUTRA_CellConfig_Def (eutra_Cell2);
+    f_SS_ConfigDLHARQProcess_Subset(eutra_Cell1, -, cs_HarqProcessList_012);// To allow only first 3 HARQ processes for autonomous SS selection
+    f_SS_ConfigDLHARQProcess_Subset(eutra_Cell2, -, cs_HarqProcessList_012);// To allow only first 3 HARQ processes for autonomous SS selection
+    
+    // Bring UE to  state 4
+    f_EUTRA_Preamble ( eutra_Cell1,STATE2A_TESTLOOP_ModeA );
+    f_EUTRA_AS_CipheringAlgorithm_Set(eea0); // set null AS ciphering algorithm
+    //@sic R5s110576 sic@
+    f_EUTRA_SS_CommonRadioBearerConfig(eutra_Cell1, v_DRB);
+    f_EUTRA_LoopBackActivation_State4_TA_Infinity_LB_NoScaling(false,v_DRB_ToAddModList); //  p_PDCP_StatusReportRequired is false
+    f_Delay(0.660); // SS is not stopped for TA transmission to prevent UE from entering DRX
+    
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell2, tsc_L1Mac_IndicationMode_Enable);
+    // preconfig for RACH procedure
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell2, tsc_C_RNTI_Def2);     /* @sic acc. to R5s100029 change 3 R5s120629 sic@ */
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1, cs_MAC_TestMode_NoHeaderManipulationDLOnly);
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell2, tsc_RbId_DRB1, cs_MAC_TestMode_NoHeaderManipulationDLOnly);
+    
+   
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2); // @sic R5-101050 sic@
+    //@siclog "Step 1" siclog@
+    // To stop UL Grant Transmision
+    //@sic R5s110201 sic@
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1,cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def);
+    //@sic R5s100852r2 MCC change sic@
+    // to configure SS to report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    
+    // 38 bytes PDCP SDU +2 byte PDCP header
+    // 2 bytes RLC Header +2 byte MAC Header =352 bits, nearest TB  size =376 => padding =24 bits
+    // 1 byte padding header and 2 bits padding
+    //@siclog "Step 1" siclog@
+    // Sequence is changed to facilitate SS implementations.
+    f_EUTRA_SetCellPower (eutra_Cell2, -79);
+    v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1, 400);// schedule 400 ms in future
+    // set CRC error as error mode
+    f_SS_ConfigCRC_ErrorMode(eutra_Cell1, cs_DL_SCH_CRC_C_RNTI_Error(Erroneous), cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number ));
+    v_Timing.Subframe.Number := 0; // suitable for both FDD and TDD
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 30);// schedule 20-30 ms in future
+    //@siclog "Step 2" siclog@
+    //@sic R5s120629 sic@
+    v_EncodedPdcpPdu  := f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0, crs_PDCP_SDU_L38)));
+    v_EncodedRlcPdu   := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll, int2bit(0, 10), v_EncodedPdcpPdu));
+    
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number), //cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB1,
+                                                                                             v_EncodedRlcPdu)),
+                                          cs_HarqProcessAssignment_Specific(tsc_HARQ_Process)));
+    
+    
+    // set CRC error as normal mode 60 ms after the scheduled transmission
+    // so that 5 transmissions are performed.
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+    f_SS_ConfigCRC_ErrorMode(eutra_Cell1, cs_DL_SCH_CRC_C_RNTI_Error(Normal), cs_TimingInfo( v_Timing.SFN.Number, v_Timing.Subframe.Number ));
+    //@sic R5s120629 sic@
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode,-,cs_TimingInfo( v_Timing.SFN.Number, v_Timing.Subframe.Number ));
+    //@siclog "Step 5" siclog@
+    // Tell the SS about the HO
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverInit_REQ(eutra_Cell1, eutra_Cell2)); // @sic R5s100556 sic@
+    v_Auth_Params := f_EUTRA_Security_Get();
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest(eutra_Cell2, v_Auth_Params, 0);
+    f_EUTRA_Security_Set ( v_Auth_Params );
+    f_EUTRA_SS_ConfigRachProcedure_HO(eutra_Cell2, cs_TimingInfo_Now, tsc_C_RNTI_Def2);
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell2, tsc_C_RNTI_Def2);
+    // stop periodic TA on source cell
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None)); // Note: since the UE is configured for TA infinitive it does not matter that SS reconfiguration is not scheduled
+    
+    // configure UL grant configuration on target cell    @sic R5s100515 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_ULGrantAllocation_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def, cs_PUCCH_Synch_None, cs_UL_GrantConfig_Def));
+    
+    v_Timing2 := f_EUTRA_TimingInfoAdd(v_Timing, 10);
+    //@sic R5s100240 sic@
+    f_EUTRA_508RRC_ConnReconfigHO_IntraLTE (eutra_Cell1,
+                                            eutra_Cell2,
+                                            cs_TimingInfo( v_Timing2.SFN.Number, 4 )); // next sub frame suitable for both FDD and TDD
+    //@siclog "Step 3" siclog@
+    t_Watchdog.start;
+    SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack ));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+    t_Watchdog.stop;
+    
+    //@siclog "Step 6" siclog@
+    // Check: does the UE transmit a RRCConnectionReconfigurationComplete message to confirm the reconfiguration of the radio resources?
+    t_Watchdog.start;
+    alt {
+      [] SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell2, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) ) -> value v_SRB_COMMON_IND
+        {
+          v_Timing := v_SRB_COMMON_IND.Common.TimingInfo.SubFrame; //store TimeStamp when RRCConnectionReconfiguration has been received
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+          t_Watchdog.stop;
+        }
+      []  SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack ))
+        {
+          repeat;
+          // any NACKS received
+        }
+      []  SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo( v_Timing2.SFN.Number, 8 ), ack )) // subframe 8 for ACK both for FDD and TDD configuration 1
+        //note: retransmissions not allowed in this test case
+        {
+          repeat;
+          // ACK  received for RRC connection reconfiguration
+        }
+    };
+    
+    //@siclog "Step 7" siclog@
+    t_Watchdog.start (0.5); // watch dog timer to check 100ms as per prose which is less than 500ms, actual 100ms is checked based on time stamps
+    alt {
+      [] SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell1, ?, nack )) -> value v_ReceivedSYSIND
+        {
+          //Check if the received HARQ Ind is within a window of 100 ms
+          v_Timing2 := v_ReceivedSYSIND.Common.TimingInfo.SubFrame;
+          v_HarqIndWindowSize := f_EUTRA_SetTimerToleranceMin(eutra_Cell1, l2Timer, 0.1); //100 ms to wait safely no SR Rx
+          if (f_EUTRA_SubFrameTimingDuration_Float(v_Timing, v_Timing2) < v_HarqIndWindowSize) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 7: UE is sending HARQ NACK in cell 1");
+          }
+        }
+      [] SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell2, ?, nack )) -> value v_ReceivedSYSIND
+        {
+          //Check if the received HARQ Ind is within a window of 100 ms
+          v_Timing2 := v_ReceivedSYSIND.Common.TimingInfo.SubFrame;
+          v_HarqIndWindowSize := f_EUTRA_SetTimerToleranceMin(eutra_Cell1, l2Timer, 0.1); //100 ms to wait safely no SR Rx
+          if (f_EUTRA_SubFrameTimingDuration_Float(v_Timing, v_Timing2) < v_HarqIndWindowSize) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 7: UE is sending HARQ NACK in cell 2");
+          }
+        }
+      [] SYSIND.receive ( car_UL_HARQ_IND (eutra_Cell2, ?, ack ))      // HARQ ACK for Status PDU sent by SS RLC for RLC reconfiguration complete
+        {
+          repeat;
+        }
+      []  t_Watchdog.timeout
+        {
+        }
+    }
+    // disable harq reporting in cell 2
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell2, tsc_L1Mac_IndicationMode_Disable);
+    // default grant config
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell2);
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverComplete_REQ(eutra_Cell2)); // @sic R5s100556, R5s100560 sic@
+    
+    // configure RACH procedure for target cell back to default    @sic R5s100520 change 11 sic@
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell2);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    // to enable reception of SR in cell 2
+    //@sic R5s110456 sic@
+    f_SS_ConfigSchedulingRequestIndMode(eutra_Cell2, tsc_L1Mac_IndicationMode_Enable);
+    //@siclog "Step 8" siclog@
+    // SS guarantees NDI to be same as step2, as
+    //"The initial value of the NDI shall be the same for all HARQ processes and cells".
+    //@sic R5s120629 sic@
+    v_EncodedPdcpPdu  := f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0, crs_PDCP_SDU_L38_1)));
+    v_EncodedRlcPdu   := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll, int2bit(0, 10),v_EncodedPdcpPdu ));
+    
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell2,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo_Now,
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB1,
+                                                                                             v_EncodedRlcPdu)),
+                                         cs_HarqProcessAssignment_Specific(tsc_HARQ_Process)));
+
+    
+    //@siclog "Step 9" siclog@
+    t_Watchdog.start;
+    SYSIND.receive ( car_SchedulingReq_IND (eutra_Cell2, ?));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9: UE sent SR in cell 2");
+    t_Watchdog.stop;
+    
+    //@siclog "Step 10" siclog@
+    // Automatically taken care of
+    //@siclog "Step 11" siclog@
+    t_Watchdog.start;
+    //@sic R5s120629 sic@
+    DRB.receive (car_DRB_COMMON_IND_RLC_PDUList (eutra_Cell1,
+                                                      tsc_RbId_DRB2,
+                                                      cr_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                                      {cr_RLC_AMD_1PDU(?, int2bit(0, 10), v_EncodedPdcpPdu)}));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 11");
+    t_Watchdog.stop;
+    f_RLC_Status_PDU_Tx (tsc_LchId_DRB1, 1, eutra_Cell2);//@sic R5s120629 sic@
+    
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    // to configure SS to stop report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1,tsc_L1Mac_IndicationMode_Disable );
+    // to disable reception of SR in cell 2
+    f_SS_ConfigSchedulingRequestIndMode(eutra_Cell2, tsc_L1Mac_IndicationMode_Disable);
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell2, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode);
+    
+    // To deactivate test loop mode before RRC release
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble (eutra_Cell2, E3_TESTMODE);  //@sic R5-103875 sic@
+    //Remove the cell1, non camping
+    //@sic R5-103847 taken care in postamble now sic@
+    
+  }; // end of 7.1.3.9
+
+  function f_TC_7_1_3_2_EUTRA ( ) runs on EUTRA_PTC
+  { /* L2/MAC
+     * 7.1.3.2 : Correct handling of DL assignment: semi persistent case
+     */
+    //@sic R5-110504 sic@
+    const C_RNTI tsc_SPS_RNTI := tsc_C_RNTI_Def2;
+    const integer tsc_SPS_SchedInterval := 40; //40 Sf the SPS schedule interval
+    const integer tsc_SF_Before := 30; //30 Sub frames before
+    var integer v_Nack_Count := 0, v_Ack_Count := 0;
+    var SubFrameNumber_Type v_ULHARQ_SubFrame := 8;
+    var SubFrameNumber_Type v_ULHARQ_SubFrame1 := 3;
+    var integer v_RetransSchInt := 8; //suitable for FDD
+    var integer i;
+    
+    var SubFrameTiming_Type v_TimingY;
+    var SubFrameTiming_Type v_TimingP;
+    var SystemFrameNumber_Type v_ExpectFrameNumber1;
+    var SystemFrameNumber_Type v_ExpectFrameNumber2;
+    var SystemFrameNumber_Type v_ExpectFrameNumber3;
+    var SystemFrameNumber_Type v_ExpectFrameNumber4;
+    var SystemFrameNumber_Type v_ExpectFrameNumber5;
+    var SystemFrameNumber_Type v_ExpectFrameNumber6;
+    var SystemFrameNumber_Type v_ExpectFrameNumber7;
+    var SystemFrameNumber_Type v_ExpectFrameNumber8;
+    var SystemFrameNumber_Type v_ExpectFrameNumber9;
+    var SystemFrameNumber_Type v_ExpectFrameNumber10;
+
+    var octetstring v_EncodedRlcPdu1;
+    var template (value) SpsConfigDL_Type v_SpsConfigDL;
+    var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+    var RedundancyVersionListDL_Type v_RVList := {0, 2, 3, 1, 0}; //@sic R5-120268 sic@
+    var integer v_ConfHarqProcess, v_HarqProcId;
+    
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+    f_EUTRA_Preamble ( eutra_Cell1,STATE2A_TESTLOOP_ModeA );
+    // creates cell and performs registration
+    f_EUTRA_AS_CipheringAlgorithm_Set(eea0); // set null AS ciphering algorithm
+    f_EUTRA_LoopBackActivation_State4_LongOnTimer_DrxS( infinity_, cs_UE_TestLoopModeA_LB_Setup_1DRB(0, tsc_DRB2));  // Initialization, call setup, DRB loopback;
+    //@sic R5s120054 sic@
+    //DRX is being effectively disabled to avoid interference with SPS scheduling
+    // Go to state 4 to return no data in UL
+    f_Delay(0.660); // 600 ms previous time alignment timer
+    f_EUTRA_StartULGrantTransmissionOnSR_Reception_No_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now, cs_DciInfo_CcchDcchDtchUL_Def); // Default grant with no Auto TA timer.
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB2,cs_MAC_TestMode_NoHeaderManipulationDLOnly);
+    
+    if (v_EUTRA_FDD_TDD_Mode == FDD)
+      {
+        v_SpsConfigDL := cs_SpsConfigDL_FDD;
+        v_ConfHarqProcess := 8;
+      }
+    else
+      {
+        v_SpsConfigDL := cds_SpsConfigDL_TDD;
+        v_RetransSchInt := 10;
+        v_ConfHarqProcess := 7;
+      }
+     // Default SPS configuration as in specific message contents.
+    f_RRC_ConnectionReconfiguration_SPS_Config(eutra_Cell1,
+                                               tsc_RRC_TI_Def,
+                                               cs_TimingInfo_Now,
+                                               cs_SPS_Config_DL(tsc_SPS_RNTI, cs_SPS_ConfigDL_Setup(v_SpsConfigDL)));
+    // to configure SS to report reception of HARQ ACK or NACK
+    f_Delay(0.1); // 100 ms to complete
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2); // @sic R5-101050 sic@
+    
+    //@siclog "Steps 1 - 2" siclog@
+    v_TimingY := f_EUTRA_GetNextSendOccasion(eutra_Cell1,480); //480 to 520 ms in advance
+    //   v_UL_HARQ_SFN:= v_TimingY.SFN.Number; // Frame number of
+    v_TimingY.Subframe.Number := 4; // Will result in HARQ ack in Sub frame 8 for FDD and TDD default configuarations
+    v_ExpectFrameNumber1 := v_TimingY.SFN.Number;
+    f_SS_ActivateSPS_Grant (eutra_Cell1,
+                            cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number),
+                            cs_DL_SPSInfo (tsc_SPS_RNTI,
+                                           cs_SpsAssignmentDL (cs_DciDLInfo_Explicit (cs_DciDlInfoExplicit(3,
+                                                                                                           dci_1A,
+                                                                                                           ra_2_Localised,
+                                                                                                           8,
+                                                                                                           5,{v_RVList[0]})),//@sic R5-120268 sic@
+                                                               v_SpsConfigDL)));
+    //Nprb =8, Imcs =3=Itbs TBsize =55 bites =440
+    // 50B PDCP SDU + 2B PDCP H + 2B RLC H + 1B MacSH = 55B =440
+    // As GCF priority 2, then DCI format 1 RA 0 is used for UE specific.
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(0,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0, crs_PDCP_SDU_L50)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number),
+                                                         cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+
+    //@siclog "Step 4" siclog@
+    v_TimingY.SFN.Number := (v_TimingY.SFN.Number + ((v_TimingY.Subframe.Number + tsc_SPS_SchedInterval)/10)) mod 1024;
+    v_ExpectFrameNumber2 := v_TimingY.SFN.Number;
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue(cs_RLC_UMD_1PDU(1,
+                                                           f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN1, crs_PDCP_SDU_L50)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant(eutra_Cell1,
+                                                        tsc_RbId_DRB2,
+                                                        cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number),
+                                                        cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    
+    //@siclog "Steps 6 - 7" siclog@
+    v_TimingP.SFN.Number := (v_TimingY.SFN.Number + ((v_TimingY.Subframe.Number + tsc_SPS_SchedInterval- tsc_SF_Before)/10)) mod 1024;
+    
+    v_ExpectFrameNumber3 := v_TimingP.SFN.Number;
+    v_TimingP.Subframe.Number := v_TimingY.Subframe.Number;
+    f_SS_ActivateSPS_Grant (eutra_Cell1,cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number),
+                            cs_DL_SPSInfo (tsc_SPS_RNTI,
+                                           cs_SpsAssignmentDL (cs_DciDLInfo_Explicit (cs_DciDlInfoExplicit(3,
+                                                                                                           dci_1A,
+                                                                                                           ra_2_Localised,
+                                                                                                           8,
+                                                                                                           5,{v_RVList[0]})),//@sic R5-120268 sic@
+                                                               v_SpsConfigDL)));
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(2,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN2, crs_PDCP_SDU_L50)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number),
+                                                         cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 9" siclog@
+    v_TimingY.SFN.Number := (v_TimingY.SFN.Number + ((v_TimingY.Subframe.Number + tsc_SPS_SchedInterval)/10)) mod 1024;
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(3,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN3, crs_PDCP_SDU_L50)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number),
+                                                         cs_MAC_PDUList_1(cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 10a " siclog@
+    // Automatically taken care by SS
+    //@siclog "Step 10a - 11" siclog@
+    v_TimingP.SFN.Number := (v_TimingP.SFN.Number + ((v_TimingP.Subframe.Number + tsc_SPS_SchedInterval)/10)) mod 1024;
+    v_ExpectFrameNumber4 := v_TimingP.SFN.Number;
+    
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(3,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN3, crs_PDCP_SDU_L50)))));
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number),
+                                                         cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    //@siclog "Step 16" siclog@
+    v_TimingP.SFN.Number := (v_TimingP.SFN.Number + ((v_TimingP.Subframe.Number + tsc_SPS_SchedInterval)/10)) mod 1024;
+    v_ExpectFrameNumber5 := v_TimingP.SFN.Number;
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(4,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN4, crs_PDCP_SDU_L50)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number),
+                                                         cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    
+    //@siclog "Step 18 - 19" siclog@
+    v_TimingP.SFN.Number:= (v_TimingP.SFN.Number + ((v_TimingP.Subframe.Number + tsc_SPS_SchedInterval)/10)) mod 1024; // app 40 ms in future
+    v_ExpectFrameNumber6 := v_TimingP.SFN.Number;
+    /* HARQ Process ID = [floor(CURRENT_TTI/(Downlink Semi-Persistent Scheduling Interval))] modulo Number of Configured SPS Processes, */
+    v_HarqProcId :=   ( ( (v_TimingP.SFN.Number  * 10)  + v_TimingP.Subframe.Number) /tsc_SPS_SchedInterval )  mod v_ConfHarqProcess ;
+
+                                                                                                          
+    f_SS_ActivateSPS_Grant (eutra_Cell1,cs_TimingInfo(v_TimingP.SFN.Number,v_TimingP.Subframe.Number ),
+                            cs_DL_SPSInfo (tsc_SPS_RNTI,
+                                           cs_SpsAssignmentDL (cs_DciDLInfo_Explicit (cs_DciDlInfoExplicit(6,
+                                                                                                           dci_1A,
+                                                                                                           ra_2_Localised,
+                                                                                                           1,
+                                                                                                           5,{v_RVList[0]})),
+                                                               v_SpsConfigDL)));
+    // Nprb = 1, Imcs= Itbs =6; TBsize =328 =41 bytes
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(5,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN5, crs_PDCP_SDU_L36)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                          tsc_RbId_DRB2,
+                                          cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number),
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1)),
+                                          cs_HarqProcessAssignment_Specific (v_HarqProcId)));
+    
+    //@siclog "Step 19b - 19c" siclog@
+    for (i:=1; i< 4; i:=i+1) //Scheduled 3 retransmissions assuming worst case.
+      {
+        v_TimingY := f_EUTRA_TimingInfoAdd (v_TimingP, i * v_RetransSchInt);
+        f_SS_ActivateSPS_Grant(eutra_Cell1,cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number),
+                               cs_DL_SPSInfo (tsc_SPS_RNTI,
+                                              cs_SpsAssignmentDL (cs_DciDLInfo_Explicit(cs_DciDlInfoExplicit(6,
+                                                                                                             dci_1A,
+                                                                                                             ra_2_Localised,
+                                                                                                             1,
+                                                                                                             5,{v_RVList[i]})),//@sic R5-120268 sic@
+                                                                  v_SpsConfigDL, true))); //Set NDI bit as 1
+        DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant  (eutra_Cell1,
+                                              tsc_RbId_DRB2,
+                                              cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number),
+                                              cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1)),
+                                              cs_HarqProcessAssignment_Specific(v_HarqProcId)));
+      }
+    //@siclog "Step 21" siclog@
+    // SS PDCCH for dl_sps explicit release
+    v_TimingY.SFN.Number := (v_TimingP.SFN.Number + 3) mod 1024; // app 35 ms in future
+    v_ExpectFrameNumber7 := (v_TimingY.SFN.Number + 1) mod 1024;
+    v_TimingY.Subframe.Number := 9;
+    f_SS_SPS_PDCCH_ExplicitRelease(eutra_Cell1, cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number), tsc_SPS_RNTI, dci_1A);
+
+    //@siclog "Step 23" siclog@
+    v_TimingP.SFN.Number := (v_TimingP.SFN.Number + ((v_TimingP.Subframe.Number + 2 *tsc_SPS_SchedInterval)/10)) mod 1024; // app 80 ms in future
+    //@sic R5-120268 sic@
+    v_TimingP.Subframe.Number := (v_TimingP.Subframe.Number + tsc_SPS_SchedInterval) mod 10;
+    
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(6,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN6, crs_PDCP_SDU_L36)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number),
+                                                         cs_MAC_PDUList_1(cs_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    f_SS_DeactivateSPS_Grant(eutra_Cell1, cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number + 5));
+    //@siclog "Steps 25 - 26" siclog@
+    v_TimingP.SFN.Number := (v_TimingP.SFN.Number + ((v_TimingP.Subframe.Number + tsc_SPS_SchedInterval)/10)) mod 1024; // app 40 ms in future
+    v_ExpectFrameNumber8:= v_TimingP.SFN.Number;
+    v_TimingP.Subframe.Number := (v_TimingP.Subframe.Number + tsc_SPS_SchedInterval) mod 10;
+    
+    f_SS_ActivateSPS_Grant (eutra_Cell1,
+                            cs_TimingInfo(v_TimingP.SFN.Number,v_TimingP.Subframe.Number),
+                            cs_DL_SPSInfo (tsc_SPS_RNTI,
+                                           cs_SpsAssignmentDL(cs_DciDLInfo_Explicit(cs_DciDlInfoExplicit(3,
+                                                                                                         dci_1A,
+                                                                                                         ra_2_Localised,
+                                                                                                         8,
+                                                                                                         5,{v_RVList[0]})),
+                                                              v_SpsConfigDL)));
+
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(6,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN6, crs_PDCP_SDU_L50)))));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number ),
+                                                         cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    //@siclog "Step 30" siclog@
+    v_TimingY.SFN.Number := (v_TimingP.SFN.Number + 1) mod 1024;
+    v_ExpectFrameNumber9 := v_TimingY.SFN.Number;
+    v_TimingY.Subframe.Number := 4;
+    //This is to guarantee that HARQ ACK for RLC PDU containing the RLC ACK for RRC connection reconfiguration happens to be in the same frame as step 33
+    f_SS_RB_Reconfig_NotAck_NextPDU(eutra_Cell1, tsc_RbId_SRB1);
+    f_SendRRC_ConnectionReconfiguration_SPS_Config(eutra_Cell1,
+                                                   tsc_RRC_TI_Def,
+                                                   cs_TimingInfo(v_TimingY.SFN.Number, v_TimingY.Subframe.Number),
+                                                   cs_SPS_Config_DL(omit, cs_SPS_ConfigDL_Release));
+    // Deactivate SPS Grant 10 ms after transmission of RRC Connection Reconfig releasing SPS grant.
+    f_SS_DeactivateSPS_Grant(eutra_Cell1, cs_TimingInfo( (v_TimingY.SFN.Number + 1) mod 1024, v_TimingY.Subframe.Number));
+    //@siclog "Step 32" siclog@
+    v_TimingP.SFN.Number := (v_TimingP.SFN.Number + ((v_TimingP.Subframe.Number + 2 *tsc_SPS_SchedInterval)/10)) mod 1024;//@sic R5-120268 sic@
+    v_ExpectFrameNumber10:= v_TimingP.SFN.Number;
+    v_TimingP.Subframe.Number := (v_TimingP.Subframe.Number + tsc_SPS_SchedInterval) mod 10;
+    
+    
+
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_UMD_1PDU(7,
+                                                            f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN7, crs_PDCP_SDU_L50)))));
+    // Note as UE has no configured SPS-RNTI, transmission of grant by SS will also be neglected by conforment UE
+     f_SS_ActivateSPS_Grant (eutra_Cell1,
+                            cs_TimingInfo(v_TimingP.SFN.Number,v_TimingP.Subframe.Number),
+                            cs_DL_SPSInfo (tsc_SPS_RNTI,
+                                           cs_SpsAssignmentDL(cs_DciDLInfo_Explicit(cs_DciDlInfoExplicit(3,
+                                                                                                         dci_1A,
+                                                                                                         ra_2_Localised,
+                                                                                                         8,
+                                                                                                         5,{v_RVList[0]})),
+                                                              v_SpsConfigDL)));
+    DRB.send (cads_DRB_COMMOM_REQ_MAC_PDU_NoCRNTI_Grant (eutra_Cell1,
+                                                         tsc_RbId_DRB2,
+                                                         cs_TimingInfo(v_TimingP.SFN.Number, v_TimingP.Subframe.Number),
+                                                         cs_MAC_PDUList_1(cs_MAC_PDU_NoPadding_RLCPDU_LCID( tsc_LchId_DRB2, v_EncodedRlcPdu1))));
+    // Deactivate SPS Grant
+    v_TimingP := f_EUTRA_TimingInfoAdd (v_TimingP, 5); //@sic R5s120119 sic@
+    f_SS_DeactivateSPS_Grant(eutra_Cell1, cs_TimingInfo( v_TimingP.SFN.Number, v_TimingP.Subframe.Number));
+    
+
+    //@siclog "Step 3" siclog@
+    t_Watchdog.start;
+    SYSIND.receive(car_UL_HARQ_IND(eutra_Cell1, cr_TimingInfo(v_ExpectFrameNumber1, v_ULHARQ_SubFrame), ack));
+    // with DL sub frame 0, the Ack shall be receieved in same Frame
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+    
+    
+    //@siclog "Step 5" siclog@
+    SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo(v_ExpectFrameNumber2, v_ULHARQ_SubFrame), ack));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+    
+    //@siclog "Step 8" siclog@
+    SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo( v_ExpectFrameNumber3, v_ULHARQ_SubFrame), ack));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+     
+    //@siclog "Step 10" siclog@
+    // Taken care in default handler
+    
+    //@siclog "Step 12-14 Void" siclog@
+    //@siclog "Step 15" siclog@
+    SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo(v_ExpectFrameNumber4, v_ULHARQ_SubFrame), ack));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 15: UE sent HARQ ACK ");
+  
+    //@siclog "Step 17" siclog@
+    SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo(v_ExpectFrameNumber5, v_ULHARQ_SubFrame), ack));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 17: UE sent HARQ ACK ");
+   
+    //@siclog "Step 19a " siclog@
+    SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo(v_ExpectFrameNumber6, v_ULHARQ_SubFrame), nack));
+               
+    //@siclog "Step 19b-19c" siclog@
+    // MAC PDU retransmision and SPS grant retransmission automatically performed by SS
+    //@siclog "Step 20" siclog@
+    alt {
+      []SYSIND.receive(car_UL_HARQ_IND(eutra_Cell1, ?, ack))
+        {
+          v_Ack_Count := v_Ack_Count +1;
+          if ((v_Ack_Count + v_Nack_Count) < 3) {
+            repeat;
+          }
+          else {
+            f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 20: UE sent HARQ ACK ");
+          }
+        }
+      []SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, ?, nack))
+        {
+          v_Nack_Count := v_Nack_Count + 1;
+          if ((v_Ack_Count + v_Nack_Count) < 3) {
+            repeat;
+          }
+          else if (v_Ack_Count == 0) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 20: UE did not send HARQ ACK");
+          }
+          else {
+            f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 20: UE sent HARQ ACK ");
+          }
+        }
+    }
+
+    //@siclog "Step 22" siclog@
+    SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo( v_ExpectFrameNumber7,v_ULHARQ_SubFrame1), ack));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 22: UE sent HARQ ACK ");
+    
+    //@siclog "Step 24" siclog@
+    // taken care in default handler
+    
+    //@siclog "Step 27" siclog@
+    
+    SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo(v_ExpectFrameNumber8,v_ULHARQ_SubFrame), ack));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 27: UE sent HARQ ACK ");
+    
+    //@siclog "Steps 28 - 29 void" siclog@
+    //@siclog "Steps 31 - 33" siclog@
+
+    alt {
+      [] SRB.receive(car_SRB1_RrcPdu_IND(eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)))
+        {
+            
+        }
+      [] SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo( v_ExpectFrameNumber9,v_ULHARQ_SubFrame), ack))
+        {
+          // ack for RRC Connection Reconfiguration PDU.
+          repeat;
+        }
+      []SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo( v_ExpectFrameNumber10,v_ULHARQ_SubFrame), ?))
+         {
+           f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 33: UE is sending HARQ ACK or NACK");
+         }
+    }
+
+    alt {
+      []SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, cr_TimingInfo( v_ExpectFrameNumber10,v_ULHARQ_SubFrame), ?))
+        {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 33: UE is sending HARQ ACK or NACK");
+          t_Watchdog.stop;
+         }
+      [] SYSIND.receive(car_UL_HARQ_IND (eutra_Cell1, ?, ack))
+        {
+          // ack for RLC status PDU for RRC Connection Reconfiguration completePDU.
+          repeat;
+        }
+      [] t_Watchdog.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 33: UE is not sending HARQ ACK or NACK ");
+        }
+     }
+    //test body ends
+    f_EUTRA_TestBody_Set(false);
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    // to configure SS to stop report reception of HARQ ACK or NACK
+    f_SS_ConfigUL_HARQ_IndMode (eutra_Cell1,tsc_L1Mac_IndicationMode_Disable);
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode);
+    
+    // To deactivate test loop mode before RRC release
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble(eutra_Cell1, E3_TESTMODE);//@sic R5-103875 sic@
+  } // end of 7.1.3.2
+
+}

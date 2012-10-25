@@ -1,0 +1,210 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2011-12-06 15:18:53 +0100 (Tue, 06 Dec 2011) $
+// * $Rev: 5958 $
+// ***************************************************************************
+
+module NAS_EMMInformationProcedure {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_Templates all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_Timing all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  template (value) TimeZoneAndTime cs_TimeZoneAndTime (O1_Type p_Year,
+                                                       O1_Type p_Month,
+                                                       O1_Type p_Day,
+                                                       O1_Type p_Hour,
+                                                       O1_Type p_Minute,
+                                                       O1_Type p_Second,
+                                                       O1_Type p_TimeZone):=
+  { /* @status    APPROVED */
+    iei      := '47'O, // @sic R5s110439 sic@
+    year     := p_Year,
+    month    := p_Month,
+    day      := p_Day,
+    hour     := p_Hour,
+    minute   := p_Minute,
+    second   := p_Second,
+    timeZone := p_TimeZone
+  };
+
+  template (value) TimeZone cs_TimeZone (O1_Type p_TimeZone):=
+  { /* @status    APPROVED */
+    iei      := '46'O,
+    timeZone := p_TimeZone
+  };
+
+  template (value) NetworkName cs_NetworkName (IEI8_Type p_Iei,
+                                               octetstring p_Name,
+                                               Type4Length_Type p_Length) :=
+  { /* @status    APPROVED */
+    iei          := p_Iei,
+    iel          := p_Length,
+    ext          := '1'B,
+    codingScheme := tsc_Spare3, // GSM default 7
+    addCI        := tsc_Spare1, // don't include the CI
+    spareBitCnt  := tsc_Spare3, // no info about spare bit count
+    text         := p_Name
+  };
+
+  function fl_AT_ResponseCheck(charstring p_AT_Response,
+                               charstring p_ExpectedString) return boolean
+  {
+    var charstring v_Expression;
+    var charstring v_Result;
+    var template charstring v_ExpectedString := pattern p_ExpectedString; // @sic R5s110593 ch.11 sic@
+
+    v_Expression := "*[""]([^""]+)[""]*";    /* TTCN-3 regular expression: anything + quote + no quote (at least one character) + quote + anything;
+                                                => the text between the most inner quotes is returned */
+    v_Result := regexp(p_AT_Response, v_Expression, 0);
+
+    return match(v_Result, v_ExpectedString);
+  }
+
+  function f_TC_9_1_5_1_EUTRA() runs on EUTRA_PTC
+  { /* @desc EMM information procedure */
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1); // @sic R5s106627 sic@
+    
+    // create cell and send out system information
+    f_EUTRA_CellConfig_Def (eutra_CellA);
+
+    // Insert a USIM into the UE containing default values except for those shown in Table 9.1.5.1.3.1-1
+    f_UT_USIM_Insert ( UT, "36.523-1 Table 9.1.5.1.3.1-1" ); // @sic R5s110584 sic@
+    
+    // Preamble:
+    //   - UE is in state Generic RB established (state 3) on Cell A
+    // ==========================================================================
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def(eutra_CellA);
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_9_1_5_1_Body ();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);   // @sic R5-103875 sic@
+  } // end f_TC_9_1_5_1_EUTRA
+
+  function fl_TC_9_1_5_1_Body() runs on EUTRA_PTC
+  {
+    // @sic R5s110439 sic@
+    // ==========================================================================
+    // initialize constant test case data structures
+    // ==========================================================================
+    var charstring v_FullNameString := "FullName12345678";
+    var charstring v_ShortNameString := "SName123";
+    var octetstring v_FullNameOctets := f_CharPacking_IA5toGsm7Bit(v_FullNameString, CBS_Packing);
+    var octetstring v_ShortNameOctets := f_CharPacking_IA5toGsm7Bit(v_ShortNameString, CBS_Packing);
+    var charstring v_AT_Response;
+    
+    timer t_Wait := f_EUTRA_SetTimerToleranceMin( eutra_CellA, nasTTCNTimer, 5.0 );
+    
+    // The SS transmits an EMM INFORMATION message
+    //@siclog "Step 1" siclog@   @sic R5s110148 sic@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_EMMInformation( cs_NetworkName ('43'O, v_FullNameOctets, int2oct(lengthof (v_FullNameOctets)+1,1)),
+                                                                       cs_NetworkName ('45'O, v_ShortNameOctets, int2oct(lengthof (v_ShortNameOctets)+1,1)),
+                                                                       cs_TimeZone('01'O),
+                                                                       cs_TimeZoneAndTime('01'O, '40'O, '21'O, '31'O, '83'O, '25'O,'10'O),
+                                                                       cs_DaylightSavingTime_tlv('01'B)))));
+    
+    
+    //@siclog "Step 2" siclog@
+    // Check: Does the UE transmit an EMM STATUS message with cause #97 "message type non-existent
+    // or not implemented" in the next 5 seconds
+    t_Wait.start;
+    alt {
+      [] SRB.receive (car_SRB2_NasPdu_IND(eutra_CellA,
+                                          cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_EMMStatus(cr_EMM_Cause_v(tsc_EmmCause_MessageTypeNonExistentOrNotImplemented)))))
+        {
+          t_Wait.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 2");
+        }
+      [] t_Wait.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+        }
+    }
+    
+    // EXCEPTION: Steps 3a1 to 3a4 describe behaviour that depends on the UE capability.
+    
+    //@siclog "Step 3a1" siclog@
+    // IF pc_EMM_Information AND pc_FullNameNetwork
+    // Check: Does the UE associate the "full length name of the network" with the MCC and MNC contained in
+    // the last visited tracking area identification and is presented to the MS user at the earliest opportunity?
+    if (pc_FullNameNetwork)
+      {
+        v_AT_Response := f_UT_ChkOperatorName (UT, LONG_NAME);
+        if (fl_AT_ResponseCheck(v_AT_Response, v_FullNameString)) {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3a1");
+        } else {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Returned String does not Match " & v_FullNameString);
+        }
+      }
+    
+    //@siclog "Step 3b1" siclog@
+    // IF pc_EMM_Information AND pc_ShortNameNetwork
+    // Check: Does the UE associate the "abbreviated name of the network" with the MCC and MNC contained
+    // in the last visited tracking area identification and is presented to the MS user at the earliest opportunity?
+    if (pc_ShortNameNetwork)
+      {
+        v_AT_Response := f_UT_ChkOperatorName (UT, SHORT_NAME);
+        if (fl_AT_ResponseCheck(v_AT_Response, v_ShortNameString)) {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3b1");
+        } else  {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Returned String does not Match " & v_ShortNameString);
+        }
+      }
+    
+    //@siclog "Step 3c1" aiclog@
+    // IF pc_EMM_Information AND pc_LocalTimeZone
+    // Check: Does the UE assume that this time zone applies to the tracking area of the current cell and
+    // is presented to the MS user at the earliest opportunity?
+    if (pc_LocalTimeZone)
+      {
+        v_AT_Response := f_UT_ChkTimeZone (UT);
+        if (fl_AT_ResponseCheck(v_AT_Response, "10/04/12,13:[0-9]#(2):*")) { // Ignore the mins, seconds and timezone fields; only check the date and the hour
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3c1");
+        } else {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Returned String does not Match TimeZone");
+        }
+      }
+
+    //@siclog "Step 3d1" siclog@
+    // IF pc_EMM_Information AND pc_UniversalAndLocalTimeZone
+    // Check: Does the UE assume that this time zones applies to the tracking area of the current cell and
+    // is presented to the MS user at the earliest opportunity?
+    if (pc_UniversalAndLocalTimeZone)
+      {
+        v_AT_Response := f_UT_ChkTimeZone (UT);
+        if (fl_AT_ResponseCheck(v_AT_Response, "10/04/12,13:[0-9]#(2):*")) { // Ignore the mins, seconds and timezone fields; only check the date and the hour
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3d1");
+        } else  {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Returned String does not Match TimeZone");
+        }
+      }
+    
+  }// end function fl_TC_9_1_5_1_Body
+
+}

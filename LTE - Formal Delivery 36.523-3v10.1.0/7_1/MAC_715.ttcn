@@ -1,0 +1,567 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+module MAC_715 {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_SysInfo_Templates all;
+  import from EUTRA_Timing all;
+  import from L2_CommonFunctions all;
+  import from L2_CommonTemplates all;
+  import from MAC_Functions all;
+  import from MAC_Templates all;
+
+  function f_EUTRA_GoToState4_715 (PUSCH_N_SB_Type p_N_SB := 1,
+                                   PUSCH_HoppingMode_Type p_HoppingMode := interSubFrame) runs on EUTRA_PTC
+  {
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency;
+    var Frequency_IE_Type v_Frequency_IE;
+
+    f_EUTRA_Init (c1);
+   
+
+    if (not ((p_N_SB == 1) and (p_HoppingMode == interSubFrame))) { //@sic R5s110236 sic@
+    //  Non default parameters
+      v_Frequency_IE := f_EUTRA_CellInfo_GetFrequencyIEs( eutra_Cell1 );
+      v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam ( v_Frequency_IE.DL_ChBandwidth, v_Frequency_IE.UL_ChBandwidth );
+      f_EUTRA_CellInfo_SetSysInfo_PUSCH_ConfigCommon(eutra_Cell1, cs_508_PUSCH_ConfigCommon_Default (v_ChannelBandwidthDependency.Pusch_HoppingOffset,
+                                                                                                     p_N_SB,
+                                                                                                     p_HoppingMode));
+    }
+    f_EUTRA_CellConfig_Def (eutra_Cell1); //@sic R5s110236 sic@
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeA );
+    // creates cell and performs registration
+    f_EUTRA_LoopBackActivation_State4_Def_DisableBSR_PHR (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling); //@sic R5s110422 sic@
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_PUSCH_ConfigCommon(EUTRA_CellId_Type p_CellId,
+                                                          template (value) PUSCH_ConfigCommon p_PUSCH_ConfigCommon) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.pusch_ConfigCommon := p_PUSCH_ConfigCommon;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function fl_PUSCHHoppingBitsSetAll(EUTRA_CellId_Type p_CellId,
+                                     B1_Type p_BitValue)  runs on EUTRA_PTC return template (value) PucchHoppingBits_Type
+  { /* @sic R5s110454: Merge of fl_PUSCHHoppingBitsAllOnes and fl_PUSCHHoppingBitsAllZeros sic@ */
+    var template (value) PucchHoppingBits_Type v_PucchHoppingBits;
+    
+    select (f_EUTRA_CellInfo_GetDL_ChBandwidth(p_CellId)) {
+      case (n100, n50) { // 20 mhz & 10 Mhz
+        v_PucchHoppingBits := cs_PucchHoppingBits_TwoBit(p_BitValue & p_BitValue); // @sic R5s110236 sic@
+      }
+      case else {   // 5 mhz
+        v_PucchHoppingBits := cs_PucchHoppingBits_OneBit(p_BitValue); // @sic R5s110236 sic@
+      }
+    }
+    return v_PucchHoppingBits;
+  }
+
+  function fl_PUSCHHoppingBitsAllOnes(EUTRA_CellId_Type p_CellId := eutra_Cell1) runs on EUTRA_PTC return template (value) PucchHoppingBits_Type
+  {
+    return fl_PUSCHHoppingBitsSetAll(p_CellId, '1'B);
+  }
+
+  function fl_PUSCHHoppingBitsAllZeros(EUTRA_CellId_Type p_CellId := eutra_Cell1) runs on EUTRA_PTC return template (value) PucchHoppingBits_Type
+  {
+    return fl_PUSCHHoppingBitsSetAll(p_CellId, '0'B);
+  }
+
+  function fl_TestSequence7153_7155 (PUSCH_HoppingMode_Type p_HoppingMode := interSubFrame) runs on EUTRA_PTC
+  {
+    var SubFrameTiming_Type v_Timing;
+    var PDCP_SDU_Type v_PDCP_SDU;
+    var integer i;
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency ;
+    var Frequency_IE_Type v_Frequency_IE ;
+    var template (value) PUSCH_ConfigCommon v_PUSCH_ConfigCommon;
+    var integer v_FirstRBIndex; /* @sic  R5s110618 sic@ */
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeA );
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    f_EUTRA_TestBody_Set(true,layer2);
+    // Test body starts
+    
+    for (i:=0; i<3; i:=i+1) {
+      //@siclog "Steps 0 - 0A" siclog@
+      // Modify system info
+      //@sic R5s110464 R5s110593 sic@
+
+      v_Frequency_IE := f_EUTRA_CellInfo_GetFrequencyIEs( eutra_Cell1 );
+      v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam ( v_Frequency_IE.DL_ChBandwidth, v_Frequency_IE.UL_ChBandwidth );
+      v_PUSCH_ConfigCommon := cs_508_PUSCH_ConfigCommon_Default (v_ChannelBandwidthDependency.Pusch_HoppingOffset,
+                                                                 i+2,// Sub band =2,3,4 corresponding to i=0,1,2
+                                                                 p_HoppingMode);
+      f_EUTRA_CellInfo_SetSysInfo_PUSCH_ConfigCommon(eutra_Cell1, v_PUSCH_ConfigCommon);
+      f_EUTRA_ModifySysinfo (eutra_Cell1); //@sic R5s110464 sic@
+      f_Delay (15.0); //@sic R5s110593 sic@
+      f_SS_PUSCH_ConfigCommon_Config(eutra_Cell1, -, v_PUSCH_ConfigCommon );//@sic R5s110464 sic@
+      //@siclog "Step 1" siclog@
+      // Bring UE to State 4
+      //@sic R5s110464 sic@
+      f_EUTRA_LoopBackActivation_State4_Def_DisableBSR_PHR(eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling );
+      
+      //@siclog "Step 2" siclog@
+      f_EUTRA_StopULGrantTransmission_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now);// >100ms in advance; Subframe.Number = 4
+      
+      //@siclog "Step 3" siclog@
+      v_PDCP_SDU := f_GetN_OctetsFromPRBS(10* i,  37); // 37 B arbitrarily selected
+      //With PDCP SDU =37 B +2B PDCPH+2B RLC H+ 1B MACH =42B =336b;
+      //With UL grant of 392 (imcs=6, Nprb=4) leaves 56b space; 16 b BSR + 40 b for status PDU+MACH
+      v_Timing :=  f_EUTRA_GetNextSendOccasion(eutra_Cell1);
+      
+      DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU (eutra_Cell1,
+                                             tsc_RbId_DRB1,
+                                             cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                             {v_PDCP_SDU} // SDU size of 40 arbitrarily selected
+                                             ));
+      //@siclog "Steps 4 - 5" siclog@
+      // UL Grant transmission ; 60 ms after step 3
+      v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+      // Initialise First RB Index
+      /* @sic  R5s110618 sic@ */
+     select (v_Frequency_IE.DL_ChBandwidth)
+      {
+        case (n100) // 20 Mhz Bandwidth
+        {
+            v_FirstRBIndex := 8;
+        }
+        case (n75) // 15 Mhz Bandwidth
+        {
+            v_FirstRBIndex := 6;
+        }
+        case (n50) // 10 Mhz Bandwidth
+        {
+            v_FirstRBIndex := 4;
+        }
+        case else // 5Mhz and lower bandwidth
+        {
+            v_FirstRBIndex := 2;
+        }
+      }
+
+      f_EUTRA_OneULHoppingGrantTransmission(eutra_Cell1,
+                                            cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                            6, 4, //Nprb= 4, Imcs=Itbs=6 //@sic R5s110318 sic@
+                                            fl_PUSCHHoppingBitsAllOnes(), // All bits 1
+                                            v_FirstRBIndex /* @sic R5s110573 R5s110618 sic@ */
+                                            );
+      
+      // The PDCP SDU =37 bytes, 2 bytes PDCP header, 2 bytes RLC header, 2 bytes MAC header. Total 43 bytes =344 bits.
+      //Nprb= 4, Imcs=Itbs=6, results in TBS= 392; 48 extra bits for MAC padding or RLC Status PDU or BSR transmission
+      
+      //@siclog "Step 6" siclog@
+      t_Watchdog.start;
+      DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList (eutra_Cell1,
+                                                    tsc_RbId_DRB1,
+                                                    cr_TimingInfo_Any,
+                                                    {v_PDCP_SDU}));
+      t_Watchdog.stop;
+      
+      //Configure SS for normal grant allocation
+      f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+      //@siclog "Step 7" siclog@
+      // Release RRC Connection
+      f_EUTRA_RRC_ConnectionRelease(eutra_Cell1);
+      
+    } //end of for loop
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //  Switch off and detach
+    f_EUTRA_Postamble ( eutra_Cell1, E1_IDLE );
+  }//end of fl_TestSequence7153_7155
+
+  function f_TC_7_1_5_1_EUTRA ( ) runs on EUTRA_PTC
+  { /* 7.1.5.1 : Inter-TTI PUSCH hopping by uplink grant */
+    var SubFrameTiming_Type v_Timing;
+    var PDCP_SDUList_Type v_PDCP_SDUList;
+    var integer i, j;
+    var integer v_NumPDUs, v_ExecutionCounter;
+    var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+    var template (value) PucchHoppingBits_Type v_PucchHoppingBits;
+    timer t_Watchdog := 5.0;
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    f_EUTRA_GoToState4_715( );
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Initialise Variables
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    if (v_EUTRA_FDD_TDD_Mode == TDD) { //Case TDD
+      v_NumPDUs := 4;
+    }
+    else {                             //Case FDD
+      v_NumPDUs := 8;
+    }
+    
+    select (f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1))
+      {
+        case (n100, n50) { // 20 mhz & 10 Mhz
+          v_ExecutionCounter := 3;
+        }
+        case else {   // 5 mhz
+          v_ExecutionCounter := 1;
+        }
+      }
+
+    for (i:=0; i< v_NumPDUs; i:=i+1) {
+      v_PDCP_SDUList[i] := f_GetN_OctetsFromPRBS(5*i,  37); // SDU size of 37 arbitrarily selected
+      //With PDCP SDU =37 B +2B PDCPH+2B RLC H+ 1B MACH =42B =336b;
+      //With UL grant of 392 (imcs=6, Nprb=4) leaves 56b space; 16 b BSR + 40 b for status PDU+MACH
+    }
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true, layer2);
+    // Test body starts
+    //@siclog "Step 1" siclog@
+    f_EUTRA_StopULGrantTransmission_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now);
+    
+    for (j:=1; j<=v_ExecutionCounter; j:=j+1) {
+      v_Timing :=  f_EUTRA_GetNextSendOccasion(eutra_Cell1);      // >100ms in advance; Subframe.Number = 4
+      select (j){
+        case (1){
+          v_PucchHoppingBits := fl_PUSCHHoppingBitsAllZeros();
+        }
+        case (2){ // only applicable for BW>=10MHz
+          v_PucchHoppingBits := cs_PucchHoppingBits_TwoBit ('01'B);
+        }
+        case (3){// only applicable for BW>=10MHz
+          v_PucchHoppingBits := cs_PucchHoppingBits_TwoBit ('10'B);
+        }
+      }
+
+      //@siclog "Step 2" siclog@
+      
+      DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU (eutra_Cell1,
+                                             tsc_RbId_DRB1,
+                                             cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                             v_PDCP_SDUList));
+      //@siclog "Steps 3 - 4" siclog@
+      // UL Grant transmission 4[TDD]/10[FDD] times; 60 ms after step 2
+      v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+      //@sic R5s110513 sic@
+      if (v_EUTRA_FDD_TDD_Mode == TDD) { // Case TDD
+        f_EUTRA_PeriodicCyclicULHoppingGrantTransmission(eutra_Cell1,
+                                                         cs_TimingInfo(v_Timing.SFN.Number, 1),
+                                                         6, 4, //Nprb= 4, Imcs=Itbs=6
+                                                         3, //every UL TTI
+                                                         2,// Cycles: 2; Results in grants in SF 1 and 4, and UL data in SF 1+6=7 and 4+4 =8 for default TDD
+                                                         v_PucchHoppingBits); // All bits 1
+        f_EUTRA_PeriodicCyclicULHoppingGrantTransmission(eutra_Cell1,
+                                                         cs_TimingInfo(v_Timing.SFN.Number, 6),
+                                                         6, 4, //Nprb= 4, Imcs=Itbs=6
+                                                         3, //every UL TTI
+                                                         2,// Cycles: 2; Results in grants in SF 6 and 9, and UL data in SF 6+6=12=2 and 7+4 =13=3 for default TDD
+                                                         v_PucchHoppingBits); // All bits 1
+      }
+      else {                             // Case FDD
+        f_EUTRA_PeriodicCyclicULHoppingGrantTransmission(eutra_Cell1,
+                                                         cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                                         6, 4, //Nprb= 4, Imcs=Itbs=6
+                                                         1, //every UL TTI
+                                                         v_NumPDUs,// Cycles: 8 for FDD
+                                                         v_PucchHoppingBits); // All bits 1
+        
+      }
+      
+      // The PDCP SDU =37 bytes, 2 bytes PDCP header, 2 bytes RLC header, 2 bytes MAC header. Total 43 bytes =344 bits.
+      //Nprb= 4, Imcs=Itbs=6, results in TBS= 392; 48 extra bits for MAC padding/RLC Status PDU or BSR transmission
+      t_Watchdog.start;
+      //@siclog "Step 5" siclog@
+      // Repeated 4[TDD]/10[FDD] times
+      for (i:=0; i<v_NumPDUs; i:=i+1)
+        {
+          DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList (eutra_Cell1,
+                                                        tsc_RbId_DRB1,
+                                                        cr_TimingInfo_Any,
+                                                        {v_PDCP_SDUList[i]}));
+        }//End of for loop for i
+      t_Watchdog.stop;
+    }// End of for loop for j
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    //Configure SS for normal grant allocation
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );
+  } //End of 7.1.5.1
+
+  function f_TC_7_1_5_2_EUTRA ( ) runs on EUTRA_PTC
+  { /* 7.1.5.2 : Predefined intra-TTI PUSCH hopping (N_sb=1) */
+    var SubFrameTiming_Type v_Timing;
+    var PDCP_SDUList_Type v_PDCP_SDUList;
+    var integer i;
+    var integer v_NumPDUs;
+    var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+    timer t_Watchdog := 5.0;
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+  
+    f_EUTRA_GoToState4_715(1, intraAndInterSubFrame );
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Initialise Variables
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    if (v_EUTRA_FDD_TDD_Mode == TDD) { // Case TDD
+      v_NumPDUs := 4;
+    }
+    else {                             // Case FDD
+      v_NumPDUs := 8;
+    }
+
+    for (i:=0; i< v_NumPDUs; i:=i+1) {
+      v_PDCP_SDUList[i] := f_GetN_OctetsFromPRBS(5*i, 37); // SDU size of 37 arbitrarily selected
+      //With PDCP SDU =37 B +2B PDCPH+2B RLC H+ 1B MACH =42B =336b;
+      //With UL grant of 392 (imcs=6, Nprb=4) leaves 56b space; 16 b BSR + 40 b for status PDU+MACH
+    }
+  
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    f_EUTRA_TestBody_Set(true,layer2);
+    // Test body starts
+    //@siclog "Step 1" siclog@
+    f_EUTRA_StopULGrantTransmission_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now);
+    v_Timing :=  f_EUTRA_GetNextSendOccasion(eutra_Cell1);      // >100ms in advance; Subframe.Number = 4
+     
+    //@siclog "Step 2" siclog@
+    DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU (eutra_Cell1,
+                                           tsc_RbId_DRB1,
+                                           cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                           v_PDCP_SDUList));
+    //@siclog "Steps 3 - 4" siclog@
+    // UL Grant transmission 4[TDD]/10[FDD] times; 60 ms after step 2
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+    //@sic R5s110236 R5-112665 sic@
+    if (v_EUTRA_FDD_TDD_Mode == TDD) { // Case TDD
+     f_EUTRA_PeriodicCyclicULHoppingGrantTransmission(eutra_Cell1,
+                                                      cs_TimingInfo(v_Timing.SFN.Number, 1),
+                                                      6, 4, //Nprb= 4, Imcs=Itbs=6
+                                                      3, //every UL TTI
+                                                      2,// Cycles: 2; Results in grants in SF 1 and 4, and UL data in SF 1+6=7 and 4+4 =8 for default TDD
+                                                      fl_PUSCHHoppingBitsAllOnes()); // All bits 1
+    f_EUTRA_PeriodicCyclicULHoppingGrantTransmission(eutra_Cell1,
+                                                     cs_TimingInfo(v_Timing.SFN.Number, 6),
+                                                     6, 4, //Nprb= 4, Imcs=Itbs=6
+                                                     3, //every UL TTI
+                                                     2,// Cycles: 2; Results in grants in SF 6 and 9, and UL data in SF 6+6=12=2 and 7+4 =13=3 for default TDD
+                                                     //@sic R5s110318 sic@
+                                                     fl_PUSCHHoppingBitsAllOnes()); // All bits 1
+    }
+    else {                             // Case FDD
+       f_EUTRA_PeriodicCyclicULHoppingGrantTransmission(eutra_Cell1,
+                                                        cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                                        6, 4, //Nprb= 4, Imcs=Itbs=6
+                                                        1, //every UL TTI
+                                                        v_NumPDUs,// Cycles: 8 for FDD
+                                                        fl_PUSCHHoppingBitsAllOnes()); // All bits 1
+    
+    }
+   
+    // The PDCP SDU =37 bytes, 2 bytes PDCP header, 2 bytes RLC header, 2 bytes MAC header. Total 43 bytes =344 bits.
+    //Nprb= 4, Imcs=Itbs=6, results in TBS= 392; 48 extra bits for MAC padding/RLC status PDU or BSR transmission
+    t_Watchdog.start;
+    //@siclog "Step 5" siclog@
+    // Repeated 4[TDD]/10[FDD] times
+    for (i:=0; i< v_NumPDUs; i:=i+1) {
+      DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList (eutra_Cell1,
+                                                    tsc_RbId_DRB1,
+                                                    cr_TimingInfo_Any,
+                                                    {v_PDCP_SDUList[i]}));
+    }
+    t_Watchdog.stop;
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    //Configure SS for normal grant allocation
+    
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );
+    
+  } //End of 7.1.5.2
+
+  function f_TC_7_1_5_3_EUTRA ( ) runs on EUTRA_PTC
+  { /* 7.1.5.3 : Predefined intra-TTI PUSCH hopping (N_sb=2/3/4) */
+
+   fl_TestSequence7153_7155(intraAndInterSubFrame)
+
+  } //end of 7.1.5.3
+
+  function f_TC_7_1_5_4_EUTRA ( ) runs on EUTRA_PTC
+  { /* 7.1.5.4 : Predefined inter-TTI PUSCH hopping (N_sb=1) */
+    var integer i;
+    var SubFrameTiming_Type v_Timing;
+    var octetstring v_EncodedRlcPdu;
+    var octetstring v_EncodedRlcPdu1;
+    var octetstring v_EncodedPdcpPdu;
+    var MAC_PDU_Type v_MAC_PDU;
+    var DRB_COMMON_IND v_DRB_COMMON_IND;
+    var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+    
+    timer t_Watchdog := 5.0;
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_AS_CipheringAlgorithm_Set(eea0); // set null AS ciphering algorithm
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2A_TESTLOOP_ModeA );
+    // creates cell and performs registration
+    f_EUTRA_LoopBackActivation_State4_TA_Infinity_LB_NoScaling();
+    f_Delay(0.660); // 600 ms previous time alignment timer
+    // Go to state 4
+    // step to configure SS RLC/PDCP and MAC in No header manipulation mode on SS Side for DRB
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1, cs_MAC_TestMode_NoHeaderManipulationDL_UL);
+    f_EUTRA_HarqErrorHandling_Set(raiseInconc); // Start 'Harq Errors not tolerant'
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Initialise Variables
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true,layer2);
+    // Test body starts
+    //@siclog "Step 1" siclog@
+    f_EUTRA_StopULGrantTransmission_No_PUCCH_Sync(eutra_Cell1, cs_TimingInfo_Now);
+    // preconfig SS for PHICH mode
+    f_SS_ConfigPhich_TestMode (eutra_Cell1,
+                               cs_Phich_ExplicitMode(cs_HARQ_ModeList_3Nack_Ack));
+    //@siclog "Step 2" siclog@
+    v_EncodedPdcpPdu := f_PDCP_PDU_Encvalue (cs_PDCP_PDU_LongSN(cs_PDCP_DataPdu_LongSN(tsc_B12_SQN0, crs_PDCP_SDU_36B)));
+    v_EncodedRlcPdu  := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_NoPoll, int2bit(0, 10), v_EncodedPdcpPdu));
+    v_EncodedRlcPdu1 := f_RLC_PDU_Encvalue (cs_RLC_AMD_1PDU(tsc_Poll, int2bit(0, 10), v_EncodedPdcpPdu));
+
+    v_Timing :=  f_EUTRA_GetNextSendOccasion(eutra_Cell1);      // >100ms in advance; Subframe.Number = 4
+    // 36B PDCP SDU + 2B PDCP H + 2B RLC H+ 1B MACH =41 B =328 bits
+    DRB.send (cas_DRB_COMMOM_REQ_MAC_PDU (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                          cs_MAC_PDUList_1 (cs_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB1, v_EncodedRlcPdu))));
+    
+    //@siclog "Steps 3 - 4" siclog@
+    // UL Grant transmission; 60 ms after step 2
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+    //UL Grant of 328 bits
+    //@sic R5s110318 sic@
+    f_EUTRA_OneULHoppingGrantTransmission(eutra_Cell1,
+                                                     cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                                     4, 5, //Nprb= 5, Imcs=Itbs=4
+                                                     fl_PUSCHHoppingBitsAllOnes() // All bits 1
+                                                     );
+    //the template cs_TransRetransmissionListUL_Def is expected to be changed to contain only one entity hence will match with test requirements
+    //@siclog "Step 5" siclog@
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 4); // UL PUSCH to be received 4 subframe after for both FDD and TDD config 1 as Subframe is 4;
+    t_Watchdog.start;
+    DRB.receive(car_DRB_COMMON_IND_MAC (eutra_Cell1,
+                                        tsc_RbId_DRB1,
+                                        cr_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                        {cr_MAC_PDU_NoPadding_RLCPDU_LCID(tsc_LchId_DRB1, (v_EncodedRlcPdu,v_EncodedRlcPdu1))})) -> value v_DRB_COMMON_IND;
+    v_MAC_PDU := v_DRB_COMMON_IND.U_Plane.SubframeData.PduSduList.MacPdu[0];
+
+    //@siclog "Step 6" siclog@
+    // NACK transmission Automatically taken care by SS due to PHICH preconfiguration
+    
+    for (i:= 0; i<3; i:=i+1) {
+      v_Timing := f_EvaluateNext_UL_TransmissionForHARQ_Process(v_Timing, v_EUTRA_FDD_TDD_Mode); // Next TTI for UL.
+      //@siclog "Steps 7 - 9 - 11" siclog@
+      DRB.receive(car_DRB_COMMON_IND_MAC (eutra_Cell1,
+                                          tsc_RbId_DRB1,
+                                          cr_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                          {v_MAC_PDU}));
+      //@siclog "Steps 8 - 10" siclog@
+      // NACK transmission & 12 ACK transmission auotmatically taken care by SS due to PHICH preconfiguration
+    };
+    t_Watchdog.stop;
+    
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Postamble
+    //////////////////////////////////////////////////////////////////////////////////
+    //Transmit Status PDU ACK SN 1, so as to avoid possible RLC retransmissions from UE
+    f_RLC_Status_PDU_Tx (tsc_LchId_DRB1, 1);
+    f_DelayForDLPDU_Tx() ; //@sic R5s110740 delay of 100 ms for status PDU transmission sic@
+    f_EUTRA_HarqErrorHandling_Set(ignore); // stop 'Harq Errors not tolerant'
+    //Config SS for normal PHICH Mode
+    f_SS_ConfigPhich_TestMode (eutra_Cell1, cs_PhichTestModeNormal);
+    f_SS_Config1TM_DRB_NoMACHeader(eutra_Cell1, tsc_RbId_DRB1,cs_MAC_TestMode_NormalMode);
+    //Configure SS for normal grant allocation
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble ( eutra_Cell1, E3_TESTMODE );
+
+  } // end of 7.1.5.4
+
+  function f_TC_7_1_5_5_EUTRA ( ) runs on EUTRA_PTC
+  { /* 7.1.5.5 : Predefined inter-TTI PUSCH hopping (N_sb=2/3/4) */
+
+   fl_TestSequence7153_7155(interSubFrame)
+
+  };//end of 7.1.5.5
+
+}

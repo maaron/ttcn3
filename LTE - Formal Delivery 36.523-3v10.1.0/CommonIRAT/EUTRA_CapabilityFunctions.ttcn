@@ -1,0 +1,147 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:31:05 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7307 $
+/******************************************************************************/
+
+module EUTRA_CapabilityFunctions {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_Parameters all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SysInfo_Templates all;
+
+  template (value) RadioResourceConfigDedicated cs_508_RadioResourceConfigDedicated_HOToEUTRA (template (omit) CQI_ReportPeriodic p_CQI_ReportingPeriodic,
+                                                                                               template (value) PUCCH_ConfigDedicated p_PUCCH_ConfigDedicated,  // @sic R5-1236630 sic@
+                                                                                                SR_PUCCH_ResourceIndex_Type p_SR_PUCCH_ResourceIndex,  // @sic R5-1236630 sic@
+                                                                                                SR_ConfigIndex_Type p_SR_ConfigIndex  // @sic R5-1236630 sic@
+                                                                                                ) :=
+    /* Values according to 36.508 cl. 4.6.3 Table 4.6.3-18 (using condition n=1 & m=0) */
+    /* @status    APPROVED */
+    cs_RadioResourceConfigDedicated_SrbDrbConfig( { cs_508_SRB1_ToAddMod_DEFAULT, cs_508_SRB2_ToAddMod_DEFAULT },
+                                                  { cs_508_DRB_ToAddMod_DEFAULT_AM(tsc_DRB1) },
+                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                  cs_508_PhysicalConfigDedicated_Default_HO(
+                                                     p_PUCCH_ConfigDedicated,
+                                                     p_CQI_ReportingPeriodic,
+                                                     p_SR_PUCCH_ResourceIndex,
+                                                     cs_PhysicalConfigDedicated_AntennaInfo_Def,
+                                                     p_SR_ConfigIndex));  // @sic R5-123630 sic@
+
+  template (value) MobilityControlInfo cs_MobilityControlInfo_HO_InterRAT(PhysCellId p_PhysCellId,
+                                                                     template (omit) CarrierFreqEUTRA p_EUTRA_CarrierFreq,
+                                                                     template (value) CarrierBandwidthEUTRA p_CarrierBandwidthEUTRA,
+                                                                     C_RNTI p_C_RNTI,
+                                                                     template (value) RadioResourceConfigCommon p_RadioResourceConfigCommon) :=
+    /* @status    APPROVED */
+    cs_MobilityControlInfo( p_PhysCellId,
+                            p_EUTRA_CarrierFreq,
+                            p_CarrierBandwidthEUTRA,
+                            1,
+                            ms1000,
+                            p_C_RNTI,
+                            p_RadioResourceConfigCommon,
+                            omit);
+
+  template (value) DL_DCCH_Message cs_RRCConnectionReconfiguration_HandoverToEUTRA(integer p_ARFCN,
+                                                                                   Dl_Bandwidth_Type p_DLBW,
+                                                                                   template (omit) Ul_Bandwidth_Type p_ULBW,
+                                                                                   integer p_CellId,
+                                                                                   RRC_TransactionIdentifier p_RRC_TI,
+                                                                                   template (value) PRACH_Config p_PRACH_Configuration,
+                                                                                   integer p_PuschHoppingOffset,
+                                                                                   template (value) SoundingRS_UL_ConfigCommon p_SoundingRsUl_ConfigCommon,
+                                                                                   template (omit) TDD_Config p_Tdd_Configuration,
+                                                                                   template (omit) CQI_ReportPeriodic p_CQI_ReportingPeriodic,
+                                                                                   template (value) PUCCH_ConfigDedicated p_PUCCH_ConfigDedicated,   // @sic R5-123630 sic@
+                                                                                   SR_PUCCH_ResourceIndex_Type p_SR_PUCCH_ResourceIndex,   // @sic R5-123630 sic@
+                                                                                   SR_ConfigIndex_Type p_SR_ConfigIndex,    // @sic R5-123630 sic@
+                                                                                   N_RB_CQI_Type p_N_RB_CQI) :=  // @sic R5-123712 sic@
+  /* @status    APPROVED */
+    cs_RRCConnectionReconfiguration_Common (p_RRC_TI,
+                                            omit,
+                                            cs_MobilityControlInfo_HO_InterRAT(p_CellId,
+                                                                          cs_CarrierFreqEUTRA (p_ARFCN, omit),
+                                                                          cs_CarrierBandwidthEUTRA (p_DLBW, p_ULBW),
+                                                                          tsc_C_RNTI_Def2,            // @sic R5s120490 sic@
+                                                                          cds_RadioResourceConfigCommon_FullConfig(cs_508_RACH_ConfigCommon_Default, // @sic R5-123712 sic@
+                                                                                                           p_PRACH_Configuration,
+                                                                                                           cs_508_PUSCH_ConfigCommon_Default(p_PuschHoppingOffset),
+                                                                                                           p_SoundingRsUl_ConfigCommon,
+                                                                                                           p_Tdd_Configuration,
+                                                                                                           cs_AntennaInfoCommon_1Port,
+                                                                                                           cs_508_PUCCH_ConfigCommon_Default(p_N_RB_CQI),
+                                                                                                           tsc_P_b_1Tx)),   // @sic R5s120490 sic@
+                                            cs_508_RadioResourceConfigDedicated_HOToEUTRA (p_CQI_ReportingPeriodic, p_PUCCH_ConfigDedicated, p_SR_PUCCH_ResourceIndex, p_SR_ConfigIndex),
+                                            cs_SecurityConfigHO_InterRAT);
+
+  function f_Encode_RRCConnectionReconfiguration_HOToEUTRA (CoOrd_EUTRASysInfo_Type p_EUTRASysInfo) return octetstring
+  {
+    var bitstring v_Bitstring;
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam(f_ConvertIntegerToDL_Bandwidth(p_EUTRASysInfo.DL_Bandwidth),
+                                                                                                   f_ConvertIntegerToUL_Bandwidth(p_EUTRASysInfo.HO.UL_Bandwidth));
+
+    if (px_ePrimaryFrequencyBand < 33)   {            // Bands below 33 are reserved for FDD
+      v_Bitstring := encvalue(cs_RRCConnectionReconfiguration_HandoverToEUTRA (p_EUTRASysInfo.Arfcn,
+                                                                               f_ConvertIntegerToDL_Bandwidth (p_EUTRASysInfo.DL_Bandwidth),
+                                                                               f_ConvertIntegerToUL_Bandwidth(p_EUTRASysInfo.HO.UL_Bandwidth),
+                                                                               p_EUTRASysInfo.HO.PhysCellId,
+                                                                               tsc_RRC_TI_Def,
+                                                                               cs_PRACH_Config_Def(cs_508_PRACH_ConfigSIB_FDD ( v_ChannelBandwidthDependency.Prach_FrequencyOffset,
+                                                                                                                                p_EUTRASysInfo.HO.RootSequenceIndex )),
+                                                                               v_ChannelBandwidthDependency.Pusch_HoppingOffset,
+                                                                               cs_508_SoundingRS_UL_ConfigCommon_FDD(v_ChannelBandwidthDependency.SrsBandwidthConfiguration),
+                                                                               omit,
+                                                                               cs_CQI_ReportingPeriodic_FDD,
+                                                                               cs_508_PUCCH_ConfigDedicated_Default_FDD,   // @sic R5-123630 sic@
+                                                                               v_ChannelBandwidthDependency.sr_PUCCH_ResourceIndex, // @sic R5-123630 sic@
+                                                                               30,   // @sic R5-123630 sic@
+                                                                               v_ChannelBandwidthDependency.N_RB_CQI)); // @sic R5-123712 sic@
+    } else {
+      v_Bitstring := encvalue(cs_RRCConnectionReconfiguration_HandoverToEUTRA (p_EUTRASysInfo.Arfcn,
+                                                                               f_ConvertIntegerToDL_Bandwidth(p_EUTRASysInfo.DL_Bandwidth),
+                                                                               omit,
+                                                                               p_EUTRASysInfo.HO.PhysCellId,
+                                                                               tsc_RRC_TI_Def,
+                                                                               cs_PRACH_Config_Def(cs_508_PRACH_ConfigSIB_TDD ( v_ChannelBandwidthDependency.Prach_FrequencyOffset,
+                                                                                                                                p_EUTRASysInfo.HO.RootSequenceIndex )),
+                                                                               v_ChannelBandwidthDependency.Pusch_HoppingOffset,
+                                                                               cs_508_SoundingRS_UL_ConfigCommon_TDD(v_ChannelBandwidthDependency.SrsBandwidthConfiguration),
+                                                                               cs_TDD_ConfigDef(px_eTDDsubframeConfig),
+                                                                               cds_CQI_ReportingPeriodic_TDD,
+                                                                               cds_508_PUCCH_ConfigDedicated_Default_TDD,   // @sic R5-123630 sic@
+                                                                               v_ChannelBandwidthDependency.sr_PUCCH_ResourceIndex, // @sic R5-123630 sic@
+                                                                               27,    // @sic R5-123630 sic@
+                                                                               v_ChannelBandwidthDependency.N_RB_CQI)); // @sic R5-123712 sic@
+    }
+    
+    return bit2oct(f_OctetAlignedBitString(v_Bitstring));  // NOTE: bit2oct would add additional bits at the beginning (MSB) whereas here it has be added at the end (LSB)
+  }
+
+  function f_ConvertDL_BandwidthPIXITToInteger() return integer
+  {
+    return (f_ConvertDL_BandwidthToInteger(px_ePrimaryBandChannelBandwidth));
+  }
+
+  function f_ConvertFromBoolToCDMA2000_Type (boolean p_IsHRPD)  return CDMA2000_Type
+  {
+    if (p_IsHRPD == true) {
+      return typeHRPD;
+    } else {
+      return type1XRTT;
+    }
+  }
+
+}

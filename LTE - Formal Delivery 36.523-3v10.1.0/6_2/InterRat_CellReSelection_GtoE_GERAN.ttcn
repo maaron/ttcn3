@@ -1,0 +1,736 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 19:03:24 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7271 $
+/******************************************************************************/
+
+module InterRat_CellReSelection_GtoE_GERAN {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CapabilityFunctions all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Parameters all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+
+  template (value) EUTRAN_Descr cs_EUTRAN_Descr(B16_Type p_Earfcn,
+                                                B1_Type p_BwMask,
+                                                template (omit) B3_Type p_MeasBW,
+                                                B1_Type p_NaMask,
+                                                template (omit) PCIDGroup p_NotAllowed,
+                                                B1_Type p_TMask,
+                                                template (omit) B9_Type p_TargetPCID) :=
+  { /* @status    APPROVED */
+    earfcn := p_Earfcn,
+    bwMask := p_BwMask,
+    measBandwidth := p_MeasBW,
+    naMask := p_NaMask,
+    notAllowed := p_NotAllowed,
+    tMask := p_TMask,
+    targetPCID := p_TargetPCID
+  };
+
+  template (value) EUTRANDescr_CRStruct cs_EUTRANDescr_CRStruct (template (value) EUTRAN_Descr p_EUTRAN_Descr) :=
+  { /* @status    APPROVED */
+    prefix := '1'B,
+    eutranDescr := p_EUTRAN_Descr
+  };
+
+  template (value) EUTRANDescr_CRStruct cs_EUTRANDescr_CRStructNone :=
+  { /* @status    APPROVED */
+    prefix := '0'B,
+    eutranDescr := omit
+  };
+
+  template (value) EUTRANDescr_List cs_EUTRANDescr_List_1Entry (template (value) EUTRANDescr_CRStruct p_EUTRAN_Descr) :=
+  { /* @status    APPROVED */
+    p_EUTRAN_Descr,
+    cs_EUTRANDescr_CRStructNone
+  };
+
+  function f_TC_6_2_3_14_GERAN ( ) runs on GERAN_PTC
+  { /* Test case 6.2.3.14 Inter-RAT Cell Reselection from GSM_Idle/GPRS Packet_Idle to E-UTRA (priority of E-UTRA cells are higher than the serving cell) */
+    var template (value) RptdEUTRANNeighCells v_RptdEUTRANNeighCells;
+    var template (value) SYSTEMINFORMATIONTYPE2quater v_SI2quater;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfo;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //* @desc Wait for EUTRA cell information to configure in GERAN cell
+    v_EUTRA_SysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell (cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn, 16),
+                                                  f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo.Eutra[0].DL_Bandwidth)),
+                               '100'B,
+                               '00010'B,
+                               '00010'B,
+                               '01111'B),
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B,
+                                                                           '0000'B,
+                                                                           '0'B, // @sic GP-120371 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           '0'B, // @sic R5s120425 sic@
+                                                                           omit, // @sic R5s120425 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           cs_EUTRAN_MeasParams_SI2(v_RptdEUTRANNeighCells),
+                                                                           -, // @sic R5s120021 sic@
+                                                                           '101'B, //geranPrior = 5
+                                                                           '0000'B,//threshPriorSearch = 0
+                                                                           '0000'B, //threshGSMLow = 0
+                                                                           '00'B,
+                                                                           '00'B));
+    
+    //* @desc Set the SI2 with the information provided from E-UTRA
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, omit); // @sic R5s120129 sic@
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Registered, Idle Mode (state 2) on a GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+    
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    //Tell the EUTRA component to start step1 after cell configuration
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //Wait for doing step 1 of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+
+    //@siclog "Step 2" siclog@
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case step 2
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell (cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn, 16),
+                                                  f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo.Eutra[0].DL_Bandwidth)),
+                               '110'B,
+                               '00010'B,
+                               '00010'B,
+                               '01111'B),
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cs_SI2quaterRO('0000'B, //@sic GP-120371 sic@
+                                                        '0000'B, //@sic GP-120371 sic@
+                                                        '1'B, // @sic GP-120371 sic@
+                                                        '0'B,
+                                                        omit,
+                                                        '0'B, // @sic R5s120425 sic@
+                                                        omit, // @sic R5s120425 sic@
+                                                        '0'B,
+                                                        omit,
+                                                        cs_EUTRAN_MeasParams_SI2(v_RptdEUTRANNeighCells)));
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    
+    //@siclog "Step 3" siclog@
+    // SS changes cell 1 and cell 24 levels and specific message contents for Cell 24
+    f_GERAN_SysInfo_SetSI13_RestOctets ( geran_Cell24, cds_SI13_RO_BCCH_CHANGE_MARK(f_GERAN_RAC_Get (geran_Cell24), f_GERAN_NMO_Get (geran_Cell24)) );
+    
+    // Now send out new SI messages
+    f_GERAN_SendGSMSysInfo (geran_Cell24);
+    
+    //@siclog "Step 4" siclog@
+    // Wait for 70 s (70 s + T_reselect).
+    // f_Delay (70.0); subject to prose CR approval @sic R5s
+    
+    //Tell the EUTRA component that Cell 24 is re-configured
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //Wait for completion of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    f_GERAN_TestBody_Set ( false );
+    
+    // Release Cell 24
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_3_15_GERAN ( ) runs on GERAN_PTC
+  { /* Inter-RAT Cell Reselection /from GSM_Idle/GPRS Packet_Idle to E-UTRA (priority of E-UTRA cells are lower than the serving cell) */
+    
+    var template (value) RptdEUTRANNeighCells v_RptdEUTRANNeighCells;
+    var template(value) SYSTEMINFORMATIONTYPE2quater v_SI2quater;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfo;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //* @desc Wait for EUTRA cell information to configure in GERAN cell
+    v_EUTRA_SysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell(cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn, 16),
+                                                 f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo.Eutra[0].DL_Bandwidth)),
+                              '001'B,
+                              '00010'B,
+                              '10010'B,
+                              '10001'B),  // @sic R5s120221 sic@ default value
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B,
+                                                                           '0000'B,
+                                                                           '0'B,
+                                                                           '0'B,
+                                                                           omit,
+                                                                           '0'B, // @sic R5s120425 sic@
+                                                                           omit, // @sic R5s120425 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           cs_EUTRAN_MeasParams_SI2(v_RptdEUTRANNeighCells),
+                                                                           -, // @sic R5s120021 sic@
+                                                                           '111'B, //geranPrior = 7
+                                                                           '0000'B,//threshPriorSearch = 0
+                                                                           '1111'B, //threshGSMLow = 15
+                                                                           '00'B,
+                                                                           '00'B));
+    // Set the SI2 with the information provided from E-UTRA
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, omit); // @sic R5s120129 sic@
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Registered, Idle Mode (state 2) on a GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+    
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    // Tell the EUTRA component to start step1 after cell configuration
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Wait for doing step 3 of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    //@siclog "Step 2" siclog@
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case step 2
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell(cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn, 16),
+                                                 f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo.Eutra[0].DL_Bandwidth)),
+                              '001'B,
+                              '00010'B,
+                              '00010'B,
+                              '10001'B),  // @sic R5s120221 sic@ default value
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B, // @sic R5s120221 subject to prose CR approval sic@
+                                                        '0000'B,
+                                                        '1'B, // @sic GP-120372 sic@
+                                                        '0'B,
+                                                        omit,
+                                                        '0'B, // @sic R5s120425 sic@
+                                                        omit, // @sic R5s120425 sic@
+                                                        '0'B,
+                                                        omit,
+                                                        cs_EUTRAN_MeasParams_SI2 (v_RptdEUTRANNeighCells),
+                                                        -,
+                                                        '010'B,
+                                                        '1111'B,//threshPriorSearch = 0
+                                                        '1111'B, //threshGSMLow = 15
+                                                        '00'B,
+                                                        '00'B));
+    // Set the SI2 with the information provided
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    
+    //@siclog "Step 3" siclog@
+    // SS changes cell 1 and cell 24 levels and specific message contents for Cell 24
+    f_GERAN_SysInfo_SetSI13_RestOctets ( geran_Cell24, cds_SI13_RO_BCCH_CHANGE_MARK(f_GERAN_RAC_Get (geran_Cell24), f_GERAN_NMO_Get (geran_Cell24)) );
+    
+    f_GERAN_SendGSMSysInfo (geran_Cell24);
+    
+    //@siclog "Step 4" siclog@
+    // Wait for 25 s (25 s + T_reselect).
+    f_Delay (25.0);
+    
+    //* @desc Trigger 3: Tell the EUTRA component that Cell 24 is re-configured
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //* @desc Trigger 4: Wait for completion of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    f_GERAN_TestBody_Set ( false );
+    
+    //* @desc Release Cell 24
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_3_16_GERAN ( ) runs on GERAN_PTC
+  { /* Inter-RAT Cell Reselection /from GSM_Idle to E-UTRA based on H_PRIO criteria */
+    var template (value) RptdEUTRANNeighCells v_RptdEUTRANNeighCells;
+    var template(value) SYSTEMINFORMATIONTYPE2quater v_SI2quater;
+    var template(value) SYSTEMINFORMATIONTYPE3 v_SI3;
+    var template(value) SYSTEMINFORMATIONTYPE4 v_SI4;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfo;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //* @desc Wait for EUTRA cell information to configure in GERAN cell
+    v_EUTRA_SysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell(cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn, 16),
+                                                 f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo.Eutra[0].DL_Bandwidth)),
+                              '001'B,
+                              '00010'B,
+                              '11110'B,
+                              '01110'B), // @sic R5s120287 sic@
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B,
+                                                                           '0000'B,
+                                                                           '0'B,
+                                                                           '0'B,
+                                                                           omit,
+                                                                           '0'B, // @sic R5s120425 sic@
+                                                                           omit, // @sic R5s120425 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           cs_EUTRAN_MeasParams_SI2 (v_RptdEUTRANNeighCells),
+                                                                           '1'B, // @sic R5s120021 sic@
+                                                                           '111'B, //geranPrior = 7
+                                                                           '1111'B,//threshPriorSearch = 15
+                                                                           '1111'B, //threshGSMLow = 15
+                                                                           '00'B,
+                                                                           '00'B));
+    // Set the SI2 with the information provided from E-UTRA
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, omit); // @sic R5s120129 sic@
+    
+    // Change to specified RxLevAccessMin @sic R5s120527 sic@
+    v_SI3 := f_GERAN_SysInfo_GetSI3 (geran_Cell24);
+    v_SI4 := f_GERAN_SysInfo_GetSI4 (geran_Cell24);
+    v_SI3.cellSelParam.rXLEV_ACCESS_MIN := '001010'B;
+    v_SI4.cellSelParam.rXLEV_ACCESS_MIN := '001010'B;
+    f_GERAN_SysInfo_SetSI3 (geran_Cell24, v_SI3);
+    f_GERAN_SysInfo_SetSI4 (geran_Cell24, v_SI4);
+
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Registered, Idle Mode (state 2) on a GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+    
+    f_GERAN_TestBody_Set( true );
+    
+    //According to TS 36.523-1, Table 6.2.3.16.3.2-1, GERAN Cell 24 needs to be set up at -80 dBm
+    f_GERAN_SetCellPowerLevel ( geran_Cell24, -80 );
+
+    //@siclog "Step 1" siclog@
+    // Tell the EUTRA component to start step1 after cell configuration
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Wait for doing step 3 of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+
+    //@siclog "Step 2" siclog@
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case step 2
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B,
+                                                                           '0000'B,
+                                                                           '1'B,
+                                                                           '0'B,
+                                                                           omit,
+                                                                           '0'B, // @sic R5s120425 sic@
+                                                                           omit, // @sic R5s120425 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           cs_EUTRAN_MeasParams_SI2 (v_RptdEUTRANNeighCells), // @sic GP-120009, R5s120287 sic@
+                                                                           '1'B, // @sic R5s120021 sic@
+                                                                           '111'B, //geranPrior = 7
+                                                                           '1111'B,//threshPriorSearch = 15
+                                                                           '1111'B, //threshGSMLow = 15
+                                                                           '10'B,
+                                                                           '00'B));
+    // Set the SI2 with the information provided
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    
+    //@siclog "Step 3" siclog@
+    // SS changes cell 1 and cell 24 levels and specific message contents for Cell 24
+    f_GERAN_SysInfo_SetSI13_RestOctets ( geran_Cell24, cds_SI13_RO_BCCH_CHANGE_MARK(f_GERAN_RAC_Get (geran_Cell24), f_GERAN_NMO_Get (geran_Cell24)) );
+    
+    f_GERAN_SendGSMSysInfo (geran_Cell24);
+    
+    //@siclog "Step 4 Void" siclog@
+    
+    //* @desc Trigger 3: Tell the EUTRA component that Cell 24 is re-configured
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //* @desc Trigger 4: Wait for completion of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+
+    f_GERAN_TestBody_Set ( false );
+    
+    //* @desc Release Cell 24
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_3_17_GERAN ( ) runs on GERAN_PTC
+  {
+    var template (value) RptdEUTRANNeighCells v_RptdEUTRANNeighCells;
+    var template(value) SYSTEMINFORMATIONTYPE2quater v_SI2quater;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfoCell1, v_EUTRA_SysInfoCell3;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //* @desc Wait for EUTRA cell information to configure in GERAN cell
+    v_EUTRA_SysInfoCell1 := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    v_EUTRA_SysInfoCell3 := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell(cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfoCell1.Eutra[0].Arfcn, 16),
+                                                 f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfoCell1.Eutra[0].DL_Bandwidth)),
+                              omit,   // @sic R5s120638 sic@
+                              '00000'B,
+                              omit,
+                              '01111'B),
+      cs_RptdEUTRAN_NeighCell (cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfoCell3.Eutra[0].Arfcn, 16),
+                                                  f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfoCell3.Eutra[0].DL_Bandwidth)),
+                               '010'B,
+                               '00000'B,
+                               '01010'B,
+                               '01111'B),
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B,
+                                                                           '0000'B,
+                                                                           '0'B,
+                                                                           '0'B,
+                                                                           omit,
+                                                                           '0'B, // @sic R5s120425 sic@
+                                                                           omit, // @sic R5s120425 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           cs_EUTRAN_MeasParams_SI2 (v_RptdEUTRANNeighCells),
+                                                                           '1'B, // @sic R5s120021 sic@
+                                                                           '111'B, //geranPrior = 7
+                                                                           '1111'B, //ThreshPriorSearch // @sic R5s120423 sic@
+                                                                           '1111'B, //threshGSMLow = 15
+                                                                           '00'B,
+                                                                           '00'B));
+    // Set the SI2 with the information provided from E-UTRA
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, omit); // @sic R5s120129 sic@
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Registered, Idle Mode (state 2) on a GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    f_GERAN_SetCellPowerLevel ( geran_Cell24, -80 );
+    // Tell the EUTRA component to start step1 after cell configuration
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Wait for completion of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+
+    f_GERAN_TestBody_Set ( false );
+    
+    // Release Cell 24
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_3_18_GERAN ( ) runs on GERAN_PTC
+  {
+    var template (value) RptdEUTRANNeighCells v_RptdEUTRANNeighCells;
+    var template(value) SYSTEMINFORMATIONTYPE2quater v_SI2quater;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfoCell1, v_EUTRA_SysInfoCell3;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //* @desc Wait for EUTRA cell information to configure in GERAN cell
+    v_EUTRA_SysInfoCell1 := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    v_EUTRA_SysInfoCell3 := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell(cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfoCell1.Eutra[0].Arfcn, 16),
+                                                 f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfoCell1.Eutra[0].DL_Bandwidth)),
+                              '111'B,
+                              '00010'B,
+                              omit,
+                              '01111'B),
+      cs_RptdEUTRAN_NeighCell (cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfoCell3.Eutra[0].Arfcn, 16),
+                                                  f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfoCell3.Eutra[0].DL_Bandwidth)),
+                               '101'B,
+                               '00010'B,
+                               omit,
+                               '01111'B),
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B,
+                                                                           '0000'B,
+                                                                           '0'B,
+                                                                           '0'B,
+                                                                           omit,
+                                                                           '0'B, // @sic R5s120425 sic@
+                                                                           omit, // @sic R5s120425 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           cs_EUTRAN_MeasParams_SI2 (v_RptdEUTRANNeighCells),
+                                                                           '1'B, // @sic R5s120021 sic@
+                                                                           '010'B, //geranPrior
+                                                                           '0000'B,
+                                                                           '0000'B, //threshGSMLow
+                                                                           '00'B,
+                                                                           '00'B));
+    // Easier to change this afterwards, rather than having an even more complicated template
+    v_SI2quater.sI2quaterRO.eutranMeasParams.notAllowedCells := cs_RptdEUTRANNotAllowedCells_1 (cs_RptdEUTRANNotAllowedCell_1 (cs_NotAllowedCell_1 (cs_PCIDGroup ('000000000'B),  // @sic R5s120303 sic@
+                                                                                                                                                    cs_EUTRANFreqIndex_1 ('000'B))));
+    // Set the SI2 with the information provided from E-UTRA
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, omit); // @sic R5s120129 sic@
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Registered, Idle Mode (state 2) on a GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+    
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    f_GERAN_SetCellPowerLevel ( geran_Cell24, -80 );
+    // Tell the EUTRA component to start step1 after cell configuration
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Wait for completion of test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    f_GERAN_TestBody_Set ( false );
+    
+    // Release Cell 24
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_3_19_GERAN ( ) runs on GERAN_PTC
+  {
+    var G_LogicChType v_TCH_Type;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfo;
+    var template (value) CellSelInd v_CellSelInd;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //* @desc Wait for EUTRA cell information to configure in GERAN cell
+    v_EUTRA_SysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Active U10 state on GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+    v_TCH_Type := f_GERAN_EnterU10_MT (geran_Cell24);
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1 - 3" siclog@
+    // Disconnect the call properly
+    f_GERAN_CC_Disconnect (geran_Cell24, v_TCH_Type);
+    
+    //@siclog "Step 4" siclog@
+    v_CellSelInd := cs_G_CellSelIndicator_EUTRAN('05'O,
+                                                 cs_EUTRANDescr_List_1Entry(cs_EUTRANDescr_CRStruct(cs_EUTRAN_Descr(int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn,16),
+                                                                                                                    '1'B,
+                                                                                                                    f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo.Eutra[0].DL_Bandwidth),
+                                                                                                                    '0'B,
+                                                                                                                    omit,
+                                                                                                                    '1'B,
+                                                                                                                    int2bit (v_EUTRA_SysInfo.Eutra[0].HO.PhysCellId, 9)))));
+    G_L2.send (cas_G_L2_DATA_REQ ( geran_Cell24,
+                                   0,
+                                   tsc_TchCh,
+                                   v_TCH_Type,
+                                   0,
+                                   cs_G_RFN_Omit,
+                                   cs_G_ChRelease(-, v_CellSelInd)));
+        
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Wait for EUTRA to finish the test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    f_GERAN_TestBody_Set ( false );
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_3_21_GERAN ( ) runs on GERAN_PTC
+  { /* Inter-RAT cell reselection / From GPRS Packet_Transfer (NC0 Mode) to E-UTRA */
+    var integer i;
+    timer t_Wait := 300.0; // value which is less than the guard timer, but UE should reply before this times out
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Active PDP context 2 on GERAN cell
+    f_GERAN_Preamble (geran_Cell24);
+    f_GERAN_ActivatePDPContext (geran_Cell24);
+    // in case the UE sends an XID once the bearer is established
+    f_GERAN_LLC_XID (geran_Cell24, false);
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1 - 2" siclog@
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req(f_GERAN_TLLI_Get(geran_Cell24),
+                                                                   tsc_LLCSapi_11,
+                                                                   tsc_LLC_PM,
+                                                                   px_GSM_CipheringOnOff,
+                                                                   cs_PacketData));
+    for (i := 0; i < 5; i := i + 1)
+      { // Don't use f_GPRS_SendDownlinkMsg again as TBF should be left open
+        G_LLC.send (cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24), tsc_LLCSapi_11, tsc_LLC_PM, px_GSM_CipheringOnOff, cs_PacketData));
+      }
+    
+    //@siclog "Step 3 Void" siclog@
+    //@siclog "Step 4" siclog@
+    // Tell the EUTRA component to adjust power level
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 5" siclog@
+    t_Wait.start; // start timer so not here all day
+    alt {
+      [] EUTRA.receive(cmr_IRAT_Trigger) {} // Trigger received, so can finish loop now
+      [] t_Wait.timeout
+        {
+          f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE not camped on EUTRA");
+        }
+      [else]
+        { // Keep sending data until one of the 2 above shall happen
+          G_LLC.send (cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24), tsc_LLCSapi_11, tsc_LLC_PM, px_GSM_CipheringOnOff, cs_PacketData));
+          repeat;
+        }
+    }
+    
+    //Now finish the test
+    f_GERAN_TestBody_Set ( false );
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+  function f_TC_6_2_3_24_GERAN() runs on GERAN_PTC
+  { /* Inter-RAT cell Reselection from GPRS Packet_Transfer to E-UTRA in CCN mode(PACKET CELL CHANGE ORDER) */
+    
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfo;
+    var template (value) RptdEUTRANNeighCells v_RptdEUTRANNeighCells;
+    var template(value) SYSTEMINFORMATIONTYPE2quater v_SI2quater;
+    var boolean v_EndOfTBF := false;
+    
+    //* @desc Initialise all cells
+    f_GERAN_Init (EUTRA_GERAN);
+    
+    //* @desc Wait for EUTRA cell information to configure in GERAN cell
+    v_EUTRA_SysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    //Configure Repeated E-UTRA Neighbour Cells specific message contents,
+    //change SI2q according to test case
+    v_RptdEUTRANNeighCells := {
+      cs_RptdEUTRAN_NeighCell(cs_RptdEARFCNList1(int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn, 16), f_GERAN_ConvertIntegerToEUTRA_MeasurementBandwidth (v_EUTRA_SysInfo.Eutra[0].DL_Bandwidth)),
+                              '100'B,
+                              '00010'B,
+                              '00010'B,
+                              '10001'B),
+      cs_RptdEUTRAN_NeighCellEmpty
+    };
+    v_SI2quater := cs_SysInfoType2quater(cds_SI2quaterRO_ServingCellParams('0000'B,
+                                                                           '0000'B,
+                                                                           '0'B,
+                                                                           '0'B,
+                                                                           omit,
+                                                                           '0'B, // @sic R5s120425 sic@
+                                                                           omit, // @sic R5s120425 sic@
+                                                                           '0'B,
+                                                                           omit,
+                                                                           cs_EUTRAN_MeasParams_SI2(v_RptdEUTRANNeighCells,
+                                                                                                    '1'B), // CCN Active
+                                                                           '1'B, // @sic R5s120021 sic@
+                                                                           '001'B, //geranPrior
+                                                                           '1111'B, //ThreshPriorSearch
+                                                                           '0000'B, //threshGSMLow
+                                                                           '00'B, //HPrior
+                                                                           '00'B)); //TResel
+    // Set the SI2 with the information provided from E-UTRA
+    f_GERAN_SysInfo_SetSI2q_1 (geran_Cell24, v_SI2quater);
+    f_GERAN_SysInfo_SetSI2q_2 (geran_Cell24, omit); // @sic R5s120129 sic@
+    
+    // Create GERAN cell and broadcast modified System Infomation
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    // Active PDP context 2 on GERAN cell
+    f_GERAN_Preamble (geran_Cell24); // @sic R5s120521 sic@
+    
+    f_GERAN_ActivatePDPContext (geran_Cell24);
+    // in case the UE sends an XID once the bearer is established
+    f_GERAN_LLC_XID (geran_Cell24, false);
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    f_GERAN_Trigger_UplinkData (geran_Cell24, 10000);
+    
+    //@siclog "Step 2" siclog@
+    // Now tell the EUTRA component to adjust power level
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 3" siclog@
+    alt {
+      [] a_GERAN_Receive_UplinkData (geran_Cell24, v_EndOfTBF) {}
+      [] G_RLC.receive (car_G_RLC_ControlMsg_IND(geran_Cell24, tsc_PhyCh1, cr_PktCellChangeNotificationAny)){}
+    }
+    
+    //@siclog "Step 4" siclog@
+    G_RLC.send (cas_G_RLC_ControlMsg_REQ_PACCH(geran_Cell24,
+                                               tsc_PhyCh1,
+                                               1,
+                                               tsc_UplinkTFI,
+                                               cs_PktCellChangeOrder (cs_GlobalTFIul,
+                                                                      cs_EUTRAN_TargetCell (int2bit(v_EUTRA_SysInfo.Eutra[0].Arfcn, 16),
+                                                                                            '0'B,
+                                                                                            omit,
+                                                                                            int2bit (v_EUTRA_SysInfo.Eutra[0].HO.PhysCellId, 9)))));
+    
+    //@siclog "Step 5" siclog@
+    // Tell the EUTRA component to wait for an RRC Conn Req
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Keep going until UE is on cell 1
+    alt {
+      [not v_EndOfTBF] a_GERAN_Receive_UplinkData (geran_Cell24, v_EndOfTBF) {}
+      [] EUTRA.receive(cmr_IRAT_Trigger) {} // Trigger received, so can finish loop now
+    }
+    
+    // Test now finished
+    f_GERAN_TestBody_Set ( false );
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  }
+
+}

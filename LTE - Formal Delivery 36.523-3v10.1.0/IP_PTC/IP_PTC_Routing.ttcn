@@ -1,0 +1,160 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module IP_PTC_Routing {
+
+  import from CommonDefs all;
+  import from IP_ASP_TypeDefs all;
+  import from IP_PTC_Component all;
+
+  group RoutingTableManagement {
+
+  function fl_IpInfo2MatchingInfo(template (omit) IP_Socket_Type p_SocketInfo) return template IP_Socket_Type
+  {
+    var template IP_Socket_Type v_SocketInfo := p_SocketInfo;
+
+    if (not isvalue(v_SocketInfo)) {   // @sic R5s110603 change 1 sic@
+      v_SocketInfo := *;        // omit it means that the addr is "don't care"
+    } else {
+      if (not ispresent(v_SocketInfo.IpAddr)) {
+        v_SocketInfo.IpAddr := *;
+      }
+      if (not ispresent(v_SocketInfo.Port)) {
+        v_SocketInfo.Port := *;
+      }
+    }
+    return v_SocketInfo;
+  }
+
+  function fl_IpInfoMatch(template (value) IP_Connection_Type p_IpInfoValue,
+                          template (value) IP_Connection_Type p_IpInfoToMatch) return boolean
+  {
+    var template IP_Connection_Type v_IpInfoToMatch := p_IpInfoToMatch;
+
+    v_IpInfoToMatch.Local  := fl_IpInfo2MatchingInfo(p_IpInfoToMatch.Local);
+    v_IpInfoToMatch.Remote := fl_IpInfo2MatchingInfo(p_IpInfoToMatch.Remote);
+
+    return match(valueof(p_IpInfoValue), v_IpInfoToMatch);
+  }
+
+  function fl_RoutingTable_CheckIpInfoForConflict(IP_RoutingTable_Type p_RoutingTable,
+                                                  template (value) IP_Connection_Type p_IpInfo) return boolean
+  {
+    var IP_Connection_Type v_TableEntryIpInfo;
+    var integer i;
+    for (i := 0; i < lengthof(p_RoutingTable); i := i+1) {
+      v_TableEntryIpInfo := p_RoutingTable[i].IpInfo;
+      if (fl_IpInfoMatch(v_TableEntryIpInfo, p_IpInfo) or fl_IpInfoMatch(p_IpInfo, v_TableEntryIpInfo)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function f_RoutingTable_AddEntry(IP_RoutingTable_Type p_RoutingTable,
+                                   template (value) IP_Connection_Type p_IpInfo,
+                                   IP_DrbInfo_Type p_DrbInfo) return IP_RoutingTable_Type
+  {
+    var IP_RoutingTable_Type v_RoutingTable := p_RoutingTable;
+    var integer v_TableSize;
+
+    if (not fl_RoutingTable_CheckIpInfoForConflict(p_RoutingTable, p_IpInfo)) {
+      FatalError(__FILE__, __LINE__, "conflict for routing table");
+    } else {
+      v_TableSize := lengthof(p_RoutingTable);
+      v_RoutingTable[v_TableSize] := {
+        IpInfo := valueof(p_IpInfo),
+        DRB := p_DrbInfo
+      };
+    }
+    return v_RoutingTable;
+  }
+
+  function fl_RoutingTable_FindEntry(IP_RoutingTable_Type p_RoutingTable,
+                                     template (value) IP_Connection_Type p_IpInfo) return integer
+  {
+    var IP_RoutingInfo_Type v_CurrentEntry;
+    var integer v_TableSize := lengthof(p_RoutingTable);
+    var integer i;
+
+    for (i := 0; i < v_TableSize; i := i+1) {
+      v_CurrentEntry := p_RoutingTable[i];
+      if (match(v_CurrentEntry.IpInfo, p_IpInfo)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function f_RoutingTable_RemoveEntry(IP_RoutingTable_Type p_RoutingTable,
+                                      template (value) IP_Connection_Type p_IpInfo) return IP_RoutingTable_Type
+  {
+    var integer v_TableSize := lengthof(p_RoutingTable);
+    var integer v_Index := fl_RoutingTable_FindEntry(p_RoutingTable, p_IpInfo);
+    var IP_RoutingTable_Type v_RoutingTable := {};
+    var integer i;
+    var integer k;
+
+    if (v_Index < 0) {
+      return p_RoutingTable;
+    }
+    k := 0;
+    for (i := 0; i < v_TableSize; i := i+1) {
+      if (i != v_Index) {
+        v_RoutingTable[k] := p_RoutingTable[i];
+        k := k + 1;
+      }
+    }
+    return v_RoutingTable;
+  }
+
+  function f_RoutingTable_ChangeEutraCell(inout IP_RoutingTable_Type p_RoutingTable,
+                                          EUTRA_CellId_Type p_EutraCellId) return boolean
+  { /* mainly to change the cell */
+    /* @sic R5w110204: change of IP_EUTRA_DrbInfo_Type sic@ */
+    var integer v_TableSize := lengthof(p_RoutingTable);
+    var boolean v_TableIsChanged := false;
+    var integer i;
+
+    for (i := 0; i < v_TableSize; i := i+1) {
+      if (ischosen(p_RoutingTable[i].DRB.Eutra)) {
+        if (p_RoutingTable[i].DRB.Eutra.CellId != p_EutraCellId) {
+          p_RoutingTable[i].DRB.Eutra.CellId := p_EutraCellId;
+          v_TableIsChanged := true;
+        }
+      }
+    }
+    return v_TableIsChanged;
+  }
+
+  } // end of group RoutingTableManagement
+
+  group DRBMUX_CONFIG {
+
+  template (value) DRBMUX_CONFIG_REQ cs_DRBMUX_CONFIG_REQ(IP_RoutingTable_Type p_RoutingTable) :=
+  { /* @status    APPROVED */
+    RoutingInfo := p_RoutingTable
+  };
+
+  template DRBMUX_COMMON_IND_CNF cr_DRBMUX_COMMON_IND_CNF :=
+  { /* @status    APPROVED */
+    Confirm := true
+  };
+
+  function f_IP_PTC_SendRoutingTable(IP_RoutingTable_Type p_RoutingTable) runs on IP_PTC
+  {
+    IP_CTRL.send(cs_DRBMUX_CONFIG_REQ(p_RoutingTable));
+    IP_CTRL.receive(cr_DRBMUX_COMMON_IND_CNF);
+  }
+
+  } // end of group DRBMUX_CONFIG
+
+}

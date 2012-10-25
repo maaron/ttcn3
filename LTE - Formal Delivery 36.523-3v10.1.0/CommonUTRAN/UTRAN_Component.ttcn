@@ -1,0 +1,392 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:35:48 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7308 $
+/******************************************************************************/
+
+module UTRAN_Component {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from NAS_AuthenticationCommon all;
+  import from NAS_CommonTypeDefs all;
+  import from TestcaseProperties all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_ASP_VirtualNoiseDefs all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_TypeDefs all;
+  import from UpperTesterDefs all;
+
+  type record RlcCtrl_Type {                                          /* @status    APPROVED */
+    TimerPoll          timerPoll,         // value for polling timer, this initial value is for ts_SS_CreateCellFACH. (from 34.123-1). used in RB2, RB3, RB4
+    TimerPollProhibit  timerPollProhibit, // minimum time between polls,  this initial value is for ts_SS_CreateCellFACH. (from 34.123-1). used in RB2, RB3, RB4
+    Poll_SDU           pollSDU,           // number of SDU's between pollings, this initial value is for ts_SS_CreateCellFACH. (from 34.123-1). used in RB2, RB3, RB4.
+    PollWindow         pollWindow         // percentage of transmission window,threshold for polling, this initial value is for ts_SS_CreateCellFACH. (from 34.123-1). used in RB2, RB3, RB4.
+  };
+
+  type record DRX_CycleLengthStructure {                              /* @status    APPROVED */
+    // Structure that contains CN DRX cycle length (CS and PS) and the UTRAN DRX Cycle length.
+    // This type is to be used in the CellInfoCfg in order to keep all DRX values.
+    CN_DRX_CycleLengthCoefficient cN_CS_DRX_CycleLength  optional,
+    CN_DRX_CycleLengthCoefficient cN_PS_DRX_CycleLength  optional,
+    UTRAN_DRX_CycleLengthCoefficient uTRAN_DRX_CycleLength  optional
+  };
+
+  type record UTRAN_CellInfo_Type_TDD {                               /* @status    APPROVED */
+    // This structure contains relevant information describing a cell configuration as needed for basic test Steps like ts_CreateCell and ts_IdleUpdated.
+    // NOTE: this information is not related to any PDUs, IEs or ASPs
+    
+    FrequencyInfo               frequencyInfo_S1,         // Frequency information for N-Frequency cell
+    FrequencyInfo               frequencyInfo_S2,         // Frequency information for N-Frequency cell
+    UpPCHposition_LCR           upPCHposition,
+    UpPCHposition_LCR           upPCHposition_S1,
+    UpPCHposition_LCR           upPCHposition_S2,
+    
+    integer                     attenuationLevel_S1,      // Value of RF attenuator
+    integer                     attenuationLevel_S2,      // Value of RF attenuator
+    CellParametersID            cellParametersID,         // Cell Parameters ID
+    DL_TxPower_PCCPCH           powerpCCPCH,
+    
+    DL_TxPower                  powerFPACH,
+    
+    TimeSlotConfigurationList_LCR timeSlotConfigurationList_LCR,
+    TransmissionDiversityApplied  transmissionDiversityApplied,
+    DwPCHInfo                     dwPCHInfo
+  };
+
+  type record UTRAN_CellInfo_Type_FDD {                               /* @status    APPROVED */
+    // This structure contains relevant information describing a cell configuration as needed for basic test Steps like ts_CreateCell and ts_IdleUpdated.
+    // NOTE: this information is not related to any PDUs, IEs or ASPs
+    
+    PrimaryScramblingCode priScrmCode,     // Primary Scrambling Code
+    DL_TxPower_PCPICH powerpCPICH,         // Absolute Tx Power of (primary) CPICH
+    DL_TxPower        powerpCCPCH,         // Tx power level of primary CCPCH relative to CPICH
+    DL_TxPower        powerpSCH,           // Tx power level of primary SCH relative to CPICH
+    DL_TxPower        powersSCH,           // Tx power level of secondary SCH relative to CPICH
+    
+    integer           timingsCCPCH1,       // Timing offset for secondary CCPCH1
+    AICH_PowerOffset  powerAICH,           // Tx power level of AICH relative to CPICH
+    SCCPCHSlotFormat  slotFormatsCCPCH1,   // Slot format for secondary CCPCH1
+    UL_ScramblingCode uL_ScramblingCode,   // To hold the UL scrambling to be used in the cell
+    FrequencyBandFDD  operationBand,
+    
+    integer           band                 // Operation Band used in the cell
+  };
+
+  type record UTRAN_CellSysInfo_Type {   /* @status    APPROVED */
+    MasterInformationBlock MIB,
+    SysInfoTypeSB1  SB1,
+    SysInfoType1    SIB1,
+    SysInfoType2    SIB2,
+    SysInfoType3    SIB3,
+    SysInfoType4    SIB4,
+    SysInfoType5    SIB5,
+    SIB_Type        SIB5_Type,           // holding the SIB5 type, for band 4 and 9 it shall be assigned to systemInformationBlockType5bis
+    SysInfoType6    SIB6,
+    SysInfoType7    SIB7,
+    SysInfoType11   SIB11   optional,    // This is not optional, but it has to be set to omit until data from all the cells is present
+    SysInfoType12   SIB12,
+    SysInfoType16   SIB16   optional,    // @sic R5s120615 sic@
+    SysInfoType18   SIB18,
+    SysInfoType19   SIB19,
+    boolean         MIB_ValueTagChanged, // set to TRUE after MIBValueTag changed, set to FALSE after MIB delivered to SS.
+    boolean         SB1_ValueTagChanged  // set to TRUE after SB1ValueTag changed, set to FALSE after SB1 delivered to SS.
+  };
+
+  type record UTRAN_CellInfo_Type {                  /* @status    APPROVED */
+    // This structure contains relevant information describing a cell configuration as needed for basic test Steps like ts_CreateCell and ts_IdleUpdated.
+    // NOTE: this information is not related to any PDUs, IEs or ASPs
+    UTRAN_CellId_Type         cellId,                // Cell Id
+    UTRAN_FDD_TDD_Type        fdd_tdd,               // whether cell is FDD or TDD
+    FrequencyInfo             frequencyInfo,         // Frequency information for current cell
+    integer                   attenuationLevel,      // Value of RF attenuator
+    DL_TxPower                powersCCPCH,           // Tx power level of secondary CCPCH relative to CPICH
+    DL_TxPower                powersCCPCH1,          // Tx power level of secondary CCPCH1 relative to CPICH
+    PICH_PowerOffset          powerPICH,             // Tx power level of PICH relative to CPICH
+    CellTxPowerLevel          cellTxPowerLevel,      // Total cell power level (>= sum of all configured physical channels)
+    integer                   sfnOffset,             // SFN offset (in frames)
+    PuncturingLimit           puncLimit,             // Puncturing limit for PRACH
+    SF_PRACH                  sf_PRACH,              // Spreading factor for PRACH
+    PLMN_Identity             plmnId,                // even though this is the same definition as EUTRA, will probably be treated differently
+    octetstring               lac,                   // LAC
+    octetstring               rac,                   // RAC
+    integer                   attFlag,               // Attach flag (as  broadcasted in BCCH)
+    octetstring               nmo,                   // Network mode of operation
+    bitstring                 ura_Identity,          // URA Identity (3GPP 25.331 clause 10.3.2.6)
+    octetstring               t3212,                 // T3212 value
+    C_RNTI                    cRNTI,                 // cell radio network temporary identity assigned to the UE under test, this initial value is for ts_SS_CreateCellFACH. ( from 34.123-1)
+    U_RNTI                    uRNTI,                 // srnc_Identity and   s_RNTI
+    RB_ConfigType             cellConfig,            // Current configuration of the cell
+    RlcCtrl_Type              rlcParams,             // RLC parameters
+    DRX_CycleLengthStructure  dRX_CycleLength,       // To hold the 3 dRX_CycleLength
+    integer                   nodeB_Id,
+    UTRAN_CellInfo_Type_TDD   cellInfo_Specific_TDD    optional,
+    UTRAN_CellInfo_Type_FDD   cellInfo_Specific_FDD    optional,
+    UTRAN_CellSysInfo_Type    sysInfo                // SysInfo Structure
+  };
+
+  const integer tsc_UTRAN_NumberOfCells := 4;                         /* @status    APPROVED */
+
+  type record length (tsc_UTRAN_NumberOfCells) of UTRAN_CellInfo_Type UTRAN_CellInfoList_Type; /* @status    APPROVED */
+
+  type record AuthCSKeys_Type {        /* @status    APPROVED */
+    bitstring CKey,                    // Ciphering Key; 128 bits (TS 33.102 cl. 6.3.7, TS 34.108 cl. 8.1.2)
+    bitstring IKey,                    // Integrity Key; 128 bits (TS 33.102 cl. 6.3.7, TS 34.108 cl. 8.1.2)
+    KeySeq CKeySeq                     // Ciphering key sequence number
+  };
+
+  type record SecurityCtrl_Type {      /* @status    APPROVED */
+    AuthCSKeys_Type AuthCS,
+    Common_AuthenticationParams_Type AuthPS,
+    boolean CSinOtherRAT,                    // Set to true if either LAU or Combined RAU done; @sic R5-110746 sic@
+    B20_Type HFN                             // Hyper Frame Number for CS or PS  domain - to be used in security steps
+  };
+
+  type record UTRAN_SecurityInfo_Type {                               /* @status    APPROVED */
+    // This structure contains relevant information independant from the cell
+    boolean         cs_cipheringStarted,   // Set to TRUE when ciphering is started, to be initiated in Security Steps and used in RAB establishment Steps
+    boolean         ps_cipheringStarted,   // Set to TRUE when ciphering is started, to be initiated in Security Steps and used in RAB establishment Steps
+    CN_DomainIdentity recentSecureDomain,  // the domain on which security was recently started, and hence the SRB are ciphered and Integrit protected with this domain.
+    CipheringModeCommand_r7 dL_CipherMode,             // To hold the DL cipher mode to be used in RAB Steps.
+    RB_ActivationTimeInfoList uL_CipherMode optional,  // To hold the UL cipher mode to be used in RAB Steps.
+    bitstring       cipheringAlgorithmCapability,      // BITSTRING thats hold the ciphering algorithm capability supported by UE
+    boolean         integrityStarted,                  // Set to TRUE when integrity is started
+    IntegrityProtectionModeInfo_r7 dL_Integrity,       // To hold the DL integrity protection active during a test case
+    IntegrityProtActivationInfo uL_Integrity optional, // To hold the UL integrity protection active during a test case
+    B16_Type        integrProtAlgCap,                  // To hold the integrity protection algorithm capability
+    IntegrityCheckInfo dl_IntegrityCheckInfo optional, // To hold the integrity information to be sent
+    START_Value     start_CS,                          // To hold the START value for CS Domain
+    START_Value     start_PS,                          // To hold the START value for PS Domain
+    SecurityCtrl_Type authKeys                         // Containing the latest authentication keys
+  };
+
+  type record UTRAN_MsgReceivedInDefault_Type {                       /* @status    APPROVED */
+    RRC_DATA_IND cmServiceRequest         optional,
+    RRC_DATA_IND locationUpdatingRequest  optional,
+    RRC_DATA_IND pagingResponse           optional,
+    RRC_DATA_IND routingAreaUpdateRequest optional
+  };
+
+  type record UTRAN_MobileInfo_Type {                       /* @status    APPROVED */
+    octetstring   ue_EUTRA_Capability         optional     // UE-EUTRA-Capability
+  };
+
+  type enumerated UTRAN_Default_Enum_Type {StandardDefault};            /* refers to common default alt_UTRAN_Standard_Default;  @status    APPROVED */
+
+  type record UTRAN_DefaultCtrl_Type {          /* @status    APPROVED */
+    boolean U_TM_Blocked,
+    boolean U_Dc_Blocked
+  };
+
+  type record UTRAN_Ctrl_Type {                 /* @status    APPROVED */
+    default                     Default,        /* default behaviour being activated on UTRAN */
+    UTRAN_DefaultCtrl_Type      DefaultCtrl,    /* to control temporary blocking of ports */
+    boolean                     TestBody        /* true:  => fail may be assigend
+                                                   false: => inconc is assigned instead of fail */
+  };
+
+  type record UTRAN_Global_Type {               /* @status    APPROVED */
+    UTRAN_Ctrl_Type             Ctrl,
+    UTRAN_SecurityInfo_Type     Security,
+    UTRAN_CellInfoList_Type     CellArray,
+    UTRAN_MsgReceivedInDefault_Type   MsgInDefault,
+    UTRAN_MobileInfo_Type       MobileInfo      // @sic R5-123734 sic@
+  };
+
+  type component UTRAN_PTC {                    /* @status    APPROVED */
+    var  UTRAN_Global_Type vc_UTRAN_Global;
+
+    port UTRAN_AM_PORT          U_AM;
+    port UTRAN_TM_PORT          U_TM;
+    port UTRAN_UM_PORT          U_UM;
+    port UTRAN_CPHY_PORT        U_CPHY;
+    port UTRAN_CMAC_PORT        U_CMAC;
+    port UTRAN_CRLC_PORT        U_CRLC;
+    port UTRAN_Dc_PORT          U_Dc;
+
+    port UTRAN_VNG_PORT         U_VNG;
+
+    port UT_PTC_MTC_PORT        UT;
+    port IRAT_CO_ORD_PORT       EUTRA;
+    port IRAT_CO_ORD_PORT       GERAN;
+  };
+
+  type component UTRAN_SYSTEM {                                 /* @status    APPROVED */
+    port UTRAN_AM_PORT          S_U_AM;
+    port UTRAN_TM_PORT          S_U_TM;
+    port UTRAN_UM_PORT          S_U_UM;
+    port UTRAN_CPHY_PORT        S_U_CPHY;
+    port UTRAN_CMAC_PORT        S_U_CMAC;
+    port UTRAN_CRLC_PORT        S_U_CRLC;
+    port UTRAN_Dc_PORT          S_U_Dc;
+
+    port UTRAN_VNG_PORT         S_U_VNG;
+  };
+
+  function f_UTRAN_PTC_Map(UTRAN_PTC p_Utran)
+  {
+    map(p_Utran:U_AM,    system:S_U_AM);
+    map(p_Utran:U_TM,    system:S_U_TM);
+    map(p_Utran:U_UM,    system:S_U_UM);
+    map(p_Utran:U_CPHY,  system:S_U_CPHY);
+    map(p_Utran:U_CMAC,  system:S_U_CMAC);
+    map(p_Utran:U_CRLC,  system:S_U_CRLC);
+    map(p_Utran:U_Dc,    system:S_U_Dc);
+
+    if (f_GetTestcaseAttrib_Qbased_Rsrq(testcasename())) {    // virtual nois generator for RSRQ test cases
+      map(p_Utran:U_VNG,  system:S_U_VNG);
+    }
+  }
+
+  template U_RLC_AM_IND cr_U_RLC_AM_IND_Any := ?;               /* @status    APPROVED */
+
+  template RLC_TR_DATA_IND cr_RLC_TR_DATA_IND_Any := ?;         /* @status    APPROVED */
+
+  template RLC_UM_DATA_IND cr_RLC_UM_DATA_IND_Any := ?;         /* @status    APPROVED */
+
+  template U_CPHY_CONFIG_CNF cr_U_CPHY_CONFIG_CNF_Any := ?;     /* @status    APPROVED */
+
+  template U_CMAC_CONFIG_CNF cr_U_CMAC_CONFIG_CNF_Any := ?;     /* @status    APPROVED */
+
+  template U_CRLC_CONFIG_CNF cr_U_CRLC_CONFIG_CNF_Any := ?;     /* @status    APPROVED */
+
+  template RRC_DATA_IND cr_RRC_DATA_IND_Any := ?;               /* @status    APPROVED */
+
+  altstep a_UTRAN_StandardDefault() runs on UTRAN_PTC
+  { // @sic R5s110431 sic@
+    // @sic R5s120049: new parameter to take TM out of the ports to be handled; this is e.g. to deal with an incoming RRC Connection Request directly after RRC Connection Release sic@
+    // @sic R5s120086 (R5s120107): global variables instead of special default behaviours to support blocking of further ports (-> U_Dc) and avoid problems with the order of activating defaults sic@
+    [] U_CPHY.receive (car_CPHY_Sync_IND (tsc_UL_DPCH1)) { // @sic R5s110216 sic@
+      repeat;
+    }
+    [] U_CPHY.receive (car_CPHY_Out_of_Sync_IND (tsc_UL_DPCH1)) { // @sic R5s110216 sic@
+      repeat;
+    }
+    [] U_CRLC.receive (car_CRLC_Integrity_Failure_IND) { // @sic R5s110216 sic@
+      repeat;
+    }
+    [] U_AM.receive (cr_U_RLC_AM_IND_Any){
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at U_AM port");
+    }
+    [not vc_UTRAN_Global.Ctrl.DefaultCtrl.U_TM_Blocked] U_TM.receive (cr_RLC_TR_DATA_IND_Any) { // @sic R5s120098 R5s120086 sic@
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at U_TM port");
+    }
+    [] U_UM.receive (cr_RLC_UM_DATA_IND_Any){
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at U_UM port");
+    }
+    [] U_CPHY.receive (cr_U_CPHY_CONFIG_CNF_Any){
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at U_CPHY port");
+    }
+    [] U_CMAC.receive (cr_U_CMAC_CONFIG_CNF_Any) {
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at U_CMAC port");
+    }
+    [] U_CRLC.receive (cr_U_CRLC_CONFIG_CNF_Any) {
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at U_CRLC port");
+    }
+    [not vc_UTRAN_Global.Ctrl.DefaultCtrl.U_Dc_Blocked] U_Dc.receive (cr_RRC_DATA_IND_Any) {
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at U_Dc port");
+    }
+    [] UT.receive {
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected receive event at UT port");
+    }
+    [] any timer.timeout {
+      all timer.stop;
+      f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected timeout");
+    }
+  }
+
+  function f_UTRAN_TestBody_Set(boolean p_TestBodyFlag) runs on UTRAN_PTC
+  {
+    vc_UTRAN_Global.Ctrl.TestBody := p_TestBodyFlag;
+  }
+
+  function fl_UTRAN_TestBody_Check() runs on UTRAN_PTC return boolean
+  {
+    return vc_UTRAN_Global.Ctrl.TestBody;
+  }
+
+  function f_UTRAN_SetVerdictFailOrInconc(charstring p_FileName,
+                                          LineNo_Type p_LineNo,
+                                          charstring p_Msg) runs on UTRAN_PTC
+  {
+    if (fl_UTRAN_TestBody_Check()) {
+      f_SetVerdict(fail, p_FileName, p_LineNo, p_Msg);
+    } else {
+      f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    }
+    self.kill;  // => testcase will terminate immediately
+  }
+
+  function f_UTRAN_PreliminaryPass(charstring p_FileName,
+                                   LineNo_Type p_LineNo,
+                                   charstring p_Msg) runs on UTRAN_PTC
+  {
+    if (fl_UTRAN_TestBody_Check()) {
+      f_SetVerdict(pass, p_FileName, p_LineNo, p_Msg);
+    }
+  }
+
+  function f_UTRAN_SetVerdictInconc(charstring p_FileName,
+                                    LineNo_Type p_LineNo,
+                                    charstring p_Msg)
+  {
+    f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    self.kill;    // => test case will be terminated immediately
+  }
+
+  function f_UTRAN_Default_BlockTM(boolean p_Block) runs on UTRAN_PTC
+  {
+    vc_UTRAN_Global.Ctrl.DefaultCtrl.U_TM_Blocked := p_Block;
+  }
+
+  function f_UTRAN_Default_BlockDc(boolean p_Block) runs on UTRAN_PTC
+  {
+    vc_UTRAN_Global.Ctrl.DefaultCtrl.U_Dc_Blocked := p_Block;
+  }
+
+  function f_UTRAN_ActivateDefault(UTRAN_Default_Enum_Type p_Default) runs on UTRAN_PTC
+  { // @sic R5s120049: new default behaviour "StandardDefault_BlockTM" (removed again due to R5s120086 (R5s120107)) sic@
+    // @sic R5s120086 (R5s120107): global variables instead of special default behaviours to support blocking of further ports (-> U_Dc) and avoid problems with the order of activating defaults sic@
+    vc_UTRAN_Global.Ctrl.DefaultCtrl.U_TM_Blocked := false;
+    vc_UTRAN_Global.Ctrl.DefaultCtrl.U_Dc_Blocked := false;
+
+    deactivate(vc_UTRAN_Global.Ctrl.Default);
+
+    select (p_Default) {
+      case (StandardDefault) {
+        vc_UTRAN_Global.Ctrl.Default := activate(a_UTRAN_StandardDefault());
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "unknown default behaviour");
+      }
+    }
+  }
+
+  function f_UTRAN_MsgInDefault_Init() return  UTRAN_MsgReceivedInDefault_Type
+  {
+    var UTRAN_MsgReceivedInDefault_Type v_MsgInDefault;
+    
+    v_MsgInDefault.cmServiceRequest           := omit;
+    v_MsgInDefault.locationUpdatingRequest    := omit;
+    v_MsgInDefault.pagingResponse             := omit;
+    v_MsgInDefault.routingAreaUpdateRequest   := omit;
+    
+    return v_MsgInDefault;
+  }
+
+}

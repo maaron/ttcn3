@@ -1,0 +1,370 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 19:04:01 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7272 $
+/******************************************************************************/
+
+module InterRat_Handover_UtoE_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_CapabilityFunctions all;
+  import from UTRAN_ASN1_ASP_RAB_Templates all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CapabilityFunctions all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_Parameters all;
+  import from UTRAN_RAB_Functions all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TTCN_ASP_Templates all;
+
+  template (value) DL_DCCH_Message cs_HandoverFromUTRANCommand_EUTRA (IntegrityCheckInfo        p_Integrityinfo,
+                                                                      RRC_TransactionIdentifier p_RRC_TI,
+                                                                      octetstring p_Eutra_Message) :=
+  { /* TS 36.508 Table 4.7B.1-2: HANDOVER FROM UTRAN COMMAND */
+    /* @status    APPROVED */
+    integrityCheckInfo := p_Integrityinfo,
+    message_ := {
+      handoverFromUTRANCommand_EUTRA := {
+        rrc_TransactionIdentifier := p_RRC_TI,
+        criticalExtensions := {
+          r8 := {
+            handoverFromUTRANCommand_EUTRA_r8 := {
+              activationTime :=  omit,
+              toHandoverRAB_Info := {
+                {
+                  rab_Identity  := {
+                    gsm_MAP_RAB_Identity := '00000101'B
+                  },
+                  //mbms_SessionIdentity := omit, //- Not specified in message
+                  //mbms_ServiceIdentity := omit,
+                  cn_DomainIdentity := ps_domain,
+                  nas_Synchronisation_Indicator := omit, //not present specified
+                  re_EstablishmentTimer := useT315
+                }
+              },
+              eutra_Message := p_Eutra_Message
+            },
+            handoverFromUTRANCommand_EUTRA_r8_add_ext := omit,
+            nonCriticalExtensions := omit
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_DCCH_Message cs_MeasurementControl_InterRATMeasurement_8_4_2_2 (IntegrityCheckInfo         p_Integrityinfo,
+                                                                                      RRC_TransactionIdentifier  p_RRC_TI,
+                                                                                      integer                    p_EutraCell_ARFCN,
+                                                                                      EUTRA_MeasurementBandwidth p_EutraCell_MeasBandwidth,
+                                                                                      TGPS_Reconfiguration_CFN   p_Tgps_Reconfiguration_CFN,
+                                                                                      TGCFN                      p_TGCFN) :=
+    // Default values according to 36.508 Table 4.7B.1-3: MEASUREMENT CONTROL for Inter-RAT and special settings for TC 8.4.2.2
+    /* @status    APPROVED */
+    cs_MeasurementControl_r8(p_Integrityinfo,
+                             3,
+                             cs_MeasurementCommand_SetupInterRatEutra_r8(cs_EUTRA_FrequencyInfoList_1Entry(p_EutraCell_ARFCN, p_EutraCell_MeasBandwidth),
+                                                                         cs_InterRATMeasQuantity_r8(cpich_RSCP, rrsp),    // @sic R5-122105 sic@
+                                                                         cs_InterRATReportingQuantity_r8,
+                                                                         {cs_InterRATEvent3a_Def}),
+                             cs_DPCH_CompressedModeStatusInfo(p_Tgps_Reconfiguration_CFN, p_TGCFN),
+                             p_RRC_TI); // @sic R5-122105 sic@
+
+  function f_TC_8_4_2_2_UTRAN() runs on UTRAN_PTC
+  {
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    var integer v_T1_CPICH_Cell5 := -65;
+    var integer v_T1_PCCPCH_Cell5 := -65;
+    var integer v_T2_CPICH_Cell5 := -100;  //@sic R5-106294 sic@
+    var integer v_T2_PCCPCH_Cell5 := -100;
+    
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI;
+    var TGCFN v_TGCFN;
+    var integer v_FrameNumber;
+    var TGPS_Reconfiguration_CFN   v_Tgps_Reconfiguration_CFN;
+    var integer v_TtiValue := 4; //cell_DCH_64kPS_RAB_SRB is configured
+
+    var octetstring v_RRCConnectionConfigurationMessage;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+    
+    var EUTRA_MeasurementBandwidth v_EUTRA_MeasurementBandwidth := f_UTRAN_ConvertIntegerToEUTRA_MeasurementBandwidth(f_ConvertDL_BandwidthPIXITToInteger());
+    
+    // Initialise all cells
+    f_UTRAN_Init ( EUTRA_UTRAN );
+    
+    v_SecurityInfo := f_UTRAN_Security_Get ( );
+    
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA ( utran_Cell5 );
+    
+    //Get Cell Parameters for EUTRA cell
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    // Create and configure Cell 5
+    //* Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH ( utran_Cell5 );
+    
+    // Start sending System Information
+    f_UTRAN_SendDefSysInfo ( utran_Cell5 );
+    
+    //UE starts registered in EUTRA, wait its Auth Params
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    // Get FDD or TDD mode
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD ( utran_Cell5 );
+    
+    f_UTRAN_TestBody_Set( true );
+    
+    //@siclog "Step 1" siclog@
+    //The SS changes Cell 1 and Cell 5 level according to the row "T1" in table 8.4.2.2.3.2-1.
+    f_UTRAN_SetCellPower( utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5);
+    
+    //@siclog "Step 2" siclog@
+    //Generic procedure in 36.508 subclause 6.4.2.8 is performed on cell 5
+    //NOTE: The UE performs a RAU procedure and the RRC connection is released.
+    f_UTRAN_508CheckCampOnNewUtranCell ( utran_Cell5, cell_Dch );
+    
+    //@sic R5-106573 sic@
+    //@siclog "Step 3 - 4 Void" siclog@
+    
+    //@sic R5-106573 sic@
+    //@siclog "Step 4A - 4E" siclog@
+    // Step 7 to 11 of test procedure in TS 34.123-1 subclause 12.9.14.4 is performed on Cell 5.
+    // NOTE: The UE performs Network initiated RAB re-establishment in a UTRAN cell.
+    f_UTRAN_MT_RAB_ReEst(utran_Cell5, cell_DCH_64kPS_RAB_SRB);
+    
+    // UE's re-done authentication in establishing the RAB so need to send the new params to EUTRA
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA, omit);
+    
+    //@sic R5-106559 sic@
+    //@siclog "Step 5a1 - 5a2" siclog@
+    if (v_FDD_TDD_Mode == UTRAN_FDD and pc_UTRA_CompressedModeRequired ) { //Compressed mode only applicable in FDD @sic R5s120490 sic@
+      v_FrameNumber := f_UTRAN_CPHY_GetFrameNumber (utran_Cell5, tsc_DL_DPCH1 ); // @sic R5-12365 sic@
+      //Physical Channel identity is hardcoded to the value set in cell_DCH_64kPS_RAB_SRB is configured, tsc_DL_DPCH1
+      v_Tgps_Reconfiguration_CFN := (v_FrameNumber + (250 - v_TtiValue)) mod 256; // @sic R5-12365 sic@
+      v_TGCFN := (v_FrameNumber + (256 - v_TtiValue)) mod 256; // @sic R5-12365 sic@
+    
+      f_UTRAN_PhyChReconf_InterRatCompresseModeActivate(utran_Cell5, v_TGCFN); // @sic R5-12365 sic@ for FDD SS tx a phy channel reconfig on cell5 and UE tx a phy channel reconfig complete on cell5
+    
+      //@siclog "Step 6 - 7 Void" siclog@
+    
+      //refresh security info
+      v_SecurityInfo := f_UTRAN_Security_Get();
+    
+      //@siclog "Step 8" siclog@
+      //ss tx a measurement control to setup inter-RAT on cell 5
+      U_AM.send ( cas_RLC_Data_Req_NoCnf(utran_CellDedicated,
+                                       tsc_RB2,
+                                       cs_MeasurementControl_InterRATMeasurement_8_4_2_2(v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                                                         v_RRC_TI,
+                                                                                         v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                         v_EUTRA_MeasurementBandwidth,
+                                                                                         v_Tgps_Reconfiguration_CFN,
+                                                                                         v_TGCFN))); // @sic R5-122105 sic@
+        if ( pc_InterRAT_DL_CompressedModeRequired ) {
+          f_UTRAN_CPHY_RL_Modify ( cas_CompressedModeStatusInfo_REQ (utran_Cell5,
+                                                         tsc_DL_DPCH1,
+                                                         cs_DPCH_CompressedModeStatusInfoActive(v_Tgps_Reconfiguration_CFN, v_TGCFN),
+                                                          cs_ActivateCFN ( f_UTRAN_CalculateActTime(v_FrameNumber))) );
+
+        }
+        if ( pc_InterRAT_UL_CompressedModeRequired ) {
+          f_UTRAN_CPHY_RL_Modify ( cas_CompressedModeStatusInfo_REQ (utran_Cell5,
+                                                         tsc_UL_DPCH1,
+                                                         cs_DPCH_CompressedModeStatusInfoActive(v_Tgps_Reconfiguration_CFN, v_TGCFN),
+                                                          cs_ActivateCFN ( f_UTRAN_CalculateActTime(v_FrameNumber))) );
+        }
+    } else {
+        v_SecurityInfo := f_UTRAN_Security_Get();
+    }
+    // Send trigger from UTRAN side
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 9" siclog@
+    //SS changes Cell1 and UTRAN cell5 level acc. to row T2 in table 8.4.2.2.3.2-1
+    // Sets the cell power attenuation and stores the value in the EUTRA_CellInfo
+    f_UTRAN_SetCellPower(utran_Cell5, v_T2_CPICH_Cell5, v_T2_PCCPCH_Cell5);
+    
+    //10 UE tx a measurement report on cell5
+    U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated,
+                                  tsc_RB2,
+                                  cr_MeasurementReport));
+    
+    v_RRCConnectionConfigurationMessage := f_Encode_RRCConnectionReconfiguration_HOToEUTRA (v_EUTRASysInfo.Eutra[0]);
+    
+    //@siclog "Step 11" siclog@
+    //SS tx a handover from utran command on cell5
+    U_AM.send(cas_RLC_Data_Req_NoCnf(utran_CellDedicated,
+                                     tsc_RB2,
+                                     cs_HandoverFromUTRANCommand_EUTRA(v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                                       v_RRC_TI,
+                                                                       v_RRCConnectionConfigurationMessage)));
+    // Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger ( EUTRA );
+    
+    //postamble
+    f_UTRAN_TestBody_Set( false );
+    
+    // Release UTRAN Cell 5
+    f_UTRAN_ReleaseCell ( utran_Cell5, f_UTRAN_CellInfo_GetConfigType (utran_Cell5) ); // @sic R5s110176 sic@
+  }
+
+  function f_TC_8_4_2_4_UTRAN() runs on UTRAN_PTC
+  { /* Inter-RAT Handover / from UTRA(HSDPA) to E-UTRA  / Data */
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode;
+    //@sic Removed T0 from CR R5-104790 sic@
+    var integer v_T1_CPICH_Cell5 := -65;
+    var integer v_T1_PCCPCH_Cell5 := -65;
+    var integer v_T2_CPICH_Cell5 := -100; //@sic R5-106294 sic@
+    var integer v_T2_PCCPCH_Cell5 := -100;
+    
+    var UTRAN_SecurityInfo_Type v_SecurityInfo;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI;
+    var integer v_FrameNumber; // @sic R5-123655 sic@
+    var TGCFN v_TGCFN;
+    var TGPS_Reconfiguration_CFN v_Tgps_Reconfiguration_CFN;
+    var UTRAN_CFN_Info_Type v_CFNInfo;
+    var integer v_TtiValue := 4; //cell_DCH_HS_DSCH is configured
+    
+    var octetstring v_RRCConnectionConfigurationMessage;
+    var IRAT_CoOrd_SysInfo_Type v_EUTRASysInfo;
+    
+    var EUTRA_MeasurementBandwidth v_EUTRA_MeasurementBandwidth := f_UTRAN_ConvertIntegerToEUTRA_MeasurementBandwidth(f_ConvertDL_BandwidthPIXITToInteger());
+    
+    // Initialise all cells
+    f_UTRAN_Init ( EUTRA_UTRAN );
+    
+    v_SecurityInfo := f_UTRAN_Security_Get ( );
+
+    //Send the cell info to the EUTRA component
+    f_UTRAN_Send_IR_SysInfoToEUTRA ( utran_Cell5 );
+    
+    //Get Cell Parameters for EUTRA cell
+    v_EUTRASysInfo := f_IRAT_WaitForCoOrd_SysInfo (EUTRA);
+    
+    // Create and configure Cell 5
+    //* Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellDCH ( utran_Cell5 );
+
+    // Start sending System Information
+    f_UTRAN_SendDefSysInfo ( utran_Cell5 );
+
+    //UE starts registered in EUTRA, wait its Auth Params
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    // Get FDD or TDD mode
+    v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD ( utran_Cell5 );
+        
+    f_UTRAN_TestBody_Set(true);
+    
+    //@siclog "Step 1" siclog@
+    //The SS changes Cell 1 and Cell 5 level according to the row "T1" in table 8.4.2.4.3.2-1.
+    f_UTRAN_SetCellPower(utran_Cell5, v_T1_CPICH_Cell5, v_T1_PCCPCH_Cell5);
+ 
+    //@siclog "Step 2" siclog@
+    //Generic procedure in 36.508 subclause 6.4.2.8 is performed on cell 5
+    f_UTRAN_508CheckCampOnNewUtranCell(utran_Cell5, cell_Dch);
+    
+    //@sic R5-106573 sic@
+    //@siclog "Step 3 - 4 Void" siclog@
+
+    //@sic R5-106573 sic@
+    //@siclog "Step 4A - 4E" siclog@
+    // Step 7 to 11 of test procedure in TS 34.123-1 subclause 12.9.14.4 is performed on Cell 5.
+    // NOTE: The UE performs Network initiated RAB re-establishment in a UTRAN cell.
+    f_UTRAN_MT_RAB_ReEst(utran_Cell5, cell_DCH_HS_DSCH);
+
+    // UE's re-done authentication in establishing the RAB so need to send the new params to EUTRA
+    f_UTRAN_SendAuthCoOrdParameters (EUTRA, omit);
+
+    //@sic R5-106560 sic@
+    //@siclog "Step 5a1 - 5a2" siclog@
+    if (v_FDD_TDD_Mode == UTRAN_FDD and pc_UTRA_CompressedModeRequired ) { //Compressed mode only applicable in FDD @sic R5s120535 sic@
+        v_FrameNumber := f_UTRAN_CPHY_GetFrameNumber (utran_Cell5, tsc_DL_DPCH1 ); // @sic R5-12365 sic@
+        //Physical Channel identity is hardcoded to the value set in cell_DCH_64kPS_RAB_SRB is configured, tsc_DL_DPCH1
+        v_Tgps_Reconfiguration_CFN := (v_FrameNumber + (250 - v_TtiValue)) mod 256; // @sic R5-12365 sic@
+        v_TGCFN := (v_FrameNumber + (256 - v_TtiValue)) mod 256; // @sic R5-12365 sic@
+
+        f_UTRAN_PhyChReconf_InterRatCompresseModeActivate(utran_Cell5, v_TGCFN); // @sic R5-12365 sic@ for FDD SS tx a phy channel reconfig on cell5 and UE tx a phy channel reconfig complete on cell5
+    
+        //@siclog "Step 6 - 7 Void" siclog@
+        // @sic R5s120535 sic@
+        v_CFNInfo := f_CalculateActTime(utran_Cell5);
+        v_TGCFN := v_CFNInfo.tGCFN;
+        v_Tgps_Reconfiguration_CFN := v_TGCFN;
+        
+        //refresh security info
+        v_SecurityInfo := f_UTRAN_Security_Get();
+        
+        //@siclog "Step 8" siclog@
+        //ss tx a measurement control to setup inter-RAT on cell 5
+        U_AM.send ( cas_RLC_Data_Req_NoCnf(utran_CellDedicated,
+                                           tsc_RB2,
+                                           cs_MeasurementControl_InterRATMeasurement(v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                                                     v_RRC_TI,
+                                                                                     v_EUTRASysInfo.Eutra[0].Arfcn,
+                                                                                     v_EUTRA_MeasurementBandwidth,
+                                                                                     v_Tgps_Reconfiguration_CFN,
+                                                                                     v_TGCFN)));
+        if ( pc_InterRAT_DL_CompressedModeRequired ) {
+          f_UTRAN_CPHY_RL_Modify ( cas_CompressedModeStatusInfo_REQ (utran_Cell5,
+                                                         tsc_DL_DPCH1,
+                                                         cs_DPCH_CompressedModeStatusInfoActive(v_Tgps_Reconfiguration_CFN, v_TGCFN),
+                                                          cs_ActivateCFN ( v_CFNInfo.actTime)) ); // changed to use activation time
+
+        }
+        if ( pc_InterRAT_UL_CompressedModeRequired ) {
+          f_UTRAN_CPHY_RL_Modify ( cas_CompressedModeStatusInfo_REQ (utran_Cell5,
+                                                         tsc_UL_DPCH1,
+                                                         cs_DPCH_CompressedModeStatusInfoActive(v_Tgps_Reconfiguration_CFN, v_TGCFN),
+                                                          cs_ActivateCFN ( v_CFNInfo.actTime)) ); // changed to use activation time
+        }
+    } else {
+        v_SecurityInfo := f_UTRAN_Security_Get();
+    }
+    // Send trigger from UTRAN side
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 9" siclog@
+    //SS changes Cell1 and UTRAN cell5 level acc. to row T2 in table 8.4.2.4.3.2-1
+    // Sets the cell power attenuation and stores the value in the EUTRA_CellInfo
+    f_UTRAN_SetCellPower(utran_Cell5, v_T2_CPICH_Cell5, v_T2_PCCPCH_Cell5);
+       
+    if (v_FDD_TDD_Mode == UTRAN_FDD and pc_UTRA_CompressedModeRequired ) { //Compressed mode only applicable in FDD @sic R5s120535 sic@
+        //@siclog "Step 10" siclog@
+        //UE tx a measurement report on cell5
+        U_AM.receive(car_RLC_Data_Ind(utran_CellDedicated, tsc_RB2, cr_MeasurementReport));
+    }
+    v_RRCConnectionConfigurationMessage := f_Encode_RRCConnectionReconfiguration_HOToEUTRA (v_EUTRASysInfo.Eutra[0]);
+    
+    //@siclog "Step 11" siclog@
+    //SS tx a handover from utran command on cell5
+    U_AM.send(cas_RLC_Data_Req_NoCnf(utran_CellDedicated,
+                                     tsc_RB2,
+                                     cs_HandoverFromUTRANCommand_EUTRA(v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                                       v_RRC_TI,
+                                                                       v_RRCConnectionConfigurationMessage)));
+    // Wait for the end of the test case
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    
+    //postamble
+    f_UTRAN_TestBody_Set(false);
+    
+    // Release UTRAN Cell 5
+    f_UTRAN_ReleaseCell(utran_Cell5, f_UTRAN_CellInfo_GetConfigType(utran_Cell5)); // @sic R5s110176 sic@
+  }//end of Test case 8.4.2.4
+
+}

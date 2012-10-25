@@ -1,0 +1,592 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-07 21:23:45 +0200 (Tue, 07 Aug 2012) $
+// $Rev: 7104 $
+/******************************************************************************/
+module EUTRA_SecurityFunctions {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_NasCtrl all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Parameters all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SecurityDefinitionsAndExternalFunctions all;
+  import from EUTRA_Security_Templates all;
+  import from NAS_AuthenticationCommon all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+
+  const integer tsc_NAS_Enc_Alg := 1;           /* @status    APPROVED */
+
+  const integer tsc_NAS_Int_Alg := 2;           /* @status    APPROVED */
+
+  const integer tsc_RRC_Enc_Alg := 3;           /* @status    APPROVED */
+
+  const integer tsc_RRC_Int_Alg := 4;           /* @status    APPROVED */
+
+  const integer tsc_UP_Enc_Alg  := 5;           /* @status    APPROVED */
+
+  type integer KDF_Type ( tsc_KDF_HMAC_SHA_256 .. tsc_KDF_Spare3 );     /* @status    APPROVED */
+
+  type integer AlgTypeDistg_Type (tsc_NAS_Enc_Alg,
+                                  tsc_NAS_Int_Alg,
+                                  tsc_RRC_Enc_Alg,
+                                  tsc_RRC_Int_Alg,
+                                  tsc_UP_Enc_Alg);      /* As per Table A.8-1 of 33.401;  @status    APPROVED */
+
+  type record EUTRA_SecurityParams_Type {       /* parameters related/used to/by EUTRA authentication and security
+                                                   @status    APPROVED */
+    KDF_Type                KDF,
+    B3_Type                 KSIasme,            // 3 bit KSIasme used when Authentication is performed by MME.
+    B3_Type                 KSIsgsn,            // USEd to store when KASME is derived from Ck,IK due to GMM Authentication at handover to LTE
+    B256_Type               Ks,                 // = Ck || IK
+    // NAS keys
+    B256_Type               KASME,
+    B256_Type               KENB,
+    B256_Type               NH, //@sic R5s100496 sic@
+    NextHopChainingCount    NCC,
+    B32_Type                NonceMME,
+    B32_Type                NonceUE,
+    // NAS Security structures
+    NAS_SecurityInfo_Type   NAS_Integrity,
+    NAS_SecurityInfo_Type   NAS_Ciphering,
+    // AS Security structures
+    AS_IntegrityInfo_Type   AS_Integrity,
+    AS_CipheringInfo_Type   AS_Ciphering,
+    UE_SecurityCapability   NAS_SecurityCap,
+    Common_AuthenticationParams_Type AuthParams
+    
+    // Note the Keys in the above NAS/AS_Integrity/Ciphering is the truncated 128 bit keys
+    // More fields to be added here
+  };
+
+  type record VarShortMAC_Input_Type {   /* 36.331 cl. 7.1;  @status    APPROVED  */
+    CellIdentity      cellIdentity,       // Bit string (28)
+    PhysCellId        physCellId,         // Integer (0..503)
+    C_RNTI            c_RNTI              // Bit string (16)
+  };
+
+  template (value) NAS_SecurityInfo_Type cs_NAS_SecurityInfo(B3_Type p_Algo,
+                                                             B128_Key_Type p_Key) :=
+  { /* @status    APPROVED */
+    Algorithm         := p_Algo,
+    K_NAS             := p_Key
+  };
+
+  template (value) AS_IntegrityInfo_Type cs_AS_IntegrityInfo(IntegrityProtAlgorithm_Type  p_Algo,
+                                                             B128_Key_Type p_Key) :=
+  { /* @status    APPROVED */
+    Algorithm         := p_Algo,      /* IntegrityProtAlgorithm_Type being defined in RRC ASN.1 */
+    KRRCint           := p_Key,
+    ActTimeList       := omit         /* => all SRBs shall be configured immediately */
+  };
+
+  template (value) SecurityActTime_Type cs_CipherAct_Null(RadioBearerId_Type p_RBID) :=
+  { /* @status    APPROVED */
+    RadioBearerId         := p_RBID,
+    UL                    := { None := true },
+    DL                    := { None := true }
+  };
+
+  template (value) EUTRA_SecurityParams_Type cs_AuthParams_Init(B128_Type   p_Rand,
+                                                                B3_Type     p_NAS_IntegrityProtAlgorithm,
+                                                                B3_Type     p_NAS_CipheringAlgorithm,
+                                                                IntegrityProtAlgorithm_Type p_RRC_IntegrityProtAlgorithm,
+                                                                CipheringAlgorithm_Type     p_RRC_CipheringAlgorithm) :=
+  { /* @desc      to Store all parameters related/used to Authentication
+     * @status    APPROVED */
+    KDF                := tsc_KDF_HMAC_SHA_256,    //33401 defined KDF
+    KSIasme            := '111'B,        //un initialised
+    KSIsgsn            := '111'B,        //un initialised,
+    Ks                 := tsc_AuthUndefinedB256,
+    KASME              := tsc_AuthUndefinedB256,
+    KENB               := tsc_AuthUndefinedB256,
+    NH                 := tsc_AuthUndefinedB256, //@sic R5s100496 sic@
+    NCC                := 0, // undefined value is not specified
+    NonceMME           := tsc_AuthUndefinedB32,
+    NonceUE            := tsc_AuthUndefinedB32,
+    NAS_Integrity      := cs_NAS_SecurityInfo (p_NAS_IntegrityProtAlgorithm, tsc_AuthUndefinedB128),
+    NAS_Ciphering      := cs_NAS_SecurityInfo (p_NAS_CipheringAlgorithm, tsc_AuthUndefinedB128),
+    // AS Security structures
+    AS_Integrity       :=  cs_AS_IntegrityInfo (p_RRC_IntegrityProtAlgorithm, tsc_AuthUndefinedB128),
+    AS_Ciphering       :=  cs_AS_CipheringInfo(p_RRC_CipheringAlgorithm,
+                                               tsc_AuthUndefinedB128,
+                                               tsc_AuthUndefinedB128,
+                                               { cs_CipherAct_Null(tsc_RbId_SRB1),
+                                                 cs_CipherAct_Null(tsc_RbId_SRB2) } ),
+    NAS_SecurityCap    := cs_NAS_SecurityCapabilityInit,  // @sic R5s100135 sic@
+    AuthParams         := cs_CommonAuthParams_Init (p_Rand)
+
+  };
+
+  template (value) UE_SecurityCapability cs_NAS_SecurityCapabilityInit :=
+  { /* @status    APPROVED */
+    // @sic R5s100135 sic@
+    iel    := '02'O,
+    eeaCap := '00'O,
+    eiaCap := '00'O,
+    ueaCap := omit,
+    uiaCap := omit,
+    geaCap := omit
+  };
+
+  group Auth_S_Function {
+
+  function fl_EUTRA_Authentication_S10(EUTRA_SecurityParams_Type p_Auth_Params,
+                                       NAS_PlmnId     p_PLMN) return B256_Type
+  {
+    const octetstring const_S10_FC := '10'O;
+    var octetstring v_S;
+
+    // Generation of String
+    v_S := const_S10_FC;
+    //FC = 0x10
+    v_S :=  (v_S & p_PLMN);
+    //P0 = serving network ID
+    v_S :=  (v_S & '0003'O) ;
+    //L0 = length of serving network ID (i.e. 0x00 0x03)
+    v_S :=  ( v_S & ( substr (( bit2oct ( p_Auth_Params.AuthParams.AUTN )) , 0,6 )));
+    //P1 = SQN XOR AK
+    // to have MSB 6 bytes which is SQN xor AK and truncated as SQN xor AK is first 6 bytes of AUTN
+    v_S :=  ( v_S & '0006'O );
+    //L1 = length of SQN XOR AK (i.e. 0x00 0x06)
+    return fx_KeyDerivationFunction( p_Auth_Params.KDF, p_Auth_Params.Ks, v_S );
+  };
+
+  function fl_ConvertCiphAlg2Bitstring(CipheringAlgorithm_Type p_Alg) return B3_Type
+  {
+    var B3_Type v_B3 := '111'B;
+    select (p_Alg) {
+      case (eea0) {
+        v_B3 := '000'B;
+      }
+      case (eea1) {
+        v_B3 := '001'B;
+      }
+      case (eea2) {
+        v_B3 := '010'B;
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "Non defined AS Ciphering algorithm Selected");
+      }
+    }
+    return v_B3;
+  }
+
+  function fl_ConvertIntAlg2Bitstring (IntegrityProtAlgorithm_Type p_Alg) return B3_Type
+  {
+    var B3_Type v_B3 := '111'B;
+    select (p_Alg) {
+      case (eia1) {
+        v_B3 := '001'B;
+      }
+      case (eia2) {
+        v_B3 := '010'B;
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "Non defined AS Integrity algorithm Selected");
+      }
+    }
+    return v_B3;
+  }
+
+  function fl_EUTRA_Authentication_S11(EUTRA_SecurityParams_Type p_Auth_Params,
+                                       O4_Type p_UL_NAS_Count) return B256_Type
+  {
+    const octetstring const_S11_FC :='11'O;
+    var octetstring v_S;
+    // Generation of String
+    v_S := const_S11_FC;
+    //FC = 0x11
+    v_S :=   ( v_S & p_UL_NAS_Count);
+    //P0 = Uplink NAS COUNT
+    v_S :=  ( v_S & '0004'O );
+    //L0 = length of uplink NAS COUNT (i.e. 0x00 0x04)
+    return fx_KeyDerivationFunction ( p_Auth_Params.KDF, p_Auth_Params.KASME, v_S );
+  };
+
+  function fl_EUTRA_Authentication_S12(EUTRA_SecurityParams_Type p_Auth_Params,
+                                       B256_Type p_Synch ) return B256_Type
+  {
+    const octetstring const_S12_FC :='12'O;
+    var octetstring v_S;
+    // Generation of String
+    v_S := const_S12_FC;
+    //  FC = 0x12
+    v_S :=   ( v_S & bit2oct ( p_Synch ) );
+    // P0 = SYNC-input
+    v_S :=   ( v_S & '0020'O );
+    //L0 = length of SYNC-input (i.e. 0x00 0x20)
+
+    return fx_KeyDerivationFunction ( p_Auth_Params.KDF, p_Auth_Params.KASME, v_S );
+  };
+
+  function fl_EUTRA_Authentication_S13(EUTRA_SecurityParams_Type p_Auth_Params,
+                                       PhysCellId p_PhyCellId,
+                                       ARFCN_ValueEUTRA p_EARFCN_DL,
+                                       boolean p_FromNH := false // False for Deriving Kenb* from Kenb, else from NH
+                                       ) return B256_Type //@sic R5s100496 sic@
+  { // @sic R5s100138 sic@
+    const octetstring const_S13_FC :='13'O; //@sic R5s100178 sic@
+    var octetstring v_S;
+    var B256_Type v_SourceKey;
+    // Generation of String
+    v_S := const_S13_FC;
+    //FC = 0x13
+    v_S :=   ( v_S & int2oct ( p_PhyCellId , 2 ) );
+    //P0 = PCI (target physical cell id)
+    v_S :=   ( v_S & '0002'O );
+    //L0 = length of PCI (i.e. 0x00 0x02)
+    v_S :=   ( v_S & int2oct ( p_EARFCN_DL , 2 ) );
+    //P1 = EARFCN-DL (target physical cell downlink frequency)
+    v_S :=   ( v_S & '0002'O );
+    //L1 = length of EARFCN-DL (i.e. 0x00 0x02)
+    if ( p_FromNH == false) //  @sic R5s100496 sic@ Kenb* derived from Kenb
+      {
+        v_SourceKey := p_Auth_Params.KENB;
+      }
+    else // Kenb* derived from Fresh Derived NH
+      {
+        v_SourceKey := p_Auth_Params.NH;
+      };
+    return fx_KeyDerivationFunction ( p_Auth_Params.KDF, v_SourceKey, v_S );//@sic R5s100496 sic@
+  };
+
+  function fl_EUTRA_Authentication_S15(AlgTypeDistg_Type p_AlgTypeDistg,
+                                       B3_Type p_Alg,
+                                       B256_Type p_Key,
+                                       KDF_Type p_KDF_Type) return B128_Type
+  {
+    const octetstring const_S15_FC :='15'O;
+    var octetstring v_S;
+    // Generation of String
+    v_S := const_S15_FC;
+    //FC = 0x15
+    v_S :=   ( v_S & int2oct ( p_AlgTypeDistg, 1  ) );
+    //P0 = algorithm type distinguisher
+    v_S :=   ( v_S & '0001'O );
+    //L0 = length of algorithm type distinguisher (i.e. 0x00 0x01))
+    v_S :=   ( v_S & bit2oct ( p_Alg ) );
+    //P1 = algorithm identity
+    v_S :=   ( v_S & '0001'O );
+    //L1 = length of algorithm identity (i.e. 0x00 0x01)
+    
+    return substr(fx_KeyDerivationFunction(p_KDF_Type, p_Key, v_S), 128, 128);
+    // returns LSB 128 bits[truncated] of the key generated
+  };
+
+  function f_EUTRA_Authentication_S16(EUTRA_SecurityParams_Type p_Auth_Params,
+                                      O4_Type p_DL_NAS_Count) return B256_Type
+  {
+    const octetstring const_S16_FC :='16'O;
+    var octetstring v_S;
+    
+    // Generation of String
+    v_S := const_S16_FC;
+    //FC = 0x16
+    v_S :=   ( v_S & p_DL_NAS_Count );
+    //P0 = NAS downlink COUNT value
+    v_S :=   ( v_S & '0004'O );
+    //L0 = length of NAS downlink COUNT value (i.e. 0x00 0x04)
+    
+    return fx_KeyDerivationFunction ( p_Auth_Params.KDF, p_Auth_Params.KASME, v_S );
+    // The result is 256 bit  CK ll IK each of 128 bits
+  };
+
+  function fl_EUTRA_Authentication_S18(EUTRA_SecurityParams_Type p_Auth_Params) return B256_Type
+  {
+    const octetstring const_S18_FC :='18'O;
+    var octetstring v_S;
+    
+    // Generation of String
+    v_S := const_S18_FC;                                 //FC = 0x18
+    v_S := (v_S & bit2oct(p_Auth_Params.NonceMME));      //P0 = NONCEMME
+    v_S := (v_S & '0004'O);                              //L0  = length of NONCEMME (i.e. 0x00 0x04)
+    
+    return fx_KeyDerivationFunction(p_Auth_Params.KDF, (p_Auth_Params.AuthParams.CK & p_Auth_Params.AuthParams.IK), v_S); //The input key shall be the concatenation of CK || IK.
+  };
+
+  function fl_EUTRA_Authentication_S19(EUTRA_SecurityParams_Type p_Auth_Params) return B256_Type
+  {
+    const octetstring const_S19_FC :='19'O;
+    var octetstring v_S;
+
+    // Generation of String
+    v_S := const_S19_FC;
+    //FC = 0x14
+    v_S :=   ( v_S & bit2oct ( p_Auth_Params.NonceUE  ) );
+    //P0 = NONCEUE
+    v_S :=   ( v_S & '0004'O );
+    //L0  = length of NONCEUE (i.e. 0x00 0x04)
+    v_S :=   ( v_S & bit2oct ( p_Auth_Params.NonceMME  ) );
+    //P1 = NONCEMME
+    v_S :=   ( v_S & '0004'O );
+    //L1  = length of NONCEMME (i.e. 0x00 0x04)
+
+    return fx_KeyDerivationFunction(p_Auth_Params.KDF, (p_Auth_Params.AuthParams.CK & p_Auth_Params.AuthParams.IK), v_S);
+    //The input key shall be the concatenation of CK || IK.
+  };
+
+  function fl_EUTRA_Authentication_S1A(EUTRA_SecurityParams_Type p_Auth_Params,
+                                       O4_Type p_DL_NAS_Count) return B256_Type
+  {
+    const octetstring const_S1A_FC :='1A'O;
+    var octetstring v_S;
+    
+    // Generation of String
+    v_S := const_S1A_FC;
+    //FC = 0x1A
+    v_S :=   ( v_S &  p_DL_NAS_Count );
+    //P0 = NAS downlink COUNT value
+    v_S :=   ( v_S & '0004'O );
+    //L0 = length of NAS downlink COUNT value (i.e. 0x00 0x04)
+    
+    return fx_KeyDerivationFunction ( p_Auth_Params.KDF, p_Auth_Params.KASME, v_S );
+    // The result is 256 bit  CKSRVCC ll IKSRVCC  each of 128 bits
+  };
+
+  function f_EUTRA_Authentication_S1B(EUTRA_SecurityParams_Type p_Auth_Params,
+                                      O4_Type p_UL_NAS_Count) return B256_Type
+  {
+    const octetstring const_S1B_FC :='1B'O;
+    var octetstring v_S;
+    
+    // Generation of String
+    v_S := const_S1B_FC;
+    //FC = 0x1B
+    v_S :=   ( v_S & p_UL_NAS_Count );
+    //P0 = NAS uplink COUNT value
+    v_S :=   ( v_S & '0004'O );
+    //L0 = length of NAS uplink COUNT value (i.e. 0x00 0x04)
+    
+    return fx_KeyDerivationFunction( p_Auth_Params.KDF, p_Auth_Params.KASME, v_S );
+    // The result is 256 bit  CK ll IK each of 128 bits
+  };
+
+  } // end of group Auth_S_Function
+
+  function f_EUTRA_Authentication_InitNAS(EUTRA_SecurityParams_Type p_Auth_Params,
+                                          NAS_PlmnId p_PLMN,
+                                          template (omit) Common_AuthenticationParams_Type p_Common_AuthenticationParams := omit) return EUTRA_SecurityParams_Type
+  { /* @sic R5s100086 cl. 5.3.1 sic@ */
+    var EUTRA_SecurityParams_Type v_Auth_Params := p_Auth_Params;
+    
+    if (isvalue(p_Common_AuthenticationParams)) {
+      v_Auth_Params.AuthParams := valueof(p_Common_AuthenticationParams); //@sic R5s100182 sic@
+    } else {
+      v_Auth_Params.AuthParams := f_AuthenticationInit(v_Auth_Params.AuthParams); //@sic R5s100182 sic@
+    }
+    
+    
+    // Generates Ck, Ik, AUTN, XRES
+    v_Auth_Params.Ks := v_Auth_Params.AuthParams.CK & v_Auth_Params.AuthParams.IK;
+    // As per 33401 clause 6.2
+    v_Auth_Params.KASME := fl_EUTRA_Authentication_S10 (v_Auth_Params, p_PLMN);
+    // Generates KASME
+    v_Auth_Params.KSIasme:= int2bit(((bit2int(v_Auth_Params.KSIasme)+1) mod 8), 3);
+    // updates KSI
+    v_Auth_Params.KSIsgsn := '111'B;
+    // Invalidate KSIsgsn which is useful only in case of if KSIASME is derived from SGSN keys Ck and Ik.
+    v_Auth_Params.NAS_Ciphering.K_NAS := fl_EUTRA_Authentication_S15 (tsc_NAS_Enc_Alg,v_Auth_Params.NAS_Ciphering.Algorithm,
+                                                                      v_Auth_Params.KASME,
+                                                                      v_Auth_Params.KDF);
+    // Derives KNASenc key
+    v_Auth_Params.NAS_Integrity.K_NAS := fl_EUTRA_Authentication_S15 (tsc_NAS_Int_Alg,v_Auth_Params.NAS_Integrity.Algorithm,
+                                                                      v_Auth_Params.KASME,
+                                                                      v_Auth_Params.KDF);
+    // Derives KNASint key
+    return v_Auth_Params;
+  };
+
+  function f_EUTRA_Authentication_InitAS(EUTRA_SecurityParams_Type p_Auth_Params,
+                                         O4_Type p_UL_NAS_Count,
+                                         boolean p_IsSMC_Procedure := true,                               // @sic R5s100178 sic@
+                                         template (omit) PhysCellId p_TargetPhysicalCellIdentity := omit, // @sic R5s100178 sic@
+                                         template (omit) ARFCN_ValueEUTRA p_EARFCN_DL := omit             // @sic R5s100178 sic@
+                                         ) return EUTRA_SecurityParams_Type
+  {
+    var EUTRA_SecurityParams_Type v_Auth_Params := p_Auth_Params;
+    // initialise to  received as parameter
+    v_Auth_Params.KENB := fl_EUTRA_Authentication_S11 (v_Auth_Params, p_UL_NAS_Count);
+    // Derives KENB
+    v_Auth_Params.NH := fl_EUTRA_Authentication_S12 (v_Auth_Params, v_Auth_Params.KENB);                  // @sic R5s100496 sic@
+    //Derives NH corresponding to NCC =1;
+    if (p_IsSMC_Procedure == false) {   // @sic R5s100178 sic@
+      if (not (isvalue(p_TargetPhysicalCellIdentity) and isvalue(p_EARFCN_DL)))
+        {
+          FatalError (__FILE__, __LINE__,
+                      "New key is to be used at RRC Connection Re-establishment or Reconfiguration but no Physical Cell ID and/or ARFCN value is provided");
+        }
+      else
+        // Refresh of KeNB; horizontal key derivation
+        {
+          v_Auth_Params.KENB := fl_EUTRA_Authentication_S13 (v_Auth_Params,
+                                                             valueof(p_TargetPhysicalCellIdentity),
+                                                             valueof(p_EARFCN_DL));
+          //TBD Valueof cannot be avoided
+        };
+    };
+    
+    //intraNB handover by RRC Connection Reconfiguration or RRC Connection Re-establishment
+    // Derives KENB
+    v_Auth_Params.NCC := 0;
+    // NCC is set to default/initial value of 0
+    v_Auth_Params.AS_Ciphering.KRRCenc := fl_EUTRA_Authentication_S15 (tsc_RRC_Enc_Alg,
+                                                                       fl_ConvertCiphAlg2Bitstring(v_Auth_Params.AS_Ciphering.Algorithm),
+                                                                       v_Auth_Params.KENB,
+                                                                       v_Auth_Params.KDF);
+    // Derives KRRCenc key
+    v_Auth_Params.AS_Integrity.KRRCint := fl_EUTRA_Authentication_S15 (tsc_RRC_Int_Alg,
+                                                                       fl_ConvertIntAlg2Bitstring(v_Auth_Params.AS_Integrity.Algorithm),
+                                                                       v_Auth_Params.KENB,
+                                                                       v_Auth_Params.KDF);
+    // Derives KRRCenc key
+    v_Auth_Params.AS_Ciphering.KUPenc := fl_EUTRA_Authentication_S15 (tsc_UP_Enc_Alg,
+                                                                      fl_ConvertCiphAlg2Bitstring(v_Auth_Params.AS_Ciphering.Algorithm),
+                                                                      v_Auth_Params.KENB,
+                                                                      v_Auth_Params.KDF);
+    // Derives KRRCenc key;
+    // Ciphering algorithm for UP is same as RRC
+    return v_Auth_Params;
+  };
+
+  function f_EUTRA_InitAS_KeyChaining_KeyRefresh(PhysCellId p_TargetPhysicalCellIdentity,
+                                                 ARFCN_ValueEUTRA p_EARFCN_DL,  // @sic R5s100138 sic@
+                                                 EUTRA_SecurityParams_Type p_Auth_Params,
+                                                 NextHopChainingCount p_NCC) return EUTRA_SecurityParams_Type
+  { // @sic R5s100138 sic@
+    var EUTRA_SecurityParams_Type v_Auth_Params := p_Auth_Params;
+    // initialise to  received as parameter
+    if (v_Auth_Params.NCC == p_NCC)
+      // Refresh of KeNB; Horizontol key derivation
+      {
+        v_Auth_Params.KENB := fl_EUTRA_Authentication_S13 (v_Auth_Params,p_TargetPhysicalCellIdentity,p_EARFCN_DL);          // @sic R5s100138 sic@
+      }
+    else
+      //Chaining of KeNB; Vertical Key derivation
+      {
+        while (v_Auth_Params.NCC != p_NCC)
+          {
+            if ( v_Auth_Params.NCC != 0) // NH for NCC =1 is already derived in initial AS Key derivition
+              {
+                v_Auth_Params.NH := fl_EUTRA_Authentication_S12 (v_Auth_Params,v_Auth_Params.NH); //@sic R5s100496 sic@
+                // Derive NH and store in v_Auth_Params.KENB
+              };
+            v_Auth_Params.NCC := (v_Auth_Params.NCC +1) mod 4;
+          }// end of while loop
+        v_Auth_Params.KENB := fl_EUTRA_Authentication_S13 (v_Auth_Params,p_TargetPhysicalCellIdentity,p_EARFCN_DL, true);    // @sic R5s100138 R5s100496 sic@
+        //Derive KENB* which will be KENB from NH stored in v_Auth_Params.KENB
+      }
+    v_Auth_Params.AS_Ciphering.KRRCenc := fl_EUTRA_Authentication_S15 (tsc_RRC_Enc_Alg,
+                                                                       fl_ConvertCiphAlg2Bitstring(v_Auth_Params.AS_Ciphering.Algorithm),
+                                                                       v_Auth_Params.KENB,
+                                                                       v_Auth_Params.KDF);
+    // Derives KRRCenc key
+    v_Auth_Params.AS_Integrity.KRRCint := fl_EUTRA_Authentication_S15 (tsc_RRC_Int_Alg,
+                                                                       fl_ConvertIntAlg2Bitstring(v_Auth_Params.AS_Integrity.Algorithm),
+                                                                       v_Auth_Params.KENB,
+                                                                       v_Auth_Params.KDF);
+    // Derives KRRCenc key
+    v_Auth_Params.AS_Ciphering.KUPenc := fl_EUTRA_Authentication_S15 (tsc_UP_Enc_Alg,
+                                                                      fl_ConvertCiphAlg2Bitstring(v_Auth_Params.AS_Ciphering.Algorithm),
+                                                                      v_Auth_Params.KENB,
+                                                                      v_Auth_Params.KDF);
+    // Derives KRRCenc key;
+    // Ciphering algorithm for UP is same as RRC
+    return v_Auth_Params;
+  };
+
+  function f_EUTRA_Security_Init() return EUTRA_SecurityParams_Type
+  {
+    return valueof(cs_AuthParams_Init(px_eAuthRAND,
+                                      px_NAS_IntegrityProtAlgorithm,
+                                      px_NAS_CipheringAlgorithm,
+                                      px_RRC_IntegrityProtAlgorithm,
+                                      px_RRC_CipheringAlgorithm));
+  }
+
+  function f_EUTRA_MappedContext_InitNAS(EUTRA_SecurityParams_Type p_Auth_Params,
+                                         Common_AuthenticationParams_Type p_Common_AuthenticationParams ) return EUTRA_SecurityParams_Type
+  { /* @sic R5s100086 cl. 5.3.1 sic@ */
+    // @sic R5-102227 sic@
+    var EUTRA_SecurityParams_Type v_Auth_Params := p_Auth_Params;
+
+    v_Auth_Params.AuthParams := p_Common_AuthenticationParams; // @sic R5s110031 sic@
+
+    // Init NonceMMM@
+    v_Auth_Params.NonceMME := tsc_NonceMME;
+    
+    v_Auth_Params.KASME := fl_EUTRA_Authentication_S19 (v_Auth_Params );
+    // Generates KASME :=K'ASME
+    v_Auth_Params.KSIasme:= '111'B;// invalid as Mapped Security context
+    // updates KSI
+    v_Auth_Params.KSIsgsn := v_Auth_Params.AuthParams.KeySeq ;
+    // update to KSN of otherRAT KSN as KSIASME is derived from SGSN keys Ck and Ik.
+    v_Auth_Params.NAS_Ciphering.K_NAS := fl_EUTRA_Authentication_S15 (tsc_NAS_Enc_Alg,v_Auth_Params.NAS_Ciphering.Algorithm,
+                                                                      v_Auth_Params.KASME,
+                                                                      v_Auth_Params.KDF);
+    // Derives KNASenc key
+    v_Auth_Params.NAS_Integrity.K_NAS := fl_EUTRA_Authentication_S15 (tsc_NAS_Int_Alg,v_Auth_Params.NAS_Integrity.Algorithm,
+                                                                      v_Auth_Params.KASME,
+                                                                      v_Auth_Params.KDF);
+    // Derives KNASint key
+    return v_Auth_Params;
+  };
+
+  function f_EUTRA_MappedContext_HO_Init(EUTRA_SecurityParams_Type p_Auth_Params,
+                                         Common_AuthenticationParams_Type p_Common_AuthenticationParams ) return EUTRA_SecurityParams_Type
+  {
+    var EUTRA_SecurityParams_Type v_Auth_Params := p_Auth_Params;
+    var NasCount_Type v_NasCountUL;
+    v_Auth_Params.AuthParams := p_Common_AuthenticationParams;
+    
+    // Init NonceMMM@
+    v_Auth_Params.NonceMME :=  tsc_NonceMME;
+    v_Auth_Params.KASME := fl_EUTRA_Authentication_S18 (v_Auth_Params );
+    // Generates KASME :=K'ASME
+    // v_Auth_Params.KSIasme:= '111'B;// invalid as Mapped Security context
+    // updates KSI
+    v_Auth_Params.KSIsgsn := v_Auth_Params.AuthParams.KeySeq ;
+    // update to KSN of otherRAT KSN as KSIASME is derived from SGSN keys Ck and Ik.
+    v_Auth_Params.NAS_Ciphering.K_NAS := fl_EUTRA_Authentication_S15 (tsc_NAS_Enc_Alg,v_Auth_Params.NAS_Ciphering.Algorithm,
+                                                                      v_Auth_Params.KASME,
+                                                                      v_Auth_Params.KDF);
+    // Derives KNASenc key
+    v_Auth_Params.NAS_Integrity.K_NAS := fl_EUTRA_Authentication_S15 (tsc_NAS_Int_Alg,v_Auth_Params.NAS_Integrity.Algorithm,
+                                                                      v_Auth_Params.KASME,
+                                                                      v_Auth_Params.KDF);
+    // Derives KNASint key
+    //As per 33.401 clause 9.2.2.2
+    v_NasCountUL := 'FFFFFFFF'O;
+    v_Auth_Params.KENB := fl_EUTRA_Authentication_S11 (v_Auth_Params, v_NasCountUL);
+    //Derive KenB
+    v_Auth_Params.AS_Ciphering.KRRCenc := fl_EUTRA_Authentication_S15 (tsc_RRC_Enc_Alg,
+                                                                       fl_ConvertCiphAlg2Bitstring(v_Auth_Params.AS_Ciphering.Algorithm),
+                                                                       v_Auth_Params.KENB,
+                                                                       v_Auth_Params.KDF);
+    // Derives KRRCenc key
+    v_Auth_Params.AS_Integrity.KRRCint := fl_EUTRA_Authentication_S15 (tsc_RRC_Int_Alg,
+                                                                       fl_ConvertIntAlg2Bitstring(v_Auth_Params.AS_Integrity.Algorithm),
+                                                                       v_Auth_Params.KENB,
+                                                                       v_Auth_Params.KDF);
+    // Derives KRRCenc key
+    v_Auth_Params.AS_Ciphering.KUPenc := fl_EUTRA_Authentication_S15 (tsc_UP_Enc_Alg,
+                                                                      fl_ConvertCiphAlg2Bitstring(v_Auth_Params.AS_Ciphering.Algorithm),
+                                                                      v_Auth_Params.KENB,
+                                                                      v_Auth_Params.KDF);
+    v_Auth_Params.AS_Ciphering.ActTimeList[1].UL.SQN.Value := 0; // PDCP count to 0
+    v_Auth_Params.AS_Ciphering.ActTimeList[1].DL.SQN.Value := 0;
+    // Derives KRRCenc key;
+    // Ciphering algorithm for UP is same as RRC
+    return v_Auth_Params;
+  }
+
+}

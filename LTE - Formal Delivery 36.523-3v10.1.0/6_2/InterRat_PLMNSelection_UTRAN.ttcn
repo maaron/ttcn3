@@ -1,0 +1,357 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:49:20 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7317 $
+/******************************************************************************/
+module InterRat_PLMNSelection_UTRAN {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CapabilityFunctions all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_CommonFunctions all;
+  import from UTRAN_CommonProcedures all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TTCN_ASP_Templates all;
+  import from UTRAN_TypeDefs all;
+  import from UpperTesterFunctions all;
+
+  template UL_DCCH_Message cdr_InitDirectTransfer_TMSIOfDiffPLMN(template RoutingParameter   p_RoutParameter,
+                                                   CN_DomainIdentity p_CN_DomainId := ps_domain,
+                                                   template (present) START_Value p_StartValue := ?, // @sic R5s110801 sic@
+                                                   template EstablishmentCause p_EstCause := omit,
+                                                   template PLMN_Identity p_PLMN_Id := *,
+                                                   template MeasuredResultsOnRACHinterFreq p_MeasuredResultsOnRACHinterFreq := *,
+                                                   template MBMS_JoinedInformation_r6 p_MBMS_JoinedInformation := omit) // @sic R5s110801 sic@
+    modifies cr_InitDirectTransfer_All := // @sic R5s110801 sic@
+  { /* @status    APPROVED */
+    message_ := {
+      initialDirectTransfer := {
+        intraDomainNasNodeSelector := {
+          version := {
+            release99 := {
+              cn_Type := {
+                gsm_Map_IDNNS := {
+                  routingbasis := {
+                    tMSIofdifferentPLMN := {
+                      routingparameter := p_RoutParameter
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  function f_TC_6_2_1_1_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var InitialUE_Identity v_InitialUE_Id;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var integer v_T0andT3_CPICH, v_T0andT3_PCCPCH, v_T1_CPICH, v_T1_PCCPCH;
+    var PLMN_Identity v_PLMN2;
+    var template (present) EstablishmentCause v_EstCause := registration;
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer_UTRAN;
+    
+    v_T0andT3_CPICH := tsc_AttenuationServingCell;//No attnuation => serving cell
+    v_T0andT3_PCCPCH := tsc_AttenuationServingCell;//No attnuation => serving cell
+    v_T1_CPICH := tsc_AttenuationCellOFF;//Full attenuation => cell is off/non-suitable
+    v_T1_PCCPCH := tsc_AttenuationCellOFF;//Full attenuation => cell is off/non-suitable
+    v_PLMN2 := {mcc := {0,0,2}, mnc := {1,1}};//PLMN2 according to 36.523-1 Table 6.0.1-1
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);// @sic R5s120568 sic@
+    
+    //Set PLMN2 in cell 5
+    f_UTRAN_CellInfo_SetPLMNIdentity (utran_Cell9, v_PLMN2);
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell9, cs_SIB19_Def(omit));
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell9);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell9);
+    
+    //Wait for synch with EUTRA PTC, then inform GERAN PTC and set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    f_UTRAN_SetCellPower(utran_Cell9, v_T0andT3_CPICH, v_T0andT3_PCCPCH);
+    
+    f_UTRAN_TestBody_Set (true);
+    
+    //@siclog "Step 19" siclog@
+    //Set cell power level according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell9, v_T1_CPICH, v_T1_PCCPCH);
+    
+    //@siclog "Step 20" siclog@
+    //Set cell power level according to T2
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //Receive updated Authentication parameters from GERAN PTC
+    f_UTRAN_InterRAT_InitialiseAuthParams_Common(GERAN);
+    
+    //@siclog "Step 34" siclog@
+    //Set cell power level according to T3
+    f_IRAT_WaitForCoOrd_Trigger (GERAN);
+    f_UTRAN_SetCellPower(utran_Cell9, v_T0andT3_CPICH, v_T0andT3_PCCPCH);
+    
+    //@siclog "Step 36" siclog@
+    //Wait for RRC CONNECTION REQUEST on cell 5
+    t_IdleMode_GenericTimer.start;
+    U_TM.receive (car_RRC_ConnReq (utran_Cell9,
+                                   tsc_RB0,
+                                   cr_108_RRC_ConnReq_r8 (v_EstCause))) -> value v_RLC_TR_DATA_IND;
+    t_IdleMode_GenericTimer.stop;
+    v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+    f_UTRAN_CheckReleaseIndicator ( utran_Cell9, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+
+    //@siclog "Step 37 - 38" siclog@
+    //Step 37-38: Send RRC CONNECTION SETUP and receive RRC CONNECTION SETUP COMPLETE
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq (utran_Cell9, v_InitialUE_Id);
+    
+    //@siclog "Step 39 - 43" siclog@
+    //Routing Area Update and RRC Security
+    f_UTRAN_GMM_RAU_MappedContext (utran_Cell9);
+    
+    //@siclog "Step 43 - 45" siclog@
+    //Release RRC Connection
+    f_UTRAN_RRC_ConnRel (utran_Cell9, cell_Fach_Dcch);
+    
+    //@siclog "Step 46" siclog@
+    //Check if PLMN2 is indicated by UE
+    f_UT_PLMN_Check (UT, "00211");
+    //* @verdict pass PLMN2 is indicated by UE
+    f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.1 Step 46");
+    
+    f_UTRAN_TestBody_Set (false);
+    
+    //Tell the EUTRA and the GERAN component that the test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_IRAT_SendCoOrd (GERAN, cms_IRAT_Trigger);
+    
+    //Switch/Power off, detach UE and release cell
+    f_UTRAN_Postamble (utran_Cell9, U1_IDLE);
+  }
+
+  function f_TC_6_2_1_2_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var InitialUE_Identity v_InitialUE_Id;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var integer v_T0_CPICH_Cell9, v_T0_PCCPCH_Cell9;
+    var PLMN_Identity v_PLMN14;
+    var template (present) EstablishmentCause v_EstCause := registration;
+    var SysInfoType19 v_Sib19;
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer_UTRAN;
+    
+    v_PLMN14 := {mcc := {0,0,2}, mnc := {9,1}};      //PLMN14 according to 36.523-1 Table 6.0.1-1
+    v_T0_CPICH_Cell9 := tsc_AttenuationServingCell;  //No attnuation => serving cell
+    v_T0_PCCPCH_Cell9 := tsc_AttenuationServingCell; //No attnuation => serving cell
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Set PLMN14 in cell 5
+    f_UTRAN_CellInfo_SetPLMNIdentity (utran_Cell9, v_PLMN14);
+    //Update SIB19 according to Table 6.2.1.2.3.3-1
+    // @sic R5-121760 sic@
+    v_Sib19 := f_UTRAN_SysInfo_GetSIB19 (utran_Cell9);
+    v_Sib19.eutra_FrequencyAndPriorityInfoList := omit;
+    f_UTRAN_SysInfo_SetSIB19 (utran_Cell9, v_Sib19);
+
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell9);
+
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell9);
+    
+    //Wait for synch with EUTRA PTC and then set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell9, v_T0_CPICH_Cell9, v_T0_PCCPCH_Cell9);
+    
+    //Tell EUTRA PTC to start the test case
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    f_UTRAN_TestBody_Set ( true ); //@sic R5s110371 Change 3 sic@
+
+    //Receive updated Authentication parameters
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //@siclog "Step 19" siclog@
+    //Set cell power level according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //@siclog "Step 20" siclog@
+    //Wait for RRC CONNECTION REQUEST on cell 9
+    t_IdleMode_GenericTimer.start;
+    U_TM.receive (car_RRC_ConnReq (utran_Cell9,
+                                   tsc_RB0,
+                                   cr_108_RRC_ConnReq_r8 (v_EstCause))) -> value v_RLC_TR_DATA_IND;
+    t_IdleMode_GenericTimer.stop; //@sic R5s110633 : Additional changes sic@
+    v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+    f_UTRAN_CheckReleaseIndicator ( utran_Cell9, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+
+    //@siclog "Step 21 - 22" siclog@
+    //Send RRC CONNECTION SETUP and receive RRC CONNECTION SETUP COMPLETE
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq (utran_Cell9, v_InitialUE_Id);
+    
+    //@siclog "Step 23 - 27" siclog@
+    //Routing Area Update and RRC Security
+    f_UTRAN_GMM_RAU_MappedContext (utran_Cell9);
+    
+    //@siclog "Step 28 - 29" siclog@
+    //Release RRC Connection
+    f_UTRAN_RRC_ConnRel (utran_Cell9, cell_Fach_Dcch);
+    
+    //@siclog "Step 30" siclog@
+    //Check if PLMN14 is indicated by UE
+    f_UT_PLMN_Check (UT, "00291");
+    //* @verdict pass PLMN14 is indicated by UE
+    f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.2 Step 30");
+    
+    f_UTRAN_TestBody_Set ( false );
+    
+    //Tell the EUTRA component that the test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    //Switch/Power off UE and release cell
+    f_UTRAN_Postamble (utran_Cell9, U1_IDLE);
+  }
+
+  function f_TC_6_2_1_3_UTRAN ( ) runs on UTRAN_PTC
+  {
+    var template (value) MasterInformationBlock v_MIB_MultiplePlmnList;
+    var InitialUE_Identity v_InitialUE_Id;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    var U_RLC_AM_IND v_RLC_AM_DATA_IND;
+    var integer v_T0_CPICH_Cell9, v_T0_PCCPCH_Cell9;
+    var PLMN_Identity v_PLMN14;
+    var PLMN_IdentityWithOptionalMCC_r6 v_PLMN13;
+    var octetstring v_RauReq_Msg;
+    var RRCDataIndType v_ReceivedRauReq_Msg;
+    var B3_Type v_UpdateType;                         // @sic R5s120019 sic@
+    var START_Value v_START_Value;
+    var template (present) EstablishmentCause v_EstCause := registration;
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer_UTRAN;
+    
+    v_PLMN14 := {mcc := {0,0,2}, mnc := {9,1}};//PLMN14 according to 36.523-1 Table 6.0.1-1
+    v_PLMN13 := {mcc := {0,0,2}, mnc := {8,1}};//PLMN13 according to 36.523-1 Table 6.0.1-1
+    v_T0_CPICH_Cell9 := tsc_AttenuationServingCell;//No attnuation => serving cell
+    v_T0_PCCPCH_Cell9 := tsc_AttenuationServingCell;//No attnuation => serving cell
+    
+    //Initialise all cells
+    f_UTRAN_Init (EUTRA_UTRAN);
+    
+    //Set PLMN14 in cell 5
+    f_UTRAN_CellInfo_SetPLMNIdentity (utran_Cell9, v_PLMN14);
+    
+    v_MIB_MultiplePlmnList := cds_MIB_MultiplePlmnList (v_PLMN14, {v_PLMN13});
+    f_UTRAN_SysInfo_SetMIB (utran_Cell9, v_MIB_MultiplePlmnList);
+    
+    //Create and configure Cell 5
+    //Cell started switched on with default power level, -60 and max attenuation
+    f_UTRAN_SS_CreateCellFACH (utran_Cell9);
+    
+    //Start sending System Information
+    f_UTRAN_SendDefSysInfo (utran_Cell9);
+    
+    //Wait for synch with EUTRA PTC and then set cell power level according to T0
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_UTRAN_SetCellPower(utran_Cell9, v_T0_CPICH_Cell9, v_T0_PCCPCH_Cell9);
+    
+    //Tell EUTRA PTC to start the test case
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_UTRAN_TestBody_Set (true);
+    
+    //Receive updated Authentication parameters
+    f_UTRAN_InterRAT_InitialiseAuthParams();
+    
+    //@siclog "Step 19" siclog@
+    //Set cell power level according to T1
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_UTRAN_SS_SetConfigRRC_RB3 (utran_Cell9); // @sic R5s110690 sic@
+    
+    //@siclog "Step 20" siclog@
+    //Wait for RRC CONNECTION REQUEST on cell 5
+    t_IdleMode_GenericTimer.start;
+    U_TM.receive (car_RRC_ConnReq (utran_Cell9,
+                                   tsc_RB0,
+                                   cr_108_RRC_ConnReq_r8 (v_EstCause))) -> value v_RLC_TR_DATA_IND;
+    t_IdleMode_GenericTimer.stop;
+    v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+    f_UTRAN_CheckReleaseIndicator ( utran_Cell9, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+
+    //@siclog "Step 20A" siclog@
+    // LTE side: SS adjusts cell levels according to row T2 of table 6.2.1.3.3.2-2.
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    //@siclog "Step 20B" siclog@
+    // The SS waits for 100ms. Delay is added to ensure cell 12 is non-suitable Off when RRC Connection is being released (36.523-3 cl. 7.4.2).
+    f_Delay (0.1);
+
+    //@siclog "Step 21 - 22" siclog@
+    //Send RRC CONNECTION SETUP and receive RRC CONNECTION SETUP COMPLETE
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq (utran_Cell9, v_InitialUE_Id);
+    
+    //@siclog "Step 23" siclog@
+    //Receive Routing Area Request message with PLMN identity set to PLMN14
+    U_AM.receive (car_RLC_Data_Ind (utran_CellDedicated,
+                                    tsc_RB3_DCCH_RRC,
+                                    //@sic see R5s110690 change 6 for more details sic@
+                                    cdr_InitDirectTransfer_TMSIOfDiffPLMN (?, -, -, -, v_PLMN14))) -> value v_RLC_AM_DATA_IND; //@sic R5s110690 sic@
+                                    //@sic see R5s110690 change 6 for more details sic@
+                                                              
+    //Decode the RAU Req message
+    v_RauReq_Msg := v_RLC_AM_DATA_IND.data.aM_message.uL_DCCH_Message.message_.initialDirectTransfer.nas_Message;
+    v_ReceivedRauReq_Msg := f_U_DecodeRRCDataInd_Msg (v_RauReq_Msg);
+    
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_ReceivedRauReq_Msg.routingAreaUpdateRequest); /* assign UpdateType to combined RA/LA updated
+                                                                                                           @sic R5s120019 sic@
+                                                                                                           @sic R5s120019 Additional Changes sic@ */
+    v_START_Value := v_RLC_AM_DATA_IND.data.aM_message.uL_DCCH_Message.message_.initialDirectTransfer.v3a0NonCriticalExtensions.initialDirectTransfer_v3a0ext.start_Value;
+
+    f_UTRAN_SS_RemoveConfigRRC_RB3 (utran_Cell9);
+    
+    //@siclog "Step 24 - 27" siclog@
+    //Perform 2-10 of the Routing Area Update procedure (36.508 cl. 6.4.2.8)
+    f_UTRAN_GMM_RAU_Without_RAUReq (utran_Cell9, v_START_Value, v_UpdateType, false);
+    
+    //@siclog "Step 28 - 29" siclog@
+    //Release RRC Connection
+    f_UTRAN_RRC_ConnRel (utran_Cell9, cell_Fach_Dcch);
+    
+    //@siclog "Step 30" siclog@
+    //Check if PLMN14 is indicated by UE
+    f_UT_PLMN_Check (UT, "00291");
+    //* @verdict pass PLMN14 is indicated by UE
+    f_UTRAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.2.1.3 Step 30");
+
+    f_UTRAN_TestBody_Set (false);
+    
+    //Tell the EUTRA component that the test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    //Switch/Power off UE and release cell
+    f_UTRAN_Postamble (utran_Cell9, U1_IDLE);
+  }
+
+}

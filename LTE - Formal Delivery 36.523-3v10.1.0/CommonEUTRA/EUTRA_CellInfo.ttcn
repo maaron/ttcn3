@@ -1,0 +1,3187 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+module EUTRA_CellInfo {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellInfoFrequency all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_Parameters all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SysInfo_Templates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from TestcaseProperties all;
+
+  const M_TMSI_Type            tsc_M_TMSI1 := oct2bit('12345678'O);     /* @status    APPROVED */
+
+  const AbsoluteCellPower_Type tsc_ServingCellRS_EPRE := -85;           /* @status    APPROVED */
+
+  const AbsoluteCellPower_Type tsc_SuitableCellRS_EPRE := -97;          /* @status    APPROVED */
+
+  const AbsoluteCellPower_Type tsc_NonSuitableCellRS_EPRE := -115;      /* @status    APPROVED */
+
+  const AbsoluteCellPower_Type tsc_NonSuitableOffCellRS_EPRE := -145;   /* @status    APPROVED */
+
+  const AbsoluteCellPower_Type tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE := -91;      /* @status    APPROVED */
+
+  const AbsoluteCellPower_Type tsc_CellRS_EPRE_65 := -65;               /* @status    APPROVED */
+
+  const RACH_TimingAdvance_Type tsc_RACH_TA_Def := 0;                   /* @status    APPROVED
+                                                                           @sic R5s090180 sic@ */
+
+  const P_b_Type tsc_P_b_1Tx := 0;    /* acc. to 36.508 Table Table 4.6.3-5;
+                                         @status    APPROVED */
+
+  const P_b_Type tsc_P_b_2Tx := 1;    /* acc. to 36.508 Table Table 4.6.3-5;
+                                         @status    APPROVED */
+
+  template (value) PLMN_IdentityList cs_PlmnIdList_1Entry (template (value) PLMN_Identity p_PLMN_Id):=
+  { /* @status    APPROVED */
+    {
+      plmn_Identity := p_PLMN_Id,
+      cellReservedForOperatorUse := notReserved
+    }
+  };
+
+  template (value) EUTRA_CellInfo_Type cs_EUTRA_CellInfoDef(template (value) CellIdentities_Type     p_CellIds,
+                                                            template (value) Combination_Type        p_Combination,
+                                                            template (value) FrequencyBand_Type      p_FrequencyBand,
+                                                            template (value) CarrierFreqEUTRA        p_UL_DL_Earfcn,
+                                                            Dl_Bandwidth_Type       p_DL_ChBandwidth,
+                                                            template (omit)  Ul_Bandwidth_Type       p_UL_ChBandwidth,
+                                                            template (value) NAS_Parameter_Type      p_NAS_Param,
+                                                            template (value) BcchInfo_Type           p_BCCH_Info,
+                                                            template (value) CellTimingInfo_Type     p_CellTimingInfo,
+                                                            template (value) EUTRA_FDD_TDD_CellInfo_Type   p_FDD_TDD_Info,
+                                                            CfiValue_Type                            p_CfiValue,
+                                                            RACH_TimingAdvance_Type                  p_RAR_TA,
+                                                            SR_PUCCH_ResourceIndex_Type              p_SR_PUCCH_ResourceIndex) :=   // @sic R5s090312 sic@
+  { /* @desc      Default cell info value
+     * @status    APPROVED */
+    CellIds      :=  p_CellIds,
+    Frequency := {
+      FrequencyBandIndicator :=  p_FrequencyBand,
+      DL_ChBandwidth := p_DL_ChBandwidth,
+      UL_ChBandwidth := p_UL_ChBandwidth,
+      UL_DL_Earfcn           :=  p_UL_DL_Earfcn
+    },
+
+    FDD_TDD_Info := p_FDD_TDD_Info,
+    Sysinfo := {
+      BCCH_Info           :=  p_BCCH_Info,
+      Combination         :=  p_Combination,
+      SB1_ValueTagChanged :=  false
+    },
+    NAS_Parameters    :=  p_NAS_Param,
+    CellTimingInfo    :=  p_CellTimingInfo,
+    ReferencePower := {
+      MaxReferencePower := tsc_ServingCellRS_EPRE,
+      Attenuation := {Off := true}
+    },
+    CellConfigCapability := fullCell,         // all cells are intialised by default with fullCell
+    RNTI  := { C_RNTI := tsc_C_RNTI_Def },
+    PhysicalParameters := {
+      Cfi := p_CfiValue,
+      RAR_TA := p_RAR_TA,
+      sr_PUCCH_ResourceIndex := p_SR_PUCCH_ResourceIndex,
+      PDSCH_p_b := tsc_P_b_1Tx      // acc to 36.508 Table 4.6.3-5: PDSCH-ConfigCommon-DEFAULT @sic R5-100786 sic@
+    },
+    AntennaInfo := {  // default value for 1TX   @sic R5-100786 sic@
+      SS_AntennaInfoCommon := cs_AntennaInfoCommon_1Port,
+      AntennaInfoCommon := omit,
+      SS_AntennaInfoDedicated := cs_AntennaInfoDedicated_Def,
+      AntennaInfoDedicated := cs_PhysicalConfigDedicated_AntennaInfo_Def
+    },
+    DrxCtrl := {  // @sic R5-104796 DRX support sic@
+      None := true
+    },
+    MeasGapCtrl := {  // @sic R5s110743 sic@
+      None := true
+    }
+  };
+
+  template (value) PLMN_Identity cs_HPLMN_Def := { mcc := {0,0,1},  mnc :={0,1} };        /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_001_11 := { mcc := {0,0,1},  mnc :={1,1} };     /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_001_21 := { mcc := {0,0,1},  mnc :={2,1} };     /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_001_31 := { mcc := {0,0,1},  mnc :={3,1} };     /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_002_11 := { mcc := {0,0,2},  mnc :={1,1} };     /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_003_21 := { mcc := {0,0,3},  mnc :={2,1} };     /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_004_31 := { mcc := {0,0,4},  mnc :={3,1} };     /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_001_02 := { mcc := {0,0,1},  mnc :={0,2} };     /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_002_101 := { mcc := {0,0,2},  mnc :={1,0,1} };  /* @status    APPROVED */
+
+  template (value) PLMN_Identity cs_HPLMN_003_101 := { mcc := {0,0,3},  mnc :={1,0,1} };  /* @status    APPROVED */
+
+  template (value) GutiParameters_Type cs_Guti(template (value) PLMN_Identity p_PLMN,
+                                               integer p_MmeGroupId,
+                                               integer p_MmeCode) :=
+  { /* @status    APPROVED */
+    PLMN_Identity := p_PLMN,
+    MME_GroupId := int2bit(p_MmeGroupId,16),
+    MME_Code := int2bit(p_MmeCode,8),
+    M_TMSI  := tsc_M_TMSI1
+  };
+
+  template (value) EUTRA_FDD_TDD_CellInfo_Type cs_EUTRA_FDD_Info :=
+  { /* @status    APPROVED */
+    FDD_TDD   :=  FDD,
+    cqi_ReportConfig := cs_CQI_ReportingPeriodic_FDD,
+    soundingRS_UL_Config := cs_508_SoundingRsUl_ConfigDedicated_Default_FDD,
+    pucch_Config := cs_508_PUCCH_ConfigDedicated_Default_FDD,
+    TDD_SubframeAssignment := omit,   // Applicable for TDD only
+    sr_ConfigIndex := 30 // @sic R5-102177 sic@
+  };
+
+  template (value) EUTRA_FDD_TDD_CellInfo_Type cs_EUTRA_TDD_Info(TDD_SubframeAssignment_Type p_TDD_SubframeAssignment) :=
+  { /* @status    APPROVED */
+    FDD_TDD   :=  TDD,
+    cqi_ReportConfig := cds_CQI_ReportingPeriodic_TDD,
+    soundingRS_UL_Config := cds_508_SoundingRsUl_ConfigDedicated_Default_TDD,
+    pucch_Config := cds_508_PUCCH_ConfigDedicated_Default_TDD,
+    TDD_SubframeAssignment := p_TDD_SubframeAssignment,
+    sr_ConfigIndex := 27 // @sic R5-102177 sic@
+  };
+
+  function f_EUTRA_CellInfo_GetIndex(EUTRA_CellId_Type p_CellId) return integer
+  {
+    var integer v_Index := 0;
+    
+    select (p_CellId) {
+      case (eutra_CellA, eutra_Cell1) {
+        v_Index := 0;
+      }
+      case (eutra_CellB, eutra_Cell2) {
+        v_Index := 1;
+      }
+      case (eutra_CellC, eutra_Cell3) {
+        v_Index := 2;
+      }
+      case (eutra_CellD, eutra_Cell4) {
+        v_Index := 3;
+      }
+      case (eutra_CellE, eutra_Cell6) {
+        v_Index := 4;
+      }
+      case (eutra_Cell10) {
+        v_Index := 5;
+      }
+      case (eutra_CellG, eutra_Cell11) {
+        v_Index := 6;
+      }
+      case (eutra_CellH, eutra_Cell12) {
+        v_Index := 7;
+      }
+      case (eutra_CellI, eutra_Cell13) {
+        v_Index := 8;
+      }
+      case (eutra_CellJ, eutra_Cell14) {
+        v_Index := 9;
+      }
+      case (eutra_CellK, eutra_Cell23) {
+        v_Index := 10;
+      }
+      case (eutra_CellL, eutra_Cell28) {
+        v_Index := 11;
+      }
+      case (eutra_CellM, eutra_Cell29) {
+        v_Index := 12;
+      }
+      case (eutra_Cell30) {
+        v_Index := 13;
+      }
+      case else  {
+        FatalError (__FILE__, __LINE__, "Invalid CellId");
+      }
+    }
+    return v_Index;
+  };
+
+  function fl_EUTRA_InitPhysicalCellId (EUTRA_CellId_Type p_CellId) return PhysCellId
+  {
+    var PhysCellId v_PhysicalCellId;
+    select (p_CellId) {
+      case (eutra_Cell1) {
+        v_PhysicalCellId := 0;
+      }
+      case (eutra_CellA) {
+        v_PhysicalCellId := 1;
+      }
+      case (eutra_CellB, eutra_Cell2) {
+        v_PhysicalCellId := 2;
+      }
+      case (eutra_CellC, eutra_Cell3) {
+        v_PhysicalCellId := 3;
+      }
+      case (eutra_CellD, eutra_Cell4) {
+        v_PhysicalCellId := 4;
+      }
+      case (eutra_Cell6) {
+        v_PhysicalCellId := 6;
+      }
+      case (eutra_Cell10) {
+        v_PhysicalCellId := 10;  // @sic R5s100392 sic@
+      }
+      case (eutra_CellG, eutra_Cell11) {
+        v_PhysicalCellId := 11;
+      }
+      case (eutra_CellH, eutra_Cell12) {
+        v_PhysicalCellId := 12;
+      }
+      case (eutra_CellI, eutra_Cell13) {
+        v_PhysicalCellId := 13;
+      }
+      case (eutra_CellJ, eutra_Cell14) {
+        v_PhysicalCellId := 14;
+      }
+      case (eutra_CellK) {
+        v_PhysicalCellId := 15;
+      }
+      case (eutra_CellL) {
+        v_PhysicalCellId := 16;
+      }
+      case (eutra_CellM) {
+        v_PhysicalCellId := 17;
+      }
+      case (eutra_CellE, eutra_Cell23) {
+        v_PhysicalCellId := 23;
+      }
+      case (eutra_Cell28) {
+        v_PhysicalCellId := 28;
+      }
+      case (eutra_Cell29) {
+        v_PhysicalCellId := 29;
+      }
+      case (eutra_Cell30) {
+        v_PhysicalCellId := 30;
+      }
+      case else  {
+        FatalError (__FILE__, __LINE__, "Invalid CellId");
+      }
+    }
+    return v_PhysicalCellId;
+  }
+
+  function fl_EUTRA_InitCellIdentities(EUTRA_CellId_Type p_CellId) return CellIdentities_Type
+  { /* @sic R5096440 sic@ */
+
+    var CellIdentities_Type v_CellIds;
+    
+    // Initialise the physical cell indentiy
+    v_CellIds.PhysicalCellId := fl_EUTRA_InitPhysicalCellId (p_CellId);
+    
+    // Initialise the cell Identity: E-NodeB (20 bits) + Cell Identity (8 bits)
+    // Values according to 36.508 Table 4.4.2-1A
+    select (p_CellId) {
+      case (eutra_Cell1) {
+        v_CellIds.CellIdentity := int2bit(1, 20) & int2bit(0, 8);
+      }
+      case (eutra_Cell2) {
+        v_CellIds.CellIdentity := int2bit(1, 20) & int2bit(2, 8);
+      }
+      case (eutra_Cell3) {
+        v_CellIds.CellIdentity := int2bit(2, 20) & int2bit(3, 8);
+      }
+      case (eutra_Cell4) {
+        v_CellIds.CellIdentity := int2bit(3, 20) & int2bit(4, 8);
+      }
+      case (eutra_Cell6) {
+        v_CellIds.CellIdentity := int2bit(4, 20) & int2bit(6, 8);
+      }
+      case (eutra_Cell10) {
+        v_CellIds.CellIdentity := int2bit(5, 20) & int2bit(10, 8);
+      }
+      case (eutra_Cell11) {
+        v_CellIds.CellIdentity := int2bit(6, 20) & int2bit(11, 8);
+      }
+      case (eutra_Cell12) {
+        v_CellIds.CellIdentity := int2bit(2, 20) & int2bit(12, 8);
+      }
+      case (eutra_Cell13) {
+        v_CellIds.CellIdentity := int2bit(4, 20) & int2bit(13, 8);
+      }
+      case (eutra_Cell14) {
+        v_CellIds.CellIdentity := int2bit(7, 20) & int2bit(14, 8);
+      }
+      case (eutra_Cell23) {
+        v_CellIds.CellIdentity := int2bit(6, 20) & int2bit(23, 8);
+      }
+      case (eutra_Cell28) {
+        v_CellIds.CellIdentity := int2bit(6, 20) & int2bit(28, 8);
+      }
+      case (eutra_Cell29) {
+        v_CellIds.CellIdentity := int2bit(6, 20) & int2bit(29, 8);
+      }
+      case (eutra_Cell30) {
+        v_CellIds.CellIdentity := int2bit(6, 20) & int2bit(30, 8);
+      }
+      case else  {
+        FatalError (__FILE__, __LINE__, "Invalid CellId");
+      }
+    }
+    return v_CellIds;
+  };
+
+  function fl_EUTRA_InitFDD_TDD_FromBand (FrequencyBand_Type p_FrequencyBand) return EUTRA_FDD_TDD_CellInfo_Type
+  {
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_FDD_TDD_Info;
+    
+    if (p_FrequencyBand < 33) {              // Bands below 33 are reserved for FDD
+      v_FDD_TDD_Info := cs_EUTRA_FDD_Info;
+    } else {                                 // Bands above 33 are reserved for TDD
+      v_FDD_TDD_Info := cs_EUTRA_TDD_Info(px_eTDDsubframeConfig);  //@sic R5-096691  sic@
+    }
+    return valueof(v_FDD_TDD_Info);          // Note: valueof cannot be avoided here
+  };
+
+  function fl_EUTRA_InitCellIdentities_NAS(EUTRA_CellId_Type p_CellId,
+                                           EUTRA_NAS_NumOfPLMN_Type p_CellsOnPLMN) return CellIdentities_Type
+  { /* @sic R5096440 sic@ */
+
+    var CellIdentities_Type v_CellIds;
+    
+    // Initialise the physical cell indentiy
+    v_CellIds.PhysicalCellId := fl_EUTRA_InitPhysicalCellId (p_CellId);
+    
+    // Initialise the cell Identity: E-NodeB (20 bits) + Cell Identity (8 bits)
+    
+    select (p_CellsOnPLMN) {
+      case (LTE_CellsOnDifferentPLMN) {
+        // Values according to 36.523-3 Table 7.4.4-1
+        select (p_CellId) {
+          case (eutra_CellA) {
+            v_CellIds.CellIdentity := int2bit(33, 20) & int2bit(1, 8);
+          }
+          case (eutra_CellB) {
+            v_CellIds.CellIdentity := int2bit(33, 20) & int2bit(2, 8);
+          }
+          case (eutra_CellC) {
+            v_CellIds.CellIdentity := int2bit(33, 20) & int2bit(3, 8);
+          }
+          case (eutra_CellD) {
+            v_CellIds.CellIdentity := int2bit(33, 20) & int2bit(4, 8);
+          }
+          case (eutra_CellE) {
+            v_CellIds.CellIdentity := int2bit(53, 20) & int2bit(23, 8);
+          }
+          case (eutra_CellG) {
+            v_CellIds.CellIdentity := int2bit(34, 20) & int2bit(11, 8);
+          }
+          case (eutra_CellH) {
+            v_CellIds.CellIdentity := int2bit(34, 20) & int2bit(12, 8);
+          }
+          case (eutra_CellI) {
+            v_CellIds.CellIdentity := int2bit(35, 20) & int2bit(13, 8);
+          }
+          case (eutra_CellJ) {
+            v_CellIds.CellIdentity := int2bit(36, 20) & int2bit(14, 8);
+          }
+          case (eutra_CellK) {
+            v_CellIds.CellIdentity := int2bit(35, 20) & int2bit(15, 8);
+          }
+          case (eutra_CellL) {
+            v_CellIds.CellIdentity := int2bit(35, 20) & int2bit(16, 8);
+          }
+          case (eutra_CellM) {
+            v_CellIds.CellIdentity := int2bit(33, 20) & int2bit(17, 8);
+          }
+          case else {
+            FatalError (__FILE__, __LINE__, "Invalid CellId");
+          }
+        }
+      }
+      case (LTE_AllCellsOnSamePLMN) {
+        // Values according to 36.508 Table 6.3.2.2-2
+        select (p_CellId) {
+          case (eutra_CellA) {
+            v_CellIds.CellIdentity := int2bit(17, 20) & int2bit(1, 8);
+          }
+          case (eutra_CellB) {
+            v_CellIds.CellIdentity := int2bit(17, 20) & int2bit(2, 8);
+          }
+          case (eutra_CellC) {
+            v_CellIds.CellIdentity := int2bit(18, 20) & int2bit(3, 8);
+          }
+          case (eutra_CellD) {
+            v_CellIds.CellIdentity := int2bit(17, 20) & int2bit(4, 8);
+          }
+          case (eutra_CellM) {
+            v_CellIds.CellIdentity := int2bit(33, 20) & int2bit(17, 8);
+          }
+          case else  {
+            FatalError (__FILE__, __LINE__, "Invalid CellId for NAS cells on the same PLMN");
+          }
+        }
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "Invalid EUTRA_NAS_NumOfPLMN");
+      }
+    }
+    return v_CellIds;
+  };
+
+  function fl_EUTRA_InitialiseCellTiming(EUTRA_CellId_Type p_CellId,
+                                         EUTRA_FDD_TDD_Mode_Type p_FddOrTdd,
+                                         EUTRA_NAS_NumOfPLMN_Type p_CellsOnPLMN) return CellTimingInfo_Type
+  { /* @sic R5-096691 R5-121777 sic@ */
+    var CellTimingInfo_Type v_CellTiming;
+    var integer v_TcellTDD := 0;     // (0..307199) acc. to 36.523-3 Table 7.4.3.1-1
+    var integer v_TcellFDD := 0;     // (0..307199) acc. to 36.523-3 Table 7.4.3.1-1
+    var integer v_SfnOffset:= 0;     // (0..1023) acc. to 36.523-3 Table 7.4.3.1-1
+    
+    select (p_CellId) {
+      case (eutra_Cell1, eutra_CellA) {
+        v_SfnOffset := 0;
+        v_TcellFDD := 0;
+        v_TcellTDD := 0;
+      }
+      case (eutra_Cell2){
+        v_SfnOffset := 124;
+        v_TcellFDD := 30720;
+        v_TcellTDD := 154;
+      }
+      case (eutra_Cell3){
+        v_SfnOffset := 257;
+        v_TcellFDD := 150897;
+        v_TcellTDD := 77;
+      }
+      case (eutra_Cell4){
+        v_SfnOffset := 1000;
+        v_TcellFDD := 61440;
+        v_TcellTDD := 307;
+      }
+      case (eutra_Cell6){
+        v_SfnOffset := 657;
+        v_TcellFDD := 524;
+        v_TcellTDD := 77;
+      }
+      case (eutra_Cell10){
+        v_SfnOffset := 129;
+        v_TcellFDD := 43658;
+        v_TcellTDD := 77;
+      }
+      case (eutra_Cell11){
+        v_SfnOffset := 957;
+        v_TcellFDD := 92160;
+        v_TcellTDD := 154;
+      }
+      case (eutra_Cell12){
+        v_SfnOffset := 1015;
+        v_TcellFDD := 181617;
+        v_TcellTDD := 154;
+      }
+      case (eutra_Cell13){
+        v_SfnOffset := 890;
+        v_TcellFDD := 31244;
+        v_TcellTDD := 154;
+      }
+      case (eutra_Cell14){
+        v_SfnOffset := 680;
+        v_TcellFDD := 300501;
+        v_TcellTDD := 77;
+      }
+      case (eutra_Cell23) {
+        v_SfnOffset := 383;
+        v_TcellFDD := 212337;
+        v_TcellTDD := 154;
+      }
+      case (eutra_Cell28) {
+        v_SfnOffset := 890;
+        v_TcellFDD := 31244;
+        v_TcellTDD := 154;
+      }
+      case (eutra_Cell29) {
+        v_SfnOffset := 680;
+        v_TcellFDD := 300501;
+        v_TcellTDD := 77;
+      }
+      case (eutra_Cell30) {
+        v_SfnOffset := 1015;
+        v_TcellFDD := 181617;
+        v_TcellTDD := 154;
+      }
+      case (eutra_CellB) {
+        v_SfnOffset := 124;
+        v_TcellFDD := 30720;
+        v_TcellTDD := 154;
+      }
+      case (eutra_CellC) {
+        v_SfnOffset := 257;
+        if (p_CellsOnPLMN == LTE_CellsOnDifferentPLMN) {
+          v_TcellFDD := 61440;
+          v_TcellTDD := 307;
+        } else {
+          v_TcellFDD := 150897;
+          v_TcellTDD := 77;
+        };
+      }
+      case (eutra_CellD) {
+        v_SfnOffset := 1000;
+        if (p_CellsOnPLMN == LTE_CellsOnDifferentPLMN) {
+          v_TcellFDD := 92160;
+          v_TcellTDD := 154;
+        } else {
+          v_TcellFDD := 61440;
+          v_TcellTDD := 307;
+        };
+      }
+      case (eutra_CellE) {
+        v_SfnOffset := 657;
+        if (p_CellsOnPLMN == LTE_CellsOnDifferentPLMN) {v_TcellFDD := 92160} else {v_TcellFDD := 524};
+        v_TcellTDD := 77;
+      }
+      case (eutra_CellG) {
+        v_SfnOffset := 957;
+        v_TcellFDD := 631;
+        v_TcellTDD := 77;
+      }
+      case (eutra_CellH) {
+        v_SfnOffset := 1015;
+        v_TcellFDD := 31351;
+        v_TcellTDD := 154
+          }
+      case (eutra_CellI) {
+        v_SfnOffset := 890;
+        v_TcellFDD := 127200;
+        v_TcellTDD := 77;
+      }
+      case (eutra_CellJ) {
+        v_SfnOffset := 680;
+        v_TcellFDD := 1327;
+        v_TcellTDD := 77;
+      }
+      case (eutra_CellK) {
+        v_SfnOffset := 383;
+        v_TcellFDD := 157920;
+        v_TcellTDD := 154;
+      }
+      case (eutra_CellL) {
+        v_SfnOffset := 562;
+        v_TcellFDD := 188640;
+        v_TcellTDD := 307;
+      }
+      case (eutra_CellM) {
+        v_SfnOffset := 471;
+        if (p_CellsOnPLMN == LTE_CellsOnDifferentPLMN) {
+          v_TcellFDD := 122880;
+          v_TcellTDD := 307;
+        } else {
+          v_TcellFDD := 31244;
+          v_TcellTDD := 154;
+        };
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid cell Idendtity");
+      }
+    }
+    
+    v_CellTiming.SfnOffset := v_SfnOffset;
+    
+    select (p_FddOrTdd) {
+      case (TDD) {
+        v_CellTiming.Tcell := v_TcellTDD;
+      }
+      case (FDD) {
+        v_CellTiming.Tcell := v_TcellFDD;
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid mode");
+      }
+    }
+    return v_CellTiming;
+  }
+
+  function f_EUTRA_InitialisePRACH_RootSequenceIndex(EUTRA_CellId_Type p_CellId,
+                                                     EUTRA_FDD_TDD_Mode_Type p_FddOrTdd,
+                                                     EUTRA_NAS_NumOfPLMN_Type p_CellsOnPLMN)
+    return RootSequenceIndex_Type
+  { /* @sic R5096641 R5-104732 sic@ */
+    var RootSequenceIndex_Type v_RootSequenceIndexFDD := 0;
+    var RootSequenceIndex_Type v_RootSequenceIndexTDD := 0;
+    
+    select (p_CellId) {
+      case (eutra_Cell1) {v_RootSequenceIndexFDD:=22; v_RootSequenceIndexTDD:=0}
+      case (eutra_Cell2) {v_RootSequenceIndexFDD:=86; v_RootSequenceIndexTDD:=8}
+      case (eutra_Cell3) {v_RootSequenceIndexFDD:=22; v_RootSequenceIndexTDD:=0}
+      case (eutra_Cell4) {v_RootSequenceIndexFDD:=150; v_RootSequenceIndexTDD:=16}
+      case (eutra_Cell6) {v_RootSequenceIndexFDD:=22; v_RootSequenceIndexTDD:=0}
+      case (eutra_Cell10) {v_RootSequenceIndexFDD:=22; v_RootSequenceIndexTDD:=0}
+      case (eutra_Cell11) {v_RootSequenceIndexFDD:=214; v_RootSequenceIndexTDD:=24}
+      case (eutra_Cell12) {v_RootSequenceIndexFDD:=86; v_RootSequenceIndexTDD:=8}
+      case (eutra_Cell13) {v_RootSequenceIndexFDD:=86; v_RootSequenceIndexTDD:=8}
+      case (eutra_Cell14) {v_RootSequenceIndexFDD:=22; v_RootSequenceIndexTDD:=0}
+      case (eutra_Cell23) {v_RootSequenceIndexFDD:=150; v_RootSequenceIndexTDD:=16}
+      case (eutra_Cell28) {v_RootSequenceIndexFDD:=86; v_RootSequenceIndexTDD:=8}
+      case (eutra_Cell29) {v_RootSequenceIndexFDD:=86; v_RootSequenceIndexTDD:=8}
+      case (eutra_Cell30) {v_RootSequenceIndexFDD:=22; v_RootSequenceIndexTDD:=0}
+      case (eutra_CellA) {v_RootSequenceIndexFDD:=22; v_RootSequenceIndexTDD:=0}
+      case (eutra_CellB) {v_RootSequenceIndexFDD:=86; v_RootSequenceIndexTDD:=8}
+      case (eutra_CellC) {
+        if (p_CellsOnPLMN==LTE_AllCellsOnSamePLMN) {
+          v_RootSequenceIndexFDD:=22;
+          v_RootSequenceIndexTDD:=0;
+        } else {
+          v_RootSequenceIndexFDD:=150;
+          v_RootSequenceIndexTDD:=16;
+        }
+      }
+      case (eutra_CellD) {
+        if (p_CellsOnPLMN==LTE_AllCellsOnSamePLMN) {
+          v_RootSequenceIndexFDD:=150;
+          v_RootSequenceIndexTDD:=16;
+        } else {
+          v_RootSequenceIndexFDD:=214;
+          v_RootSequenceIndexTDD:=24;
+        }
+      }
+      case (eutra_CellE) {
+        v_RootSequenceIndexFDD:=22;
+        v_RootSequenceIndexTDD:=0;
+      }
+      case (eutra_CellG) {
+        v_RootSequenceIndexFDD:=86;
+        v_RootSequenceIndexTDD:=8;
+      }
+      case (eutra_CellH) {
+        v_RootSequenceIndexFDD:=150;
+        v_RootSequenceIndexTDD:=16;
+      }
+      case (eutra_CellI) {
+        v_RootSequenceIndexFDD:=22;
+        v_RootSequenceIndexTDD:=0;
+      }
+      case (eutra_CellJ) {
+        v_RootSequenceIndexFDD:=22;
+        v_RootSequenceIndexTDD:=0;
+      }
+      case (eutra_CellK) {
+        v_RootSequenceIndexFDD:=86;
+        v_RootSequenceIndexTDD:=8;
+      }
+      case (eutra_CellL) {
+        v_RootSequenceIndexFDD:=150;
+        v_RootSequenceIndexTDD:=16;
+      }
+      case (eutra_CellM) {
+        if (p_CellsOnPLMN==LTE_AllCellsOnSamePLMN) {
+          v_RootSequenceIndexFDD:=86;
+          v_RootSequenceIndexTDD:=8;
+        } else {
+          v_RootSequenceIndexFDD:=278;
+          v_RootSequenceIndexTDD:=32;
+        }
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid cellId value");
+      }
+    }
+    if (p_FddOrTdd == FDD) {
+      return v_RootSequenceIndexFDD;
+    } else {
+      return v_RootSequenceIndexTDD;
+    }
+  }
+
+  function fl_EUTRA_InitialiseRAR_TA(EUTRA_FDD_TDD_Mode_Type p_FddOrTdd,
+                                     CellTimingInfo_Type  p_CellTiming)  // @sic R5-121777 sic@
+    return RACH_TimingAdvance_Type
+  { /* @sic R5096691 sic@ */
+
+    var RACH_TimingAdvance_Type v_RAR_TA:= tsc_RACH_TA_Def;
+    
+    if (p_FddOrTdd == FDD) {
+      v_RAR_TA := tsc_RACH_TA_Def;
+    } else {
+        // for RAR TA = FLOOR((Tcell) mod 30720 / 16)
+        // @sic R5-121777 sic@
+        v_RAR_TA := (p_CellTiming.Tcell mod 30720)/16;
+    }
+    return v_RAR_TA;
+  }
+
+  function fl_EUTRA_ConvertDL_Bandwidth_ToSysinfoType(Dl_Bandwidth_Type p_DL_ChBandwidth) return EUTRA_SysinfoDL_Bandwidth_Type
+  {
+    var EUTRA_SysinfoDL_Bandwidth_Type v_SysinfoBandwith;
+    
+    select (p_DL_ChBandwidth){
+      case (n6){ v_SysinfoBandwith := n6  }
+      case (n15){ v_SysinfoBandwith := n15  }
+      case (n25){ v_SysinfoBandwith := n25  }
+      case (n50){ v_SysinfoBandwith := n50  }
+      case (n75){ v_SysinfoBandwith := n75  }
+      case (n100){ v_SysinfoBandwith := n100  }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value for ChannelBandwidth");
+      }
+    }
+    return v_SysinfoBandwith;
+  };
+
+  function fl_EUTRA_CheckSysinfoCombination(EUTRA_CellId_Type p_CellId,
+                                            Combination_Type p_SysinfoCombination) return Combination_Type
+  { /* @sic R5s120178 BASELINE MOVING 2012 (additional changes) sic@ */
+    var Combination_Type v_SysinfoCombination := p_SysinfoCombination;
+    
+    // Some cells ()14, 12, 13, 28, 29, 30) cannot be assigned to combination c3/c9/c10a as no content is specified for SIB5 in 36.508
+
+    if  (p_CellId == eutra_Cell14 or p_CellId == eutra_Cell12 or p_CellId == eutra_Cell13 or p_CellId == eutra_Cell28 or p_CellId == eutra_Cell29 or p_CellId == eutra_Cell30) {
+      select (p_SysinfoCombination) {
+        case (c3)  {v_SysinfoCombination := c1}
+        case (c9)  {v_SysinfoCombination := c4}
+        case (c12) {v_SysinfoCombination := c5}
+        case (c13) {v_SysinfoCombination := c2}     // @sic R5s110166 sic@
+      }
+    }
+    return v_SysinfoCombination;
+  };
+
+  function f_EUTRA_InitSystemInformation5(EUTRA_CellId_Type    p_CellId,
+                                          AllowedMeasBandwidth p_AllowedMeasBandwidth,
+                                          Dl_Bandwidth_Type    p_DL_Bandwidth,
+                                          Ul_Bandwidth_Type    p_UL_Bandwidth) return template (value) SystemInformationBlockType5
+  { /* @sic R5-096641 R5-104169 sic@ */
+    
+    var template (value) InterFreqCarrierFreqList v_InterFreqCarrierList;
+    var Frequency_fList_Type v_Frequency_PrimaryBand := f_EUTRA_InitFrequency_f1Tof4 (px_ePrimaryFrequencyBand, p_DL_Bandwidth, p_UL_Bandwidth);
+    var boolean v_QbasedTestCase := f_GetTestcaseAttrib_Qbased_Rsrq(testcasename());  // Set to TRUE if QBASED test case  @sic R5-121384 sic@
+    var integer v_InterFreq :=0 ;  // Counter used to assign QBASED inter freq parameters
+    
+    select (p_CellId) {
+      case (eutra_Cell1, eutra_Cell2, eutra_Cell4, eutra_Cell11) {
+        // For cell frequency of f1:  v_Frequency_PrimaryBand.f1
+        // SIB5 contents: f2, f3
+        if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {    // f3 is defined for the Band px_ePrimaryFrequencyBand
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, p_AllowedMeasBandwidth),
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f3, p_AllowedMeasBandwidth)
+          };
+        } else {  // f3 not defined for the band
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, p_AllowedMeasBandwidth)
+          };
+        }
+      }
+      case (eutra_Cell3, eutra_Cell23) {
+        // For cell frequency of f2:         v_Frequency_PrimaryBand.f2
+        // SIB5 contents: f1, f3
+        if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {    // f3 is defined for the Band px_ePrimaryFrequencyBand
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1, p_AllowedMeasBandwidth),
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f3, p_AllowedMeasBandwidth)
+          };
+        } else {  // f3 not defined for the band
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1, p_AllowedMeasBandwidth)
+          };
+        }
+      }
+      case (eutra_Cell6) {
+        // For cell frequency of f3:         v_Frequency_PrimaryBand.f3
+        // SIB5 contents: f1, f2
+        v_InterFreqCarrierList := {
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1, p_AllowedMeasBandwidth),
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, p_AllowedMeasBandwidth)
+        };
+      }
+      case (eutra_Cell10) {
+        // For cell frequency of f5:         v_Frequency_SecondaryBand.f1 (f5)
+        // SIB5 contents: f2, f3
+        if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {    // f3 is defined for the Band px_ePrimaryFrequencyBand
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, p_AllowedMeasBandwidth),
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f3, p_AllowedMeasBandwidth)
+          };
+        } else {  // f3 not defined for the band
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, p_AllowedMeasBandwidth)
+          };
+        }
+      }
+      case (eutra_CellA, eutra_CellB, eutra_CellD) {
+        // For cell frequency of f1:         v_Frequency_PrimaryBand.f1
+        // SIB5 contents: f2
+        v_InterFreqCarrierList := {
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, p_AllowedMeasBandwidth)
+        };
+      }
+      case (eutra_CellC, eutra_CellM) {
+        // For cell frequency of f2:         v_Frequency_PrimaryBand.f2
+        // SIB5 contents: f1
+        v_InterFreqCarrierList := {
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1, p_AllowedMeasBandwidth)
+        };
+      }
+      case (eutra_CellI, eutra_CellK, eutra_CellL) {    // when cell E is used
+        // For cell frequency of f3:         v_Frequency_PrimaryBand.f3
+        // SIB5 contents: f2
+        v_InterFreqCarrierList := {
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2, p_AllowedMeasBandwidth)
+        };
+      }
+      case (eutra_CellE) {
+        // For cell frequency of f2:         v_Frequency_PrimaryBand.f2
+        // SIB5 contents: f3
+        v_InterFreqCarrierList := {
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f3, p_AllowedMeasBandwidth)
+        };
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value Cell Id for SIB5 intialisation");
+      }
+    }
+    
+    if (v_QbasedTestCase) {
+      // For a QBASED test case
+       // Assign q-QualMin-r9 and threshX-Q-r9 acc to 36.508 Table 4.4.3.3-4
+       // @sic R5-121384 sic@
+      for (v_InterFreq := 0; v_InterFreq < lengthof(v_InterFreqCarrierList); v_InterFreq := v_InterFreq + 1) {
+        v_InterFreqCarrierList[v_InterFreq].q_QualMin_r9 := -20;
+        v_InterFreqCarrierList[v_InterFreq].threshX_Q_r9.threshX_HighQ_r9 := 5;
+        v_InterFreqCarrierList[v_InterFreq].threshX_Q_r9.threshX_LowQ_r9 := 5;
+      }
+    }  // For a non QBASED tc do nothing
+    
+    return cs_508_SystemInformationBlockType5_Def(v_InterFreqCarrierList);
+  }
+
+  function f_EUTRA_IRAT_InitSIB6(IRAT_CoOrd_SysInfo_Type p_SysInfoRx) return template (value) SystemInformationBlockType6
+  {
+    var template (omit) CarrierFreqListUTRA_FDD v_CarrierFreqListUTRA_FDD := omit;
+    var template (omit) CarrierFreqListUTRA_TDD v_CarrierFreqListUTRA_TDD := omit;
+    var boolean v_QbasedTestCase := f_GetTestcaseAttrib_Qbased_Rsrq(testcasename());  // Set to TRUE if QBASED test case  @sic R5-121384 sic@
+    var integer v_CountCarrierFreq :=0 ;  // Counter used to assign QBASED inter freq parameters
+    
+    if  (ischosen(p_SysInfoRx.Utran[0].FDD)) {
+      v_CarrierFreqListUTRA_FDD := cs_CarrierFreqListUTRA_FDD(cs_CarrierFreqUTRA_FDD(p_SysInfoRx.Utran[0].FDD.Freq),
+                                                              cs_CarrierFreqUTRA_FDD(p_SysInfoRx.Utran[2].FDD.Freq),
+                                                              cs_CarrierFreqUTRA_FDD(p_SysInfoRx.Utran[3].FDD.Freq));
+    } else {    // TDD
+      v_CarrierFreqListUTRA_TDD := cs_CarrierFreqListUTRA_TDD(cs_CarrierFreqUTRA_TDD(p_SysInfoRx.Utran[0].TDD.Freq),
+                                                              cs_CarrierFreqUTRA_TDD(p_SysInfoRx.Utran[2].TDD.Freq),
+                                                              cs_CarrierFreqUTRA_TDD(p_SysInfoRx.Utran[3].TDD.Freq));
+    }
+    
+    if (ischosen(p_SysInfoRx.Utran[0].FDD) and v_QbasedTestCase) {
+      // For a QBASED test case: assign threshX-Q-r9 acc to 36.508 Table 4.4.3.3-5
+      // @sic R5-121384 sic@
+      for (v_CountCarrierFreq := 0; v_CountCarrierFreq < lengthof(v_CarrierFreqListUTRA_FDD); v_CountCarrierFreq := v_CountCarrierFreq + 1) {
+        v_CarrierFreqListUTRA_FDD[v_CountCarrierFreq].threshX_Q_r9.threshX_HighQ_r9 := 5;
+        v_CarrierFreqListUTRA_FDD[v_CountCarrierFreq].threshX_Q_r9.threshX_LowQ_r9 := 5;
+      }
+    }  // For a non QBASED tc do nothing
+
+    return cs_508_SystemInformationBlockType6_Def(v_CarrierFreqListUTRA_FDD, v_CarrierFreqListUTRA_TDD);
+  }
+
+  function f_EUTRA_IRAT_InitSIB7 (IRAT_CoOrd_SysInfo_Type p_SysInfoRx) return template (value) SystemInformationBlockType7
+  {
+    return cs_508_SystemInformationBlockType7_Def({cs_CarrierFreqsInfoGERAN(cs_CarrierFreqsGERAN(p_SysInfoRx.Geran[0].Arfcn,
+                                                                                                 f_ConvertGERAN_Band(p_SysInfoRx.Geran[0].BandIndicator),
+                                                                                                 f_ConvertGERANNeighCell(p_SysInfoRx.Geran[1].Arfcn,
+                                                                                                                         p_SysInfoRx.Geran[2].Arfcn)))}); //@sic R5s120290 sic@
+  }
+
+  function f_EUTRA_IRAT_InitSIB8(IRAT_CoOrd_SysInfo_Type p_SysInfoRx) return template (value) SystemInformationBlockType8
+  {
+    // It is assumed that the coordination message received from C2K PTC will include 4 entries: all 4 for HRPD or all 4 for 1xRTT
+    var template (value) SystemInformationBlockType8 v_SIB8;
+    var template (value) BandClassListCDMA2000 v_BandClassListCDMA2000 := fl_EUTRA_GetBandClassListCDMA2000(p_SysInfoRx);
+    var template (value) NeighCellListCDMA2000 v_NeighCellListCDMA2000 := fl_EUTRA_GetNeighCellsList( p_SysInfoRx);
+    var template (omit) ParametersHRPD_Type  v_ParametersHRPD  := omit;
+    var template (omit) Parameters1XRTT_Type v_Parameters1XRTT := omit;
+    
+    if (p_SysInfoRx.Cdma2000[0].IsHRPD == true) { // CDMA2000 HRPD cell environment
+      // all 4 cells included in SIB8 are HRPD cells
+      v_ParametersHRPD  := cs_ParametersHRPD (v_BandClassListCDMA2000, v_NeighCellListCDMA2000);
+    }
+    else {                                      // CDMA2000 1XRTT cell environment
+      // all 4 cells are 1xRTT cells
+      v_Parameters1XRTT := cs_Parameters1xRTT (v_BandClassListCDMA2000, v_NeighCellListCDMA2000);
+    }
+    
+    v_SIB8 := cs_508_SystemInformationBlockType8_Def (v_ParametersHRPD, v_Parameters1XRTT);
+    return v_SIB8;
+  }
+
+  function fl_EUTRA_GetNeighCellsList (IRAT_CoOrd_SysInfo_Type p_SysInfoRx) return template (value) NeighCellListCDMA2000
+  {
+    var template (value) NeighCellListCDMA2000 v_NeighCellListCDMA2000;
+    var template (value) NeighCellsPerBandclassListCDMA2000 v_NeighCellsPerBandclassListCDMA2000 := {
+      cs_NeighCellsPerBandclassC2K (p_SysInfoRx.Cdma2000[0].Arfcn, {p_SysInfoRx.Cdma2000[0].PNOffset, p_SysInfoRx.Cdma2000[1].PNOffset}),
+      cs_NeighCellsPerBandclassC2K (p_SysInfoRx.Cdma2000[2].Arfcn, {p_SysInfoRx.Cdma2000[2].PNOffset}),
+      cs_NeighCellsPerBandclassC2K (p_SysInfoRx.Cdma2000[3].Arfcn, {p_SysInfoRx.Cdma2000[3].PNOffset})
+    };
+    
+    v_NeighCellListCDMA2000 := {
+      cs_NeighCellCDMA2000(f_EUTRA_ConvertBandClassInteger_ToCDMA2000(p_SysInfoRx.Cdma2000[0].BandClass),
+                           v_NeighCellsPerBandclassListCDMA2000)
+    };
+    return v_NeighCellListCDMA2000;
+  };
+
+  function fl_EUTRA_GetBandClassListCDMA2000 (IRAT_CoOrd_SysInfo_Type p_SysInfoRx) return template (value) BandClassListCDMA2000
+  {
+    var template (value) BandClassListCDMA2000 v_BandClassListCDMA2000;
+    
+    // We shall include only one instance per value e.g. {bc0, bc1} AND NOT {bc0, bc1, bc0}
+    // acc to 36.508 there is only 1 bandclass
+    v_BandClassListCDMA2000 := {
+      cs_BandClassInfoCDMA2000(f_EUTRA_ConvertBandClassInteger_ToCDMA2000(p_SysInfoRx.Cdma2000[0].BandClass))
+    };
+    return v_BandClassListCDMA2000;
+  };
+
+  function f_EUTRA_ConvertBandClassInteger_ToCDMA2000(integer p_BandClassInteger) return BandclassCDMA2000
+  {
+    var BandclassCDMA2000 v_BandclassCDMA2000 := bc0;
+    
+    select (p_BandClassInteger) {
+      case (0) {v_BandclassCDMA2000 := bc0}
+      case (1) {v_BandclassCDMA2000 := bc1}
+      case (2) {v_BandclassCDMA2000 := bc2}
+      case (3) {v_BandclassCDMA2000 := bc3}
+      case (4) {v_BandclassCDMA2000 := bc4}
+      case (5) {v_BandclassCDMA2000 := bc5}
+      case (6) {v_BandclassCDMA2000 := bc6}
+      case (7) {v_BandclassCDMA2000 := bc7}
+      case (8) {v_BandclassCDMA2000 := bc8}
+      case (9) {v_BandclassCDMA2000 := bc9}
+      case (10) {v_BandclassCDMA2000 := bc10}
+      case (11) {v_BandclassCDMA2000 := bc11}
+      case (12) {v_BandclassCDMA2000 := bc12}
+      case (13) {v_BandclassCDMA2000 := bc13}
+      case (14) {v_BandclassCDMA2000 := bc14}
+      case (15) {v_BandclassCDMA2000 := bc15}
+      case (16) {v_BandclassCDMA2000 := bc16}
+      case (17) {v_BandclassCDMA2000 := bc17}
+      case else {  FatalError (__FILE__, __LINE__, "invalid BandClass value");}
+    }
+    return v_BandclassCDMA2000;
+  }
+
+  function f_EUTRA_InitSystemInformation(EUTRA_CellId_Type                  p_CellId,
+                                         CellIdentity                       p_CellIdentity,
+                                         Combination_Type                   p_Combination,
+                                         FrequencyBand_Type                 p_FrequencyBand,
+                                         Dl_Bandwidth_Type                  p_DL_ChBandwidth,
+                                         Ul_Bandwidth_Type                  p_UL_ChBandwidth,
+                                         template (value) PLMN_IdentityList p_PLMN_Identity,
+                                         TrackingAreaCode                   p_TrackingAreaCode,
+                                         EUTRA_FDD_TDD_CellInfo_Type        p_FDD_TDD,
+                                         RootSequenceIndex_Type             p_RootSequenceIndex)
+    return template (value) BcchInfo_Type
+  { /* @sic R5-096641: parameterise RootSequenceIndex sic@ */
+    
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam(p_DL_ChBandwidth, p_UL_ChBandwidth);
+    var EUTRA_SysinfoDL_Bandwidth_Type v_SysinfoDL_Bandwidth := fl_EUTRA_ConvertDL_Bandwidth_ToSysinfoType (p_DL_ChBandwidth);
+    var template(omit) TDD_Config v_TDD_Config := omit;  // omitted in FDD
+    var boolean v_QbasedTestCase := f_GetTestcaseAttrib_Qbased_Rsrq(testcasename());  // Set to TRUE if QBASED test case  @sic R5-121384 sic@
+    
+    var template (value) BcchInfo_Type v_CellBcchInfo;
+    var template (value) BCCH_BCH_Message v_MIB;
+    var template (value) BCCH_DL_SCH_Message v_SIB1;
+    var template (value) SystemInformation_r8_IEs v_SIB2;
+    var template (value) SystemInformation_r8_IEs v_SIB3;
+    var template (value) SystemInformation_r8_IEs v_SIB5;
+    var template (value) SystemInformation_r8_IEs v_SIB6;
+    var template (value) SystemInformation_r8_IEs v_SIB7;
+    var template (value) SystemInformation_r8_IEs v_SIB8;
+    var template (value) SystemInformation_r8_IEs v_TwoSIBs;
+    var template (value) SystemInformationBlockType5 v_SystemInformation5;
+    var template (value) SoundingRS_UL_ConfigCommon v_SoundingRS_UL_ConfigCommon;
+    var template (value) PRACH_ConfigSIB v_PRACH_ConfigSIB;
+    
+    // --- Initialise MIB ---
+    v_MIB :=  cs_508_MasterInformationBlock_Init(v_SysinfoDL_Bandwidth);
+    
+    // --- Initialise variables for SIB1 ---
+    if (p_FDD_TDD.FDD_TDD == TDD) {  // initialise tdd-Configuration  to be used in SIB1
+      v_TDD_Config := cs_TDD_ConfigDef(p_FDD_TDD.TDD_SubframeAssignment);    // Value omitted in FDD
+    }
+    
+    // --- Initialise SIB1 ---
+    // -- A default scheduling assigned ----------
+    if (v_QbasedTestCase) {  // @sic R5-121384 sic@
+      v_SIB1 := cds_508_SystemInformationBlockType1_QBased(p_PLMN_Identity,
+                                                           p_TrackingAreaCode,
+                                                           p_CellIdentity,
+                                                           p_FrequencyBand,
+                                                           cs_SchedulingInfo_2SI( v_ChannelBandwidthDependency.SIB3_periodicity),
+                                                           v_TDD_Config);
+    } else {
+      v_SIB1 := cs_508_SystemInformationBlockType1_Def(p_PLMN_Identity,
+                                                       p_TrackingAreaCode,
+                                                       p_CellIdentity,
+                                                       p_FrequencyBand,
+                                                       cs_SchedulingInfo_2SI( v_ChannelBandwidthDependency.SIB3_periodicity),
+                                                       v_TDD_Config);
+    }
+    
+    // --- Initialise SIB2 ---
+    if (p_FDD_TDD.FDD_TDD == FDD) {            // FDD
+      v_SoundingRS_UL_ConfigCommon := cs_508_SoundingRS_UL_ConfigCommon_FDD(v_ChannelBandwidthDependency.SrsBandwidthConfiguration);
+      v_PRACH_ConfigSIB := cs_508_PRACH_ConfigSIB_FDD(v_ChannelBandwidthDependency.Prach_FrequencyOffset, p_RootSequenceIndex);
+    } else {                                   // TDD
+      v_SoundingRS_UL_ConfigCommon := cs_508_SoundingRS_UL_ConfigCommon_TDD(v_ChannelBandwidthDependency.SrsBandwidthConfiguration);
+      v_PRACH_ConfigSIB := cs_508_PRACH_ConfigSIB_TDD(v_ChannelBandwidthDependency.Prach_FrequencyOffset, p_RootSequenceIndex);
+    }
+    v_SIB2 := cs_SI_SIB2(cs_508_SystemInformationBlockType2_Def(omit,
+                                                                v_ChannelBandwidthDependency.N_RB_CQI,
+                                                                v_ChannelBandwidthDependency.Pusch_HoppingOffset,
+                                                                v_SoundingRS_UL_ConfigCommon,
+                                                                v_PRACH_ConfigSIB,
+                                                                tsc_P_b_1Tx));
+    // --- Initialise SIB3 ---
+    if (v_QbasedTestCase) {  // @sic R5-121384 sic@
+      v_SIB3 := cs_SI_SIB3 (cds_508_SystemInformationBlockType3_Qbased);
+    } else {
+      v_SIB3 := cs_SI_SIB3 (cs_508_SystemInformationBlockType3_Def);
+    }
+    
+    // --- Initialise all SYSINFO --
+    select (p_Combination) {
+      case (c1) {
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList :=  cs_SchedulingInfo_2SI( v_ChannelBandwidthDependency.SIB3_periodicity);
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2), cs_SystemInformation_Common(v_SIB3) });
+      }
+      case (c2) { // SIB4 Intra-Frequency
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList :=  cs_SchedulingInfo_3SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                    {sibType3},
+                                                                                                    v_ChannelBandwidthDependency.SIB4_periodicity,
+                                                                                                    {sibType4});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(cs_SI_SIB4( cs_508_SystemInformationBlockType4_Def)) }
+                                         );
+      }
+      case (c3) { // SIB5 Inter-Frequency
+        v_SystemInformation5 := f_EUTRA_InitSystemInformation5 (p_CellId , v_ChannelBandwidthDependency.AllowedMeasBandwidth, p_DL_ChBandwidth, p_UL_ChBandwidth);
+        v_SIB5 := cs_SI_SIB5(v_SystemInformation5);
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList :=  cs_SchedulingInfo_3SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                    {sibType3},
+                                                                                                    v_ChannelBandwidthDependency.SIB5_periodicity,
+                                                                                                    {sibType5});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_SIB5) }
+                                         );
+      }
+      case (c4) { // SIB6 UTRAN
+        v_SIB6 := cs_SI_SIB6( cs_508_SystemInformationBlockType6_Def(omit, omit));  // Initialise first UTRA FDD and TDD frequency list with OMIT
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_3SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB6_periodicity,
+                                                                                                   {sibType6});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_SIB6) }
+                                         );
+      }
+      case (c5) {   // SIB7 GERAN
+        v_SIB7 := cs_SI_SIB7( cs_508_SystemInformationBlockType7_Def(omit));  // List of GERAN frequencies assigned later after synchronisation with GERAN PTC
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_3SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB7_periodicity,
+                                                                                                   {sibType7});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_SIB7) }
+                                         );
+      }
+      case (c6) { // SIB2/SIB3/SIB8 for CDMA2000 @sic R5-103870 sic@
+        v_SIB8 := cs_SI_SIB8( cs_508_SystemInformationBlockType8_Def(omit, omit));  // 1XRTT or HRPD parameters assigned later after synchronisation with GERAN PTC
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_3SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB8_periodicity,
+                                                                                                   {sibType8});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_SIB8) }
+                                         );
+
+      }
+      case (c7) { // for eNodeB: broadcast SIB2/SIB3/SIB4/SIB9
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_4SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB4_periodicity,
+                                                                                                   {sibType4},
+                                                                                                   v_ChannelBandwidthDependency.SIB9_periodicity,
+                                                                                                   {sibType9});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(cs_SI_SIB4( cs_508_SystemInformationBlockType4_Def)),
+                                             cs_SystemInformation_Common(cs_SI_SIB9(cs_SystemInformationBlockType9_Def(char2oct ("3gppTest")))) }
+                                         );
+      }
+      case (c8) { // for ETWS: broadcast SIB2/SIB3/SIB10/SIB11
+        // Test cases using c8 shall be initialised with C1, C8 is started after the preamble
+        FatalError (__FILE__, __LINE__, "invalid sysinfo combination c8 shall be started inside the test case");
+      }
+      case (c9) {  // SIB2/SIB3/SIB5 Inter-Frequency + SIB6 UTRAN
+        v_SystemInformation5 := f_EUTRA_InitSystemInformation5 (p_CellId , v_ChannelBandwidthDependency.AllowedMeasBandwidth,p_DL_ChBandwidth, p_UL_ChBandwidth);
+        v_TwoSIBs := cs_SI_SIB5_SIB6( v_SystemInformation5,
+                                      cs_508_SystemInformationBlockType6_Def(omit, omit)); // Initialise first UTRA FDD and TDD frequency list with OMIT
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_3SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB5_periodicity,   // SIB5 and SIB6 have the same periodicity
+                                                                                                   {sibType5, sibType6});  // SIB5 and SIB6 in the same SI
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_TwoSIBs) }
+                                         );
+      }
+      case (c10) { //  SIB2/SIB3/SIB6 UTRAN + SIB7 GERAN
+        v_SIB6 := cs_SI_SIB6( cs_508_SystemInformationBlockType6_Def(omit, omit));  // Initialise first UTRA FDD and TDD frequency list with OMIT
+        v_SIB7 := cs_SI_SIB7( cs_508_SystemInformationBlockType7_Def(omit));  // List of GERAN frequencies assigned later after synchronisation with GERAN PTC
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_4SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB6_periodicity,
+                                                                                                   {sibType6},
+                                                                                                   v_ChannelBandwidthDependency.SIB7_periodicity,
+                                                                                                   {sibType7});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_SIB6),
+                                           cs_SystemInformation_Common(v_SIB7) }
+                                         );
+      }
+      case (c10a) { //  SIB2/SIB3/SIB5/SIB6 UTRAN + SIB7 GERAN
+        v_SystemInformation5 := f_EUTRA_InitSystemInformation5(p_CellId , v_ChannelBandwidthDependency.AllowedMeasBandwidth,p_DL_ChBandwidth, p_UL_ChBandwidth);
+        v_TwoSIBs := cs_SI_SIB5_SIB6(v_SystemInformation5,
+                                     cs_508_SystemInformationBlockType6_Def(omit, omit)); // Initialise first UTRA FDD and TDD frequency list with OMIT
+        v_SIB7 := cs_SI_SIB7(cs_508_SystemInformationBlockType7_Def(omit));  // List of GERAN frequencies assigned later after synchronisation with GERAN PTC
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_4SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB5_periodicity,   // SIB5 and SIB6 have the same periodicity
+                                                                                                   {sibType5, sibType6},
+                                                                                                   v_ChannelBandwidthDependency.SIB7_periodicity,
+                                                                                                   {sibType7});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_TwoSIBs),
+                                           cs_SystemInformation_Common(v_SIB7) }
+                                         );
+      }
+      case (c11) { // SIB2 + SIB3 + SIB4 + SIB6 UTRAN + SIB9
+        v_SIB6 := cs_SI_SIB6( cs_508_SystemInformationBlockType6_Def(omit, omit));  // Initialise first UTRA FDD and TDD frequency list with OMIT
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_5SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB4_periodicity,
+                                                                                                   {sibType4},
+                                                                                                   v_ChannelBandwidthDependency.SIB6_periodicity,
+                                                                                                   {sibType6},
+                                                                                                   v_ChannelBandwidthDependency.SIB9_periodicity,
+                                                                                                   {sibType9});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(cs_SI_SIB4( cs_508_SystemInformationBlockType4_Def)),
+                                           cs_SystemInformation_Common(v_SIB6),
+                                           cs_SystemInformation_Common(cs_SI_SIB9(cs_SystemInformationBlockType9_Def(char2oct ("3gppTest")))) }
+                                         );
+      }
+      case (c12) { // SIB2 + SIB3 + SIB5 + SIB7 GERAN   @sic R5-106551 sic@
+        v_SystemInformation5 := f_EUTRA_InitSystemInformation5(p_CellId, v_ChannelBandwidthDependency.AllowedMeasBandwidth, p_DL_ChBandwidth, p_UL_ChBandwidth);
+        v_SIB5 := cs_SI_SIB5(v_SystemInformation5);
+        v_SIB7 := cs_SI_SIB7(cs_508_SystemInformationBlockType7_Def(omit));  // List of GERAN frequencies assigned later after synchronisation with GERAN PTC
+        
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_4SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB5_periodicity,
+                                                                                                   {sibType5},
+                                                                                                   v_ChannelBandwidthDependency.SIB7_periodicity,
+                                                                                                   {sibType7});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(v_SIB5),
+                                           cs_SystemInformation_Common(v_SIB7) }
+                                         );
+      }
+      case (c13) { // SIB2 + SIB3 + SIB4 + SIB5 + SIB9 @sic R5-106551 R5-110471 sic@
+        v_SystemInformation5 := f_EUTRA_InitSystemInformation5(p_CellId , v_ChannelBandwidthDependency.AllowedMeasBandwidth, p_DL_ChBandwidth, p_UL_ChBandwidth);
+        v_SIB5 := cs_SI_SIB5(v_SystemInformation5);
+        
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_5SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB4_periodicity,
+                                                                                                   {sibType4},
+                                                                                                   v_ChannelBandwidthDependency.SIB5_periodicity,
+                                                                                                   {sibType5},
+                                                                                                   v_ChannelBandwidthDependency.SIB9_periodicity,
+                                                                                                   {sibType9});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(cs_SI_SIB4( cs_508_SystemInformationBlockType4_Def)),
+                                           cs_SystemInformation_Common(v_SIB5),
+                                           cs_SystemInformation_Common(cs_SI_SIB9(cs_SystemInformationBlockType9_Def(char2oct ("3gppTest")))) }
+                                         );
+      }
+      case (c14) { // SIB2 + SIB3 + SIB4 + SIB7 + SIB9 @sic R5-110471 sic@
+        v_SIB7 := cs_SI_SIB7(cs_508_SystemInformationBlockType7_Def(omit));  // List of GERAN frequencies assigned later after synchronisation with GERAN PTC
+        
+        v_SIB1.message_.c1.systemInformationBlockType1.schedulingInfoList := cs_SchedulingInfo_5SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                                                   {sibType3},
+                                                                                                   v_ChannelBandwidthDependency.SIB4_periodicity,
+                                                                                                   {sibType4},
+                                                                                                   v_ChannelBandwidthDependency.SIB7_periodicity,
+                                                                                                   {sibType7},
+                                                                                                   v_ChannelBandwidthDependency.SIB9_periodicity,
+                                                                                                   {sibType9});
+        v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                         v_SIB1,
+                                         { cs_SystemInformation_Common(v_SIB2),
+                                           cs_SystemInformation_Common(v_SIB3),
+                                           cs_SystemInformation_Common(cs_SI_SIB4( cs_508_SystemInformationBlockType4_Def)),
+                                           cs_SystemInformation_Common(v_SIB7),
+                                           cs_SystemInformation_Common(cs_SI_SIB9(cs_SystemInformationBlockType9_Def(char2oct ("3gppTest")))) }
+                                         );
+      }
+      // case (c15) FFS in 36.508 contains only SIB2 + SIB3
+      // case (c16) { // SIB2 + SIB3 + SIB4 + SIB13  for MBSFN  FFS
+      case (c17) { // for CMAS: broadcast SIB2/SIB3/SIB12
+                    // Test cases using c17 shall be initialised with C1, C8 is started after the preamble
+        FatalError(__FILE__, __LINE__, "invalid sysinfo combination c17 shall be started inside the test case");
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid sysinfo combination");
+      }
+    }
+    return v_CellBcchInfo;
+  }
+
+  function fl_EUTRA_InitNAS_forRRC_Cells(EUTRA_CellId_Type p_CellId,
+                                         FrequencyBand_Type  p_FrequencyBand) return NAS_Parameter_Type
+  {
+    var template (value) NAS_Parameter_Type v_NAS_Param;
+    var integer v_MmeGroupId := 32769;
+    var integer v_MmeCode := 1;
+
+    select (p_CellId){
+      case (eutra_Cell1, eutra_Cell2, eutra_Cell3, eutra_Cell4, eutra_Cell6, eutra_Cell10) {
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_Def, v_MmeGroupId, v_MmeCode);
+      }
+      case (eutra_Cell11, eutra_Cell23) {
+        v_NAS_Param.TrackingAreaCode := int2bit (2, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_Def, v_MmeGroupId, v_MmeCode); // @sic R5s100466 sic@
+      }
+      case (eutra_Cell12, eutra_Cell28){
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_002_11,  v_MmeGroupId, v_MmeCode);
+      }
+      case (eutra_Cell13, eutra_Cell29){
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_003_21, v_MmeGroupId, v_MmeCode);
+      }
+      case (eutra_Cell14, eutra_Cell30){
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_004_31, v_MmeGroupId, v_MmeCode);
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid cell Identity");
+      }
+    }
+    if (p_FrequencyBand == 6) {
+      v_NAS_Param.Guti_Parameters.PLMN_Identity.mcc := f_EUTRA_ConvertMCC_Nas2Asn(px_eJapanMCC_Band6);
+    };
+    
+    // Initialise Location Area Id
+    v_NAS_Param.LocationAreaCode := tsc_LAC_Def;
+    
+    return valueof(v_NAS_Param);  // Note: valueof cannot be avoided here
+  };
+
+  function fl_EUTRA_InitNAS_forNAS_Cells(EUTRA_CellId_Type p_CellId,
+                                         FrequencyBand_Type p_FrequencyBand) return NAS_Parameter_Type
+  {
+    var template (value) NAS_Parameter_Type v_NAS_Param;
+    
+    select (p_CellId){
+      case (eutra_CellA) {
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_Def, 32769, 1);
+      }
+      case (eutra_CellB) {
+        v_NAS_Param.TrackingAreaCode := int2bit (2, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_Def, 32770, 1);
+      }
+      case (eutra_CellC) {
+        v_NAS_Param.TrackingAreaCode := int2bit (3, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_Def, 32771, 1);
+      }
+      case (eutra_CellD) {
+        v_NAS_Param.TrackingAreaCode := int2bit (4, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_Def, 32772, 1);
+      }
+      case (eutra_CellE) {
+        v_NAS_Param.TrackingAreaCode := int2bit (3, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_002_101, 32777, 1);
+      }
+      case (eutra_CellG) {
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_001_02, 32775, 1);
+      }
+      case (eutra_CellH) {
+        v_NAS_Param.TrackingAreaCode := int2bit (2, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_001_02, 32776, 1);
+      }
+      case (eutra_CellI) {
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_002_101, 32777, 1);
+      }
+      case (eutra_CellJ) {
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_003_101, 32778, 1);
+      }
+      case (eutra_CellK) {
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_002_101, 32777, 1);
+      }
+      case (eutra_CellL) {
+        v_NAS_Param.TrackingAreaCode := int2bit (2, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_002_101, 32779, 1);
+      }
+      case (eutra_CellM) {
+        v_NAS_Param.TrackingAreaCode := int2bit (1, 16);
+        v_NAS_Param.Guti_Parameters := cs_Guti(cs_HPLMN_Def, 32769, 1);
+      }
+      
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid cell Idendtity");
+      }
+    }
+    
+    if (p_FrequencyBand == 6) {
+      v_NAS_Param.Guti_Parameters.PLMN_Identity.mcc := f_EUTRA_ConvertMCC_Nas2Asn(px_eJapanMCC_Band6);
+    };
+    
+    // Initialise Location Area Id
+    v_NAS_Param.LocationAreaCode := tsc_LAC_Def;
+    
+    return valueof(v_NAS_Param);  // Note: valueof cannot be avoided here
+  };
+
+  function f_EUTRA_CellInfo_Init(EUTRA_CellId_Type  p_CellId,
+                                 FrequencyBand_Type p_FrequencyBand,
+                                 Combination_Type   p_SysinfoCombination,
+                                 Dl_Bandwidth_Type  p_DL_Bandwidth,
+                                 Ul_Bandwidth_Type  p_UL_Bandwidth) return EUTRA_CellInfo_Type
+  {
+    var CellIdentities_Type v_CellIds  := fl_EUTRA_InitCellIdentities(p_CellId);
+    var EUTRA_FDD_TDD_CellInfo_Type v_FDD_TDD_Info := fl_EUTRA_InitFDD_TDD_FromBand(p_FrequencyBand);
+    var EUTRA_FDD_TDD_Mode_Type v_FDD_TDD := v_FDD_TDD_Info.FDD_TDD;
+    var CellTimingInfo_Type  v_Celltiming := fl_EUTRA_InitialiseCellTiming (p_CellId, v_FDD_TDD, LTE_AllCellsOnSamePLMN);   //the parameter "LTE_AllCellsOnSamePLMN" is dummy for RRC cells, it is used only for NAS test cases
+    var Combination_Type v_SysinfoCombination := fl_EUTRA_CheckSysinfoCombination(p_CellId, p_SysinfoCombination);
+    var RootSequenceIndex_Type v_RootSequenceIndex_Type := f_EUTRA_InitialisePRACH_RootSequenceIndex(p_CellId, v_FDD_TDD, LTE_AllCellsOnSamePLMN);
+    var RACH_TimingAdvance_Type  v_RAR_TA := fl_EUTRA_InitialiseRAR_TA(v_FDD_TDD, v_Celltiming); // @sic R5-121777 sic@
+    var CarrierFreqEUTRA v_UL_DL_Earfcn;
+    var NAS_Parameter_Type v_NAS_Param;
+    var template (value) BcchInfo_Type  v_BCCH_Info;
+    var template (value) EUTRA_CellInfo_Type v_CellInfo;
+    var Frequency_fList_Type v_Freq;
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam(p_DL_Bandwidth, p_UL_Bandwidth);  //@sic R5s090180: return CFI value sic@
+    
+    // Initialise Frequencies f1/f2/f3/f4
+    v_Freq := f_EUTRA_InitFrequency_f1Tof4(p_FrequencyBand, p_DL_Bandwidth, p_UL_Bandwidth);
+    
+    // Initialised Frequency per cell. See 36.508 Table 6.2.3.1-1
+    // Cell 1/2/4/11 -> Frequency f1
+    // Cell 3/12 -> Frequency f2
+    // Cell 6/13 -> Frequency f3
+    // Cell 14 -> Frequency f4
+    select (p_CellId) {
+      case (eutra_Cell1,
+            eutra_Cell2,
+            eutra_Cell4,
+            eutra_Cell11,
+            eutra_Cell10,
+            eutra_Cell30) {
+        v_UL_DL_Earfcn := v_Freq.f1;   //f1 or f5
+      }
+      case (eutra_Cell3,
+            eutra_Cell12,
+            eutra_Cell23,
+            eutra_Cell28,
+            eutra_Cell29) {   // @sic R5-121888 sic@
+        v_UL_DL_Earfcn := v_Freq.f2;  // f2
+      }
+      case (eutra_Cell6,
+            eutra_Cell13) {
+        v_UL_DL_Earfcn := v_Freq.f3;   // f3
+      }
+      case (eutra_Cell14) {
+        v_UL_DL_Earfcn := v_Freq.f4;   // f4
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid cell Idendtity");
+      }
+    }
+    
+    // Initialise NAS parameters
+    v_NAS_Param := fl_EUTRA_InitNAS_forRRC_Cells( p_CellId, p_FrequencyBand);
+    
+    // Initialise SYSINFO
+    v_BCCH_Info := f_EUTRA_InitSystemInformation(p_CellId,
+                                                 v_CellIds.CellIdentity,
+                                                 v_SysinfoCombination,
+                                                 p_FrequencyBand,
+                                                 p_DL_Bandwidth,
+                                                 p_UL_Bandwidth,
+                                                 cs_PlmnIdList_1Entry(v_NAS_Param.Guti_Parameters.PLMN_Identity),
+                                                 v_NAS_Param.TrackingAreaCode,
+                                                 v_FDD_TDD_Info,
+                                                 v_RootSequenceIndex_Type);
+    
+    v_CellInfo := cs_EUTRA_CellInfoDef(v_CellIds,
+                                       v_SysinfoCombination,
+                                       p_FrequencyBand,
+                                       v_UL_DL_Earfcn,
+                                       p_DL_Bandwidth,
+                                       p_UL_Bandwidth,
+                                       v_NAS_Param,
+                                       v_BCCH_Info,
+                                       v_Celltiming,
+                                       v_FDD_TDD_Info,
+                                       v_ChannelBandwidthDependency.Cfi,
+                                       v_RAR_TA,
+                                       v_ChannelBandwidthDependency.sr_PUCCH_ResourceIndex   // @sic R5s090312 sic@
+                                       ); // @sic R5s090180 sic@
+    return valueof(v_CellInfo);   // Note: valueof cannot be avoided here
+  };
+
+  function f_EUTRA_CellArray_Init(Combination_Type p_SysinfoCombination) return EUTRA_CellInfoList_Type
+  {
+    /* @sic R5-102223 : replace px_eDL_ChannelBandwidth to px_ePrimaryBandChannelBandwidth and px_eSecondaryBandChannelBandwidth sic@
+       @sic R5-102223 : delete px_eUL_ChannelBandwidth sic@ */
+    var EUTRA_CellInfoList_Type v_EUTRA_Cells;
+    var integer v_Index;
+    var Ul_Bandwidth_Type v_PrimaryBandChBandwidth_UL := f_ConvertDL_BandwidthToUL (px_ePrimaryBandChannelBandwidth);
+    var Ul_Bandwidth_Type v_SecondaryBandChBandwidth_UL := f_ConvertDL_BandwidthToUL (px_eSecondaryBandChannelBandwidth);
+    
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell1);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell1,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell2);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell2,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell3);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell3,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell4);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell4,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell6);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell6,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell10);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell10,
+                                                    px_eSecondaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_eSecondaryBandChannelBandwidth,
+                                                    v_SecondaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell11);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell11,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell12);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell12,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell13);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell13,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell14);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell14,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell23);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell23,
+                                                    px_ePrimaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_ePrimaryBandChannelBandwidth,
+                                                    v_PrimaryBandChBandwidth_UL);
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell28);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell28,
+                                                    px_eSecondaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_eSecondaryBandChannelBandwidth,
+                                                    v_SecondaryBandChBandwidth_UL);
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell29);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell29,
+                                                    px_eSecondaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_eSecondaryBandChannelBandwidth,
+                                                    v_SecondaryBandChBandwidth_UL);
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_Cell30);
+    v_EUTRA_Cells[v_Index] := f_EUTRA_CellInfo_Init(eutra_Cell30,
+                                                    px_eSecondaryFrequencyBand,
+                                                    p_SysinfoCombination,
+                                                    px_eSecondaryBandChannelBandwidth,
+                                                    v_SecondaryBandChBandwidth_UL);
+    return v_EUTRA_Cells;
+  }
+
+  function fl_EUTRA_NAS_CellInfo_Init(EUTRA_CellId_Type        p_CellId,
+                                      EUTRA_NAS_NumOfPLMN_Type p_CellsOnPLMN,
+                                      Combination_Type         p_SysinfoCombination,
+                                      FrequencyBand_Type       p_FrequencyBand,
+                                      Dl_Bandwidth_Type        p_DL_Bandwidth,
+                                      Ul_Bandwidth_Type        p_UL_Bandwidth,
+                                      EUTRA_NAS_CellSpecialFreq p_CellSpecialFreq) return EUTRA_CellInfo_Type
+  {
+    /*  @sic R5-106627 : delete p_CellTC_Type and replace it with p_SysinfoCombination sic@
+    */
+    var CellIdentities_Type v_CellIds  := fl_EUTRA_InitCellIdentities_NAS(p_CellId, p_CellsOnPLMN);
+    var EUTRA_FDD_TDD_CellInfo_Type v_FDD_TDD_Info:= fl_EUTRA_InitFDD_TDD_FromBand (p_FrequencyBand);
+    var EUTRA_FDD_TDD_Mode_Type v_FDD_TDD := v_FDD_TDD_Info.FDD_TDD;
+    var CellTimingInfo_Type  v_Celltiming := fl_EUTRA_InitialiseCellTiming (p_CellId, v_FDD_TDD, p_CellsOnPLMN);
+    var RootSequenceIndex_Type v_RootSequenceIndex_Type := f_EUTRA_InitialisePRACH_RootSequenceIndex (p_CellId, v_FDD_TDD, p_CellsOnPLMN);
+    var RACH_TimingAdvance_Type  v_RAR_TA := fl_EUTRA_InitialiseRAR_TA(v_FDD_TDD, v_Celltiming);  //@sic R5-121777 sic@
+    
+    var CarrierFreqEUTRA v_UL_DL_Earfcn;
+    var NAS_Parameter_Type v_NAS_Param;
+    var template (value) BcchInfo_Type v_BCCH_Info;
+    var template (value) EUTRA_CellInfo_Type v_CellInfo;
+    var Frequency_fList_Type v_Freq;
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam(p_DL_Bandwidth, p_UL_Bandwidth);  //@sic R5s090180: return CFI value sic@
+    var Combination_Type v_SysinfoCombination := p_SysinfoCombination;
+        
+    // Initialise Frequencies f1/f2/f3/f4
+    v_Freq:= f_EUTRA_InitFrequency_f1Tof4(p_FrequencyBand, p_DL_Bandwidth, p_UL_Bandwidth);
+    
+    // Initialise the Frequency of the cell.
+    select (p_CellsOnPLMN) {
+      case (LTE_AllCellsOnSamePLMN) {
+        // If all cells in the test case are on the same PLMN
+        // Acc. 36.508 Table 6.3.2.2-2
+        // Cell A/B/D -> frequency f1
+        // Cell C/M -> Frequency f2
+        // others Cells: any value as other cells are on a different PLMN
+        select (p_CellId) {
+          case (eutra_CellA, eutra_CellB,eutra_CellD) {
+            v_UL_DL_Earfcn := v_Freq.f1;   //f1
+          }
+          case (eutra_CellC, eutra_CellM) {
+            v_UL_DL_Earfcn := v_Freq.f2;  //f2
+          }
+          case else {  // others Cells: not applicable as other cells are on a different PLMN
+            v_UL_DL_Earfcn := v_Freq.f3;  //f3 Dummy value
+          }
+        }
+      }
+      case (LTE_CellsOnDifferentPLMN) {
+        // If all cells in the test case are on the same PLMN
+        select (p_CellSpecialFreq) {  // @sic R5-102140 sic@
+          case (LTE_NAS_NormalFreq) {   }
+          case (LTE_NAS_Usef1_f2) {
+            // Assign freq according to NOTE1 in 36.508 Table 6.3.2.2-3
+            // f1 and f2 not being allocated to any cell in the test case, f1 or f2 is allocated, instead of f3 and f4
+            v_Freq.f3 := v_Freq.f1;
+            v_Freq.f4:=v_Freq.f2;
+            }
+          case (LTE_NAS_Replacef3_f1) { // @sic R5-121081 sic@
+            // Assign freq according to NOTE1 in 36.508 Table 6.3.2.2-3
+            // except that f3 is replaced by f1
+            v_Freq.f3 := v_Freq.f1;
+           }
+          case (LTE_NAS_Replacef4_f1) { // @sic R5-121081 sic@
+            // Assign freq according to NOTE1 in 36.508 Table 6.3.2.2-3
+            // except that f4 is replaced by f1
+            v_Freq.f4 := v_Freq.f1;
+          }
+          case (LTE_NAS_Replacef3_f2) { // @sic R5-121081 sic@
+            // Assign freq according to NOTE1 in 36.508 Table 6.3.2.2-3
+            // except that f3 is replaced by f2
+            v_Freq.f3 := v_Freq.f2;
+            }
+          case else {
+             FatalError (__FILE__, __LINE__, "invalid value in p_CellSpecialFreq");
+             }
+        }
+        // Acc. 36.508 Table 6.3.2.2-3
+        // Cell A/B/C/D/M -> frequency f1
+        // Cell E/G/H -> Frequency f2
+        // Cell I/K/L -> Frequency f3
+        // Cell J -> Frequency f4
+        // others Cells: no Other cells
+        // The test frequency f3 or f4 is allocated to the cell if f1 and f2 are already allocated to the cells in the test.
+        select (p_CellId) {
+          case (eutra_CellA, eutra_CellB, eutra_CellC, eutra_CellD, eutra_CellM) {
+            v_UL_DL_Earfcn := v_Freq.f1;     //f1
+          }
+          case (eutra_CellE, eutra_CellG, eutra_CellH) {
+            v_UL_DL_Earfcn := v_Freq.f2;     //f2
+          }
+          case (eutra_CellI, eutra_CellK, eutra_CellL) {
+            v_UL_DL_Earfcn := v_Freq.f3;     //f3
+          }
+          case else {        // CellJ      f4
+            v_UL_DL_Earfcn := v_Freq.f4;
+          }
+        }
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value in p_CellSpecialFreq");
+      }
+    }
+    
+    // Initialise NAS parameters
+    v_NAS_Param := fl_EUTRA_InitNAS_forNAS_Cells( p_CellId, p_FrequencyBand);
+    
+    // SIB5 is not valid for NAS cells G, H & J
+    // @sic R5s110046 sic@
+    if (p_CellId == eutra_CellG or
+        p_CellId == eutra_CellH or
+        p_CellId == eutra_CellJ) {
+      select (p_SysinfoCombination){
+        case (c3) {v_SysinfoCombination := c1}
+        case (c9) {v_SysinfoCombination := c4}   // @sic R5s110593 sic@
+        case (c10a) {v_SysinfoCombination := c10}
+        case (c12) {v_SysinfoCombination := c5}
+        case (c13) {v_SysinfoCombination := c2}
+      }
+    }
+    
+    // Initialise BCCH info
+    v_BCCH_Info := f_EUTRA_InitSystemInformation(p_CellId,
+                                                 v_CellIds.CellIdentity,
+                                                 v_SysinfoCombination,       //All cells are by default intitialise with the same sysinfo combination
+                                                 p_FrequencyBand,
+                                                 p_DL_Bandwidth,
+                                                 p_UL_Bandwidth,
+                                                 cs_PlmnIdList_1Entry(v_NAS_Param.Guti_Parameters.PLMN_Identity),
+                                                 v_NAS_Param.TrackingAreaCode,
+                                                 v_FDD_TDD_Info,
+                                                 v_RootSequenceIndex_Type); // @sic R5s090180 sic@
+    
+    
+    v_CellInfo := cs_EUTRA_CellInfoDef(v_CellIds,
+                                       v_SysinfoCombination,
+                                       p_FrequencyBand,
+                                       v_UL_DL_Earfcn,
+                                       p_DL_Bandwidth,
+                                       p_UL_Bandwidth,
+                                       v_NAS_Param,
+                                       v_BCCH_Info,
+                                       v_Celltiming,
+                                       v_FDD_TDD_Info,
+                                       v_ChannelBandwidthDependency.Cfi,
+                                       v_RAR_TA,
+                                       v_ChannelBandwidthDependency.sr_PUCCH_ResourceIndex);   // @sic R5s090312 sic@
+    return valueof(v_CellInfo);  // Note: valueof cannot be avoided here
+  };
+
+  function f_EUTRA_NAS_CellArray_Init(EUTRA_NAS_NumOfPLMN_Type  p_CellsOnPLMN,
+                                      Combination_Type          p_SysinfoCombination,
+                                      EUTRA_NAS_CellSpecialFreq p_CellSpecialFreq) return EUTRA_CellInfoList_Type
+  {
+    /* @sic R5-102223 : replace px_eDL_ChannelBandwidth to px_ePrimaryBandChannelBandwidth and px_eSecondaryBandChannelBandwidth sic@
+     * @sic R5-102223 : delete px_eUL_ChannelBandwidth sic@
+     * @sic R5-106627 : delete p_CellTC_Type and replace it with p_SysinfoCombination sic@
+     */
+    var EUTRA_CellInfoList_Type v_EUTRA_Cells;
+    var integer v_Index;
+    var Ul_Bandwidth_Type v_PrimaryBandChBandwidth_UL := f_ConvertDL_BandwidthToUL (px_ePrimaryBandChannelBandwidth);
+    var Combination_Type v_SysinfoCombination := p_SysinfoCombination;
+    
+    // Check SYSINFO combination for Band 13
+    // In band 13, only f1 is available, then SIB5 shall not be broadcast
+    // @sic R5-106627 sic@
+    if (px_ePrimaryFrequencyBand == 13) {
+      select (p_SysinfoCombination){
+        case (c3) {v_SysinfoCombination := c1}
+        case (c9) {v_SysinfoCombination := c4}
+        case (c10a) {v_SysinfoCombination := c10}    // @sic R5s110593 sic@
+        case (c12) {v_SysinfoCombination := c5}
+        case (c13) {v_SysinfoCombination := c2}
+      }
+    }
+    
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellA);
+    v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellA,
+                                                         p_CellsOnPLMN,
+                                                         v_SysinfoCombination,
+                                                         px_ePrimaryFrequencyBand,
+                                                         px_ePrimaryBandChannelBandwidth,
+                                                         v_PrimaryBandChBandwidth_UL,
+                                                         p_CellSpecialFreq);
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellB);
+    v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellB,
+                                                         p_CellsOnPLMN,
+                                                         v_SysinfoCombination,
+                                                         px_ePrimaryFrequencyBand,
+                                                         px_ePrimaryBandChannelBandwidth,
+                                                         v_PrimaryBandChBandwidth_UL,
+                                                         p_CellSpecialFreq);
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellC);
+    v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellC,
+                                                         p_CellsOnPLMN,
+                                                         v_SysinfoCombination,
+                                                         px_ePrimaryFrequencyBand,
+                                                         px_ePrimaryBandChannelBandwidth,
+                                                         v_PrimaryBandChBandwidth_UL,
+                                                         p_CellSpecialFreq);
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellD);
+    v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellD,
+                                                         p_CellsOnPLMN,
+                                                         v_SysinfoCombination,
+                                                         px_ePrimaryFrequencyBand,
+                                                         px_ePrimaryBandChannelBandwidth,
+                                                         v_PrimaryBandChBandwidth_UL,
+                                                         p_CellSpecialFreq);
+    v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellM);
+    v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellM,
+                                                         p_CellsOnPLMN,
+                                                         v_SysinfoCombination,
+                                                         px_ePrimaryFrequencyBand,
+                                                         px_ePrimaryBandChannelBandwidth,
+                                                         v_PrimaryBandChBandwidth_UL,
+                                                         p_CellSpecialFreq);
+    if (p_CellsOnPLMN == LTE_CellsOnDifferentPLMN) {
+      v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellE);
+      v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellE,            // @sic R5s090310 sic@
+                                                           p_CellsOnPLMN,
+                                                           v_SysinfoCombination,
+                                                           px_ePrimaryFrequencyBand,
+                                                           px_ePrimaryBandChannelBandwidth,
+                                                           v_PrimaryBandChBandwidth_UL,
+                                                           p_CellSpecialFreq);
+      v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellG);
+      v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellG,
+                                                           p_CellsOnPLMN,
+                                                           v_SysinfoCombination,
+                                                           px_ePrimaryFrequencyBand,
+                                                           px_ePrimaryBandChannelBandwidth,
+                                                           v_PrimaryBandChBandwidth_UL,
+                                                           p_CellSpecialFreq);
+      v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellH);
+      v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellH,
+                                                           p_CellsOnPLMN,
+                                                           v_SysinfoCombination,
+                                                           px_ePrimaryFrequencyBand,
+                                                           px_ePrimaryBandChannelBandwidth,
+                                                           v_PrimaryBandChBandwidth_UL,
+                                                           p_CellSpecialFreq);
+      v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellI);
+      v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellI,
+                                                           p_CellsOnPLMN,
+                                                           v_SysinfoCombination,
+                                                           px_ePrimaryFrequencyBand,
+                                                           px_ePrimaryBandChannelBandwidth,
+                                                           v_PrimaryBandChBandwidth_UL,
+                                                           p_CellSpecialFreq);
+      v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellJ);
+      v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellJ,
+                                                           p_CellsOnPLMN,
+                                                           v_SysinfoCombination,
+                                                           px_ePrimaryFrequencyBand,
+                                                           px_ePrimaryBandChannelBandwidth,
+                                                           v_PrimaryBandChBandwidth_UL,
+                                                           p_CellSpecialFreq);
+      v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellK);
+      v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellK,
+                                                           p_CellsOnPLMN,
+                                                           v_SysinfoCombination,
+                                                           px_ePrimaryFrequencyBand,
+                                                           px_ePrimaryBandChannelBandwidth,
+                                                           v_PrimaryBandChBandwidth_UL,
+                                                           p_CellSpecialFreq);
+      v_Index := f_EUTRA_CellInfo_GetIndex (eutra_CellL);
+      v_EUTRA_Cells[v_Index] := fl_EUTRA_NAS_CellInfo_Init(eutra_CellL,
+                                                           p_CellsOnPLMN,
+                                                           v_SysinfoCombination,
+                                                           px_ePrimaryFrequencyBand,
+                                                           px_ePrimaryBandChannelBandwidth,
+                                                            v_PrimaryBandChBandwidth_UL,
+                                                           p_CellSpecialFreq);
+    }
+    return v_EUTRA_Cells;
+  }
+
+  function f_EUTRA_CellInfo_Get(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return EUTRA_CellInfo_Type
+  {
+    var integer v_Index := f_EUTRA_CellInfo_GetIndex(p_CellId);
+    return vc_EUTRA_Global.CellArray[v_Index];
+  }
+
+  function f_EUTRA_CellInfo_GetDrxCtrl(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return DrxCtrl_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.DrxCtrl;
+  }
+
+  function f_EUTRA_CellInfo_DrxIsConfigured(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return boolean
+  {
+    var DrxCtrl_Type v_DrxCtrl := f_EUTRA_CellInfo_GetDrxCtrl(p_CellId);
+    return not ischosen(v_DrxCtrl.None); /* @sic R5110303 sic@ */
+  }
+
+  function f_EUTRA_CellInfo_GetMeasGapCtrl(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return MeasGapCtrl_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.MeasGapCtrl;
+  }
+
+  function f_EUTRA_CellInfo_MeasGapIsConfigured(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return boolean
+  {
+    var MeasGapCtrl_Type v_MeasGapCtrl := f_EUTRA_CellInfo_GetMeasGapCtrl(p_CellId);
+    return not ischosen(v_MeasGapCtrl.None);
+  }
+
+  function f_EUTRA_CellInfo_GetFDD_TDD(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return EUTRA_FDD_TDD_Mode_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.FDD_TDD_Info.FDD_TDD;
+  }
+
+  function f_EUTRA_CellInfo_GetFDD_TDD_Info(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return EUTRA_FDD_TDD_CellInfo_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.FDD_TDD_Info;
+  }
+
+  function f_EUTRA_CellInfo_GetSR_ConfigIndex(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return SR_ConfigIndex_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.FDD_TDD_Info.sr_ConfigIndex;
+  }
+
+  function f_EUTRA_CellInfo_GetPCCH_ConfigInSYSINFO(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return PCCH_Config
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.pcch_Config;
+  }
+
+  function f_EUTRA_CellInfo_GetSYSINFO(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return EUTRA_CellSysInfo_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Sysinfo;
+  }
+
+  function f_EUTRA_CellInfo_GetSib6(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return SystemInformationBlockType6
+  {
+    var EUTRA_CellSysInfo_Type v_SysInfo := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    return v_SysInfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib6;
+  }
+
+  function f_EUTRA_CellInfo_GetSib7(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return SystemInformationBlockType7
+  {
+    var SystemInformationBlockType7 v_SystemInformationBlockType7;
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    // SIB7 is only available in combination 5, 10 and 12
+    select (v_CellInfo.Sysinfo.Combination) {
+      case (c5){
+        v_SystemInformationBlockType7 := v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib7;
+      }
+      case (c10, c12, c10a){
+        v_SystemInformationBlockType7 := v_CellInfo.Sysinfo.BCCH_Info.SIs[3].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib7;
+      }
+      case else {//Other combinations: nothing to return
+        FatalError(__FILE__, __LINE__, "SIB7 is not availabe in cell");
+      }
+    }
+    return v_SystemInformationBlockType7;
+  }
+
+  function f_EUTRA_CellInfo_GetT300(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return integer
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    var T300_Type v_T300;
+    var integer v_T300_Integer;
+    // current enumerated type in asn.1 ENUMERATED {ms100, ms200, ms400, ms600, ms1000, ms1500, ms2000, spare1},
+    v_T300 := v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.ue_TimersAndConstants.t300;
+    select (v_T300) {
+      case (ms100) {v_T300_Integer := 100;}
+      case (ms200) {v_T300_Integer := 200;}
+      case (ms400) {v_T300_Integer := 400;}
+      case (ms600) {v_T300_Integer := 600;}
+      case (ms1000) {v_T300_Integer := 1000;}
+      case (ms1500) {v_T300_Integer := 1500;}
+      case (ms2000) {v_T300_Integer := 2000;}
+      case else { FatalError(__FILE__, __LINE__, "T300 has unrecognizable value");}
+    };
+    return v_T300_Integer;
+  }
+
+  function f_EUTRA_CellInfo_GetGuti (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return GutiParameters_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.NAS_Parameters.Guti_Parameters;
+  }
+
+  function f_EUTRA_CellInfo_GetGutiPLMN (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return PLMN_Identity
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.NAS_Parameters.Guti_Parameters.PLMN_Identity;
+  }
+
+  function f_EUTRA_CellInfo_GetTAC (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return TrackingAreaCode
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.NAS_Parameters.TrackingAreaCode;
+  }
+
+  function f_EUTRA_CellInfo_GetEARFCN (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return CarrierFreqEUTRA
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Frequency.UL_DL_Earfcn;
+  }
+
+  function f_EUTRA_CellInfo_GetEARFCN_DL (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return ARFCN_ValueEUTRA
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Frequency.UL_DL_Earfcn.dl_CarrierFreq;
+  }
+
+  function f_EUTRA_CellInfo_GetPhyCellId (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return PhysCellId
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.CellIds.PhysicalCellId;
+  }
+
+  function f_EUTRA_CellInfo_GetFrequencyIEs (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return Frequency_IE_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Frequency;
+  }
+
+  function f_EUTRA_CellInfo_GetAddSpectrumEmission (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return AdditionalSpectrumEmission_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.freqInfo.additionalSpectrumEmission;
+  }
+
+  function f_EUTRA_CellInfo_GetLocationAreaCode(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return NAS_Lac
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.NAS_Parameters.LocationAreaCode;
+  }
+
+  function f_EUTRA_CellInfo_GetC_RNTI(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return C_RNTI
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.RNTI.C_RNTI;
+  }
+
+  function f_EUTRA_CellInfo_GetCombination(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return Combination_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Sysinfo.Combination;
+  }
+
+  function f_EUTRA_CellInfo_GetDL_ChBandwidth(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return Dl_Bandwidth_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Frequency.DL_ChBandwidth;
+  }
+
+  function f_EUTRA_CellInfo_GetUL_ChBandwidth(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return Ul_Bandwidth_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Frequency.UL_ChBandwidth;
+  }
+
+  function f_EUTRA_CellInfo_GetBand (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return FrequencyBand_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Frequency.FrequencyBandIndicator;
+  }
+
+  function f_EUTRA_CellInfo_GetRootSequenceIndex (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return RootSequenceIndex_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.prach_Config.rootSequenceIndex;
+  }
+
+  function f_EUTRA_CellInfo_GetRAR_TA (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return RACH_TimingAdvance_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.PhysicalParameters.RAR_TA;
+  }
+
+  function f_EUTRA_CellInfo_GetSR_PUCCH_ResourceIndex(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return SR_PUCCH_ResourceIndex_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.PhysicalParameters.sr_PUCCH_ResourceIndex;
+  }
+
+  function f_EUTRA_CellInfo_GetCellIdentity (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return CellIdentity
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.CellIds.CellIdentity;
+  }
+
+  function f_EUTRA_CellInfo_GetAntennaInfoCommon (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return template (omit) AntennaInfoCommon
+  {
+   // @sic R5s110314 sic@
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.AntennaInfo.AntennaInfoCommon;
+  }
+
+  function f_EUTRA_CellInfo_GetAntennaInfoDedicated (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return PhysicalConfigDedicated_AntennaInfo_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.AntennaInfo.AntennaInfoDedicated;
+  }
+
+  function f_EUTRA_CellInfo_GetCellTimingInfo(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return CellTimingInfo_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.CellTimingInfo;
+  }
+
+  function f_EUTRA_CellInfo_GetSounding_ConfigCommon(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return SoundingRS_UL_ConfigCommon
+  {
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo_Type := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    return v_EUTRA_CellSysInfo_Type.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.soundingRS_UL_ConfigCommon;
+  }
+
+  function f_EUTRA_CellInfo_GetPusch_ConfigCommon(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return PUSCH_ConfigCommon
+  {
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo_Type := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    return v_EUTRA_CellSysInfo_Type.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.pusch_ConfigCommon;
+  }
+
+  function f_EUTRA_CellInfo_GetPrach_Config(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return PRACH_ConfigSIB
+  {
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo_Type := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    return v_EUTRA_CellSysInfo_Type.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.prach_Config;
+  }
+
+  function f_EUTRA_CellInfo_GetTDD_Config(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return template (omit) TDD_Config
+  {
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo_Type := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    return v_EUTRA_CellSysInfo_Type.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.tdd_Config;
+  }
+
+  function f_EUTRA_CellInfo_GetRach_ConfigCommon(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return RACH_ConfigCommon
+  {
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo_Type := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    return v_EUTRA_CellSysInfo_Type.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.rach_ConfigCommon;
+  }
+
+  function f_EUTRA_CellInfo_Set(EUTRA_CellId_Type p_CellId,
+                                template (value) EUTRA_CellInfo_Type p_CellInfo) runs on EUTRA_PTC
+  {
+    var integer v_Index := f_EUTRA_CellInfo_GetIndex(p_CellId);
+    vc_EUTRA_Global.CellArray[v_Index] := valueof (p_CellInfo);   /* valueof cannot be avoided here */
+  }
+
+  function f_EUTRA_CellInfo_SetDrxCtrl(EUTRA_CellId_Type p_CellId,
+                                       DrxCtrl_Type p_DrxCtrl) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    v_CellInfo.DrxCtrl := p_DrxCtrl;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetMeasGapCtrl(EUTRA_CellId_Type p_CellId,
+                                           MeasGapCtrl_Type p_MeasGapCtrl) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    v_CellInfo.MeasGapCtrl := p_MeasGapCtrl;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin(EUTRA_CellId_Type p_CellId,
+                                                  Q_Rxlevmin_Type p_Q_Rxlevmin) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellSelectionInfo.q_RxLevMin := p_Q_Rxlevmin;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetTAC(EUTRA_CellId_Type p_CellId,
+                                   TrackingAreaCode p_TAC) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+
+    v_CellInfo.NAS_Parameters.TrackingAreaCode := p_TAC;
+    v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.trackingAreaCode := p_TAC;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetGuti(EUTRA_CellId_Type p_CellId,
+                                    template (value) GutiParameters_Type p_Guti) runs on EUTRA_PTC
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    var template (value) EUTRA_CellInfo_Type v_NewCellInfo := v_CellInfo;
+    
+    if (v_CellInfo.Frequency.FrequencyBandIndicator == 6) {
+      // For Band 6: set MCC to the Japan MCC value
+      v_NewCellInfo.NAS_Parameters.Guti_Parameters := p_Guti;
+      v_NewCellInfo.NAS_Parameters.Guti_Parameters.PLMN_Identity.mcc := f_EUTRA_ConvertMCC_Nas2Asn(px_eJapanMCC_Band6);
+      v_NewCellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[0].plmn_Identity.mcc := f_EUTRA_ConvertMCC_Nas2Asn(px_eJapanMCC_Band6);
+      v_NewCellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[0].plmn_Identity.mnc := p_Guti.PLMN_Identity.mnc;
+    } else {
+      v_NewCellInfo.NAS_Parameters.Guti_Parameters := p_Guti;
+      v_NewCellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[0].plmn_Identity.mcc := p_Guti.PLMN_Identity.mcc;  // @sic R5s100008 sic@
+      v_NewCellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[0].plmn_Identity.mnc := p_Guti.PLMN_Identity.mnc;  // @sic R5s100008 sic@
+    }
+    f_EUTRA_CellInfo_Set (p_CellId, v_NewCellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_T300(EUTRA_CellId_Type p_CellId,
+                                            T300_Type p_T300) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.ue_TimersAndConstants.t300 := p_T300;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_T301(EUTRA_CellId_Type p_CellId,
+                                            T301_Type p_T301) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.ue_TimersAndConstants.t301 := p_T301;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_T310(EUTRA_CellId_Type p_CellId,
+                                            T310_Type p_T310) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.ue_TimersAndConstants.t310 := p_T310;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetPreambleTransMax(EUTRA_CellId_Type p_CellId,
+                                                PreambleTransMax_Type p_PreambleTransMax) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.rach_ConfigCommon.ra_SupervisionInfo.preambleTransMax := p_PreambleTransMax;     /* @sic R5s100135 sic@ */
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetRa_ResponseWindowSize(EUTRA_CellId_Type p_CellId,
+                                                     Ra_ResponseWindowSize_Type p_Ra_RespWinSize) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.rach_ConfigCommon.ra_SupervisionInfo.ra_ResponseWindowSize := p_Ra_RespWinSize;     /* @sic R5s100135 sic@ */
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_Q_Hyst(EUTRA_CellId_Type p_CellId,
+                                              Q_Hyst_Type p_Q_Hyst) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[1].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib3.cellReselectionInfoCommon.q_Hyst := p_Q_Hyst;  // @sic R5s100281 sic@
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_SetCellConfigCapability(EUTRA_CellId_Type p_CellId,
+                                           CellConfigCapability_Type p_CellConfigCapability) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.CellConfigCapability := p_CellConfigCapability;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_SetSB1_ValueTag(EUTRA_CellId_Type p_CellId,
+                                   boolean p_SB1_ValueTagChanged) runs on EUTRA_PTC
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.SB1_ValueTagChanged := p_SB1_ValueTagChanged;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_SetSysinfo(EUTRA_CellId_Type p_CellId,
+                              EUTRA_CellSysInfo_Type p_CellSysInfo) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo := p_CellSysInfo;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_T_Reselection(EUTRA_CellId_Type p_CellId,
+                                                     T_ReselectionEutran_Type p_T_ReselectionEutran) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[1].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib3.intraFreqCellReselectionInfo.t_ReselectionEUTRA := p_T_ReselectionEutran;  // @sic R5s100281 sic@
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  type record of PLMN_Identity  PLMN_IdentityList_Type;   /* local type definition; @status    APPROVED */
+
+  function f_EUTRA_CellInfo_SetPLMN_Common(EUTRA_CellId_Type p_CellId,
+                                           template (value) PLMN_IdentityList_Type p_PlmnList,
+                                           integer p_PlmnIndex := 0) runs on EUTRA_PTC
+  { // @sic R5s110468: adding parameter p_PlmnIndex  sic@
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    var template (value) EUTRA_CellInfo_Type v_NewCellInfo := v_CellInfo;
+    var integer v_NoOfPlmns := lengthof(p_PlmnList);
+    var MCC v_MCC_JapanBand6;
+    var integer i;
+    
+    v_NewCellInfo.NAS_Parameters.Guti_Parameters.PLMN_Identity := p_PlmnList[p_PlmnIndex];  // @sic R5s110468 sic@
+    for (i:=0; i<v_NoOfPlmns; i:=i+1) {
+      v_NewCellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[i].plmn_Identity := p_PlmnList[i];
+      v_NewCellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[i].cellReservedForOperatorUse := notReserved; //@sic R5s100850 sic@
+    }
+
+    if (v_CellInfo.Frequency.FrequencyBandIndicator == 6) {
+      // For Band 6: set MCC to the Japan MCC value
+      v_MCC_JapanBand6 := f_EUTRA_ConvertMCC_Nas2Asn(px_eJapanMCC_Band6);
+      v_NewCellInfo.NAS_Parameters.Guti_Parameters.PLMN_Identity.mcc := v_MCC_JapanBand6;
+      
+      for (i:=0; i<v_NoOfPlmns; i:=i+1) {
+        v_NewCellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[i].plmn_Identity.mcc := v_MCC_JapanBand6;
+      }
+    }
+    f_EUTRA_CellInfo_Set(p_CellId, v_NewCellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetPLMN_1Entry(EUTRA_CellId_Type p_CellId,
+                                           template (value) PLMN_Identity p_PLMN) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellInfo_SetPLMN_Common (p_CellId, {p_PLMN});
+  }
+
+  function f_EUTRA_CellInfo_SetPLMN_2Entries(EUTRA_CellId_Type p_CellId,
+                                             template (value) PLMN_Identity p_PLMN1,
+                                             template (value) PLMN_Identity p_PLMN2,
+                                             integer p_PlmnIndex := 0) runs on EUTRA_PTC
+  { // @sic R5s110468: adding parameter p_PlmnIndex sic@
+    f_EUTRA_CellInfo_SetPLMN_Common (p_CellId, {p_PLMN1, p_PLMN2}, p_PlmnIndex);    // @sic R5s110468 sic@
+  }
+
+  function f_EUTRA_CellInfo_SetPLMN_3Entries(EUTRA_CellId_Type p_CellId,
+                                               template (value) PLMN_Identity p_PLMN1,
+                                               template (value) PLMN_Identity p_PLMN2,
+                                               template (value) PLMN_Identity p_PLMN3,
+                                               integer p_PlmnIndex := 0) runs on EUTRA_PTC
+  { // @sic R5s110468: adding parameter p_PlmnIndex  sic@
+    f_EUTRA_CellInfo_SetPLMN_Common (p_CellId, {p_PLMN1, p_PLMN2, p_PLMN3}, p_PlmnIndex);   // @sic R5s110468 sic@
+  }
+
+  function f_EUTRA_ChangeSysinfoCombination(EUTRA_CellId_Type p_CellId,
+                                            Combination_Type p_Combination) runs on EUTRA_PTC
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    var template (value) EUTRA_CellInfo_Type v_NewCellInfo := v_CellInfo;
+    var template(value) BcchInfo_Type v_Bcch_Info;
+    var RootSequenceIndex_Type v_RootSequenceIndex_Type := f_EUTRA_InitialisePRACH_RootSequenceIndex (p_CellId, v_CellInfo.FDD_TDD_Info.FDD_TDD, LTE_AllCellsOnSamePLMN);
+    
+    v_Bcch_Info := f_EUTRA_InitSystemInformation(p_CellId,
+                                                 v_CellInfo.CellIds.CellIdentity,
+                                                 p_Combination,
+                                                 v_CellInfo.Frequency.FrequencyBandIndicator,
+                                                 v_CellInfo.Frequency.DL_ChBandwidth,
+                                                 v_CellInfo.Frequency.UL_ChBandwidth,
+                                                 cs_PlmnIdList_1Entry(v_CellInfo.NAS_Parameters.Guti_Parameters.PLMN_Identity),
+                                                 v_CellInfo.NAS_Parameters.TrackingAreaCode,
+                                                 v_CellInfo.FDD_TDD_Info,
+                                                 v_RootSequenceIndex_Type);
+    v_NewCellInfo.Sysinfo.Combination := p_Combination;
+    v_NewCellInfo.Sysinfo.BCCH_Info := v_Bcch_Info;
+    f_EUTRA_CellInfo_Set(p_CellId, v_NewCellInfo);
+  }
+
+  function f_EUTRA_SetSysinfoCombinationC8_ETWS(EUTRA_CellId_Type p_CellId,
+                                                template (value) SystemInformationBlockType10 p_Sib10,
+                                                template (value) SegmentedSI_List_Type p_SegmentedSiList) runs on EUTRA_PTC
+  {
+    var template (value) BcchInfo_Type v_CellBcchInfo;
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    var template (value) BCCH_BCH_Message v_MIB := v_EUTRA_CellSysInfo.BCCH_Info.MIB;
+    var template (value) BCCH_DL_SCH_Message v_SI_SIB2 := v_EUTRA_CellSysInfo.BCCH_Info.SIs[0];
+    var template (value) BCCH_DL_SCH_Message v_SI_SIB3 := v_EUTRA_CellSysInfo.BCCH_Info.SIs[1];
+    var template (value) BCCH_DL_SCH_Message v_SIB1;
+    var GutiParameters_Type v_Guti_Params := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var EUTRA_FDD_TDD_CellInfo_Type v_FDD_TDDInfo := f_EUTRA_CellInfo_GetFDD_TDD_Info (p_CellId);
+    var template(omit) TDD_Config v_TDD_Config := omit;  // omitted in FDD
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam(f_EUTRA_CellInfo_GetDL_ChBandwidth (p_CellId),
+                                                                                                   f_EUTRA_CellInfo_GetUL_ChBandwidth (p_CellId));
+    
+    var template (value) SI_List_Type v_SI_List;
+    
+    if (v_FDD_TDDInfo.FDD_TDD == TDD) {  // initialise tdd-Configuration  to be used in SIB1
+      v_TDD_Config := cs_TDD_ConfigDef(v_FDD_TDDInfo.TDD_SubframeAssignment);    // Value omitted in FDD
+    }
+    
+    v_SIB1 := cs_508_SystemInformationBlockType1_Def(cs_PlmnIdList_1Entry(v_Guti_Params.PLMN_Identity),
+                                                     f_EUTRA_CellInfo_GetTAC(p_CellId),
+                                                     f_EUTRA_CellInfo_GetCellIdentity (p_CellId),
+                                                     f_EUTRA_CellInfo_GetBand (p_CellId),
+                                                     cs_SchedulingInfo_4SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                           {sibType3},
+                                                                           v_ChannelBandwidthDependency.SIB10_periodicity,
+                                                                           {sibType10},
+                                                                           v_ChannelBandwidthDependency.SIB11_periodicity,
+                                                                           {sibType11}),
+                                                     v_TDD_Config);
+    v_SI_List := {
+      v_SI_SIB2,
+      v_SI_SIB3,
+      cs_SystemInformation_Common( cs_SI_SIB10 (p_Sib10))
+    };
+    v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB, v_SIB1, v_SI_List, p_SegmentedSiList);
+    
+    f_EUTRA_CellInfo_SetBCCH_Info (p_CellId, v_CellBcchInfo);
+    f_EUTRA_CellInfo_SetCombination (p_CellId, c8);
+  }
+
+  function f_EUTRA_ChangeSIB5_Combination3(EUTRA_CellId_Type p_CellId,
+                                           template (value) SystemInformationBlockType5 p_SystemInformation5) runs on EUTRA_PTC
+  {
+    var ChannelBandwidthDependency_Type v_ChannelBandwidthDependency := f_EUTRA_BandDependentParam(f_EUTRA_CellInfo_GetDL_ChBandwidth (p_CellId),
+                                                                                                   f_EUTRA_CellInfo_GetUL_ChBandwidth (p_CellId));
+    var GutiParameters_Type v_Guti_Params := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var template(omit) TDD_Config v_TDD_Config := omit;  // omitted in FDD
+    var EUTRA_FDD_TDD_CellInfo_Type v_FDD_TDDInfo := f_EUTRA_CellInfo_GetFDD_TDD_Info (p_CellId);
+    var template (value) BcchInfo_Type v_CellBcchInfo;
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo := f_EUTRA_CellInfo_GetSYSINFO(p_CellId);
+    var template (value) BCCH_BCH_Message v_MIB := v_EUTRA_CellSysInfo.BCCH_Info.MIB;
+    var template (value) BCCH_DL_SCH_Message v_SIB1;
+    var template (value) BCCH_DL_SCH_Message v_SI_SIB2 := v_EUTRA_CellSysInfo.BCCH_Info.SIs[0];
+    var template (value) BCCH_DL_SCH_Message v_SI_SIB3 := v_EUTRA_CellSysInfo.BCCH_Info.SIs[1];
+    
+    // --- Initialise variables for SIB1 ---
+    if (v_FDD_TDDInfo.FDD_TDD == TDD) {  // initialise tdd-Configuration  to be used in SIB1
+      v_TDD_Config := cs_TDD_ConfigDef(v_FDD_TDDInfo.TDD_SubframeAssignment);    // Value omitted in FDD
+    }
+    
+    v_SIB1 := cs_508_SystemInformationBlockType1_Def(cs_PlmnIdList_1Entry(v_Guti_Params.PLMN_Identity),
+                                                     f_EUTRA_CellInfo_GetTAC(p_CellId),
+                                                     f_EUTRA_CellInfo_GetCellIdentity (p_CellId),
+                                                     f_EUTRA_CellInfo_GetBand (p_CellId),
+                                                     cs_SchedulingInfo_3SI(v_ChannelBandwidthDependency.SIB3_periodicity,
+                                                                           {sibType3},
+                                                                           v_ChannelBandwidthDependency.SIB5_periodicity,
+                                                                           {sibType5}),
+                                                     v_TDD_Config);
+    v_CellBcchInfo := cs_BCCHInfo_C1(v_MIB,
+                                     v_SIB1,
+                                     { v_SI_SIB2,
+                                       v_SI_SIB3,
+                                       cs_SystemInformation_Common( cs_SI_SIB5(p_SystemInformation5)) }
+                                     );
+    f_EUTRA_CellInfo_SetBCCH_Info(p_CellId, v_CellBcchInfo);
+    f_EUTRA_CellInfo_SetCombination(p_CellId, c3);
+  }
+
+  function f_EUTRA_CellInfo_SetCombination(EUTRA_CellId_Type p_CellId,
+                                           Combination_Type p_Combination) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    v_CellInfo.Sysinfo.Combination := p_Combination;
+    f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetBCCH_Info(EUTRA_CellId_Type p_CellId,
+                                         template (value) BcchInfo_Type p_BCCH_Info) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    v_CellInfo.Sysinfo.BCCH_Info := valueof(p_BCCH_Info);
+    f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetC_RNTI(EUTRA_CellId_Type p_CellId,
+                                      C_RNTI  p_C_RNTI) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    v_CellInfo.RNTI.C_RNTI := p_C_RNTI;
+    f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetPRACH_ConfigurationIndex(EUTRA_CellId_Type p_CellId,
+                                                        integer p_PRACH_ConfigInd) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    if ((p_PRACH_ConfigInd > 63) or (p_PRACH_ConfigInd < 0)) {
+      FatalError (__FILE__, __LINE__, "Parameter PRACH Config Index out of range(0..63)");
+    }
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.prach_Config.prach_ConfigInfo.prach_ConfigIndex := p_PRACH_ConfigInd;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetMAC_ContResTimer(EUTRA_CellId_Type p_CellId,
+                                                MAC_ContentionResolutionTimer_Type p_MAC_ContResTimer) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.rach_ConfigCommon.ra_SupervisionInfo.mac_ContentionResolutionTimer := p_MAC_ContResTimer;     /* @sic R5s100135 sic@ */
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_CellBarred(EUTRA_CellId_Type p_CellId,
+                                                  CellBarred_Type p_CellBarred) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.cellBarred := p_CellBarred;
+    f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_DefaultPagingCycle(EUTRA_CellId_Type p_CellId,
+                                                          DefaultPagingCycle_Type p_DefaultPagingCycle) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.pcch_Config.defaultPagingCycle := p_DefaultPagingCycle;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_CellRes_Prio(EUTRA_CellId_Type p_CellId,
+                                                    CellRes_Prio_Type p_CellRes_Prio) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[1].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib3.cellReselectionServingFreqInfo.cellReselectionPriority := p_CellRes_Prio; // @sic R5s100281 sic@
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_AccessBarring(EUTRA_CellId_Type p_CellId,
+                                                     template (value) AccessBarringInformation_Type p_AccessBarring) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.ac_BarringInfo := p_AccessBarring;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_ThreshServingLowQ_r9(EUTRA_CellId_Type p_CellId,
+                                                            template (omit) integer p_ThreshX_LowQ_r9 := omit) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[1].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib3.threshServingLowQ_r9 := p_ThreshX_LowQ_r9;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_ThreshServingLow(EUTRA_CellId_Type p_CellId,
+                                                        ReselectionThreshold p_ReselectionThreshold) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[1].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib3.cellReselectionServingFreqInfo.threshServingLow := p_ReselectionThreshold;  // @sic R5s100281 sic@
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_Intra_QRxlevmin(EUTRA_CellId_Type p_CellId,
+                                                       Q_Rxlevmin_Type p_Q_Rxlevmin) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[1].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib3.intraFreqCellReselectionInfo.q_RxLevMin := p_Q_Rxlevmin; // @sic R5s100281 sic@
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_Cellinfo_SetSysInfo_IntraFreqRes(EUTRA_CellId_Type p_CellId,
+                                                    IntraFreqRes_Type p_IntraFreqRes_Type) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.intraFreqReselection := p_IntraFreqRes_Type;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSIB3 (EUTRA_CellId_Type p_CellId,
+                                     template (value) SystemInformationBlockType3 p_SIB3) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[1].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib3 := p_SIB3;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSIB4(EUTRA_CellId_Type p_CellId,
+                                    template (value) SystemInformationBlockType4 p_Sib4) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    // SIB4 is only present in combination c2 and c7 (see 36.508 cl. 4.4.3 Table 4.4.3.1.1-1 for more information)
+    select (valueof(v_CellInfo.Sysinfo.Combination)) {
+      case (c2, c7, c11, c13) {   // @sic R5s110166 sic@
+        //The combination initiation can be found in f_EUTRA_InitSystemInformation
+        v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib4 := p_Sib4;
+        f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+      }
+    }
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_CellReservedForOpUse(EUTRA_CellId_Type p_CellId,
+                                                            CellReservedForOpUse_Type p_CellReservedForOpUse_Type) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.plmn_IdentityList[0].cellReservedForOperatorUse := p_CellReservedForOpUse_Type;
+    f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSIB5(EUTRA_CellId_Type p_CellId,
+                                    template (value) SystemInformationBlockType5 p_SIB5) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    // SIB5 is only present in combination c3 and c9 (see 36.508 cl. 4.4.3 Table 4.4.3.1.1-1 for more information)
+    select (valueof(v_CellInfo.Sysinfo.Combination)) {
+      case (c3, c9) {
+        v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib5 := p_SIB5;
+        f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+      }
+    }
+  }
+
+  function f_EUTRA_SetDefaultSIB5_MultiBand(EUTRA_CellId_Type  p_CellId)  runs on EUTRA_PTC
+  {
+    var template (value) InterFreqCarrierFreqList  v_InterFreqCarrierList;
+    var Frequency_fList_Type v_Frequency_PrimaryBand := f_EUTRA_InitFrequency_f1Tof4(px_ePrimaryFrequencyBand,
+                                                                                     px_ePrimaryBandChannelBandwidth,
+                                                                                     f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    var Frequency_fList_Type v_Frequency_SecondaryBand := f_EUTRA_InitFrequency_f1Tof4(px_eSecondaryFrequencyBand,
+                                                                                       px_eSecondaryBandChannelBandwidth,
+                                                                                       f_ConvertDL_BandwidthToUL(px_eSecondaryBandChannelBandwidth));
+    var ChannelBandwidthDependency_Type v_PrimaryChannelBandwidthDependency := f_EUTRA_BandDependentParam(px_ePrimaryBandChannelBandwidth,
+                                                                                                          f_ConvertDL_BandwidthToUL(px_ePrimaryBandChannelBandwidth));
+    var ChannelBandwidthDependency_Type v_SecondaryChannelBandwidthDependency := f_EUTRA_BandDependentParam(px_eSecondaryBandChannelBandwidth,
+                                                                                                            f_ConvertDL_BandwidthToUL(px_eSecondaryBandChannelBandwidth));  //@sic R5s120057 px_ePrimaryBandChannelBandwidth-> px_eSecondaryBandChannelBandwidth sic@
+    select (p_CellId) {
+      case (eutra_Cell1, eutra_Cell2, eutra_Cell4, eutra_Cell11) {
+        // For cell frequency of f1:         v_Frequency_PrimaryBand.f1
+        // SIB5 contents: f2, f3, f5 (f1 in secondary band)
+        if (v_Frequency_PrimaryBand.f2.dl_CarrierFreq != tsc_DummyFrequency) {    // f2 is defined for the Band px_ePrimaryFrequencyBand
+          if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {    // f3 is defined for the Band px_ePrimaryFrequencyBand
+            v_InterFreqCarrierList := {
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f2,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f2
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f3,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f3
+              cs_InterFreqCarrierFreq (v_Frequency_SecondaryBand.f1, v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth) //f5
+            };
+          } else {  // f2 defined but f3 not defined for the band
+            v_InterFreqCarrierList := {
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f2,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f2
+              cs_InterFreqCarrierFreq (v_Frequency_SecondaryBand.f1, v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth) //f5
+            };
+          }
+        } else {  // f2 and f3 not defined (e.g. band 13)
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq (v_Frequency_SecondaryBand.f1,  v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth) //f5
+          };
+        }
+      }
+      case (eutra_Cell3, eutra_Cell23) {
+        // For cell frequency of f2:         v_Frequency_PrimaryBand.f2
+        // SIB5 contents: f1, f3, f5 (f1 in secondary band)
+        if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {    // f3 is defined for the Band
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f1
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f3,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f3
+            cs_InterFreqCarrierFreq(v_Frequency_SecondaryBand.f1, v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth) //f5
+          };
+        } else {  // f3 not defined for the band
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f1
+            cs_InterFreqCarrierFreq(v_Frequency_SecondaryBand.f1, v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth) //f5
+          };
+        }
+      }
+      case (eutra_Cell6) {
+        // For cell frequency of f3:         v_Frequency_PrimaryBand.f3
+        // SIB5 contents: f1, f2, f5 (f1 in secondary band)
+        v_InterFreqCarrierList := {
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f1,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f1
+          cs_InterFreqCarrierFreq(v_Frequency_PrimaryBand.f2,   v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f2
+          cs_InterFreqCarrierFreq(v_Frequency_SecondaryBand.f1, v_SecondaryChannelBandwidthDependency.AllowedMeasBandwidth) //f5
+        };
+      }
+      case (eutra_Cell10) {
+        // For cell frequency of f5:         v_Frequency_SecondaryBand.f1 (f5)
+        // SIB5 contents: f1, f2, f3
+        if (v_Frequency_PrimaryBand.f2.dl_CarrierFreq != tsc_DummyFrequency) {    // f2 is defined for the primaryBand
+          if (v_Frequency_PrimaryBand.f3.dl_CarrierFreq != tsc_DummyFrequency) {    // f3 is defined for the primary
+            v_InterFreqCarrierList := {
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f1, v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f1
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f2, v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f2
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f3, v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth)   //f3
+            };
+          } else {  // f3 not defined for the band
+            v_InterFreqCarrierList := {
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f1, v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth),  //f1
+              cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f2, v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth)
+            };
+          }
+        } else {  // f2 and f3 not defined in the primary band
+          v_InterFreqCarrierList := {
+            cs_InterFreqCarrierFreq (v_Frequency_PrimaryBand.f1, v_PrimaryChannelBandwidthDependency.AllowedMeasBandwidth)  //f1
+          };
+        }
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value Cell Id for SIB5 intialisation");
+      }
+    }
+    f_EUTRA_CellInfo_SetSIB5(p_CellId, cs_508_SystemInformationBlockType5_Def (v_InterFreqCarrierList));
+  }
+
+  function f_EUTRA_CellInfo_SetSIB6(EUTRA_CellId_Type p_CellId,
+                                    template (value) SystemInformationBlockType6 p_SIB6) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    select (valueof(v_CellInfo.Sysinfo.Combination)) {
+      case (c4, c10) {                              // @sic R5s120377 sic@
+        v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib6 := p_SIB6;
+        f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+      }
+      case (c9, c10a) {
+        v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[1].sib6 := p_SIB6;
+        f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+      }
+      case (c11) { // @sic R5-103363 sic@
+        v_CellInfo.Sysinfo.BCCH_Info.SIs[3].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib6 := p_SIB6;
+        f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+      }
+      case else {}  // Other combinations: no change needed
+    }
+  }
+
+  function f_EUTRA_CellInfo_SetSIB6_FreqListFDD_AllCells(template (value) SystemInformationBlockType6 p_SIB6) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell1, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell2, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell3, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell4, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell6, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell10, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell11, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell12, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell14, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell23, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell28, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell29, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell30, p_SIB6);
+  }
+
+  function f_EUTRA_CellInfo_SetSIB6_FreqListFDD_AllNAS_Cells(template (value) SystemInformationBlockType6 p_SIB6,
+                                                             EUTRA_NAS_NumOfPLMN_Type p_CellsOnSamePLMN) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellInfo_SetSIB6(eutra_CellA, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_CellB, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_CellC, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_CellD, p_SIB6);
+    f_EUTRA_CellInfo_SetSIB6(eutra_CellM, p_SIB6);
+    
+    if (p_CellsOnSamePLMN == LTE_CellsOnDifferentPLMN) {
+      f_EUTRA_CellInfo_SetSIB6(eutra_CellE, p_SIB6);
+      f_EUTRA_CellInfo_SetSIB6(eutra_CellG, p_SIB6);
+      f_EUTRA_CellInfo_SetSIB6(eutra_CellH, p_SIB6);
+      f_EUTRA_CellInfo_SetSIB6(eutra_CellI, p_SIB6);
+      f_EUTRA_CellInfo_SetSIB6(eutra_CellJ, p_SIB6);
+      f_EUTRA_CellInfo_SetSIB6(eutra_CellK, p_SIB6);
+      f_EUTRA_CellInfo_SetSIB6(eutra_CellL, p_SIB6);
+    }
+  }
+
+  function f_EUTRA_CellInfo_SetSIB7(EUTRA_CellId_Type p_CellId,
+                                    template (value) SystemInformationBlockType7 p_SIB7) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    select (valueof(v_CellInfo.Sysinfo.Combination)) {
+      case (c5) {
+        v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib7 := p_SIB7;
+        f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+      }
+      case (c10, c10a, c12) {  // @sic R5-106551 sic@
+        v_CellInfo.Sysinfo.BCCH_Info.SIs[3].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib7 := p_SIB7;
+        f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+      }
+      case else {}  // Other combinations: no change needed
+    }
+  }
+
+  function f_EUTRA_CellInfo_SetSIB8(EUTRA_CellId_Type p_CellId,
+                                    template (value) SystemInformationBlockType8 p_SIB8) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib8 := p_SIB8;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSIB7_FreqListFDD_AllCells(template (value) SystemInformationBlockType7 p_SIB7) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell1, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell2, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell3, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell4, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell6, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell10, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell11, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell12, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell14, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell23, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell28, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell29, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_Cell30, p_SIB7);
+  }
+
+  function f_EUTRA_CellInfo_SetSIB7_FreqListFDD_AllNAS_Cells(template (value) SystemInformationBlockType7 p_SIB7,
+                                                             EUTRA_NAS_NumOfPLMN_Type p_CellsOnSamePLMN) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellInfo_SetSIB7(eutra_CellA, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_CellB, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_CellC, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_CellD, p_SIB7);
+    f_EUTRA_CellInfo_SetSIB7(eutra_CellM, p_SIB7);
+    
+    if (p_CellsOnSamePLMN == LTE_CellsOnDifferentPLMN) {
+      f_EUTRA_CellInfo_SetSIB7(eutra_CellE, p_SIB7);
+      f_EUTRA_CellInfo_SetSIB7(eutra_CellG, p_SIB7);
+      f_EUTRA_CellInfo_SetSIB7(eutra_CellH, p_SIB7);
+      f_EUTRA_CellInfo_SetSIB7(eutra_CellI, p_SIB7);
+      f_EUTRA_CellInfo_SetSIB7(eutra_CellJ, p_SIB7);
+      f_EUTRA_CellInfo_SetSIB7(eutra_CellK, p_SIB7);
+      f_EUTRA_CellInfo_SetSIB7(eutra_CellL, p_SIB7);
+    }
+  }
+
+  function f_EUTRA_CellInfo_SetSIB8_FreqListFDD_AllCells(template (value) SystemInformationBlockType8 p_SIB8) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell1, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell2, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell3, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell4, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell6, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell10, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell11, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell12, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell14, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell23, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell28, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell29, p_SIB8);
+    f_EUTRA_CellInfo_SetSIB8(eutra_Cell30, p_SIB8);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_Csg_Ind(EUTRA_CellId_Type p_CellId,
+                                               boolean p_Csg_Indication) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.csg_Indication := p_Csg_Indication;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetSysInfo_Csg_Id(EUTRA_CellId_Type p_CellId,
+                                              CSG_Identity p_Csg_Identity) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.cellAccessRelatedInfo.csg_Identity := p_Csg_Identity;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetHighestBandwidth (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var FrequencyBand_Type v_FrequencyBand := f_EUTRA_CellInfo_GetBand(p_CellId);
+    var Dl_Bandwidth_Type v_Dl_Bandwidth := f_EUTRA_GetHighestDL_Bandwidth(v_FrequencyBand);
+    var Ul_Bandwidth_Type v_Ul_Bandwidth := f_EUTRA_GetHighestUL_Bandwidth(v_FrequencyBand);
+    var Combination_Type v_Combination   := f_EUTRA_CellInfo_GetCombination(p_CellId);
+    
+    f_EUTRA_CellInfo_Set(p_CellId,
+                         f_EUTRA_CellInfo_Init( p_CellId,
+                                                v_FrequencyBand,
+                                                v_Combination,
+                                                v_Dl_Bandwidth,
+                                                v_Ul_Bandwidth));
+  }
+
+  function f_EUTRA_CellInfo_SetMIMO_2TX (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    /* Update the antenna information in the cell Array */
+    v_CellInfo.AntennaInfo.SS_AntennaInfoCommon := cs_AntennaInfoCommon_2Port;
+    v_CellInfo.AntennaInfo.AntennaInfoCommon := cs_AntennaInfoCommon_2Port;
+    v_CellInfo.AntennaInfo.SS_AntennaInfoDedicated := cs_AntennaInfoDedicated_2TX;
+    v_CellInfo.AntennaInfo.AntennaInfoDedicated := cs_PhysicalConfigDedicated_AntennaInfo_2TX;
+    
+    /* Update p_B parameter in the cell array */
+    v_CellInfo.PhysicalParameters.PDSCH_p_b := tsc_P_b_2Tx;
+    
+    /* Modify p_b in SIB2 */
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon.pdsch_ConfigCommon.p_b := tsc_P_b_2Tx;
+    
+    f_EUTRA_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetCellPower(EUTRA_CellId_Type p_CellId,
+                                         template (value) ReferenceCellPower_Type p_ReferenceCellPower) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.ReferencePower := p_ReferenceCellPower;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_GetCellPower(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return  ReferenceCellPower_Type
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    return v_CellInfo.ReferencePower;
+  };
+
+  function f_EUTRA_CellInfo_InitMaxReferencePower(EUTRA_CellId_Type p_CellId,
+                                                  AbsoluteCellPower_Type p_MaxReferencePower) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    v_CellInfo.ReferencePower.MaxReferencePower := p_MaxReferencePower;
+    v_CellInfo.ReferencePower.Attenuation.Off := true;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetCellPrioritySIB8_HRPD(EUTRA_CellId_Type p_CellId,
+                                                     CellReselectionPriority p_CellReselectionPriority) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib8.parametersHRPD.cellReselectionParametersHRPD.bandClassList[0].cellReselectionPriority := p_CellReselectionPriority;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetCellPrioritySIB8_RTT1X (EUTRA_CellId_Type p_CellId,
+                                                       CellReselectionPriority p_CellReselectionPriority) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib8.parameters1XRTT.cellReselectionParameters1XRTT.bandClassList[0].cellReselectionPriority  := p_CellReselectionPriority;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_HRPD(EUTRA_CellId_Type p_CellId,
+                                                           T_Reselection p_T_Reselection) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib8.parametersHRPD.cellReselectionParametersHRPD.t_ReselectionCDMA2000     := p_T_Reselection;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_CellInfo_SetT_ReselectionCDMA_SIB8_RTT1X(EUTRA_CellId_Type p_CellId,
+                                                            T_Reselection p_T_Reselection) runs on EUTRA_PTC
+  {
+    var template (value) EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get(p_CellId);
+    
+    v_CellInfo.Sysinfo.BCCH_Info.SIs[2].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib8.parameters1XRTT.cellReselectionParameters1XRTT.t_ReselectionCDMA2000 := p_T_Reselection;
+    f_EUTRA_CellInfo_Set (p_CellId, v_CellInfo);
+  }
+
+  function f_EUTRA_Security_Get() runs on EUTRA_PTC return EUTRA_SecurityParams_Type
+  {
+    return vc_EUTRA_Global.Security;
+  }
+
+  function f_EUTRA_Security_Set(EUTRA_SecurityParams_Type p_Auth_Params) runs on EUTRA_PTC
+  {
+    vc_EUTRA_Global.Security := p_Auth_Params;
+  }
+
+  function f_EUTRA_SecurityKSIasme_Get() runs on EUTRA_PTC return NAS_KsiValue
+  {
+    return vc_EUTRA_Global.Security.KSIasme;
+  }
+
+  function f_EUTRA_SecurityKSIsgsn_Get() runs on EUTRA_PTC return NAS_KsiValue
+  {
+    return vc_EUTRA_Global.Security.KSIsgsn;
+  }
+
+  function f_EUTRA_MobileInfo_GetUECapability_UECategory() runs on EUTRA_PTC return integer
+  {
+    return vc_EUTRA_Global.MobileInfo.EUTRA_Capability.ue_Category;
+  }
+
+  function f_EUTRA_MobileInfo_GetUECapability_AccessStratumRelease() runs on EUTRA_PTC return AccessStratumRelease
+  {
+    return vc_EUTRA_Global.MobileInfo.EUTRA_Capability.accessStratumRelease;
+  }
+
+  function f_EUTRA_MobileInfo_SetUECapability(UE_EUTRA_Capability p_Cap) runs on EUTRA_PTC
+  {
+    vc_EUTRA_Global.MobileInfo.EUTRA_Capability := p_Cap;
+  }
+
+  function f_EUTRA_MobileInfo_SetAssignedPdnType(B3_Type p_PdnType) runs on EUTRA_PTC
+  {
+    vc_EUTRA_Global.MobileInfo.AssignedPdnType := p_PdnType;
+  }
+
+  function f_EUTRA_MobileInfo_GetAssignedPdnType() runs on EUTRA_PTC return B3_Type
+  {
+    return vc_EUTRA_Global.MobileInfo.AssignedPdnType;
+  }
+
+  type record NasInitParams_Local_Type {        /* local type definition;   @status    APPROVED */
+    EUTRA_NAS_NumOfPLMN_Type CellsOnSamePLMN,
+    Combination_Type SysinfoCombination,  //@sic R5-106627 : delete p_CellTC_Type and replace it with p_SysinfoCombination sic@
+    EUTRA_NAS_CellSpecialFreq CellFreq   // @sic R5-102140 sic@
+  };
+
+  type record RrcInitParams_Local_Type {        /* local type definition;   @status    APPROVED */
+    Combination_Type SysinfoCombination
+  };
+
+  type union InitParams_Local_Type {            /* local type definition;   @status    APPROVED */
+    NasInitParams_Local_Type   Nas,
+    RrcInitParams_Local_Type   NonNas
+  };
+
+  function fl_EUTRA_CoOrdSysInfo(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return template (value) CoOrd_EUTRASysInfo_Type
+  {
+    var integer v_Arfcn := f_EUTRA_CellInfo_GetEARFCN_DL(p_CellId);
+    var integer v_DLBW  := f_ConvertDL_BandwidthToInteger(f_EUTRA_CellInfo_GetDL_ChBandwidth(p_CellId));
+    
+    return cs_CoOrdEUTRASysInfo(v_Arfcn, v_DLBW);
+  }
+
+  function fl_IRAT_ListOfFrequencies() runs on EUTRA_PTC return template (value) IRAT_CoOrd_SysInfo_Type
+  { /* @sic R5-096440 R5-104169, R5s100871, R5-110788 sic@ */
+    var template (value) CoOrd_EUTRASysInfo_List_Type v_CoOrd_EUTRASysInfo_List;
+    
+    v_CoOrd_EUTRASysInfo_List[0] :=  fl_EUTRA_CoOrdSysInfo(eutra_Cell1);           // f1
+    
+    if (f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell3) != tsc_DummyFrequency) {        // f2 is applicable for the band @sic R5s120129 sic@
+      v_CoOrd_EUTRASysInfo_List[1] := fl_EUTRA_CoOrdSysInfo(eutra_Cell3);          // f2
+      
+      if (f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell6) != tsc_DummyFrequency) {      // f3 is applicable for the band
+        v_CoOrd_EUTRASysInfo_List[2] := fl_EUTRA_CoOrdSysInfo(eutra_Cell6);        // f3
+        
+        if (f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell14) != tsc_DummyFrequency) {   // f4 is applicable for the band
+          v_CoOrd_EUTRASysInfo_List[3] := fl_EUTRA_CoOrdSysInfo(eutra_Cell14);     // f4
+        }
+      }
+    }
+    return cs_CoOrdEUTRA_SysInfo(v_CoOrd_EUTRASysInfo_List);
+  }
+
+  function fl_IRAT_NAS_ListOfFrequencies() runs on EUTRA_PTC return template (value) IRAT_CoOrd_SysInfo_Type
+  {
+    var Frequency_fList_Type v_Frequency := f_EUTRA_InitFrequency_f1Tof4(f_EUTRA_CellInfo_GetBand(eutra_CellA),
+                                                                         f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_CellA),
+                                                                         f_EUTRA_CellInfo_GetUL_ChBandwidth(eutra_CellA));
+    var integer v_DL_Bandwidth := f_ConvertDL_BandwidthToInteger(f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_CellA));
+    var template (value) CoOrd_EUTRASysInfo_List_Type v_CoOrd_EUTRASysInfo_List;
+    
+    v_CoOrd_EUTRASysInfo_List[0] := cs_CoOrdEUTRASysInfo(v_Frequency.f1.dl_CarrierFreq, v_DL_Bandwidth);       // f1
+    
+    if (v_Frequency.f2.dl_CarrierFreq != tsc_DummyFrequency) {                                                 // f2 defined for the band
+      v_CoOrd_EUTRASysInfo_List[1] := cs_CoOrdEUTRASysInfo(v_Frequency.f2.dl_CarrierFreq, v_DL_Bandwidth);     // f2
+      
+      if (v_Frequency.f3.dl_CarrierFreq != tsc_DummyFrequency) {                                               // f3 defined for the band
+        v_CoOrd_EUTRASysInfo_List[2] := cs_CoOrdEUTRASysInfo(v_Frequency.f3.dl_CarrierFreq, v_DL_Bandwidth);   // f3
+        
+        if (v_Frequency.f4.dl_CarrierFreq != tsc_DummyFrequency) {                                             // f4 defined for the band
+          v_CoOrd_EUTRASysInfo_List[3] := cs_CoOrdEUTRASysInfo(v_Frequency.f4.dl_CarrierFreq, v_DL_Bandwidth); // f4
+        }
+      }
+    }
+    
+    return cs_CoOrdEUTRA_SysInfo(v_CoOrd_EUTRASysInfo_List);
+  }
+
+  function fl_EUTRA_IRAT_Init(Combination_Type p_SysinfoCombination) runs on EUTRA_PTC
+  { /* @sic R5-095514 sic@ */
+    var IRAT_CoOrd_SysInfo_List_Type v_SysInfo_List;
+    var IRAT_CoOrd_SysInfo_Type v_SysInfoOtherRAT;
+    var template (value) IRAT_CoOrd_SysInfo_Type v_SysInfoEUTRA := fl_IRAT_ListOfFrequencies();  // f1/f2/f3/f4 or f1/f2/f3 or f1/f2 depending on the band
+    
+    select (p_SysinfoCombination) {
+      case (c4, c9, c11) {     // EUTRA-UTRA SIB6 @sic R5-103363 sic@
+        // Assign new SIB6 in cellArray for all cells
+        v_SysInfoOtherRAT := f_IRAT_InitialCoOrd(UTRAN, v_SysInfoEUTRA);                           // Coordinate with UTRA PTC: send EUTRA frequencies and return UTRA frequencies
+        f_EUTRA_CellInfo_SetSIB6_FreqListFDD_AllCells(f_EUTRA_IRAT_InitSIB6(v_SysInfoOtherRAT));   // Assign SIB6 with new UTRAN FDD or TDD frequency list
+      }
+      case (c5, c12) {  // EUTRA-GERAN SIB7  @sic R5-106551 sic@
+        // Assign new SIB7 in cellArray for all cells
+        v_SysInfoOtherRAT := f_IRAT_InitialCoOrd(GERAN, v_SysInfoEUTRA);                           // Coordinate with GERAN PTC: send EUTRA frequencies and return GERAN frequencies
+        f_EUTRA_CellInfo_SetSIB7_FreqListFDD_AllCells(f_EUTRA_IRAT_InitSIB7(v_SysInfoOtherRAT));   // Assign SIB7 with new GERAN frequency list
+      }
+      case (c6) { // EUTRA-CDMA2000
+        v_SysInfoOtherRAT := f_IRAT_InitialCoOrd(CDMA2000, cs_CoOrdC2K_NoParams);                  // Coordinate with CDMA2000 PTC: send EUTRA frequencies and return CDMA parameters
+                                                                                                   // (C2K PTC does not need to receive any information from the LTE PTC)
+        f_EUTRA_CellInfo_SetSIB8_FreqListFDD_AllCells(f_EUTRA_IRAT_InitSIB8(v_SysInfoOtherRAT));   // Assign new SIB8 in cellArray for all cells
+      }
+      case (c10, c10a) {  // EUTRA-UTRAN-GERAN  SIB6 SIB7
+        v_SysInfo_List := f_IRAT_InitialCoOrd_2Ports(UTRAN, GERAN, v_SysInfoEUTRA);                // Coordinate with UTRAN and GERAN PTCs: send EUTRA frequencies and return UTRAN and GERAN info
+        f_EUTRA_CellInfo_SetSIB6_FreqListFDD_AllCells(f_EUTRA_IRAT_InitSIB6(v_SysInfo_List[0]));   // Assign SIB6 with new UTRAN FDD or TDD frequency list
+        f_EUTRA_CellInfo_SetSIB7_FreqListFDD_AllCells(f_EUTRA_IRAT_InitSIB7(v_SysInfo_List[1]));   // Assign SIB7 with new GERAN frequency list @sic r5s120315 sic@
+      }
+      case else {}  // Other combinations: no change needed
+    }
+  };
+
+  function fl_EUTRA_NAS_IRAT_Init(Combination_Type p_SysinfoCombination,
+                                  EUTRA_NAS_NumOfPLMN_Type p_CellsOnSamePLMN) runs on EUTRA_PTC
+  { /* @sic R5-095514 sic@ */
+    var IRAT_CoOrd_SysInfo_List_Type v_SysInfo_List;
+    var IRAT_CoOrd_SysInfo_Type v_SysInfoOtherRAT;
+    var template (value) IRAT_CoOrd_SysInfo_Type v_SysInfoEUTRA := fl_IRAT_NAS_ListOfFrequencies();  // f1/f2/f3/f4 or f1/f2/f3 or f1/f2 depending on the band
+    
+    select (p_SysinfoCombination) {
+      case (c4, c9, c11) {     // EUTRA-UTRA SIB6 @sic R5-103363 sic@
+        // Assign new SIB6 in cellArray for all cells
+        v_SysInfoOtherRAT := f_IRAT_InitialCoOrd(UTRAN, v_SysInfoEUTRA);                           // Coordinate with UTRA PTC: send EUTRA frequencies and return UTRA frequencies
+        f_EUTRA_CellInfo_SetSIB6_FreqListFDD_AllNAS_Cells(f_EUTRA_IRAT_InitSIB6(v_SysInfoOtherRAT), p_CellsOnSamePLMN);
+      }
+      case (c5, c12) {  // EUTRA-GERAN SIB7 @sic r5-106551 sic@
+        // Assign new SIB7 in cellArray for all cells
+        v_SysInfoOtherRAT := f_IRAT_InitialCoOrd(GERAN, v_SysInfoEUTRA);                           // Coordinate with GERAN PTC: send EUTRA frequencies and return GERAN frequencies
+        f_EUTRA_CellInfo_SetSIB7_FreqListFDD_AllNAS_Cells(f_EUTRA_IRAT_InitSIB7(v_SysInfoOtherRAT), p_CellsOnSamePLMN);
+      }
+      case (c6) { // EUTRA-CDMA2000
+        // Assign new SIB8 in cellArray for all cells
+        v_SysInfoOtherRAT := f_IRAT_InitialCoOrd(CDMA2000, cs_CoOrdC2K_NoParams);                  // Coordinate with CDMA2000 PTC: send EUTRA frequencies and return CDMA parameters
+                                                                                                   // C2K PTC does not need to receive any information from the LTE PTC
+        f_EUTRA_CellInfo_SetSIB8_FreqListFDD_AllCells(f_EUTRA_IRAT_InitSIB8(v_SysInfoOtherRAT));
+      }
+      case (c10, c10a) {  // EUTRA-UTRAN-GERAN  SIB6 SIB7
+        v_SysInfo_List := f_IRAT_InitialCoOrd_2Ports(UTRAN, GERAN, v_SysInfoEUTRA);                // Coordinate with UTRAN and GERAN PTCs: send EUTRA frequencies and return UTRAN and GERAN info
+        f_EUTRA_CellInfo_SetSIB6_FreqListFDD_AllNAS_Cells(f_EUTRA_IRAT_InitSIB6(v_SysInfo_List[0]), p_CellsOnSamePLMN);    // Assign SIB6 with new UTRAN FDD or TDD frequency list
+        f_EUTRA_CellInfo_SetSIB7_FreqListFDD_AllNAS_Cells(f_EUTRA_IRAT_InitSIB7(v_SysInfo_List[1]), p_CellsOnSamePLMN);    // Return SIB7 with new GERAN frequency list
+      }
+      case else {}  // Other combinations: no change needed
+    }
+  }
+
+  function fl_EUTRA_Common_Init(InitParams_Local_Type p_Params) runs on EUTRA_PTC
+  {
+    vc_EUTRA_Global.Ctrl.Default := null;
+    vc_EUTRA_Global.Ctrl.TestBody := false;
+    vc_EUTRA_Global.Ctrl.VerdictCtrl := normal;
+    vc_EUTRA_Global.Ctrl.HarqErrorHandling := ignore;     /* @sic R5-106675 change 1 sic@ */
+    
+    // Initialise security parameters
+    vc_EUTRA_Global.Security := f_EUTRA_Security_Init();
+    
+    // Initialise Cell array
+    if (ischosen(p_Params.NonNas)) {
+      vc_EUTRA_Global.CellArray := f_EUTRA_CellArray_Init(p_Params.NonNas.SysinfoCombination);
+    } else {
+      vc_EUTRA_Global.CellArray := f_EUTRA_NAS_CellArray_Init(p_Params.Nas.CellsOnSamePLMN, p_Params.Nas.SysinfoCombination, p_Params.Nas.CellFreq);
+    }
+    
+    //Initialise Mobile Info
+    vc_EUTRA_Global.MobileInfo.Tmsi := '00000000'O;
+    vc_EUTRA_Global.MobileInfo.P_Tmsi := '00000000'O;
+    vc_EUTRA_Global.MobileInfo.AssignedPdnType := '000'B;
+    
+    f_EUTRA_ActivateDefault(StandardDefault);
+  }
+
+  function f_EUTRA_Init( Combination_Type p_SysinfoCombination) runs on EUTRA_PTC
+  {
+    var InitParams_Local_Type v_Params := { NonNas := {SysinfoCombination := p_SysinfoCombination} };
+    
+    fl_EUTRA_Common_Init(v_Params);
+    fl_EUTRA_IRAT_Init(p_SysinfoCombination);
+  }
+
+  function f_EUTRA_NAS_Init(EUTRA_NAS_NumOfPLMN_Type p_CellsOnSamePLMN,
+                            Combination_Type p_SysinfoCombination,   //@sic R5-106627 : delete p_CellTC_Type and replace it with p_SysinfoCombination sic@
+                            EUTRA_NAS_CellSpecialFreq p_CellSpecialFreq:=LTE_NAS_NormalFreq) runs on EUTRA_PTC
+  {
+    var InitParams_Local_Type v_Params := {Nas := { CellsOnSamePLMN := p_CellsOnSamePLMN,
+                                                    SysinfoCombination := p_SysinfoCombination,
+                                                    CellFreq := p_CellSpecialFreq }};  // @sic R5-102140 sic@
+    fl_EUTRA_Common_Init(v_Params);
+    fl_EUTRA_NAS_IRAT_Init(f_EUTRA_CellInfo_GetCombination (eutra_CellA), p_CellsOnSamePLMN);  /* Sysinfo combination from cell A
+                                                                                                  All cells are initalised with the same combination */
+  }
+
+}

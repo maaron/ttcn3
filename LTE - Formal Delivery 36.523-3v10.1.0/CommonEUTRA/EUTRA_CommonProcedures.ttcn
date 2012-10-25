@@ -1,0 +1,981 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-05 15:12:54 +0200 (Wed, 05 Sep 2012) $
+// $Rev: 7330 $
+/******************************************************************************/
+
+module EUTRA_CommonProcedures {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_LoopBack_TypeDefs all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+  import from IP_PTC_CtrlMsgs all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UpperTesterCommon all;
+  import from UpperTesterFunctions all;
+
+  type enumerated PDN_TypeToBeUsed_Type { forceIPv4only, forceIPv6only, pdnTypeAsSupportedByUE };   /* @status    APPROVED */
+
+  function f_EUTRA_StartIPfor2ndPDN(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    f_IP_Handling_Start(IP, PDN_2, cs_DrbInfo_EUTRA(p_CellId, tsc_DRB2));
+  };
+
+  function f_EUTRA_SwitchOnUEandStartIP(EUTRA_CellId_Type p_CellId,
+                                        Ut_CnfReq_Type p_CnfRequired := NO_CNF_REQUIRED,
+                                        boolean p_USIM_Rmvd := false) runs on EUTRA_PTC
+  {
+    f_IP_Handling_Start(IP, PDN_1, cs_DrbInfo_EUTRA(p_CellId, tsc_DRB1));
+    f_UT_SwitchOnUE(UT, p_USIM_Rmvd, p_CnfRequired);
+  };
+
+  function f_EUTRA_GetPDNAddress(boolean p_IPv4AllocationViaNas,
+                                 boolean p_UseSecondAddress := false,
+                                 PDN_TypeToBeUsed_Type p_PDN_TypeToBeUsed := pdnTypeAsSupportedByUE) runs on EUTRA_PTC return PDN_Address
+  { /* @sic R5-112600: Clarification to conditions for IP address configuration over user plane sic@ */
+    var O4_Type v_Addr4;
+    var octetstring v_Addr6;
+    var Type4Length_Type v_IeLength;
+    var B3_Type v_TypeValue;
+    var octetstring v_AddressInfo;
+    var PDN_Address v_PDN_Address;
+
+    // set IP addresses
+    if (p_UseSecondAddress) { // @sic R5s110011 sic@
+      v_Addr4 := f_Convert_IPv4Addr2OctString(px_IPv4_Address2_UE); // @sic R5-113734 sic@
+      v_Addr6 := f_Convert_IPv6Addr2OctString(px_IPv6_Address2_UE); // @sic R5-113734 sic@
+    } else {
+      v_Addr4 := f_Convert_IPv4Addr2OctString(px_IPv4_Address1_UE); // @sic R5-113734 sic@
+      v_Addr6 := f_Convert_IPv6Addr2OctString(px_IPv6_Address1_UE); // @sic R5-113734 sic@
+    }
+    v_Addr6 := substr(v_Addr6, 8, 8);  // Use only the IPv6 interface identifier, which are the 8 least significant octets of theIPv6 address
+
+    if (not p_IPv4AllocationViaNas) {       // => IPv4 address via DHCP signalling (if IPv4)
+      v_Addr4 := '00000000'O;
+    }
+
+    // set PDN TypeValue
+    select (p_PDN_TypeToBeUsed) {           /* @sic R5-120234, R5-120541, R5-120542 sic@ */
+      case (forceIPv4only) {
+        v_TypeValue := tsc_PdnType_IPv4;
+      }
+      case (forceIPv6only) {
+        v_TypeValue := tsc_PdnType_IPv6;
+      }
+      case (pdnTypeAsSupportedByUE) {
+        if (pc_IPv4 and pc_IPv6) {
+          v_TypeValue := tsc_PdnType_IPv4v6;
+        }
+        else if (pc_IPv4) {
+          v_TypeValue := tsc_PdnType_IPv4;
+        }
+        else if (pc_IPv6) {
+          v_TypeValue := tsc_PdnType_IPv6;
+        }
+        else {
+          FatalError(__FILE__, __LINE__, "neither IPv4 nor IPv6 are supported");
+        }
+      }
+    }
+
+    // set IE
+    select (v_TypeValue) {
+      case (tsc_PdnType_IPv4) {
+        v_IeLength := '05'O;
+        v_AddressInfo := v_Addr4;
+      }
+      case (tsc_PdnType_IPv6) {
+        v_IeLength := '09'O;
+        v_AddressInfo := v_Addr6;
+      }
+      case (tsc_PdnType_IPv4v6) {
+        v_IeLength := '0D'O;
+        v_AddressInfo := v_Addr6 & v_Addr4;
+      }
+    }
+
+    f_EUTRA_MobileInfo_SetAssignedPdnType(v_TypeValue);
+
+    v_PDN_Address := {
+      iei := omit, // '59'O,
+      iel := v_IeLength,
+      spare := tsc_Spare5,
+      typeValue := v_TypeValue,
+      adressInfo := v_AddressInfo
+    };
+
+    return v_PDN_Address;
+  };
+
+  function f_EUTRA_Get_508_TrafficFlowTemplate(integer p_BearerContext,
+                                               HalfOctet_Type p_EPS_BearerId := tsc_EpsDedicatedBearerId,
+                                               template (omit) B3_Type p_PdnTypeValue := omit) runs on EUTRA_PTC return template (value) TrafficFlowTemplate
+  { /* @sic R5-112600: to replace cs_508_Tft_Dedicated_1 and cs_508_Tft_Dedicated_2 sic@ */
+    var integer v_PacketFilterLen1ByRef;
+    var integer v_PacketFilterLen2ByRef;
+    var integer v_PacketFilterLen3ByRef;
+    var template (value) PacketFilter v_PacketFilter1ByRef;
+    var template (value) PacketFilter v_PacketFilter2ByRef;
+    var template (value) PacketFilter v_PacketFilter3ByRef;
+    var template (value) TrafficFlowTemplate.packetFilterList v_PacketFilterList;
+    var integer v_IeLength;
+    var B3_Type v_PdnTypeValue;
+
+    if (isvalue(p_PdnTypeValue)) {
+      v_PdnTypeValue := valueof(p_PdnTypeValue);
+    } else {
+      v_PdnTypeValue := f_EUTRA_MobileInfo_GetAssignedPdnType();
+    }
+    select (p_BearerContext) {
+      case (1, 4) {        // @sic R5-123632 sic@
+        f_Get_508_PacketFilter(v_PacketFilter1ByRef, v_PacketFilterLen1ByRef, 1, p_EPS_BearerId, v_PdnTypeValue);  // get packet filter #1 acc. to 36.508 Table 6.6.2-2
+        f_Get_508_PacketFilter(v_PacketFilter2ByRef, v_PacketFilterLen2ByRef, 2, p_EPS_BearerId, v_PdnTypeValue);  // get packet filter #2 acc. to 36.508 Table 6.6.2-3
+        
+        v_IeLength := v_PacketFilterLen1ByRef + v_PacketFilterLen2ByRef + 1;  // packet filter 1 + packet filter 2 + one octet for tftOperationCode, eBit and noOfPktFilter
+        v_PacketFilterList := {v_PacketFilter1ByRef, v_PacketFilter2ByRef};
+      }
+      case (2, 3) {        // @sic R5-123632 sic@
+        f_Get_508_PacketFilter(v_PacketFilter3ByRef, v_PacketFilterLen3ByRef, 3, p_EPS_BearerId, v_PdnTypeValue);  // get packet filter #3 acc. to 36.508 Table 6.6.2-4
+
+        v_IeLength := v_PacketFilterLen3ByRef + 1;                           // packet filter 1 + one octet for tftOperationCode, eBit and noOfPktFilter
+        v_PacketFilterList := {v_PacketFilter3ByRef};
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid bearer context");
+      }
+    }
+    return cs_TrafficFlowTemplate(v_IeLength, v_PacketFilterList);
+  }
+
+  function f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(HalfOctet_Type p_EPS_BearerId,
+                                                        template (omit) B3_Type p_PdnTypeValue := omit) runs on EUTRA_PTC return template (value) TrafficFlowTemplate
+  { /* @sic R5-112600: to replace cds_Tft_Dedicated_2_Modify sic@ */
+    var template (value) TrafficFlowTemplate v_TrafficFlowTemplate := f_EUTRA_Get_508_TrafficFlowTemplate(2, p_EPS_BearerId, p_PdnTypeValue);
+   
+    v_TrafficFlowTemplate.iei   := '36'O;
+    v_TrafficFlowTemplate.tftOperationCode := '100'B; // Replace TFT
+    v_TrafficFlowTemplate.packetFilterList[0].iei := '30'O;
+    
+    return v_TrafficFlowTemplate;
+  }
+
+  function f_EUTRA_Get_508_TrafficFlowTemplate_2_Add(HalfOctet_Type p_EPS_BearerId,
+                                                     template (omit) B3_Type p_PdnTypeValue := omit) runs on EUTRA_PTC return template (value) TrafficFlowTemplate
+  { /* @sic R5-112600: to replace cds_Tft_Dedicated_2_Modify sic@ */
+    var template (value) TrafficFlowTemplate v_TrafficFlowTemplate := f_EUTRA_Get_508_TrafficFlowTemplate(2, p_EPS_BearerId, p_PdnTypeValue);
+   
+    v_TrafficFlowTemplate.iei   := '36'O;
+    v_TrafficFlowTemplate.tftOperationCode := '011'B; // Add new TFT  @sic R5s110008 sic@
+    
+    return v_TrafficFlowTemplate;
+  }
+
+  function f_EUTRA_Preamble(EUTRA_CellId_Type p_CellId,
+                            IDLEUPDATED_STATE_Type p_State,
+                            EUTRA_ATTACH_Type p_ForcedAttach := NORMAL,
+                            integer p_NoOfEmergencyNumbers := 0,   // @sic R5-115673 sic@
+                            PDN_TypeToBeUsed_Type p_PDN_TypeToBeUsed := pdnTypeAsSupportedByUE) runs on EUTRA_PTC
+  {
+    // First switch cell back on
+    f_EUTRA_SetCellPower(p_CellId, tsc_ServingCellRS_EPRE);
+
+    // Switch on UE
+    f_EUTRA_SwitchOnUEandStartIP(p_CellId); // @sic R5s120065 sic@
+
+    // Now continue with the procedure
+    f_EUTRA_IdleUpdated(p_CellId, PREAMBLE, p_State, p_ForcedAttach, p_NoOfEmergencyNumbers, p_PDN_TypeToBeUsed);
+  }
+
+  function f_EUTRA_IdleUpdated_Step5_17(EUTRA_CellId_Type p_CellId,
+                                        IDLEUPDATED_STATE_Type p_State,
+                                        EUTRA_ATTACH_Type p_ForcedAttach,
+                                        NAS_MSG_Indication_Type p_NAS_Ind,
+                                        boolean p_ReleaseConnection := true,
+                                        integer p_NoOfEmergencyNumbers := 0, // @sic R5-115673 sic@
+                                        PDN_TypeToBeUsed_Type p_PDN_TypeToBeUsed := pdnTypeAsSupportedByUE) runs on EUTRA_PTC // @sic R5-106611 sic@
+  { /* @sic R5s100780 sic@ */
+    
+    var template (value) EPS_NetworkFeatureSupport v_NtwkFeatSupport := cs_EPS_NwkFtSup_IMSVoice;
+    var template (omit) EmergNumList v_EmergNumList := omit;
+    if (p_NoOfEmergencyNumbers > 0) {
+      v_NtwkFeatSupport := cs_EPS_NwkFtSup_IMSVoice_EMCBS;
+      v_EmergNumList := f_Get_EmergNumList(p_NoOfEmergencyNumbers);
+    }
+    f_EUTRA_IdleUpdated_Step5_15(p_CellId,
+                                 p_State,
+                                 p_ForcedAttach,
+                                  p_NAS_Ind,
+                                 p_PDN_TypeToBeUsed,
+                                 -,
+                                 -,
+                                 -,
+                                 -,
+                                 v_EmergNumList,
+                                 v_NtwkFeatSupport);
+    
+    f_EUTRA_IdleUpdated_Step16_17(p_CellId,
+                                  p_ReleaseConnection);
+  }
+
+  function f_EUTRA_IdleUpdated_Step16_17(EUTRA_CellId_Type p_CellId,
+                                         boolean p_ReleaseConnection := true) runs on EUTRA_PTC
+  { /* @sic R5-112600: always delay of 1.2s sic@ */
+    var HalfOctet_Type v_EpsBearerId := tsc_EpsDefaultBearerId;
+    
+    f_EUTRA_NAS_AttachComplete(p_CellId, v_EpsBearerId); // step 16  @sic R5s110449 sic@
+    if (p_ReleaseConnection) { // @sic R5-105005 Some tests only want to do up to step 16 sic@
+      f_EUTRA_RRC_ConnectionRelease(p_CellId);                                  // step 17
+    }
+  }
+
+  function f_EUTRA_IdleUpdated_Step5_15(EUTRA_CellId_Type p_CellId,
+                                        IDLEUPDATED_STATE_Type p_State,
+                                        EUTRA_ATTACH_Type p_ForcedAttach,
+                                        NAS_MSG_Indication_Type p_NAS_Ind,
+                                        PDN_TypeToBeUsed_Type p_PDN_TypeToBeUsed := pdnTypeAsSupportedByUE,
+                                        template (value) GPRS_Timer p_T3412 := cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                        template (omit) GPRS_Timer p_T3402 := omit,
+                                        template (omit) GPRS_Timer p_T3423 := omit,
+                                        template (omit) PLMN_List p_EquivalentPlmnList := omit,
+                                        template (omit) EmergNumList p_EmergNumList := omit,
+                                        template (omit) EPS_NetworkFeatureSupport p_NtwkFeatSupport := cs_EPS_NwkFtSup_IMSVoice) runs on EUTRA_PTC
+  { /* @sic R5-110796: split into f_EUTRA_IdleUpdated_Step5_13 and f_EUTRA_IdleUpdated_Step14_15 sic@ */
+    
+    var template (omit) AdditionalUpdateType v_AdditionalUpdateType := p_NAS_Ind.Pdu.Msg.aTTACH_REQUEST.addUpdateType;  /* @sic R5s110342 sic@ */
+    var NAS_UL_Message_Type v_PdnConnectivityRequest := p_NAS_Ind.Pdu.PiggybackedPduList[0].Msg;
+    var ProcedureTransactionIdentifier v_EPS_TI := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier;
+    var template (omit) ProtocolConfigOptions v_PcoFromUE := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;  // may be omit
+    var template (value) ProtocolConfigOptions v_PcoToUE := f_GetDefPCOforPCSCFAddress (v_PcoFromUE); // @sic R5-104703 sic@
+    var boolean v_IPv4AllocationViaNasFlag :=  f_CheckPCOforIPallocationViaNas (v_PcoFromUE); // See TS 36.508 v.8.2.2 Table 4.7.3-6
+
+    var template (omit) AccessPointName v_APN := f_EUTRA_IdleUpdated_Step5_13 (p_CellId, p_State, p_NAS_Ind);
+    
+    f_EUTRA_IdleUpdated_Step14_15(p_CellId,
+                                  p_ForcedAttach,
+                                  v_AdditionalUpdateType,
+                                  v_EPS_TI,
+                                  v_IPv4AllocationViaNasFlag,
+                                  v_PcoToUE,
+                                  v_APN,
+                                  p_PDN_TypeToBeUsed,
+                                  p_T3412,
+                                  p_T3402,
+                                  p_T3423,
+                                  p_EquivalentPlmnList,
+                                  p_EmergNumList,
+                                  p_NtwkFeatSupport);
+  }
+
+  function f_EUTRA_IdleUpdated_Step5_13(EUTRA_CellId_Type p_CellId,
+                                        IDLEUPDATED_STATE_Type p_State,
+                                        NAS_MSG_Indication_Type p_NAS_Ind) runs on EUTRA_PTC return AccessPointName
+  { /* @sic R5-110796: split into f_EUTRA_IdleUpdated_Step5_13 and f_EUTRA_IdleUpdated_Step14_15 sic@ */
+    var ProcedureTransactionIdentifier v_EPS_TI;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    var template (present) SecurityHeaderType v_ExpectedSecurityHeader; // @sic R5s090373 sic@
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_AuthParams := f_EUTRA_Security_Get();
+    var AccessPointName v_APN;
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    
+    // Set UE network capabilities as sent by the UE to be used later (see TS 24.301 clause 5.4.3.3)
+    v_AuthParams.NAS_SecurityCap := f_EUTRA_FillNAS_SecurityCapability(p_NAS_Ind.Pdu.Msg.aTTACH_REQUEST);  // @sic R5s100135 sic@
+    f_EUTRA_Security_Set(v_AuthParams);
+    
+    if (p_NAS_Ind.SecurityProtection.Status == tsc_SHT_NoSecurityProtection) { // @sic R5s090210, R5s090373 sic@
+      v_ExpectedSecurityHeader := tsc_SHT_NoSecurityProtection;
+    } else {
+      v_ExpectedSecurityHeader := (tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected);
+    }
+    
+    v_PdnConnectivityRequest := p_NAS_Ind.Pdu.PiggybackedPduList[0].Msg;
+    v_EPS_TI := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier;
+
+    // Step 5-6: Authentication
+    v_AuthParams := f_EUTRA_NAS_Authentication(p_CellId,
+                                               tsc_SRB1,
+                                               v_AuthParams,
+                                               tsc_SHT_NoSecurityProtection,
+                                               v_ExpectedSecurityHeader,       // @sic R5s090210, R5s090373 sic@
+                                               v_PLMN);                        // AUTHENTICATION REQUEST & RESPONSE
+    // Step 7-8: NAS Security
+    v_NasCountUL := f_EUTRA_NAS_ActivateSecurity(p_CellId, v_AuthParams);   // NAS SECURITY COMMAND & COMPLETE
+    
+    // Step 9a1 & 2 - ESM information optionally transferred;  @sic R5-110708 sic@
+    v_APN := f_ESM_InitAPN(p_CellId, f_CheckEsmInfoTransferFlag(v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST), v_EPS_TI);
+    
+    // optional
+    if (p_State == STATE2A_TESTLOOP_ModeA) {
+      f_EUTRA_Activate_TestMode (p_CellId, tsc_UE_TestLoopMode_TypeA);
+    }
+    else if (p_State == STATE2A_TESTLOOP_ModeB) {
+      f_EUTRA_Activate_TestMode (p_CellId, tsc_UE_TestLoopMode_TypeB);
+    }
+    
+    // Step 10-11: RRC Security Mode procedures
+    v_AuthParams := f_EUTRA_RRC_ActivateSecurity(p_CellId, v_AuthParams, v_NasCountUL); // RRC SECURITY COMMAND & COMPLETE
+    f_EUTRA_Security_Set(v_AuthParams); //Saving security parameters
+    
+    // Step 12-13 UE Capability check
+    f_EUTRA_Capability (p_CellId, tsc_RRC_TI_Def); // This enquires for the eutra capability but does not check the contents of the message received
+    
+    return v_APN;
+  }
+
+  function f_EUTRA_IdleUpdated_Step14_15(EUTRA_CellId_Type p_CellId,
+                                         EUTRA_ATTACH_Type p_ForcedAttach,
+                                         template (omit) AdditionalUpdateType p_AdditionalUpdateType,
+                                         ProcedureTransactionIdentifier p_EPS_TI,
+                                         boolean p_IPv4AllocationViaNasFlag,
+                                         template (omit) ProtocolConfigOptions p_PcoToUE,
+                                         template (omit) AccessPointName p_APN,
+                                         PDN_TypeToBeUsed_Type p_PDN_TypeToBeUsed := pdnTypeAsSupportedByUE,
+                                         template (value) GPRS_Timer p_T3412 := cs_GprsTimer_v(tsc_GprsTimerUnit_deact, tsc_Spare5),
+                                         template (omit) GPRS_Timer p_T3402 := omit,
+                                         template (omit) GPRS_Timer p_T3423 := omit,
+                                         template (omit) PLMN_List p_EquivalentPlmnList := omit,
+                                         template (omit) EmergNumList p_EmergNumList := omit,
+                                         template (omit) EPS_NetworkFeatureSupport p_NtwkFeatSupport := cs_EPS_NwkFtSup_IMSVoice) runs on EUTRA_PTC
+  { /* @sic R5-112600: IP address allocation sic@ */
+    /* @sic R5-110796: split into f_EUTRA_IdleUpdated_Step5_13 and f_EUTRA_IdleUpdated_Step14_15 sic@ */
+    /* @sic R5-120234, R5-120541, R5-120542 sic@ */
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(p_ForcedAttach); // @sic R5-103673, R5s100795 sic@
+    
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var template (value) MobileIdentity v_Guti := f_GutiParameters2MobileIdentity(tsc_IEI_Guti, v_GutiParams);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    
+    var NAS_Lac v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode(p_CellId);
+    var template (omit) LocAreaId v_LAI := f_GetLAI(v_PLMN, v_LAC, p_ForcedAttach); // @sic R5s110176 sic@
+    
+    var TrackingAreaCode v_TAC := f_EUTRA_CellInfo_GetTAC(p_CellId);
+    
+    var template (omit) MobileIdentity v_MSId := f_GetMSId (p_ForcedAttach); // @sic R5-103673 sic@
+    
+    var template (value) PDN_Address v_PDN_Address := f_EUTRA_GetPDNAddress (p_IPv4AllocationViaNasFlag, -, p_PDN_TypeToBeUsed);
+    
+    var template (omit) ESM_Cause v_ESM_Cause := omit;        // @sic R5s120136 sic@
+    
+    if (pc_IPv6 and pc_IPv4) {              /* @sic R5-120234, R5-120541, R5-120542 sic@ */
+      select (p_PDN_TypeToBeUsed) {
+        case (forceIPv4only)          { v_ESM_Cause := cs_ESM_Cause_tv('00110010'B); }     // PDN type IPv4 only allowed
+        case (forceIPv6only)          { v_ESM_Cause := cs_ESM_Cause_tv('00110011'B); }     // PDN type IPv6 only allowed
+        case (pdnTypeAsSupportedByUE) { v_ESM_Cause := omit; }
+      }
+    }
+    
+    f_EUTRA_RRCConnectionReconfigurationWithAttachAcceptAllParams(p_CellId,
+                                                                  tsc_EpsDefaultBearerId,
+                                                                  tsc_RRC_TI_Def,
+                                                                  p_EPS_TI,
+                                                                  v_AttachType,
+                                                                  v_PDN_Address,
+                                                                  v_Guti,
+                                                                  cs_TAIListNonConsecutive_lv (v_PLMN, {bit2oct(v_TAC)}),
+                                                                  v_LAI,
+                                                                  v_MSId,
+                                                                  v_ESM_Cause, // @sic R5-104703 sic@
+                                                                  p_APN,
+                                                                  p_PcoToUE,
+                                                                  f_GetAdditionalUpdateResult(p_AdditionalUpdateType, p_ForcedAttach), // @sic R5s110176 sic@
+                                                                  p_T3412,
+                                                                  p_T3402,
+                                                                  p_T3423,
+                                                                  p_EquivalentPlmnList,
+                                                                  p_EmergNumList,
+                                                                  p_NtwkFeatSupport);
+  }
+
+  function f_EUTRA_IdleUpdated_Step1_4(EUTRA_CellId_Type p_CellId,
+                                       IDLEUPDATED_Type p_Type,
+                                       EUTRA_ATTACH_Type p_ForcedAttach) runs on EUTRA_PTC return NAS_MSG_Indication_Type
+  { /* @sic R5s100780 sic@ */
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(p_ForcedAttach); // @sic R5s110176 sic@
+    var B3_Type v_PDNType := f_GetPdnType();
+    var NAS_MSG_Indication_Type v_NAS_Ind;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (p_ForcedAttach);  //used to follow TTCN3 v411 standard @sic R5s110176 sic@
+    var template (present) SecurityHeaderType v_AttReqSecurityHeader;
+    
+    if (p_Type == PREAMBLE)
+      {
+        v_AttReqSecurityHeader := (tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected);
+      }
+    else
+      {
+        v_AttReqSecurityHeader := tsc_SHT_IntegrityProtected;
+      }
+    
+    // Receive RRC Connection Setup Complete with
+    v_NAS_Ind := f_EUTRA_RRC_ConnEst_DefWithNas(p_CellId,
+                                                v_RRC_TI,
+                                                cr_EstablishmentCause_Any,
+                                                cr_NAS_IndicationWithPiggybacking(v_AttReqSecurityHeader,
+                                                                                  cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType), // @sic R5-103681 sic@
+                                                                                  cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNType)));
+    
+    return v_NAS_Ind;
+  }
+
+  function f_EUTRA_IdleUpdated(EUTRA_CellId_Type p_CellId,
+                               IDLEUPDATED_Type p_Type,
+                               IDLEUPDATED_STATE_Type p_State,
+                               EUTRA_ATTACH_Type p_ForcedAttach,
+                               integer p_NoOfEmergencyNumbers := 0, // @sic R5-115673 sic@
+                               PDN_TypeToBeUsed_Type p_PDN_TypeToBeUsed := pdnTypeAsSupportedByUE) runs on EUTRA_PTC
+  { /* @sic R5-106611 sic@ */
+    var NAS_MSG_Indication_Type v_NAS_Ind;
+    
+    v_NAS_Ind := f_EUTRA_IdleUpdated_Step1_4 (p_CellId, p_Type, p_ForcedAttach); // @sic R5s100780, R5s110176 sic@
+    
+    f_EUTRA_IdleUpdated_Step5_17 (p_CellId, p_State, p_ForcedAttach, v_NAS_Ind, true, p_NoOfEmergencyNumbers, p_PDN_TypeToBeUsed);
+  }
+
+  function f_EUTRA_Postamble(EUTRA_CellId_Type p_CellId,
+                             EUTRA_POSTAMBLE_STATE_Type p_E_State,
+                             EUTRA_ATTACH_Type p_ForcedAttach := NORMAL,
+                             RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                             integer p_SelectedPlmnId := 1) runs on EUTRA_PTC
+  { /* @sic This function has been completely changed in R5-103847 sic@ */
+    // @sic R5s11046: new parameter p_SelectedPlmnId sic@
+    if (pc_SwitchOnOff) // The UE can actually be switched off
+      {
+        select (p_E_State) {
+          case (E1_IDLE)
+          {
+            //Expect the UE to detach and release RRC connection
+            f_EUTRA_UE_Detach_SwitchOffUe(p_CellId, RRC_IDLE, p_RRC_TI, p_ForcedAttach, omit, p_SelectedPlmnId); // @sic R5s110176, R5s110468 sic@
+          }
+          case (E2_CONNECTED, E3_TESTMODE)
+          {
+            //Expect the UE to detach and release RRC connection
+            f_EUTRA_UE_Detach_SwitchOffUe(p_CellId, RRC_CONNECTED, p_RRC_TI, p_ForcedAttach, omit, p_SelectedPlmnId); // @sic R5s110176, R5s110468 sic@
+          }
+          case (E2_T3440) // @sic R5s110007 sic@
+          {
+            //Expect the UE to release RRC connection
+            f_EUTRA_RRC_ConnectionRelease(p_CellId);
+            f_Delay (5.0); // @sic R5-110803 sic@
+            //Expect the UE to detach and release RRC connection
+            f_EUTRA_UE_Detach_SwitchOffUe(p_CellId, RRC_IDLE, p_RRC_TI, p_ForcedAttach, omit, p_SelectedPlmnId); // @sic R5s110176, R5s110468 sic@
+          }
+          case (E4_DEREGISTERED)
+          {
+            f_UT_SwitchOffUE (UT, false);
+          }
+        }
+      }
+    else
+      {// The power must be removed from the UE
+        f_UT_PowerOffUE (UT);
+      }
+    //And now remove the cell(s)
+    f_EUTRA_ReleaseAllCells();
+
+  } // end of f_EUTRA_Postamble
+
+  function f_EUTRA_GenericRbEst_Common(EUTRA_CellId_Type p_CellId,
+                                       integer p_NoOfAddDRBs_AM,
+                                       integer p_NoOfAddDRBs_UM,
+                                       template (omit) DRB_ToAddModList p_DRB_ToAddModList,
+                                       template (omit) MAC_MainConfig_Type p_MAC_MainConfig,
+                                       template (omit) PhysicalConfigDedicated p_PhysicalConfigDedicated,
+                                       template (omit) EPS_QoSList_Type p_QoS,
+                                       template (omit) Tft_List_Type p_Tft,
+                                       boolean p_PDCP_StatusReportRequired := true)
+    runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParameters := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    
+    /* Step 2 */
+    f_EUTRA_UE_Page(p_CellId,
+                    cs_NasPaging_OneRecord(cs_PagingUE_Identity_S_TMSI(v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI))); //@sic R5s100398 sic@
+    
+    // Steps 3 - 10
+    f_EUTRA_ServiceRequestAndActivate_SRB2_DRB(p_CellId,
+                                               p_NoOfAddDRBs_AM,
+                                               p_NoOfAddDRBs_UM,
+                                               p_DRB_ToAddModList,
+                                               p_MAC_MainConfig,
+                                               p_PhysicalConfigDedicated,
+                                               p_QoS,
+                                               p_Tft,
+                                               p_PDCP_StatusReportRequired);
+  }
+
+  function f_EUTRA_GenericRbEst_TAInfinity(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var template (omit) DRB_ToAddModList v_DRB_ToAddModList := omit;                // => apply default setting acc. 36.508 cl. 4.8.2.1.7 */
+    var template (omit) MAC_MainConfig_Type v_MAC_MainConfig := cs_MAC_MainConfig_Explicit_TA_Infinity;  // => apply MAC_Mainconfig_with_TAInfinity
+    var template (omit) PhysicalConfigDedicated v_PhysicalConfigDedicated := omit;  // => apply default setting acc. 36.508 cl. 4.8.2.1.6 */
+    
+    f_EUTRA_GenericRbEst_Common(p_CellId,
+                                0,
+                                0,
+                                v_DRB_ToAddModList,
+                                v_MAC_MainConfig,
+                                v_PhysicalConfigDedicated,
+                                omit,
+                                omit);
+  }
+
+  function f_EUTRA_GenericRbEst(EUTRA_CellId_Type p_CellId,
+                                integer p_NoOfAddDRBs_AM,
+                                integer p_NoOfAddDRBs_UM,
+                                template (omit) EPS_QoSList_Type p_QoS,
+                                template (omit) Tft_List_Type p_Tft) runs on EUTRA_PTC
+  {
+    var template (omit) DRB_ToAddModList v_DRB_ToAddModList := omit;                // => apply default setiing acc. 36.508 cl. 4.8.2.1.7 */
+    var template (omit) MAC_MainConfig_Type v_MAC_MainConfig := omit;               // => apply default setting acc. 36.508 cl. 4.8.2.1.5 */
+    var template (omit) PhysicalConfigDedicated v_PhysicalConfigDedicated := omit;  // => apply default setting acc. 36.508 cl. 4.8.2.1.6 */
+    f_EUTRA_GenericRbEst_Common(p_CellId,
+                                p_NoOfAddDRBs_AM,
+                                p_NoOfAddDRBs_UM,
+                                v_DRB_ToAddModList,
+                                v_MAC_MainConfig,
+                                v_PhysicalConfigDedicated,
+                                p_QoS,
+                                p_Tft);
+  }
+
+  function f_EUTRA_RbEst_Def(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    f_EUTRA_GenericRbEst(p_CellId, 0, 0, omit, omit);
+  }
+
+  function f_EUTRA_ServiceReqPostamble_508Steps6_9(EUTRA_CellId_Type p_CellId,
+                                                   NAS_MSG_Indication_Type p_NAS_Ind) runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    
+    f_EUTRA_Activate_SRB2_DRB_SendRrcMsg(p_CellId, v_RRC_TI, p_NAS_Ind.SecurityProtection.NasCount); /* @sic R5s100315 sic@ */
+    f_EUTRA_Activate_SRB2_DRB_ReceiveRrcAndNasMsg(p_CellId, v_RRC_TI);                               /* @sic R5s100315 sic@ */
+  }
+
+  function f_EUTRA_RbEst_508_AM(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var template (value) EPS_QoSList_Type v_Qos_List := {cs_508_EPS_QoS_Dedicated_1};
+    var template (value) Tft_List_Type v_Tft_List := {f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId)};
+    f_EUTRA_GenericRbEst(p_CellId, 1, 0, v_Qos_List, v_Tft_List);
+  }
+
+  function f_EUTRA_LoopBackActivation_State4_Def(EUTRA_CellId_Type p_CellId,
+                                                 template (value) UE_TestLoopModeA_LB_Setup_Type p_UE_TestLoopModeA_LB_Setup) runs on EUTRA_PTC
+  {
+    f_EUTRA_RbEst_Def(p_CellId);                                                      // bring UE to State 3
+    f_EUTRA_CloseUE_TestLoopModeA(p_CellId, p_UE_TestLoopModeA_LB_Setup);             // Step 1-2
+  }
+
+  group Checkfunctions {
+
+  function f_EUTRA_508Check_IdleState(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    // Step 1- 10  this is the same as the generic bearer establishment procedure, but without configuring any additional bearers @sic R5-102082 sic@
+    f_EUTRA_RbEst_Def(p_CellId);
+    
+    f_EUTRA_RRC_ConnectionRelease(p_CellId);
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "508Check IdleState");
+  } // f_EUTRA_508Check_IdleState
+
+  function f_EUTRA_508Check_ConnectedState(EUTRA_CellId_Type  p_CellId,
+                                           template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) runs on EUTRA_PTC
+  { /* @sic R5s110219 change 4 sic@ */
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+
+    SRB.send(cas_SRB1_RrcPdu_REQ( p_CellId,
+                                    p_TimingInfo,
+                                    cs_508_UeCapabilityEnquiry(v_RRC_TI)));
+
+    SRB.receive(car_SRB1_RrcPdu_IND(p_CellId, cr_508_UeCapabilityInformation(v_RRC_TI, cr_EutraCapInfo)));
+
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "508Check ConnectedState");
+  }
+
+  function f_EUTRA_508CheckCampOnNewEutraCell(EUTRA_CellId_Type p_CellId,
+                                              RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                              template (present) EstablishmentCause p_EstablishmentCause := ? //@sic R5-110062 sic@
+                                              ) runs on EUTRA_PTC
+  {
+    /* Checks whether the UE is camping on a new E-UTRAN cell with different TAI of a test case or not.
+       Procedure is defined in 36.508 cl. 6.4.2.7*/
+    f_EUTRA_TrackingAreaUpdate(p_CellId, p_RRC_TI, -, p_EstablishmentCause); //@sic R5-110062 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "508Check CampOnNewEutraCell");
+  }
+
+  function f_EUTRA_508CheckCampOnNewEutraCellUponMobilityFromAnotherRAT(EUTRA_CellId_Type p_CellId,
+                                                                        boolean p_CSInOtherRAT,
+                                                                        boolean p_PDPContext,
+                                                                        boolean p_PreambleOnLTE,
+                                                                        template (omit) octetstring p_EUTRA_Cap,   // @sic R5-123734 sic@
+                                                                        EUTRA_ATTACH_Type p_ForcedAttach,
+                                                                        RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def) runs on EUTRA_PTC
+  { /* Checks whether the UE is camping on a new E-UTRAN cell with different TAI of a test case or not.
+       Procedure is defined in 36.508 cl. 6.4.2.7A */
+    // @sic CR R5-102241 sic@
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT(p_CellId, p_RRC_TI, p_CSInOtherRAT, p_PDPContext, p_PreambleOnLTE, p_EUTRA_Cap, -, p_ForcedAttach); // @sic R5s110176 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "508Check CampOnNewEutraCellUponMobilityfromAnotherRAT");
+  }
+
+  } // end of group Checkfunctions
+
+  function f_EUTRA_TrackingAreaUpdateFromAnotherRAT_WithoutRRCConneReq(EUTRA_CellId_Type p_CellId,
+                                                                       RRC_TransactionIdentifier p_RRC_TI,
+                                                                       boolean p_CSInOtherRAT,
+                                                                       boolean p_PDPContext,
+                                                                       boolean p_PreambleOnLTE,
+                                                                       template (omit) octetstring p_EUTRA_Cap,   // @sic R5-123734 sic@
+                                                                       boolean p_ReleaseRequired := true,
+                                                                       EUTRA_ATTACH_Type p_ForcedAttach := NORMAL) runs on EUTRA_PTC
+  { /* @sic R5s120027 Additional Changes sic@ */
+    var NAS_MSG_Indication_Type v_NasInd;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NasCount_Type v_NasCountUL;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var GutiParameters_Type v_GutiParams:= f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var B3_Type v_EpsUpdate_TypeValue := f_GetEPSTAUType(p_ForcedAttach); // @sic R5s100029, R5s110176 sic@
+    var B3_Type v_EpsUpdate_Result := v_EpsUpdate_TypeValue; // To be used in Accept message
+    var template (present) EPS_BearerContextStatus v_EPS_ContextStatus_Rx := cr_508_EPS_BearerContextStatusTAUReq; // @sic R5s100608, R5-110746 sic@
+    var template (omit) EPS_BearerContextStatus v_EPS_ContextStatus_Tx;
+    var template (present) NAS_AttDetValue_Type v_AttachType := f_GetEAttachType(p_ForcedAttach); // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType_Expected := f_GetAdditionalUpdateType (p_ForcedAttach); // @sic R5s110176 sic@
+    var template (present) NAS_MSG_Indication_Type v_NAS_Expected, v_TAU_Expected, v_TAU_NoProtection, v_TAU_StartInOtherRAT, v_TAU_ForcedMapped;
+    var boolean v_NoAuthSincePowerOn;
+    var template (omit) AccessStratumRelease v_Rel := omit;
+    var UE_EUTRA_Capability v_EUTRA_Cap;
+    var boolean v_Rel8_9 := false;
+    var  template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType (p_ForcedAttach);
+    var B3_Type v_PDNType := f_GetPdnType();
+    timer t_WaitforAttach := f_EUTRA_SetTimerToleranceMax( p_CellId, nonProtocolTimer, 1.0);
+    
+    if (p_PreambleOnLTE) { // @sic R5-123734 sic@
+      v_Rel := f_EUTRA_MobileInfo_GetUECapability_AccessStratumRelease ();
+    } else {
+      if (ispresent(p_EUTRA_Cap)) {
+        v_EUTRA_Cap := f_EUTRA_DecodeEutraCapMsg(valueof(p_EUTRA_Cap)); // This needs to be a template as it can be omitted
+        v_Rel := v_EUTRA_Cap.accessStratumRelease;
+      }
+    }
+    
+    if (not p_PDPContext and not p_PreambleOnLTE) { // no bearer has previously been established
+      v_EPS_ContextStatus_Rx.ebi5_7 := '000'B; // so set all bearer indications to 0
+    }
+    
+    if (v_EpsUpdate_TypeValue != tsc_EpsUpdate_TaUpdate) { // TA Only;  @sic R5-110746 sic@
+      if (p_CSInOtherRAT) {
+        v_EpsUpdate_TypeValue := tsc_EpsUpdate_Combined_IMSIAttach;
+      } else {
+        v_EpsUpdate_TypeValue := tsc_EpsUpdate_Combined_TaLaUpdate;
+      }
+    }
+    
+    // @sic R5s110168 change 8.5 sic@
+    v_TAU_NoProtection := cr_NAS_Indication(tsc_SHT_NoSecurityProtection,
+                                            cr_TAU_RequestIdleMobilityDiffRAT(v_EpsUpdate_TypeValue,
+                                                                              '111'B,
+                                                                              v_EPS_ContextStatus_Rx,
+                                                                              v_AdditionalUpdateType_Expected,
+                                                                               ?));
+    v_TAU_StartInOtherRAT := cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                               cr_TAU_RequestIdleMobilityDiffRAT(v_EpsUpdate_TypeValue,
+                                                                                 ?,
+                                                                                 v_EPS_ContextStatus_Rx,
+                                                                                 v_AdditionalUpdateType_Expected,
+                                                                                 ?));
+    v_TAU_ForcedMapped := cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                            cr_TAU_RequestIdleMobilityDiffRAT(v_EpsUpdate_TypeValue,
+                                                                              f_EUTRA_SecurityKSIsgsn_Get (),
+                                                                              v_EPS_ContextStatus_Rx,
+                                                                              v_AdditionalUpdateType_Expected,
+                                                                              tsc_NasKsi_MappedSecurityContext));
+    /* Step 1 - 3 */
+    /*  ( 33.401 cl. 9.1.2 Idle mode procedures in E-UTRAN )
+        Check that TRACKING AREA UPDATE REQUEST message is present and conforms
+        with default message ( 36.508 Table 4.7.2-27: TRACKING AREA UPDATE REQUEST ) */
+    if (v_SecurityParams.KSIasme == '111'B) { // Did not do authentication on EUTRA cell since power on
+      v_NoAuthSincePowerOn := true;
+      if (v_SecurityParams.KSIsgsn == '111'B) {// No current EPS security context stored
+        //@sic R5-110746 Don't care if UE is sending mapped or native sic@
+        v_TAU_Expected := (v_TAU_NoProtection, v_TAU_StartInOtherRAT);
+      }
+      else {  /* This should be when: - UE started on 3G/2G,
+               *                      - came to LTE and was forced to use the mapped context in an SMC on LTE
+               *                      - went back to 3G/2G
+               *                      - is now back on LTE */
+        v_TAU_Expected := v_TAU_ForcedMapped;
+      }
+    }
+    else { // UE and SS still have current EPS NAS Security Context because previously registered on LTE so should have a valid native context
+      v_NoAuthSincePowerOn := false;
+      v_TAU_Expected := cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                          cr_TAU_RequestIdleMobilityDiffRAT(v_EpsUpdate_TypeValue,
+                                                                            f_EUTRA_SecurityKSIasme_Get(),
+                                                                            v_EPS_ContextStatus_Rx,
+                                                                              v_AdditionalUpdateType_Expected,
+                                                                            tsc_NasKsi_NativeSecurityContext)); // @sic R5-110746 sic@
+    }
+    
+    if (p_PDPContext or p_PreambleOnLTE) { // bearer has previously been established
+        v_NAS_Expected := v_TAU_Expected;
+    } else  { // no bearer established, so behaviour is optional
+        if (ispresent(v_Rel)) { // @sic R5-123734 sic@
+            if (valueof(v_Rel) == rel8 or valueof(v_Rel) == rel9) {
+              v_NAS_Expected := (v_TAU_Expected, cr_NAS_IndicationWithPiggybacking((tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected),
+                                                                   cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                   cr_508_PDN_CONNECTIVITY_REQUEST('100'B, v_PDNType)));
+            } else { // rel10 and above
+              v_NAS_Expected := cr_NAS_IndicationWithPiggybacking((tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected),
+                                                                   cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                   cr_508_PDN_CONNECTIVITY_REQUEST('100'B, v_PDNType) );
+            }
+        } else { // started on GERAN so expect anything for now
+          v_NAS_Expected := (v_TAU_Expected, cr_NAS_IndicationWithPiggybacking((tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected),
+                                                                   cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                   cr_508_PDN_CONNECTIVITY_REQUEST('100'B, v_PDNType)));
+        }
+    }
+                                                                                  
+    //Send RRC Connection Setup on SRB0 (CCCH) and switch on UL grant assignments:
+    f_EUTRA_RRC_ConnectionSetup_Def (p_CellId, -, p_RRC_TI);
+    
+    //Receive RRC Connection Setup Complete with piggy-backed NAS message on SRB1 (DCCH):
+    v_NasInd := f_EUTRA_RRCConnectionSetupComplete_Def(p_CellId,                                       // @sic R5s120121 MCC160 implementation sic@
+                                                       cr_508_RRCConnectionSetupComplete(p_RRC_TI, ?, -, 1),
+                                                       v_NAS_Expected);  // @sic R5-123734 sic@
+    if (ischosen (v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST)) {   // @sic R5-123734 sic@
+      v_SecurityParams.NonceUE := oct2bit(v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.nonce.nonceValue);
+    }
+    if (p_PDPContext or p_PreambleOnLTE) { // bearer already established, so go ahead and complete the TAU; @sic R5-110746, R5s110087 sic@
+      if (v_NoAuthSincePowerOn) {
+        v_SecurityParams := f_EUTRA_MappedContext_InitNAS(v_SecurityParams, v_SecurityParams.AuthParams);
+        v_SecurityParams.NAS_SecurityCap := f_EUTRA_FillNAS_SecurityCapability_TAU(v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST); // @sic R5s110210 sic@
+        /* Step 4, 5: NAS Security Mode Command / NAS Security Mode Complete */
+        v_NasCountUL := f_EUTRA_NAS_ActivateSecurity_MappedContext(p_CellId, v_SecurityParams);
+      }
+      v_EPS_ContextStatus_Tx := v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus; // Send this back in the Accept
+      v_SecurityParams.NAS_SecurityCap := f_EUTRA_FillNAS_SecurityCapability_TAU(v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST);
+      f_EUTRA_Security_Set(v_SecurityParams);
+      
+      /* Step 6: Transmit TRACKING AREA UPDATE ACCEPT message */
+      /* Step 7: Receive TRACKING AREA UPDATE COMPLETE */
+      f_EUTRA_TrackingAreaUpdate_Accept_Complete(p_CellId,
+                                                 v_GutiParams,
+                                                 v_EpsUpdate_Result,
+                                                 v_EPS_ContextStatus_Tx,
+                                                 v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType,
+                                                 p_ForcedAttach);
+      
+      /* Step 8: Release RRC connection */
+      if (p_ReleaseRequired) { // @sic R5s110127 sic@
+        f_EUTRA_RRC_ConnectionRelease(p_CellId, p_RRC_TI);
+      }
+    } else { // No bearer established so follow table 2; @sic R5-110746 sic@
+      if (ischosen (v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST)) {   // @sic R5-123734 sic@
+        //   Step 4: The SS transmits a TRACKING AREA UPDATE REJECT message with EMM cause = "No EPS Bearer Activated".
+        v_Rel8_9 := true; // @sic R5-123734 sic@
+        SRB.send(cas_SRB1_NasPdu_REQ(p_CellId,
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request(tsc_SHT_NoSecurityProtection,
+                                                  cs_508_TRACKING_AREA_UPDATE_REJECT(tsc_Cause_NoEPSBearerActive))));
+        // Step 5: SS waits for 1 second to receive the Attach Request on the existing RRC Connection
+        t_WaitforAttach.start;
+        alt {
+        []  SRB.receive(car_SRB1_NasPdu_IND(p_CellId,
+                                            cr_NAS_IndicationWithPiggybacking((tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected),
+                                                                              cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                              cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNType))))
+          -> value v_ReceivedAsp
+          {
+            v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+            t_WaitforAttach.stop;
+          }
+        [] t_WaitforAttach.timeout
+          {
+            // Step 5 : The SS releases the RRC connection.
+            f_EUTRA_RRC_ConnectionRelease(p_CellId);   /* @sic R5-110803 change 13 sic@ */
+            
+            // Step 6:
+            if (not pc_Auto_Attach_after_TAU_Reject) { // @sic R5-120754 sic@
+              f_UT_TriggerAttach (UT);
+            }
+            v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(p_CellId,
+                                                       tsc_RRC_TI_Def,
+                                                       cr_EstablishmentCause_Any,
+                                                       cr_NAS_IndicationWithPiggybacking((tsc_SHT_NoSecurityProtection, tsc_SHT_IntegrityProtected),
+                                                                                         cr_508_ATTACH_REQUEST(v_AttachType, v_AdditionalUpdateType),
+                                                                                         cr_508_PDN_CONNECTIVITY_REQUEST(tsc_PdnRequest_InitialAttach, v_PDNType)));
+          }
+        }
+      } // end of TAU received, so Attach Req must have been received first
+      // Activate DHCP and ICMPv6
+      f_IP_Handling_Start(IP, PDN_1, cs_DrbInfo_EUTRA(p_CellId, tsc_DRB1));    /* @sic R5s110776 sic@ */
+      
+      // Steps 7 - 22
+      f_EUTRA_IdleUpdated_Step5_17(p_CellId, STATE2_IDLEUPDATE, p_ForcedAttach, v_NasInd, p_ReleaseRequired);  // @sic R5s110395 sic@
+      
+      if (not ispresent (v_Rel)) { // @sic R5-123734 sic@
+        v_Rel := f_EUTRA_MobileInfo_GetUECapability_AccessStratumRelease (); // can get value now, so can now check behaviour correct for release of UE
+        if ((valueof(v_Rel) == rel8 or valueof(v_Rel) == rel9) and not v_Rel8_9 ) {
+          f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "Rel8/9 behaviour not allowed for higher release UE");
+        }
+      }
+    }
+  }
+
+  function f_EUTRA_TrackingAreaUpdateFromAnotherRAT(EUTRA_CellId_Type p_CellId,
+                                                    RRC_TransactionIdentifier p_RRC_TI,
+                                                    boolean p_CSInOtherRAT,
+                                                    boolean p_PDPContext,
+                                                    boolean p_PreambleOnLTE,
+                                                    template (omit) octetstring p_EUTRA_Cap,   // @sic R5-123734 sic@
+                                                    boolean p_ReleaseRequired := true,
+                                                    EUTRA_ATTACH_Type p_ForcedAttach := NORMAL) runs on EUTRA_PTC
+  { /* @sic R5s120027 Additional Changes sic@ */
+    var EstablishmentCause v_EstablishmentCause := mo_Signalling;
+    
+    // receive RRC Connection Request on SRB0 (CCCH):
+    f_EUTRA_RRC_ConnectionRequest_Def(p_CellId, v_EstablishmentCause);    // @sic R5-120721 change 3 sic@
+    
+    f_EUTRA_TrackingAreaUpdateFromAnotherRAT_WithoutRRCConneReq(p_CellId,
+                                                                p_RRC_TI,
+                                                                p_CSInOtherRAT,
+                                                                p_PDPContext,
+                                                                p_PreambleOnLTE,
+                                                                p_EUTRA_Cap,   // @sic R5-123734 sic@
+                                                                p_ReleaseRequired,
+                                                                p_ForcedAttach);
+  }
+
+  function f_EUTRA_ActivateAdditionalPDNOnDef(EUTRA_CellId_Type p_CellId,
+                                              EPS_BearerIdentity p_EpsBearerId2,
+                                              EUTRA_RRC_STATE_Type p_RRCState := RRC_IDLE,
+                                              boolean p_Emergency := false,
+                                              charstring p_StepNo := "") runs on EUTRA_PTC
+  { // @sic R5s100326 sic@ @sic R5s100520 sic@
+    var ProcedureTransactionIdentifier v_PTId_UE;
+    var template (omit) ProtocolConfigOptions v_Pco;  // @sic R5s100761 sic@
+    var PDN_Address v_PDN_Address2;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var PDN_CONNECTIVITY_REQUEST v_PDNConnReq;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (p_CellId); //Get FDD or TDD mode from Cell-configuration
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NasCount_Type v_NasCountUL;
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (p_CellId); //@sic R5-100786 sic@
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList;
+    var octetstring v_APN_Value := tsc_APN1; // APN-1(New PDN name), different from default
+    var template (present) EstablishmentCause v_EstablishmentCause := ?;
+    var B3_Type v_PDN_RequestType := '001'B;
+    var template (omit) AccessPointName v_ExpectedAccessPointName := cr_AccessPointName(v_APN_Value);
+    
+    v_DRB_ToAddModList[0] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1);
+    
+    if (p_Emergency) { // @sic R5-115673 sic@
+      v_EstablishmentCause := emergency; // @sic R5-120693, 694 sic@
+      v_PDN_RequestType := '100'B;
+      v_ExpectedAccessPointName := omit;
+    }
+    
+    // The UE transmits a SERVICE REQUEST
+    // The UE transmits a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN.
+    if (p_RRCState == RRC_IDLE) {
+      // UE is in RRC Idle mode
+      // Steps 2a1 to 2a7
+      v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(p_CellId,
+                                                 tsc_RRC_TI_Def,
+                                                 v_EstablishmentCause,
+                                                 cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                    cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+      if (p_StepNo != "") { // @sic R5-115673 sic@
+        f_EUTRA_PreliminaryPass (__FILE__, __LINE__, p_StepNo);
+      }
+      
+      // activate security in AS with parameters from AKA performed in preamble
+      v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+      v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+      v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(p_CellId,
+                                                       v_SecurityParams,
+                                                       v_NasCountUL);
+      f_EUTRA_Security_Set(v_SecurityParams);
+      
+      SRB.send(cas_SRB1_RrcPdu_REQ(p_CellId,
+                                   cs_TimingInfo_Now,
+                                   cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                          omit,
+                                                                          omit,
+                                                                          cs_508_RadioResourceConfigDedicated_SRB2( v_DRB_ToAddModList,
+                                                                                                                    cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                    cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                               v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                               v_AntennaInfo)),
+                                                                          omit)));
+      
+      // receive RRCConnectionReconfigurationComplete
+      SRB.receive(car_SRB1_RrcPdu_IND(p_CellId,
+                                      cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+      
+    } // end of if RRC_Idle
+    // UE is now in RRC connected mode
+    
+    // Step 3. The UE transmits an ULInformationTransfer message including the PDN CONNECTIVITY REQUEST message.
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                        cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), v_ExpectedAccessPointName, v_PDN_RequestType))))-> value v_ReceivedAsp;
+    
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNConnReq := v_NasInd.Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    // Change from DRB1 to DRB2 to handle U Plane data
+    f_EUTRA_StartIPfor2ndPDN(p_CellId);  // @sic R5s110449, R5-113734 change 8, R5-115673 sic@
+    
+    // Step 4 and 5. The SS transmits an RRCConnectionReconfiguration message including
+    // the ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message to establish the
+    // default EPS bearer context.
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco), true); // @sic R5s110011 R5-120234 sic@
+    f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig(p_CellId,
+                                                          tsc_RRC_TI_Def,
+                                                          p_EpsBearerId2, // Default bearer ID to additional PDN
+                                                          v_PTId_UE,  // use value as defined by the UE
+                                                          cs_AccessPointName(v_APN_Value),
+                                                          v_PDN_Address2,
+                                                          f_GetDefPCOforPCSCFAddress(v_Pco));
+    
+    // Step 6. The UE transmits an ULInformationTransfer message including the ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActivateDefEpsBearerContextAccept(p_EpsBearerId2))));
+  } // f_EUTRA_ActivateAdditionalPDNOnDef
+
+}

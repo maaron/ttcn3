@@ -1,0 +1,220 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module EUTRA_Security_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_NasCtrl all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CommonDefs all;
+
+  template (value) AS_CipheringInfo_Type cs_AS_CipheringInfo(CipheringAlgorithm_Type  p_Algo,
+                                                             B128_Key_Type p_KeyRRC,
+                                                             B128_Key_Type p_KeyUP,
+                                                             template (value) SecurityActTimeList_Type p_ActList) :=
+  { /* @status    APPROVED */
+    Algorithm   := p_Algo,
+    KRRCenc     := p_KeyRRC,
+    KUPenc      := p_KeyUP,
+    ActTimeList := p_ActList
+  };
+
+  template (value) AS_SecStartRestart_Type cs_AS_IntProtActivate(template (value) AS_IntegrityInfo_Type p_IntInfo) :=
+  { /* @status    APPROVED */
+    Integrity := p_IntInfo,
+    Ciphering := omit
+  };
+
+  template (value) AS_SecStartRestart_Type cs_AS_IntProt_CiphActivate(template (value) AS_IntegrityInfo_Type p_IntInfo,
+                                                                      template (value) AS_CipheringInfo_Type p_CiphInfo) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100576 sic@ */
+    Integrity := p_IntInfo,
+    Ciphering := p_CiphInfo
+  };
+
+  template (value) AS_SecStartRestart_Type cs_AS_CipheringActivate(template (value) AS_CipheringInfo_Type p_CiphInfo) :=
+  { /* @status    APPROVED */
+    Integrity := omit,
+    Ciphering := p_CiphInfo
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_AsSecurityStart_REQ(EUTRA_CellId_Type p_CellId,
+                                                           template (value) AS_SecStartRestart_Type p_AS_SecStartRestart,
+                                                           template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                                           template (omit) boolean p_CnfFlag := omit) :=
+  { /* @status    APPROVED */
+    /* Note: when p_TimingInfo is not cs_TimingInfo_Now p_CnfFlag shall be set to tsc_NoCnfReq */
+    /* @sic R5s100178 sic@ */
+    /* @sic R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      AS_Security := {
+        StartRestart := p_AS_SecStartRestart
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_AsSecurityRelease_REQ(EUTRA_CellId_Type p_CellId,
+                                                             template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                                             template (omit) boolean p_CnfFlag := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100072 sic@ */
+    /* @sic R5s100135 sic@ */
+    /* @sic R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      AS_Security := {
+        Release := true
+      }
+    }
+  };
+
+  template SYSTEM_CTRL_CNF car_AsSecurity_CNF(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm := {
+      AS_Security := true
+    }
+  };
+
+  template (value) PDCP_CountReq_Type cs_PDCP_CountSet(PdcpCountInfoList_Type p_PdcpCountInfoList) :=
+  { /* @status    APPROVED */
+    Set := p_PdcpCountInfoList
+  };
+
+  template (value) PDCP_CountReq_Type cs_PDCP_CountGet_AllRBs  :=
+  { /* @status    APPROVED */
+    Get := {
+      AllRBs := true
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_PdcpCount_REQ(EUTRA_CellId_Type p_CellId,
+                                                     template (value) PDCP_CountReq_Type p_CountReq) :=
+  { /* @status    APPROVED */
+    Common  := cs_ReqAspCommonPart_CellCfg(p_CellId),
+    Request := {
+      PdcpCount := p_CountReq
+    }
+  };
+
+  template SYSTEM_CTRL_CNF car_PdcpCount_CNF(EUTRA_CellId_Type p_CellId,
+                                             template (present) PDCP_CountCnf_Type p_PDCP_CountCnf) :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm := {
+      PdcpCount := p_PDCP_CountCnf
+    }
+  };
+
+  template PdcpCountInfo_Type cr_PdcpCountInfo_DRB(template (present) DRB_Identity p_Drb) :=
+  { /* @status    APPROVED */
+    RadioBearerId := {Drb := p_Drb},
+    UL := *,
+    DL := *
+  };
+
+  template PdcpCountInfo_Type cr_PdcpCountInfo_SRB(template (present) SRB_Identity_Type p_Srb) :=
+  { /* @status    APPROVED */
+    RadioBearerId := {Srb := p_Srb},
+    UL := *,
+    DL := *
+  };
+
+  template (value) NAS_SecurityStartRestart_Type cs_NAS_SecurityInit(B3_Type       p_IntegrityAlgorithm,
+                                                                     B128_Key_Type p_K_NASint,
+                                                                     B3_Type       p_CipheringAlgorithm,
+                                                                     B128_Key_Type p_K_NASenc,
+                                                                     template (omit) Null_Type p_NasCountReset := true) :=
+  { /* @status    APPROVED */
+    Integrity := {
+      Algorithm := p_IntegrityAlgorithm,
+      K_NAS := p_K_NASint
+    },
+    Ciphering := {
+      Algorithm := p_CipheringAlgorithm,
+      K_NAS := p_K_NASenc
+    },
+    NasCountReset := p_NasCountReset
+  };
+
+  template (value) NAS_CTRL_REQ cas_NasSecurityStart_REQ(template (value) NAS_SecurityStartRestart_Type p_SecurityStartRestart) :=
+  { /* Note: NAS security seems to be cell independent
+       @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(eutra_Cell_NonSpecific),
+    Request := {
+      Security := {
+        StartRestart := p_SecurityStartRestart
+      }
+    }
+  };
+
+  template NAS_CTRL_CNF car_NasSecurity_CNF :=
+  { /* Note: NAS security seems to be cell independent
+       @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(eutra_Cell_NonSpecific),
+    Confirm := {
+      Security := true
+    }
+  };
+
+  template (value) NAS_CTRL_REQ cas_NasCountGet_REQ :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(eutra_Cell_NonSpecific),
+    Request := {
+      NasCount := {
+        Get := true
+      }
+    }
+  };
+
+  template NAS_CTRL_CNF car_NasCountGet_CNF :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(eutra_Cell_NonSpecific),
+    Confirm := {
+      NasCount := {
+        Get := {
+          UL := ?,
+          DL := ?
+        }
+      }
+    }
+  };
+
+  template (value) NAS_CTRL_REQ cas_NasCountSet_REQ (template (omit) NasCount_Type p_NASULCount,
+                                                     template (omit) NasCount_Type p_NASDLCount) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(eutra_Cell_NonSpecific),
+    Request := {
+      NasCount := {
+        Set := {
+          UL := p_NASULCount, // @sic R5s120331 sic@
+          DL := p_NASDLCount
+        }
+      }
+    }
+  };
+
+  template NAS_CTRL_CNF car_NasCountSet_CNF :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(eutra_Cell_NonSpecific),
+    Confirm := {
+      NasCount := {
+        Set := true
+      }
+    }
+  };
+
+}

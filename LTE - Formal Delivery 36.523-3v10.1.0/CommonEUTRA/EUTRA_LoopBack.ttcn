@@ -1,0 +1,261 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 13:59:06 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7290 $
+/******************************************************************************/
+module EUTRA_LoopBack {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_Component all;
+  import from EUTRA_LoopBack_TypeDefs all;
+  import from EUTRA_SRB_Templates all;
+  import from IP_PTC_CtrlMsgs all;
+  import from NAS_CommonTypeDefs all;
+
+  const MessageType tsc_MsgType_CloseUE_TestLoop        := oct2bit ('80'O);     /* @status    APPROVED */
+
+  const MessageType tsc_MsgType_CloseUE_TestLoopCmpl    := oct2bit ('81'O);     /* @status    APPROVED */
+
+  const MessageType tsc_MsgType_OpenUE_TestLoop         := oct2bit ('82'O);     /* @status    APPROVED */
+
+  const MessageType tsc_MsgType_OpenUE_TestLoopCmpl     := oct2bit ('83'O);     /* @status    APPROVED */
+
+  const MessageType tsc_MsgType_Activate_TestMode       := oct2bit ('84'O);     /* @status    APPROVED */
+
+  const MessageType tsc_MsgType_Activate_TestModeCmpl   := oct2bit ('85'O);     /* @status    APPROVED */
+
+  const MessageType tsc_MsgType_Deactivate_TestMode     := oct2bit ('86'O);     /* @status    APPROVED */
+
+  const MessageType tsc_MsgType_Deactivate_TestModeCmpl := oct2bit ('87'O);     /* @status    APPROVED */
+
+  const SkipIndicator   tsc_Gen_SkipIndicator := '0000'B;                       /* Skip Indicator field consists of latter half byte
+                                                                                   after Protocol discriminator field.
+                                                                                   Its value is '0000'B in all the messages.
+                                                                                   @status    APPROVED */
+
+  const ProtocolDiscriminator   tsc_LB_ProtocolDiscriminator := '1111'B;        /* Protocol descriminator for test procedures
+                                                                                   24.007 Table 11.2
+                                                                                   @status    APPROVED */
+
+  const UE_TestLoopMode_Type tsc_UE_TestLoopMode_TypeA   := '00'O;              /* @status    APPROVED */
+
+  const UE_TestLoopMode_Type tsc_UE_TestLoopMode_TypeB   := '01'O;              /* @status    APPROVED */
+
+  group LB_Templates {
+
+  template (value) LB_SetupDRB_IE_Type  cs_LB_SetupDRB_IE(integer p_PDCP_SDU_Size,
+                                                          DRB_Identity p_DRB_Id) :=
+  { /* @status    APPROVED */
+    uplinkPdcpSduSize := int2bit (p_PDCP_SDU_Size,16),  /* Uplink PDCP SDU size */
+    reserved          := '000'B,
+    drbIdentity       :=  int2bit (p_DRB_Id-1, 5)       /* Note: acc. to ASN.1 DRB_Identity is 1..32 but the DRB-Identity of LB setup DRB IE has just 5 bits
+                                                           => assumption: binary coded DRB identity means ASN.1 coded (i.e. "p_DRB_Id-1") */
+  };
+
+  template (value) UE_TestLoopModeA_LB_Setup_Type cs_UE_TestLoopModeA_LB_Setup_1DRB(integer p_PDCP_SDU_Size,
+                                                                                    DRB_Identity p_DRB_Id) :=
+  { /* @status    APPROVED */
+    iel := '03'O, // 3 octets, i.e. one element in LB_SetupDRB_IE_List
+    lbSetupDrbList := {
+      cs_LB_SetupDRB_IE (p_PDCP_SDU_Size,p_DRB_Id)
+    }
+  };
+
+  template (value) UE_TestLoopModeA_LB_Setup_Type cs_UE_TestLoopModeA_LB_Setup_NoScaling :=
+  { /* @status    APPROVED */
+    iel := '00'O, // 0 octets, i.e. no element in LB_SetupDRB_IE_List
+    lbSetupDrbList := omit
+  };
+
+  template (value) NAS_DL_Message_Type  cs_CLOSE_UE_TEST_LOOP_ModeA(template (value) UE_TestLoopModeA_LB_Setup_Type p_UE_TestLoopModeA_LB_Setup):=
+  { /* parameter is mandatory since "UE_TestLoopMode := tsc_UE_TestLoopMode_TypeA */
+    /* @status    APPROVED */
+    cLOSE_UE_TEST_LOOP:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                          /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                   /*    M V 1/2    */
+      messageType              := tsc_MsgType_CloseUE_TestLoop,                   /*    M V 1      */
+      ueTestLoopMode           := tsc_UE_TestLoopMode_TypeA,                      /*    M V 1      */
+      ueTestLoopModeA_LB_Setup := p_UE_TestLoopModeA_LB_Setup,                    /*    C LV 1-16  */
+      ueTestLoopModeB_LB_Setup := omit                                            /*    C V 1      */
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_CLOSE_UE_TEST_LOOP_ModeB(UE_TestLoopModeB_LB_Setup_Type p_TlModeB_Setup) :=
+  { /* parameter is mandatory since "UE_TestLoopMode := tsc_UE_TestLoopMode_TypeB */
+    /* @status    APPROVED */
+    cLOSE_UE_TEST_LOOP:= {
+      skipIndicator             := tsc_Gen_SkipIndicator,
+      protocolDiscriminator     := tsc_LB_ProtocolDiscriminator,
+      messageType               := tsc_MsgType_CloseUE_TestLoop,
+      ueTestLoopMode            := tsc_UE_TestLoopMode_TypeB,
+      ueTestLoopModeA_LB_Setup  := omit,
+      ueTestLoopModeB_LB_Setup  := p_TlModeB_Setup
+    }
+  };
+
+  template NAS_UL_Message_Type  cr_CLOSE_UE_TEST_LOOP_COMPLETE :=
+  { /* @status    APPROVED */
+    cLOSE_UE_TEST_LOOP_COMPLETE:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                            /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                     /*    M V 1/2    */
+      messageType              := tsc_MsgType_CloseUE_TestLoopCmpl                  /*    M V 1      */
+    }
+  };
+
+  template (value) NAS_DL_Message_Type  cs_ACTIVATE_TEST_MODE (UE_TestLoopMode_Type p_UE_TestLoopMode) :=
+  { /* @status    APPROVED */
+    aCTIVATE_TEST_MODE:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                            /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                     /*    M V 1/2    */
+      messageType              := tsc_MsgType_Activate_TestMode,                    /*    M V 1      */
+      ueTestLoopMode           := p_UE_TestLoopMode                                 /*    M V 1      */
+    }
+  };
+
+  template NAS_UL_Message_Type  cr_ACTIVATE_TEST_MODE_COMPLETE :=
+  { /* @status    APPROVED */
+    aCTIVATE_TEST_MODE_COMPLETE:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                            /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                     /*    M V 1/2    */
+      messageType              := tsc_MsgType_Activate_TestModeCmpl                 /*    M V 1      */
+    }
+  };
+
+  template (value) NAS_DL_Message_Type  cs_DEACTIVATE_TEST_MODE :=
+  { /* @status    APPROVED */
+    dEACTIVATE_TEST_MODE:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                            /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                     /*    M V 1/2    */
+      messageType              := tsc_MsgType_Deactivate_TestMode                   /*    M V 1      */
+    }
+  };
+
+  template NAS_UL_Message_Type  cr_DEACTIVATE_TEST_MODE_COMPLETE :=
+  { /* @status    APPROVED */
+    dEACTIVATE_TEST_MODE_COMPLETE:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                            /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                     /*    M V 1/2    */
+      messageType              := tsc_MsgType_Deactivate_TestModeCmpl               /*    M V 1      */
+    }
+  };
+
+  template (value) NAS_DL_Message_Type  cs_OPEN_UE_TEST_LOOP :=
+  { /* @status    APPROVED */
+    oPEN_UE_TEST_LOOP:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                            /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                     /*    M V 1/2    */
+      messageType              := tsc_MsgType_OpenUE_TestLoop                       /*    M V 1      */
+    }
+  };
+
+  template NAS_UL_Message_Type  cr_OPEN_UE_TEST_LOOP_COMPLETE :=
+  { /* @status    APPROVED */
+    oPEN_UE_TEST_LOOP_COMPLETE:= {
+      skipIndicator            := tsc_Gen_SkipIndicator,                            /*    M V 1/2    */
+      protocolDiscriminator    := tsc_LB_ProtocolDiscriminator,                     /*    M V 1/2    */
+      messageType              := tsc_MsgType_OpenUE_TestLoopCmpl                   /*    M V 1      */
+    }
+  };
+
+  } // end of group LB_Templates
+
+  group TestLoopFunctions {
+
+  function f_EUTRA_CloseUE_TestLoopModeA(EUTRA_CellId_Type p_CellId,
+                                         template (value) UE_TestLoopModeA_LB_Setup_Type p_UE_TestLoopModeA_LB_Setup)
+    runs on EUTRA_PTC
+  { /* @sic R5-090700: TT01 has been removed from 36.509 sic@ */
+
+    f_IP_Handling_Stop(IP);    /* @sic R5s100135: stop DHCP and routing of DRB1 to the IP PTC sic@
+                                  @sic R5-106675 IP and IMS support sic@
+                                  @sic R5-113734 change 8 sic@ */
+
+    SRB.send (cas_SRB2_NasPdu_REQ(p_CellId,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered, cs_CLOSE_UE_TEST_LOOP_ModeA(p_UE_TestLoopModeA_LB_Setup))));
+
+    SRB.receive (car_SRB2_NasPdu_IND( p_CellId,
+                                      cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                        cr_CLOSE_UE_TEST_LOOP_COMPLETE)));
+  };
+
+  function f_EUTRA_CloseUE_TestLoopModeB(EUTRA_CellId_Type p_CellId,
+                                         UE_TestLoopModeB_LB_Setup_Type p_IpPduDelayTime)
+    runs on EUTRA_PTC
+  { /* @sic R5-090700: TT01 has been removed from 36.509 sic@ */
+
+    f_IP_Handling_Stop(IP);    /* @sic R5s100135: stop DHCP and routing of DRB1 to the IP PTC sic@
+                                  @sic R5-106675 IP and IMS support sic@
+                                  @sic R5-113734 change 8 sic@ */
+
+    SRB.send (cas_SRB2_NasPdu_REQ(p_CellId,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_CLOSE_UE_TEST_LOOP_ModeB(p_IpPduDelayTime))));
+
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_CLOSE_UE_TEST_LOOP_COMPLETE)));
+  }// f_EUTRA_CloseUE_TestLoopModeB
+
+  function f_EUTRA_OpenUE_TestLoopMode(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  { // @sic R5-106566 sic@
+
+    SRB.send (cas_SRB2_NasPdu_REQ(p_CellId,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_OPEN_UE_TEST_LOOP)));
+    SRB.receive (car_SRB2_NasPdu_IND( p_CellId,
+                                      cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                        cr_OPEN_UE_TEST_LOOP_COMPLETE)));
+  }
+
+  function f_EUTRA_Activate_TestMode (EUTRA_CellId_Type p_CellId,
+                                      UE_TestLoopMode_Type p_UE_TestLoopMode) runs on EUTRA_PTC
+  { /* @sic R5-090700: TT01 has been removed from 36.509 sic@ */
+
+    SRB.send (cas_SRB1_NasPdu_REQ(p_CellId,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_ACTIVATE_TEST_MODE(p_UE_TestLoopMode))));
+
+    SRB.receive (car_SRB1_NasPdu_IND(p_CellId,
+                                     cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                       cr_ACTIVATE_TEST_MODE_COMPLETE)));
+  }
+
+  function f_EUTRA_Deactivate_TestMode(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  { //@sic R5-090700: TT01 has been removed from 36.509 sic@
+    //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    //@sic R5-113714 re introduces usage of deactivate test loop sic@
+    
+    SRB.send (cas_SRB2_NasPdu_REQ(p_CellId,
+                                  cs_TimingInfo_Now,
+                                  cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                 cs_DEACTIVATE_TEST_MODE)));
+    
+    SRB.receive (car_SRB2_NasPdu_IND(p_CellId,
+                                     cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                       cr_DEACTIVATE_TEST_MODE_COMPLETE)));
+  }
+
+  function f_EUTRA_OpenUE_TestLoopMode_Deactivate_TestMode(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  { //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+    //@sic R5-113714 re introduces usage of deactivate test loop sic@
+    f_EUTRA_OpenUE_TestLoopMode(p_CellId);
+    f_EUTRA_Deactivate_TestMode(p_CellId);
+  }
+
+  } // end of group TestLoopFunctions
+
+}

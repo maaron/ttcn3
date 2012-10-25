@@ -1,0 +1,1638 @@
+/*******************************************Feb 2010) $
+// $Author: seka***********************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module RLC_UM_Testcases {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+  import from L2_CommonFunctions all;
+  import from L2_CommonTemplates all;
+  import from RLC_Common all;
+  import from RLC_UM_Templates all;
+
+group RLCUM_Functions {
+
+function f_GetTx_PRBS(inout RLC_SS_State p_RLC_Rec)
+{
+  var integer v_TxDataSize := p_RLC_Rec.TxDataSize;
+  var integer v_TxPRBS_Pos := p_RLC_Rec.TxPRBS_Pos;
+  
+  if (v_TxDataSize >= 0) {
+    p_RLC_Rec.RLC_Data := f_GetN_OctetsFromPRBS( v_TxPRBS_Pos,
+                                                 v_TxDataSize);
+    v_TxPRBS_Pos := v_TxPRBS_Pos + v_TxDataSize;
+    if (v_TxPRBS_Pos >= tsc_MaxPRBS_Pos) {
+      v_TxPRBS_Pos := v_TxPRBS_Pos - tsc_MaxPRBS_Pos;
+    }
+  }
+  p_RLC_Rec.TxPRBS_Pos := v_TxPRBS_Pos;
+} // f_GetTx_PRBS
+
+function f_TxUMD_oneSDU(inout RLC_SS_State p_RLC_Rec,
+                        template (value) TimingInfo_Type p_TimingInfo,
+                        integer p_SDUn)
+  runs on EUTRA_PTC
+{
+  // Send data
+  if ( p_RLC_Rec.UM_SN_Size == tsc_UM_SN_Size_10) {
+    p_RLC_Rec.UMD_PDU := valueof(cs_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VTUS,
+                                                       {p_RLC_Rec.RLC_DataList[p_SDUn]} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 1024;
+    
+  } else {
+    p_RLC_Rec.UMD_PDU := valueof(cs_UMD_PDUoneSDU_SN5(p_RLC_Rec.UM_VTUS,
+                                                      {p_RLC_Rec.RLC_DataList[p_SDUn]} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 32;
+    
+  }
+} // f_TxUMD_oneSDU
+
+function f_TxUMD_PDUpartofSDU(inout RLC_SS_State p_RLC_Rec,
+                              template (value) TimingInfo_Type p_TimingInfo,
+                              integer p_SDUn,
+                              integer p_SegOffset,
+                              integer p_SegLen,
+                              RLC_FramingInfo_Type p_FramingInfo)
+  runs on EUTRA_PTC
+{
+  var RLC_DataField_Type v_RLC_Data1;
+  v_RLC_Data1 := substr (p_RLC_Rec.RLC_DataList[p_SDUn], p_SegOffset, p_SegLen);
+  
+  if ( p_RLC_Rec.UM_SN_Size == tsc_UM_SN_Size_10) {
+    p_RLC_Rec.UMD_PDU := valueof (cs_UMD_PDU_NoLIs_SN10 (p_RLC_Rec.UM_VTUS,
+                                                         p_FramingInfo,
+                                                         {v_RLC_Data1} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 1024;
+  } else {
+    p_RLC_Rec.UMD_PDU := valueof (cs_UMD_PDU_NoLIs_SN5 (p_RLC_Rec.UM_VTUS,
+                                                        p_FramingInfo,
+                                                        {v_RLC_Data1} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 32;
+  }
+} // f_TxUMD_PDUpartofSDU
+
+function f_TxUMD_PDUpartofSDU12(inout RLC_SS_State p_RLC_Rec,
+                                template (value) TimingInfo_Type p_TimingInfo,
+                                integer p_SDUn1,
+                                integer p_SegOffset1,
+                                integer p_SegLen1,
+                                integer p_SDUn2,
+                                integer p_SegOffset2,
+                                integer p_SegLen2,
+                                RLC_FramingInfo_Type p_FramingInfo)
+  runs on EUTRA_PTC
+{
+  var RLC_DataField_Type v_RLC_Data1, v_RLC_Data2;
+  v_RLC_Data1 := substr (p_RLC_Rec.RLC_DataList[p_SDUn1], p_SegOffset1, p_SegLen1);
+  v_RLC_Data2 := substr (p_RLC_Rec.RLC_DataList[p_SDUn2], p_SegOffset2, p_SegLen2);
+  
+  if ( p_RLC_Rec.UM_SN_Size == tsc_UM_SN_Size_10) {
+    p_RLC_Rec.UMD_PDU := valueof (cs_UMD_PDU_LIs_SN10 (p_RLC_Rec.UM_VTUS,
+                                                       p_FramingInfo,
+                                                       cs_FlexPart_1LI (p_SegLen1),
+                                                       {v_RLC_Data1, v_RLC_Data2} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 1024;
+  } else {
+    p_RLC_Rec.UMD_PDU := valueof (cs_UMD_PDU_LIs_SN5 (p_RLC_Rec.UM_VTUS,
+                                                      p_FramingInfo,
+                                                      cs_FlexPart_1LI (p_SegLen1),
+                                                      {v_RLC_Data1, v_RLC_Data2} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 32;
+   }
+} // f_TxUMD_PDUpartofSDU12
+
+function f_TxUMD_PDUpartofSDU12ErrLI(inout RLC_SS_State p_RLC_Rec,
+                                     template (value) TimingInfo_Type p_TimingInfo,
+                                     integer p_SDUn1,
+                                     integer p_SegOffset1,
+                                     integer p_SegLen1,
+                                     integer p_SDUn2,
+                                     integer p_SegOffset2,
+                                     integer p_SegLen2,
+                                     RLC_FramingInfo_Type p_FramingInfo)
+  runs on EUTRA_PTC
+{
+  var RLC_DataField_Type v_RLC_Data1 := substr (p_RLC_Rec.RLC_DataList[p_SDUn1], p_SegOffset1, p_SegLen1);
+  var RLC_DataField_Type v_RLC_Data2 := substr (p_RLC_Rec.RLC_DataList[p_SDUn2], p_SegOffset2, p_SegLen2);
+  
+  if ( p_RLC_Rec.UM_SN_Size == tsc_UM_SN_Size_10) {
+    p_RLC_Rec.UMD_PDU := valueof (cs_UMD_PDU_LIs_SN10 (p_RLC_Rec.UM_VTUS,
+                                                       p_FramingInfo,
+                                                       cs_FlexPart_1LI (p_SegLen1 + 228), // Error, LI pointing outside of PDU
+                                                       {v_RLC_Data1, v_RLC_Data2} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 1024;
+    
+  } else {
+    p_RLC_Rec.UMD_PDU := valueof (cs_UMD_PDU_LIs_SN5 (p_RLC_Rec.UM_VTUS,
+                                                      p_FramingInfo,
+                                                      cs_FlexPart_1LI (p_SegLen1 + 228), // Error, LI pointing outside of PDU
+                                                      {v_RLC_Data1, v_RLC_Data2} ));
+    DRB.send (cas_DRB2_RLCUmDataReq (eutra_Cell1, p_TimingInfo, p_RLC_Rec.UMD_PDU));
+    p_RLC_Rec.UM_VTUS := (p_RLC_Rec.UM_VTUS + 1) mod 32;
+  }
+} // f_TxUMD_PDUpartofSDU12ErrLI
+
+function f_RxUMD_oneSDU(inout RLC_SS_State p_RLC_Rec,
+                        integer p_SDUn)
+  runs on EUTRA_PTC
+{
+  if ( p_RLC_Rec.UM_SN_Size == tsc_UM_SN_Size_10) {
+    // size 10
+    DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                        cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[p_SDUn]} )));
+    p_RLC_Rec.UM_VRUR := (p_RLC_Rec.UM_VRUR + 1) mod 1024;
+  } else {
+    // size 5
+    DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                        cr_UMD_PDUoneSDU_SN5(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[p_SDUn]} )));
+    p_RLC_Rec.UM_VRUR := (p_RLC_Rec.UM_VRUR + 1) mod 32;
+  }
+} // f_RxUMD_oneSDU
+
+function f_RxUMD_SDU2(inout RLC_SS_State p_RLC_Rec,
+                      integer p_SDUn1,
+                      integer p_SDUn2,
+                      integer p_SizeN)
+  runs on EUTRA_PTC
+{ // @sic R5s100273 sic@ @sic R5s100398 sic@
+  // receive PDU carrying SDU
+  if ( p_RLC_Rec.UM_SN_Size == tsc_UM_SN_Size_10) {
+    // size 10
+    DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                        cr_UMD_PDU_LIs_SN10(p_RLC_Rec.UM_VRUR,
+                                                            tsc_FI_FullSDU,
+                                                            cr_FlexPart_1LI (p_SizeN),
+                                                            {p_RLC_Rec.RLC_DataList[p_SDUn1], p_RLC_Rec.RLC_DataList[p_SDUn2]} )));
+    p_RLC_Rec.UM_VRUR := (p_RLC_Rec.UM_VRUR + 1) mod 1024;
+  } else {
+    // size 5
+    DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                        cr_UMD_PDU_LIs_SN5(p_RLC_Rec.UM_VRUR,
+                                                           tsc_FI_FullSDU,
+                                                           cr_FlexPart_1LI (p_SizeN),
+                                                           {p_RLC_Rec.RLC_DataList[p_SDUn1], p_RLC_Rec.RLC_DataList[p_SDUn2]} )));
+    p_RLC_Rec.UM_VRUR := (p_RLC_Rec.UM_VRUR + 1) mod 32;
+  }
+} // f_RxUMD_SDU2
+
+function f_RxUMD_SDU3(inout RLC_SS_State p_RLC_Rec,
+                      integer p_SDUn1,
+                      integer p_SDUn2,
+                      integer p_SDUn3,
+                      integer p_SizeN1,
+                      integer p_SizeN2)
+  runs on EUTRA_PTC
+{ // @sic R5s100398 sic@
+  // receive PDU carrying SDU
+  if ( p_RLC_Rec.UM_SN_Size == tsc_UM_SN_Size_10) {
+    // size 10
+    DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                        cr_UMD_PDU_LIs_SN10(p_RLC_Rec.UM_VRUR,
+                                                            tsc_FI_FullSDU,
+                                                            cr_FlexPart_2LIs (p_SizeN1, p_SizeN2),
+                                                            {p_RLC_Rec.RLC_DataList[p_SDUn1], p_RLC_Rec.RLC_DataList[p_SDUn2], p_RLC_Rec.RLC_DataList[p_SDUn3]} )));
+    p_RLC_Rec.UM_VRUR := (p_RLC_Rec.UM_VRUR + 1) mod 1024;
+  } else {
+    // size 5
+    DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                        cr_UMD_PDU_LIs_SN5(p_RLC_Rec.UM_VRUR,
+                                                           tsc_FI_FullSDU,
+                                                           cr_FlexPart_2LIs (p_SizeN1, p_SizeN2),
+                                                           {p_RLC_Rec.RLC_DataList[p_SDUn1], p_RLC_Rec.RLC_DataList[p_SDUn2], p_RLC_Rec.RLC_DataList[p_SDUn3]} )));
+    p_RLC_Rec.UM_VRUR := (p_RLC_Rec.UM_VRUR + 1) mod 32;
+  }
+} // f_RxUMD_SDU3
+
+function fl_GenerateRLC_UM_SDUs (inout RLC_SS_State p_RLC_Rec,
+                                 integer p_PDCP_SDU_size,
+                                 integer p_SDU_Num,
+                                 boolean p_PDCP_LongSN := true)
+{
+  var integer i;
+  
+  for(i := 0; i < p_SDU_Num; i:= i + 1)
+    {
+      if (p_PDCP_LongSN == true)
+        {
+          p_RLC_Rec.TxDataSize := p_PDCP_SDU_size - 2; // Long PDCP SN header
+          f_GetTx_PRBS(p_RLC_Rec);
+          p_RLC_Rec.RLC_DataList[i] := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(p_RLC_Rec.Next_PDCP_TX_SN,
+                                                                               p_RLC_Rec.RLC_Data));
+          p_RLC_Rec.Next_PDCP_TX_SN := (p_RLC_Rec.Next_PDCP_TX_SN + 1) mod (tsc_Maximum_PDCP_SN_12 + 1);
+        }
+      else
+        {
+          p_RLC_Rec.TxDataSize := p_PDCP_SDU_size - 1; // Short PDCP SN header
+          f_GetTx_PRBS(p_RLC_Rec);
+          p_RLC_Rec.RLC_DataList[i] := f_PDCP_PDU_Encvalue (cs_PDCP_DataShortSN(p_RLC_Rec.Next_PDCP_TX_SN,
+                                                                                p_RLC_Rec.RLC_Data));
+          p_RLC_Rec.Next_PDCP_TX_SN := (p_RLC_Rec.Next_PDCP_TX_SN + 1) mod (tsc_Maximum_PDCP_SN_7 + 1);
+        }
+    }
+}
+
+function f_EUTRA_CellConfig_DefPlusUM_SN5(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+{  // @sic R5s100076 sic@
+  f_EUTRA_CellConfig_Def ( p_CellId );
+  f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB(p_CellId,
+                                               cs_OneDRB_ConfigUM(tsc_DRB2,
+                                                                  cs_508_PDCP_Config_DRB_UM,
+                                                                  cs_RLC_Configuration_UM_SN5));
+};
+
+} // end of group RLCUM_Functions
+
+group UM_testcases {
+
+function f_TC_7_2_2_1_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s090314 sic@
+  
+  var RLC_SS_State v_RLC_Rec;
+  
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  v_RLC_Rec.UM_SN_Size := tsc_UM_SN_Size_5;
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM_SN5 (eutra_Cell1);  // @sic R5s100076 sic@
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cds_TX_UM_RLC_DRB_SN5,
+                                  cds_RX_UM_RLC_DRB_SN5);
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_1_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+  
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+  
+} // f_TC_7_2_2_1_EUTRA
+
+function fl_TC_7_2_2_1_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s090314 sic@
+
+  var integer v_RLCSDUsize := 128;
+
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLCSDUsize, 2);
+  
+  //@siclog "Step 1" siclog@
+  // The SS transmits UMD PDU#1 containing a complete RLC SDU#1 (FI field = 0).
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+
+  //@siclog "Step 2" siclog@
+  // Does the UE transmit RLC SDU#1?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+
+  //@siclog "Step 3" siclog@
+  // The SS transmits UMD PDU#2 containing first segment of RLC SDU#2 (FI field = 01).
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 0, 25, tsc_FI_StartOfSDU);
+
+  //@siclog "Step 4" siclog@
+  // The SS transmits UMD PDU#3 containing second segment of RLC SDU#2 (FI field = 11).
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 25, 25, tsc_FI_MiddleOfSDU);
+
+  //@siclog "Step 5" siclog@
+  // The SS transmits UMD PDU#4 containing last segment of RLC SDU#2 (FI field = 10).
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 50, v_RLCSDUsize -50, tsc_FI_EndOfSDU);
+
+  //@siclog "Step 6" siclog@
+  // Does the UE transmit RLC SDU#2?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU2 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+} // fl_TC_7_2_2_1_TestBody
+
+function f_TC_7_2_2_2_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s090316 sic@
+  
+  var RLC_SS_State v_RLC_Rec;
+  
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled
+  f_EUTRA_RbEst_508_UM_DisableBSR_PHR ( eutra_Cell1 );
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_2_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+  
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // f_TC_7_2_2_2_EUTRA
+
+function fl_TC_7_2_2_2_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s090316 sic@
+
+  var integer v_RLCSDUsize := 128;
+
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLCSDUsize, 2);
+
+  //@siclog "Step 1" siclog@
+  // The SS transmits UMD PDU#1 containing a complete RLC SDU#1 (FI field = 0).
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 2" siclog@
+  // Does the UE transmit RLC SDU#1?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+  
+  //@siclog "Step 3" siclog@
+  // The SS transmits UMD PDU#2 containing first segment of RLC SDU#2 (FI field = 01).
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 0, 25, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 4" siclog@
+  // The SS transmits UMD PDU#3 containing second segment of RLC SDU#2 (FI field = 11).
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 25, 25, tsc_FI_MiddleOfSDU);
+  
+  //@siclog "Step 5" siclog@
+  // The SS transmits UMD PDU#4 containing last segment of RLC SDU#2 (FI field = 10).
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 50, v_RLCSDUsize -50, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 6" siclog@
+  // Does the UE transmit RLC SDU#2?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU2 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+  
+} // fl_TC_7_2_2_2_TestBody
+
+function f_TC_7_2_2_3_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s090318 sic@
+
+  var RLC_SS_State v_RLC_Rec;
+
+  //EUTRA initialisation
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  v_RLC_Rec.UM_SN_Size := tsc_UM_SN_Size_5;
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM_SN5 (eutra_Cell1);  // @sic R5s100076 sic@
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cds_TX_UM_RLC_DRB_SN5,
+                                  cds_RX_UM_RLC_DRB_SN5);
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_3_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // f_TC_7_2_2_3_EUTRA
+
+function fl_TC_7_2_2_3_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s090318 sic@
+  var integer v_RLC_SDUsize := 128;
+  var RLC_DataField_Type v_SDU4_Received;
+  var RLC_DataField_Type v_RLC_Data1; // @sic R5s100049 sic@
+  timer t_WatchDog := 5.0;   // timer value to be used as per configuration
+
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLC_SDUsize, 4);
+  // RLC SDU4 to be received:
+  // - contains PDCP SN = 1 as RLC SDUs 2 and 3 are to be ignored by the UE
+  v_RLC_Data1 := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU4],2,(v_RLC_SDUsize-2));
+  v_SDU4_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(1,v_RLC_Data1));
+  
+  //@siclog "Step 1" siclog@
+  // The SS transmits UMD PDU#1 containing first segment of RLC SDU#1.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1, 0, 75, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 2" siclog@
+  // The SS transmits UMD PDU#2 containing last segment of RLC SDU#1 and first segment of RLC SDU#2.
+  f_TxUMD_PDUpartofSDU12 (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1, 75, v_RLC_SDUsize -75, tsc_RLC_SDU2, 0, 75, tsc_FI_MiddleOfSDU);
+  
+  //@siclog "Step 3" siclog@
+  // The SS transmits UMD PDU#3 containing last segment of RLC SDU#2,
+  // and first segment of RLC SDU#3 and with Length Indicator that points beyond the end of the UMD PDU#3.
+  f_TxUMD_PDUpartofSDU12ErrLI (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 75, v_RLC_SDUsize -75, tsc_RLC_SDU3, 0, 75, tsc_FI_MiddleOfSDU);
+  
+  //@siclog "Step 4" siclog@
+  // The SS transmits UMD PDU#4 containing last segment of RLC SDU#3.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU3, 75, v_RLC_SDUsize -75, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 5" siclog@
+  // The SS transmits UMD PDU#5 containing RLC SDU#4.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU4 );
+  
+  // Parallel behaviour, checked after all PDUs have been sent
+  //@siclog "Step 1" siclog@
+  // Check: does the UE send RLC SDU#1?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Parallel behaviour Step 1");
+  //@siclog "Steps 2 - 3 - 4" siclog@
+  // Parallel behaviour
+  // any event not expected per prose, including timeout will be handled in the default and lead to fail
+  t_WatchDog.start;
+  alt {
+    //@siclog "Step 2" siclog@
+    // Check: does the UE send RLC SDU#2? Results in Fail.
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN5(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[tsc_RLC_SDU2]} )))
+      {
+        t_WatchDog.stop;
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Parallel behaviour step 2");
+      }
+    //@siclog "Step 3" siclog@
+    // Check: does the UE send RLC SDU#3? Results in Fail.
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN5(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[tsc_RLC_SDU3]} )))
+      {
+        t_WatchDog.stop;
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Parallel behaviour step 3");
+      }
+    //@siclog "Step 4" siclog@
+    // Check: does the UE send RLC SDU#4?
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN5(p_RLC_Rec.UM_VRUR, {v_SDU4_Received} )))
+      {
+        t_WatchDog.stop;
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Parallel behaviour step 4");
+      }
+    [] t_WatchDog.timeout
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "WatchDog timeout at Step 1");
+      }
+  }; // alt
+} // fl_TC_7_2_2_3_TestBody
+
+function f_TC_7_2_2_4_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s090320 sic@
+  var RLC_SS_State v_RLC_Rec;
+
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled
+  f_EUTRA_RbEst_508_UM_DisableBSR_PHR ( eutra_Cell1 );
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //reconfigure DRB at the UE side not required
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_4_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // f_TC_7_2_2_4_EUTRA
+
+function fl_TC_7_2_2_4_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s090320 sic@
+  var integer v_RLC_SDUsize := 128;
+  var RLC_DataField_Type v_SDU4_Received;
+  var RLC_DataField_Type v_RLC_Data1; // @sic R5s100049 sic@
+  timer t_WatchDog := 5.0;    // timer value to be used as per configuration
+
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLC_SDUsize, 4);
+  // RLC SDU4 to be received:
+  // - contains PDCP SN = 1 as RLC SDUs 2 and 3 are to be ignored by the UE
+  v_RLC_Data1 := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU4],2,(v_RLC_SDUsize-2));
+  v_SDU4_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(1,v_RLC_Data1));
+
+  //@siclog "Step 1" siclog@
+  // The SS transmits UMD PDU#1 containing first segment of RLC SDU#1.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1, 0, 75, tsc_FI_StartOfSDU);
+
+  //@siclog "Step 2" siclog@
+  // The SS transmits UMD PDU#2 containing last segment of RLC
+  // SDU#1 and first segment of RLC SDU#2.
+  f_TxUMD_PDUpartofSDU12 (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1, 75, v_RLC_SDUsize -75, tsc_RLC_SDU2, 0, 75, tsc_FI_MiddleOfSDU);
+
+
+  //@siclog "Step 3" siclog@
+  // The SS transmits UMD PDU#3 containing last segment of RLC SDU#2 and
+  // first segment of RLC SDU#3 and with Length Indicator that points beyond the end of the RLC PDU#3.
+  f_TxUMD_PDUpartofSDU12ErrLI (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 75, v_RLC_SDUsize -75, tsc_RLC_SDU3, 0, 75, tsc_FI_MiddleOfSDU);
+
+  //@siclog "Step 4" siclog@
+  // The SS transmits UMD PDU#4 containing last segment of RLC SDU#3.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU3, 75, v_RLC_SDUsize -75, tsc_FI_EndOfSDU);
+
+  //@siclog "Step 5" siclog@
+  // The SS transmits UMD PDU#5 containing RLC SDU#4.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU4 );
+
+
+  // ---------
+  // Parallel behaviour, checked after all PDUs have been sent
+  //@siclog "Step 1" siclog@
+  // Check: does the UE send RLC SDU#1?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Parallel behaviour Step 1");
+  //@siclog "Steps 2 - 3 - 4" siclog@
+  // Parallel behaviour
+  // any event not expected per prose, including timeout will be handled in the default and lead to fail
+  t_WatchDog.start;
+  alt {
+    //@siclog "Step 2" siclog@
+    // Check: Does the UE  send RLC SDU#2? Results in fail.
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[tsc_RLC_SDU2]} )))
+     {
+       t_WatchDog.stop;
+       f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Parallel behaviour step 2");
+     }
+    //@siclog "Step 3" siclog@
+    // Check: Does the UE send RLC SDU#3? Results in fail.
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[tsc_RLC_SDU3]} )))
+      {
+        t_WatchDog.stop;
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Parallel behaviour step 3");
+      }
+    //@siclog "Step 4" siclog@
+    // Check: does the UE send RLC SDU#4?
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {v_SDU4_Received} )))
+      {
+        t_WatchDog.stop;
+        f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Parallel behaviour step 4");
+      }
+    [] t_WatchDog.timeout
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "WatchDog timeout at Step 1");
+      }
+  }; // alt
+} // fl_TC_7_2_2_4_TestBody
+
+function f_TC_7_2_2_5_1_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s090340 sic@
+
+  var RLC_SS_State v_RLC_Rec;
+
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  v_RLC_Rec.UM_SN_Size := tsc_UM_SN_Size_5;
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM_SN5 (eutra_Cell1); // @sic R5s100076 sic@
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cds_TX_UM_RLC_DRB_SN5,
+                                  cds_RX_UM_RLC_DRB_SN5);
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_5_1_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // f_TC_7_2_2_5_1_EUTRA
+
+function fl_TC_7_2_2_5_1_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s090340 sic@
+  var integer i;
+  var integer v_RLCSDUsize := 128;
+  
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLCSDUsize, 33);
+  
+  //@siclog "Step 1" siclog@
+  // The SS transmits an UMD PDU. SN equals 0.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 2" siclog@
+  // Check: Does the UE transmit an UMD PDU with SN = 0?
+  // (The SN value is tested in the function  f_RxUMD_SDU)
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+  
+  for (i:= 1; i< 32; i := i+1) {
+    //@siclog "Step 3" siclog@
+    // The SS transmits an UMD PDU. SN equals 1 and is incremented for each PDU transmitted.
+    // Value of SN is computed in f_TxUMD_SDU
+    f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, i );
+    
+    //@siclog "Step 4" siclog@
+    // Check: Does the UE transmit an UMD PDU with correct SN?
+    // The check: data contents and SN value is tested in the function  f_RxUMD_SDU
+    f_RxUMD_oneSDU( p_RLC_Rec, i );
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+  }
+  
+  //@siclog "Step 5" siclog@
+  // The SS transmits an UMD PDU. SN equals 0.
+  // Value of SN is computed in f_TxUMD_SDU
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, i );
+  
+  //@siclog "Step 6" siclog@
+  // Check: Does the UE transmit an UMD PDU with correct SN
+  // The check: data contents and SN value is tested in the function  f_RxUMD_SDU
+  f_RxUMD_oneSDU( p_RLC_Rec, i );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+  
+} // fl_TC_7_2_2_5_1_TestBody
+
+function f_TC_7_2_2_5_2_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s090342 sic@
+
+  var RLC_SS_State v_RLC_Rec;
+
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+
+  fl_GenerateRLC_UM_SDUs (v_RLC_Rec, 128, 1025, false);
+  // @sic R5s100049 sic@ temporarily accepted
+  
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific PDCP parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cds_PDCP_Config_DRB_UM_SN7, // @sic R5s100302 sic@
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cs_508_DRB_DL_UM_RLC);
+  //entering UE test state 4
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_5_2_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // f_TC_7_2_2_5_2_EUTRA
+
+function fl_TC_7_2_2_5_2_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s090342 sic@
+  var integer i;
+  //var integer v_RLCSDUsize := 128;
+  
+  // fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLCSDUsize, 1025, false);
+  // @sic R5s100049 sic@ temporarily accepted
+  
+  //@siclog "Step 1" siclog@
+  // The SS transmits an UMD PDU. SN equals 0.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 2" siclog@
+  // Check: Does the UE transmit an UMD PDU with SN = 0?
+  // (The SN value is tested in the function  f_RxUMD_SDU)
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+  
+  for (i:= 1; i< 1024; i := i+1) {
+    //@siclog "Step 3" siclog@
+    // The SS transmits an UMD PDU. SN equals 1 and is incremented for each PDU transmitted.
+    // Value of SN is computed in f_TxUMD_SDU
+    f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, i );
+    
+    //@siclog "Step 4" siclog@
+    // Check: Does the UE transmit an UMD PDU with correct SN?
+    // The check: data contents and SN value is tested in the function  f_RxUMD_SDU
+    f_RxUMD_oneSDU( p_RLC_Rec, i );
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+  }
+  
+  //@siclog "Step 5" siclog@
+  // The SS transmits an UMD PDU. SN equals 0.
+  // Value of SN is computed in f_TxUMD_SDU
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, i );
+  
+  //@siclog "Step 6" siclog@
+  // Check: Does the UE transmit an UMD PDU with correct SN
+  // The check: data contents and SN value is tested in the function  f_RxUMD_SDU
+  f_RxUMD_oneSDU( p_RLC_Rec, i );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+  
+} // fl_TC_7_2_2_5_2_TestBody
+
+function f_TC_7_2_2_6_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100004 sic@
+  var RLC_SS_State v_RLC_Rec;
+  
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state 3, default values with BSR and PHR disabled
+  f_EUTRA_RbEst_508_UM_DisableBSR_PHR (eutra_Cell1);
+  //entering UE test state 4
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_HarqErrorHandling_Set(raiseInconc);
+  fl_TC_7_2_2_6_TestBody (v_RLC_Rec);
+  f_EUTRA_HarqErrorHandling_Set(ignore);
+  f_EUTRA_TestBody_Set(false);
+  
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+  
+} // f_TC_7_2_2_6_EUTRA
+
+function fl_TC_7_2_2_6_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s100004 sic@ @sic R5-105016 sic@
+  var integer v_RLC_SDUsize := 50;
+  var integer v_Part1Len;
+  var octetstring v_SDU5;
+  var octetstring v_RLC_SDUpart1;
+  var octetstring v_RLC_SDUlastpart;
+  var SubFrameTiming_Type v_Timing;
+  
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLC_SDUsize, 5);
+  
+  //@siclog "Step 1" siclog@
+  // The SS does not allocate any uplink grant.
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync (eutra_Cell1, cs_TimingInfo_Now);
+  
+  //@siclog "Step 2" siclog@
+  // The SS transmits UMD PDU#1. This PDU carries SDU#1 with size of 50 bytes.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 3" siclog@
+  // The SS transmits UMD PDU#2. This PDU carries SDU#2 with size of 50 bytes.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2 );
+  
+  //@siclog "Step 4" siclog@
+  // The SS transmits UL grants to enable UE to return RLC SDU#1 and RLC SDU#2 both in one UMD PDU.
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+  
+  //@siclog "Step 5" siclog@
+  // Check: Does UE transmit RLC SDU#1 and RLC SDU#2
+  // within UMD PDU with FI field set to 00, E field in the fixed part set to 1,
+  // first E field in the extension part set to 0 and first LI field set to 50 bytes?
+  f_RxUMD_SDU2( p_RLC_Rec, tsc_RLC_SDU1,  tsc_RLC_SDU2, v_RLC_SDUsize);
+  
+  //@siclog "Step 6" siclog@
+  // The SS transmits an UMD PDU#3 including RLC SDU#3 and RLC SDU#4
+  // each with size of 50 bytes. Header of UMD PDU#3 contains FI=00, E=1, SN=2, E1=0, LI1=50.
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync (eutra_Cell1, cs_TimingInfo_Now);
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1);
+  f_TxUMD_PDUpartofSDU12 (p_RLC_Rec,
+                          cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                          tsc_RLC_SDU3, 0, v_RLC_SDUsize,
+                          tsc_RLC_SDU4, 0, v_RLC_SDUsize,
+                          tsc_FI_FullSDU);
+  //@siclog "Step 7" siclog@
+  // The SS waits for 60 ms and then allocates 2 UL grants (UL grant allocation type 2)(of size 440 bits) to enable UE
+  // to return each RLC SDU in one UMD PDU.
+  // Assuming MAC PDU  size = v_RLC_SDUsize + 2 octets (RLC header) + 2 octets (MAC header) = 54 octets or 432 bits
+  // Determine Itbs and Nprb according to table in TS 36.213 clause 7.1.7.2.1-1
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+  f_EUTRA_PeriodicCyclicULGrantTransmission( eutra_Cell1,
+                                             cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                             3, 8, 5, 2); // Imcs = 3 -> Itbs = 3  @sic R5s110394 sic@
+  //@siclog "Step 8" siclog@
+  // Check: Does UE transmit RLC SDU#3 within an UMD PDU with FI field set to 00 and E field in the fixed part set to 0?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU3 );
+  
+  //@siclog "Step 9" siclog@
+  // Check: Does UE transmit RLC SDU#4 within an UMD PDU with FI field set to 00 and E field in the fixed part set to 0?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU4 );
+  
+  //@siclog "Step 10" siclog@
+  // The SS transmits UMD PDU#4. This PDU carries SDU#5 with size of 50 bytes.
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1);
+  f_TxUMD_oneSDU( p_RLC_Rec,
+                  cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                  tsc_RLC_SDU5 );
+  //@siclog "Step 11" siclog@
+  // The SS waits for 60 ms and then allocates 2 UL grants (UL grant allocation type 2)(of size 440 bits) to enable UE
+  // to return RLC SDU#5 in two UMD PDUs.
+  // Assign 2 UL grants which allow more than 50/2 octets to be transmitted
+  // Assuming MAC PDU  size >= v_RLC_SDUsize(=50)/2 (half of SDU#5)
+  // + 2 octets (RLC header) + 2 octets (MAC header) +  1 octet BSR.
+  // 27 octets MAC SDU + 5 octets = 32 octets = 256 bits
+  // Determine Itbs and Nprb according to table in TS 36.313 clause 7.1.7.2.1-1
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+  f_EUTRA_PeriodicCyclicULGrantTransmission( eutra_Cell1,
+                                             cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                             4, 4, 5, 2);// Imcs = 4 -> Itbs = 4  @sic R5s110394 sic@
+  //@siclog "Step 12" siclog@
+  // Check: Does UE transmit 1st part of RLC SDU#5 within UMD PDU#5 with FI field set to 01 and E field in the fixed part set to 0?
+  v_Part1Len := 27;
+  v_SDU5 := p_RLC_Rec.RLC_DataList[tsc_RLC_SDU5];
+  v_RLC_SDUpart1 := substr (v_SDU5, 0, v_Part1Len);
+  v_RLC_SDUlastpart := substr (v_SDU5, v_Part1Len, lengthof (v_SDU5) - v_Part1Len);
+  DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                      cr_UMD_PDU_SN10(3, tsc_FI_StartOfSDU, {v_RLC_SDUpart1} )));
+  
+  //@siclog "Step 13" siclog@
+  // Check: Does UE transmit last part of RLC SDU#5 within an UMD PDU#6 with FI field set to 10, E field in the fixed part set to 1, first E field in the extension part set to 0, first LI field set to M bytes?
+  DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                      cr_UMD_PDU_SN10(4, tsc_FI_EndOfSDU, {v_RLC_SDUlastpart} )));
+  
+} // fl_TC_7_2_2_6_TestBody
+
+function f_TC_7_2_2_7_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100006 sic@
+  var RLC_SS_State v_RLC_Rec;
+  
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cds_RX_UM_RLC_DRB_SN10_tReord200ms);
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_HarqErrorHandling_Set(raiseInconc);
+  fl_TC_7_2_2_7_TestBody (v_RLC_Rec);
+  f_EUTRA_HarqErrorHandling_Set(ignore);
+  f_EUTRA_TestBody_Set(false);
+  
+  f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+  
+} // f_TC_7_2_2_7_EUTRA
+
+function fl_TC_7_2_2_7_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s100006 sic@, @sic R5s100140 change 2 sic@ @sic R5-105016 sic@
+  var integer v_RLCSDUsize := 128;
+  var SubFrameTiming_Type v_Timing;
+  var integer v_Subframe := 0;
+  var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+
+  // determine RAT to make the timing correct later on
+  v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLCSDUsize, 4);
+    
+  //@siclog "Step 1" siclog@
+  // The SS transmits an UMD PDU. This PDU carries SDU#1. SN equals 0.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 2" siclog@
+  // Does the UE transmit RLC SDU#1?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 2A" siclog@
+  // The SS stops UL grant transmission
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync (eutra_Cell1, cs_TimingInfo_Now);
+  
+  //@siclog "Step 3" siclog@
+  // The SS transmits an UMD PDU. This PDU contains the last part of SDU#4. SN equals 3.
+  p_RLC_Rec.UM_VTUS  := 3;
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1);
+  v_Subframe := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 0);
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec,
+                        cs_TimingInfo(v_Timing.SFN.Number, v_Subframe),
+                        tsc_RLC_SDU4, 75, v_RLCSDUsize - 75,
+                        tsc_FI_EndOfSDU);
+  //@siclog "Step 4" siclog@
+  // The SS transmits an UMD PDU. This PDU contains the last part of SDU#3, and the 1st part of SDU#4. SN equals 2.
+  p_RLC_Rec.UM_VTUS  := 2;
+  v_Subframe := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 1);
+  f_TxUMD_PDUpartofSDU12 (p_RLC_Rec,
+                          cs_TimingInfo(v_Timing.SFN.Number, v_Subframe),
+                          tsc_RLC_SDU3, 75, v_RLCSDUsize - 75,
+                          tsc_RLC_SDU4, 0, 75,
+                          tsc_FI_MiddleOfSDU);
+  //@siclog "Step 5" siclog@
+  // The SS transmits an UMD PDU. This PDU carries SDU#2 and the 1st part of SDU#3. SN equals 1.
+  p_RLC_Rec.UM_VTUS  := 1;
+  v_Subframe := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 2);
+  f_TxUMD_PDUpartofSDU12 (p_RLC_Rec,
+                          cs_TimingInfo(v_Timing.SFN.Number, v_Subframe),
+                          tsc_RLC_SDU2, 0, v_RLCSDUsize,
+                          tsc_RLC_SDU3, 0, 75,
+                          tsc_FI_StartOfSDU );
+  //@siclog "Step 5A" siclog@
+  // The SS waits for 60 ms and then allocates 3 UL grants (UL grant allocation type 2)(of size 1064 bits) for the UE
+  // to loop back one SDU in one UMD PDU.
+  // v_Timing.Subframe.Number of 4 is valid for UL grant transmission
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+  f_EUTRA_PeriodicCyclicULGrantTransmission( eutra_Cell1,
+                                             cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                             4, 15, 5, 3);  // Imcs = 4 -> Itbs = 4  @sic R5s110394 sic@
+  //@siclog "Step 6" siclog@
+  // Check: Does the UE transmit RLC SDU#2?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU2 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+  
+  //@siclog "Step 7" siclog@
+  // Check: Does the UE transmit RLC SDU#3?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU3 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+  
+  //@siclog "Step 8" siclog@
+  // Check: Does the UE transmit RLC SDU#4?
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU4 );
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+  
+} // fl_TC_7_2_2_7_TestBody
+
+function f_TC_7_2_2_8_EUTRA() runs on EUTRA_PTC
+{ /* @desc UM RLC / In sequence delivery of upper layers PDUs without residual loss of RLC PDUs / Maximum re-ordering delay exceeds the t_Reordering time */
+  // @sic R5s100078 sic@ @sic R5-102238 sic@ @sic R5-103805 sic@
+
+   var RLC_SS_State v_RLC_Rec;
+
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  v_RLC_Rec.t_Reordering := 0.2; // 200 ms
+
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cds_RX_UM_RLC_DRB_SN10_tReord200ms);
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_HarqErrorHandling_Set(raiseInconc);
+  fl_TC_7_2_2_8_TestBody (v_RLC_Rec);
+  f_EUTRA_HarqErrorHandling_Set(ignore);
+  f_EUTRA_TestBody_Set(false);
+
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+
+} // f_TC_7_2_2_8_EUTRA
+
+function fl_TC_7_2_2_8_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{
+  var integer v_RLC_SDUsize := 128;
+  var DRB_COMMON_IND v_ReceivedAsp;
+  var RLC_DataField_Type v_SDU2_Received;
+  var RLC_DataField_Type v_RLC_Data1;
+  var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+  var SubFrameTiming_Type v_Timing, v_SubFrameTimingT1, v_SubFrameTimingT2;
+  var integer v_SubframeOffset := 0;
+  var integer v_Duration;
+  timer t_WatchDog := 0.1;
+    
+  // determine RAT to make the timing correct later on
+  v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLC_SDUsize, 2);
+  v_RLC_Data1 := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU2],2,(v_RLC_SDUsize-2));
+  v_SDU2_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(0,v_RLC_Data1));
+
+  //@siclog "Step 1" siclog@
+  // The SS transmits RLC PDU#1 containing first segment of RLC SDU#1.
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1);
+  v_SubframeOffset := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 0);
+  // Note T1
+  v_SubFrameTimingT1.SFN.Number := v_Timing.SFN.Number;
+  v_SubFrameTimingT1.Subframe.Number := v_SubframeOffset;
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec,
+                        cs_TimingInfo(v_Timing.SFN.Number, v_SubframeOffset),
+                        tsc_RLC_SDU1, 0, 75, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 2" siclog@
+  // The SS does not transmit RLC PDU#2 containing last segment of RLC SDU#1.
+  // nothing sent in next subframe
+    
+  //@siclog "Step 3" siclog@
+  // The SS transmits RLC PDU#3 containing RLC SDU#2.
+  p_RLC_Rec.UM_VTUS  := 2;
+  v_SubframeOffset := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 2);
+  f_TxUMD_oneSDU( p_RLC_Rec,
+                  cs_TimingInfo(v_Timing.SFN.Number, v_SubframeOffset),
+                  tsc_RLC_SDU2 );
+
+  //@siclog "Step 3A" siclog@
+  // Check 1: Does the UE transmit RLC SDU#2 after t-Reordering (200 ms) expiry?
+  // Note T2.
+  DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                      cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR,
+                                      {v_SDU2_Received} ))) -> value v_ReceivedAsp;
+  // Note T2.
+  v_SubFrameTimingT2 := v_ReceivedAsp.Common.TimingInfo.SubFrame;
+  v_Duration := f_EUTRA_SubFrameTimingDuration( v_SubFrameTimingT1, v_SubFrameTimingT2);
+  // Check 2: Is (T2-T1) > t-Reordering?
+  if ( f_EUTRA_SubFrameTimingCheckDuration( eutra_Cell1, l2Timer, v_Duration, float2int(p_RLC_Rec.t_Reordering * 1000.0) ) )
+  {
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3A");
+  }
+  else
+  {
+    f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 3A");
+  }
+ 
+  //@siclog "Step 3B" siclog@
+  // The SS transmits RLC PDU#2 containing last segment of RLC SDU#1.
+  p_RLC_Rec.UM_VTUS  := 1;
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec,
+                        cs_TimingInfo_Now,
+                        tsc_RLC_SDU1, 75, v_RLC_SDUsize - 75, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 4" siclog@
+  // Check: Does the UE transmit RLC SDU#1 within 100 ms?
+  t_WatchDog.start;
+  alt
+  {
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1, ?))
+    {
+      t_WatchDog.stop;
+      f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 4");
+    }
+    [] t_WatchDog.timeout
+    {
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    }
+  }
+  
+} // fl_TC_7_2_2_8_TestBody
+
+function f_TC_7_2_2_9_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100014 sic@
+  var RLC_SS_State v_RLC_Rec;
+  
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cds_RX_UM_RLC_DRB_SN10_tReord200ms);
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_9_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+  
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+  
+} // f_TC_7_2_2_9_EUTRA
+
+function fl_TC_7_2_2_9_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5s100014 sic@
+  var integer v_RLC_SDUsize := 128;
+  var RLC_DataField_Type v_SDU2_Received, v_SDU4_Received;
+  var RLC_DataField_Type v_RLC_Data1; // @sic R5s100049 sic@
+  timer t_WatchDog := 5.0;   // timer value to be used as per configuration
+  
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLC_SDUsize, 4);
+  // RLC SDU2 to be received:
+  // - contains PDCP SN = 0 and RLC SDU 2
+  v_RLC_Data1 := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU2],2,(v_RLC_SDUsize-2));
+  v_SDU2_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(0,v_RLC_Data1));
+  // RLC SDU4 to be received:
+  // - contains PDCP SN = 1 and RLC SDU 4
+  v_RLC_Data1 := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU4],2,(v_RLC_SDUsize-2));
+  v_SDU4_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(1,v_RLC_Data1));
+  
+  //@siclog "Step 1" siclog@
+  // The SS transmits UMD PDU#1 containing first segment of RLC SDU#1.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1, 0, 75, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 2" siclog@
+  // The SS does NOT transmit UMD PDU#2 containing last segment of RLC SDU#1.
+  
+  //@siclog "Step3 siclog@
+  // The SS transmits UMD PDU#3 containing first segment of RLC SDU#2.
+  p_RLC_Rec.UM_VTUS := 2;
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 0, 75, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 4" siclog@
+  // The SS transmits UMD PDU#4 containing last segment of RLC SDU#2.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 75, v_RLC_SDUsize - 75, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 5" siclog@
+  // The SS transmits UMD PDU#5 containing first segment of RLC SDU#3.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU3, 0, 75, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 6" siclog@
+  // The SS does NOT transmit UMD PDU#6 containing last segment of RLC SDU#3.
+  // (Just get the data to update data pointers in PRBS)
+  
+  //@siclog "Step 7" siclog@
+  // The SS transmits UMD PDU#7 containing first segment of RLC SDU#4.
+  p_RLC_Rec.UM_VTUS := 6;
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU4, 0, 75, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 8" siclog@
+  // The SS transmits UMD PDU#8 containing last segment of RLC SDU#4.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU4, 75, v_RLC_SDUsize - 75, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 9" siclog@
+  // Wait for 200 ms to ensure that t_Reordering for the UMD PDU#2 expires.
+  f_Delay (f_EUTRA_SetTimerToleranceMin(eutra_Cell1, l2Timer, 0.2)); // @sic R5s100049 sic@
+  
+  //@siclog "Step 10" siclog@
+  // Check: Does the UE loop back the RLC SDU#2.
+  t_WatchDog.start;
+  alt // @sic R5-100050 sic@
+  {
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {v_SDU2_Received} )))
+       {
+         t_WatchDog.stop;
+         f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+         p_RLC_Rec.UM_VRUR := p_RLC_Rec.UM_VRUR + 1; // @sic R5s100049 sic@
+       }
+    [] t_WatchDog.timeout
+       {
+         f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "WatchDog timeout at Step 10");
+       }
+  } // alt
+   
+  //@siclog "Step 11" siclog@
+  // Wait for 200 ms to ensure that t_Reordering for the UMD PDU#6 expires.
+  f_Delay (f_EUTRA_SetTimerToleranceMin(eutra_Cell1, l2Timer, 0.2)); // @sic R5s100049 sic@
+  
+  //@siclog "Step 12" siclog@
+  // Check: Does the UE loop back the RLC SDU#4.
+  t_WatchDog.start;
+  alt // @sic R5-100050 sic@
+  {
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {v_SDU4_Received} )))
+       {
+         t_WatchDog.stop;
+         f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 12");
+       }
+    [] t_WatchDog.timeout
+       {
+         f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "WatchDog timeout at Step 12");
+       }
+  } // alt
+  
+} // fl_TC_7_2_2_9_TestBody
+
+function f_TC_7_2_2_10_EUTRA() runs on EUTRA_PTC
+{ /* @desc 7.2.2.10   UM RLC / Duplicated detection of RLC PDUs */
+  // @sic R5s100104 sic@ @sic R5-102239 sic@ @sic R5-103806 sic@
+  
+  var RLC_SS_State v_RLC_Rec;
+  
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  v_RLC_Rec.t_Reordering := 0.1;
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cds_RX_UM_RLC_DRB_SN10_tReord100ms); // @sic R5-103806 sic@
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode(eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA(eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  f_EUTRA_HarqErrorHandling_Set(raiseInconc);
+  fl_TC_7_2_2_10_TestBody (v_RLC_Rec);
+  f_EUTRA_HarqErrorHandling_Set(ignore);
+  f_EUTRA_TestBody_Set(false);
+  
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble(eutra_Cell1, E3_TESTMODE);
+  
+} // f_TC_7_2_2_10_EUTRA
+
+function fl_TC_7_2_2_10_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{ // @sic R5-105016 sic@
+  var integer v_RLC_SDUsize := 128;
+  var SubFrameTiming_Type v_Timing, v_SubFrameTimingT1, v_SubFrameTimingT2;
+  var SYSTEM_IND v_ReceivedSysAsp;
+  var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+  var integer v_SubframeOffset := 0;
+  timer t_WatchDog := 5.0;
+    
+  // determine RAT to make the timing correct later on
+  v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+  
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLC_SDUsize, 6);
+  
+  //@siclog "Step 1" siclog@
+  // The SS transmits an UMD PDU. This PDU carries SDU#1. SN equals 0.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 2" siclog@
+  // The UE transmits RLC SDU#1.
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 3" siclog@
+  // The SS transmits an UMD PDU. This PDU carries SDU#1. SN equals 0. (Duplicate PDU)
+  p_RLC_Rec.UM_VTUS := 0; // SN
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 4" siclog@
+  // Check: Does the UE transmit RLC SDU#1? Duplictate PDU, in which case set verdict fail
+  t_WatchDog.start;
+  alt {
+    []DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                          cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[tsc_RLC_SDU1]} )))
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 4");
+      }
+    []t_WatchDog.timeout
+      {
+      }
+  }
+  
+  //@siclog "Step 5" siclog@
+  // The SS transmits an UMD PDU. This PDU contains SDU#2 and the 1st part of SDU# 3. SN equals 1.
+  f_TxUMD_PDUpartofSDU12( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 0, v_RLC_SDUsize, tsc_RLC_SDU3, 0, 75, tsc_FI_StartOfSDU );
+  
+  //@siclog "Step 6" siclog@
+  // The UE transmit RLC SDU#2.
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU2 );
+  
+  //@siclog "Step 7" siclog@
+  // The SS transmits an UMD PDU. This PDU contains SDU#2 and the 1st part of SDU#3. SN equals 1.
+  // (Repeat step 5)
+  p_RLC_Rec.UM_VTUS := 1;
+  f_TxUMD_PDUpartofSDU12 (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 0, v_RLC_SDUsize, tsc_RLC_SDU3, 0, 75, tsc_FI_StartOfSDU );
+  
+  //@siclog "Step 8" siclog@
+  // Check: Does the UE transmit RLC SDU#2?. In which case, the test fails
+  t_WatchDog.start;
+  alt {
+    []DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1, ?))
+      {
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 8");
+      }
+    []t_WatchDog.timeout
+      {
+      }
+  }
+  
+  //@siclog "Step 9" siclog@
+  // The SS transmits an UMD PDU. This PDU contains the last part of SDU#3. SN equals 2.
+  p_RLC_Rec.UM_VTUS  := 2;
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU3, 75, v_RLC_SDUsize - 75, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 10" siclog@
+  // The UE transmits RLC SDU#3.
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU3 );
+
+  //@siclog "Step 10A" siclog@
+  // The SS ignores scheduling requests and does not allocate any uplink grant.
+  f_EUTRA_StopULGrantTransmission_PUCCH_Sync (eutra_Cell1, cs_TimingInfo_Now);
+  //@siclog "Step 10B" siclog@
+  // The SS enables the indication of scheduling requests.
+  f_SS_ConfigSchedulingRequestIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+  
+  //@siclog "Step 11" siclog@
+  // After 100 ms the SS transmits an UMD PDU. This PDU carries SDU#5. SN equals 4
+  p_RLC_Rec.UM_VTUS  := 4;
+  v_Timing := f_EUTRA_GetNextSendOccasion(eutra_Cell1); //100 ms in future
+  v_SubframeOffset := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 0);
+  f_TxUMD_oneSDU( p_RLC_Rec,
+                  cs_TimingInfo(v_Timing.SFN.Number, v_SubframeOffset),
+                  tsc_RLC_SDU5 );
+  
+  //@siclog "Step 12" siclog@
+  // The SS transmits an UMD PDU. This PDU carries SDU#6. SN equals 5.
+  p_RLC_Rec.UM_VTUS := 5;
+  v_SubframeOffset := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 1);
+  f_TxUMD_oneSDU( p_RLC_Rec,
+                  cs_TimingInfo(v_Timing.SFN.Number, v_SubframeOffset),
+                  tsc_RLC_SDU6 );
+  
+  //@siclog "Step 13" siclog@
+  // The SS transmits an UMD PDU. This PDU contains the last part of SDU#3. SN equals 2.
+  // (Repeat step 9)
+  p_RLC_Rec.UM_VTUS := 2;
+  v_SubframeOffset := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 2);
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec,
+                        cs_TimingInfo(v_Timing.SFN.Number, v_SubframeOffset),
+                        tsc_RLC_SDU3, 75, v_RLC_SDUsize - 75, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 15" siclog@
+  // After 75ms from step 11 the SS transmits an UMD PDU. This PDU carries SDU#4. SN equals 3.
+  // @sic R5-112205 sic@
+  p_RLC_Rec.UM_VTUS := 3;
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 75);
+  v_SubframeOffset := v_Timing.Subframe.Number;
+  // Note time when this PDU is sent as it triggers loopback !
+  v_SubFrameTimingT1.SFN.Number := v_Timing.SFN.Number;
+  v_SubFrameTimingT1.Subframe.Number := v_SubframeOffset;
+  f_TxUMD_oneSDU( p_RLC_Rec,
+                  cs_TimingInfo(v_Timing.SFN.Number, v_SubframeOffset),
+                  tsc_RLC_SDU4 );
+
+  //@siclog "Step 15A" siclog@
+  // SS waits for 60 ms to ensure UE RLC has all the required SDU available in UL for loopback
+  // v_Timing.Subframe.Number of 9 is valid for UL grant transmission
+  v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 60);
+  f_EUTRA_StartDefULGrantTransmission (eutra_Cell1,
+                                       cs_TimingInfo(v_Timing.SFN.Number, v_SubframeOffset) );
+  // previous subframe offset !!
+    
+  //@siclog "Step 14" siclog@
+  // Check: Does the UE transmit a scheduling request before transmission of UMD PDU at step 15?
+  // An SR will be received, if before step 15 then FAIL else ok (the expected one)
+  SYSIND.receive ( car_SchedulingReq_IND (eutra_Cell1, ?)) -> value v_ReceivedSysAsp;
+  v_SubFrameTimingT2 := v_ReceivedSysAsp.Common.TimingInfo.SubFrame;
+  if ( f_EUTRA_RacingCond_CheckTwoEvents( v_SubFrameTimingT2, v_SubFrameTimingT1 ) )
+  {
+    // SR received before Tx scheduled in Step 15
+    f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 14");
+  }
+  //@siclog "Step 14A" siclog@
+  // The SS disables the indication of scheduling requests
+  f_SS_ConfigSchedulingRequestIndMode(eutra_Cell1, tsc_L1Mac_IndicationMode_Disable); // @sic R5s100279 sic@
+  
+  //@siclog "Step 16" siclog@
+  // The SS receives SDU#4, SDU#5 and SDU#6 in a single PDU
+  f_RxUMD_SDU3( p_RLC_Rec, tsc_RLC_SDU4, tsc_RLC_SDU5, tsc_RLC_SDU6, v_RLC_SDUsize, v_RLC_SDUsize);
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 16");
+  
+} // fl_TC_7_2_2_10_TestBody
+
+function f_TC_7_2_2_11_EUTRA() runs on EUTRA_PTC
+{ // @sic R5s100180 sic@
+  var RLC_SS_State v_RLC_Rec;
+  
+  // Initialization, call setup, DRB loopback
+  f_EUTRA_Init(c1);
+  f_InitRLC_Record(v_RLC_Rec, UM_Mode);
+  v_RLC_Rec.t_Reordering := 0.2;
+  
+  // Cell configuration, with one UM DRB at the SS side
+  f_EUTRA_CellConfig_DefPlusUM (eutra_Cell1);
+  // Preamble to enter UE in E-UTRA RRC_IDLE (state 2)
+  f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+  //set null AS ciphering algorithm
+  f_EUTRA_AS_CipheringAlgorithm_Set(eea0);
+  //entering UE test state state 3 with test case specific RLC parameters, with BSR and PHR disabled
+  f_EUTRA_GenericRbEst_UM_Params (eutra_Cell1,
+                                  cs_508_PDCP_Config_DRB_UM,
+                                  cs_508_DRB_UL_UM_RLC,
+                                  cds_RX_UM_RLC_DRB_SN10_tReord200ms,
+                                  omit,
+                                  omit,
+                                  false); // @sic R5s110207 sic@
+  // reconfigure DRB locally to set the required test mode UM mapped to TM
+  f_EUTRA_SS_DRB2_ConfigUM_TM_Mode (eutra_Cell1, v_RLC_Rec.UM_SN_Size);
+  //closing the test loop (mode A), entering state 4
+  f_EUTRA_CloseUE_TestLoopModeA (eutra_Cell1, cs_UE_TestLoopModeA_LB_Setup_NoScaling);
+  
+  f_EUTRA_TestBody_Set(true, layer2);  // @sic R5-100050 sic@
+  fl_TC_7_2_2_11_TestBody (v_RLC_Rec);
+  f_EUTRA_TestBody_Set(false);
+  
+  //@sic R5-103847 Deactivate test loop and open test loop is removed sic@
+  //postamble
+  f_EUTRA_Postamble (eutra_Cell1, E3_TESTMODE);
+  
+} // f_TC_7_2_2_11_EUTRA
+
+function fl_TC_7_2_2_11_TestBody(inout RLC_SS_State p_RLC_Rec) runs on EUTRA_PTC
+{
+  var integer v_RLC_SDUsize := 128;
+  var RLC_DataField_Type v_SDU3_Received, v_SDU4_Received, v_SDU5_Received;
+  var RLC_DataField_Type v_RLC_Data;
+  var SubFrameTiming_Type v_Timing;
+  var DRB_COMMON_IND v_ReceivedAsp;
+  var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode;
+                     
+  timer t_TReordering;
+  
+  // determine RAT to make the timing correct later on
+  v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+
+  fl_GenerateRLC_UM_SDUs (p_RLC_Rec, v_RLC_SDUsize, 5);
+  v_RLC_Data := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU3], 2, (v_RLC_SDUsize-2));
+  v_SDU3_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(0, v_RLC_Data));
+  v_RLC_Data := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU4], 2, (v_RLC_SDUsize-2));
+  v_SDU4_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(1, v_RLC_Data));
+  v_RLC_Data := substr(p_RLC_Rec.RLC_DataList[tsc_RLC_SDU5], 2, (v_RLC_SDUsize-2));
+  v_SDU5_Received := f_PDCP_PDU_Encvalue (cs_PDCP_DataLongSN(0, v_RLC_Data));
+  
+  //@siclog "Step 1" siclog@
+  // The SS transmits UMD PDU#1. Header of UMD PDU#1 contains SN=0. This PDU carries RLC SDU#1.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 2" siclog@
+  // The UE transmits RLC SDU#1.
+  f_RxUMD_oneSDU( p_RLC_Rec, tsc_RLC_SDU1 );
+  
+  //@siclog "Step 3" siclog@
+  // The SS transmits UMD PDU#2. Header of UMD PDU#2 contains SN=1. This PDU carries the 1st segment of SDU#2.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 0, 75, tsc_FI_StartOfSDU);
+  
+  //@siclog "Step 4" siclog@
+  // SS performs a RRC Connection Reconfiguration procedure including the mobilityControlInfo IE in
+  // RRCConnectionReconfiguration triggering RLC-reestablishment.
+  f_EUTRA_508RRC_IntraLTE_HO_IntraCell (eutra_Cell1,
+                                        -,
+                                        {cs_OneDRB_ConfigAM(tsc_DRB1), cs_DRB2_ConfigUM_TM_Mode_SN10});
+  //@siclog "Step 5" siclog@
+  // The SS transmits UMD PDU#3. Header of UMD PDU#3 contains SN=2. This PDU carries the last segment of RLC SDU#2.
+  // The UE starts t_Reordering.
+  f_TxUMD_PDUpartofSDU (p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU2, 75, v_RLC_SDUsize - 75, tsc_FI_EndOfSDU);
+  
+  //@siclog "Step 6" siclog@
+  // Check: Does the UE transmit RLC SDU#2?
+  t_TReordering.start (1.5 * p_RLC_Rec.t_Reordering);
+  alt {
+    [] DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                           cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR, {p_RLC_Rec.RLC_DataList[tsc_RLC_SDU2]} )))
+      {
+        t_TReordering.stop;
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 6");
+      }
+    [] t_TReordering.timeout
+      {
+      }
+  }; // alt
+  
+  //@siclog "Step 7" siclog@
+  // 300ms (1.5 * T_reordering) after step 5 the SS transmits UMD PDU#4. Header of UMD PDU#4 contains SN=3.
+  // This PDU carries RLC SDU#3.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU3 );
+  
+  //@siclog "Step 8" siclog@
+  // The UE transmit RLC SDU#3. Header of UMD PDU carrying RLC SDU#3 contains SN=0.
+  p_RLC_Rec.UM_VRUR := 0; // @sic R5s100279 sic@
+  DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                      cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR,
+                                                            {v_SDU3_Received} )));
+  
+  //@siclog "Step 9" siclog@
+  // The SS transmits UMD PDU#5. Header of UMD PDU#5 contains SN=4. This PDU carries RLC SDU#4.
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU4 );
+  
+  //@siclog "Step 10" siclog@
+  // The UE transmits RLC SDU#4. Header of UMD PDU carrying RLC SDU#4 contains SN=1.
+  p_RLC_Rec.UM_VRUR := 1;
+  DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                      cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR,
+                                                            {v_SDU4_Received} ))) -> value v_ReceivedAsp;
+  
+  //@siclog "Step 11" siclog@
+  // SS performs a RRC Connection Reconfiguration procedure including the mobilityControlInformation IE in
+  // RRCConnectionReconfiguration triggering RLC-reestablishment.
+  v_Timing := f_EUTRA_TimingInfoAdjustAndAdd(v_ReceivedAsp.Common.TimingInfo.SubFrame, tsc_EUTRA_DelayBeforeIntraCellHO); // @sic R5s110019, R5s110474 sic@
+
+  // find a suitable subframe  @sic R5s110168 change 4.1 sic@
+  v_Timing.Subframe.Number := f_EUTRA_TimingInfoSubframeOffset(v_EUTRA_FDD_TDD_Mode, 0);
+  // account for DRX
+  v_Timing := f_EUTRA_GetDrxOnDuration (eutra_Cell1, v_Timing);
+
+  f_EUTRA_508RRC_IntraLTE_HO_IntraCell (eutra_Cell1,
+                                        cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                        {cs_OneDRB_ConfigAM(tsc_DRB1), cs_DRB2_ConfigUM_TM_Mode_SN10});
+  //@siclog "Step 12" siclog@
+  // The SS transmits UMD PDU#6. Header of UMD PDU#6 contains SN=0. This PDU carries RLC SDU#5.
+  p_RLC_Rec.UM_VTUS := 0;
+  f_TxUMD_oneSDU( p_RLC_Rec, cs_TimingInfo_Now, tsc_RLC_SDU5 );
+  
+  //@siclog "Step 13" siclog@
+  // Check1: Does the UE transmit RLC SDU#5?
+  //          Check2: Does header of UMD PDU carrying RLC SDU#5 contains SN=0?
+  p_RLC_Rec.UM_VRUR := 0;
+  DRB.receive (car_DRB2_RLCUmDataInd (eutra_Cell1,
+                                      cr_UMD_PDUoneSDU_SN10(p_RLC_Rec.UM_VRUR,
+                                                            {v_SDU5_Received} )));
+  f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 13");
+  
+} // fl_TC_7_2_2_11_TestBody
+
+} // end of group UM_testcases
+
+}

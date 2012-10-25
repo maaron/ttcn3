@@ -1,0 +1,1208 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// * $Date: 2012-09-04 14:12:45 +0200 (Tue, 04 Sep 2012) $
+// * $Rev: 7294 $
+// ***************************************************************************
+
+module NAS_TrackingArea_UG_GERAN {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Parameters all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UpperTesterFunctions all;
+
+  template LLCUnitDataIndType cr_G_RAUReq_Ids (template (present) UpdateType p_UpdateType,
+                                               template (present) RoutingAreaId p_RAI,
+                                               template PTMSI_Signature p_PTMSISig,
+                                               template (present) KeySeq p_KeySeq,
+                                               template MobileIdentity p_PTMSIMobileId,
+                                               template MobileIdentity p_AddMobileId,
+                                               template RoutingAreaId2 p_AddOldRAI,
+                                               template UE_NetworkCap p_UeNetworkCapability := cr_UENetworkCap_Any ('58'O) ifpresent ) :=  // @sic R5s110607 sic@
+  { /* @status    APPROVED */
+    rauReq := cr_RAURequest_Common(p_UpdateType,
+                                   p_RAI,
+                                   p_PTMSISig,
+                                   cr_TMSI_Status ifpresent,
+                                   p_KeySeq,
+                                   cr_MS_RadioAccessCapLVAny,
+                                   cr_GPRS_TimerAny ifpresent,
+                                   cr_DRXparameter_Any('27'O) ifpresent,
+                                   p_PTMSIMobileId,
+                                   cr_MS_NetworkCap_Any ifpresent,
+                                   cr_PDP_ContextStatusAny ifpresent,
+                                   cr_PS_LCS_CapabilityAny ifpresent,
+                                   cr_MBMS_ContextStatusAny ifpresent,
+                                   p_UeNetworkCapability,
+                                   p_AddMobileId,
+                                   p_AddOldRAI,
+                                   cr_MS_Clsmk2_Any_tlv ifpresent, // @sic R5s120586 sic@
+                                   cr_MSCLSMK3_Any ifpresent,
+                                   cr_CodecListAny ifpresent)
+  };
+
+  function f_TC_9_2_3_1_6_GERAN() runs on GERAN_PTC
+  {
+    var B3_Type v_UpdateType := '000'B;
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var octetstring v_PTMSI1 := px_PTMSI_Def;
+    var octetstring v_PTMSI2 := v_PTMSI1 or4b 'D5555555'O; // first 2 bits must be 1, don't care about the rest
+    var octetstring v_LAC1, v_RAC1, v_RAC2;
+    var CoOrd_GUTIParam_Type v_GUTI;
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    
+    v_LAC1 := f_GERAN_LAC_Get (geran_Cell24);
+    v_RAC1 := f_GERAN_RAC_Get (geran_Cell24);
+    v_RAC2 := f_GERAN_RAC_Get (geran_Cell25);
+    v_RAC2 := int2oct (oct2int(v_RAC2) +1, 1); // The RAC on cell7 must be different, but by default they're the same
+    f_GERAN_RAC_Set (geran_Cell25, v_RAC2);
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_CreateCell (geran_Cell25);
+    f_GERAN_TestBody_Set( true );
+    
+    f_GERAN_InterRAT_InitialiseAuthParams (); // @sic R5s110791 sic@
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    //@siclog "Steps 1 - 6" siclog@
+    // This is not really the place to call Preamble, but this function does everything we need
+    // - set cell to Serving cell, switch on UE, Attach, Authentication, update EUTRA with new params
+    f_GERAN_Preamble (geran_Cell24);
+    
+    //@siclog "Step 7 - 8" siclog@
+    f_GERAN_ActivatePDPContext( geran_Cell24 );
+    // in case the UE sends an XID once the bearer is established
+    f_GERAN_LLC_XID (geran_Cell24, false);
+    
+    //@siclog "Step 9" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    v_GUTI.MME_GroupId := oct2bit(v_LAC1);
+    v_GUTI.MME_Code := substr (oct2bit(v_PTMSI1), 8, 8); // @sic R5s110791 sic@
+    v_GUTI.M_TMSI := '11'B & substr (oct2bit(v_PTMSI1), 2, 6) &  oct2bit(v_RAC1) & substr (oct2bit(v_PTMSI1), 16, 16); // @sic R5s110791 sic@
+    f_GERAN_SendAuthParameters (EUTRA, v_GUTI);//Send latest Auth params to EUTRA component
+    
+    //@siclog "Step 13" siclog@
+    // Set Cell 5 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 14" siclog@
+    // This function name refers to Attach, but as it only checks for Ch Req, we can use it here too
+    f_GERAN_CheckNoAttachOnCell (geran_Cell24, 90.0, "Step 14"); // @sic R5-115769 sic@
+    
+    //@siclog "Step 15" siclog@
+    // Check: Does the UE respond to paging on Cell 24 with P-TMSI-1 for PS domain?
+    f_GERAN_PagewithPTMSI (geran_Cell24, v_PTMSI1);
+
+    //@siclog "Step 15A" siclog@
+    f_GPRS_ReceiveUplinkMsg (geran_Cell24, ?); // 24.008 cl. 4.7.9.1.1 states that UE will send any LLC frame
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 15A");
+    
+    //@siclog "Step 16" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 18A" siclog@
+    // Set Cell 5 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 18B" siclog@
+    // This function name refers to Attach, but as it only checks for Ch Req, we can use it here too
+    f_GERAN_CheckNoAttachOnCell (geran_Cell24, 90.0, "Step 18B");  // @sic R5s110791 sic@
+    
+    //@siclog "Step 19" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    //@siclog "Step 24" siclog@
+    // Set Cell 25 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell25, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 25" siclog@
+    // Check: Does the UE transmit a ROUTING AREA UPDATE REQUEST message with P-TMSI and RAI on cell 25?
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell25, car_G_LLC_UnitData_IND ( cr_G_RAUReq_Ids ( cr_GMM_UpdateType,
+                                                                                                      cr_RAI (omit, cr_LAI_Any_v, v_RAC1),
+                                                                                                      cr_PTMSI_SignatureAny ifpresent,
+                                                                                                      ?,
+                                                                                                      cr_MobileIdTMSI_lv(v_PTMSI1),
+                                                                                                      cr_MobileIdAny('1A'O) ifpresent,
+                                                                                                      cr_RoutingAreaId2 ifpresent)));
+    v_UpdateType := v_LLCDataInd.unit.msg.rauReq.updateType.updateValue;
+    if (v_UpdateType == '000'B) { // @sic R5-115769 sic@
+      v_UpdateType := '100'B;
+    } else if (v_UpdateType == '001'B) {
+      v_UpdateType := '101'B;
+    }
+    
+    //@siclog "Step 26" siclog@
+    // SS sends a ROUTING AREA UPDATE ACCEPT message with P-TMSI2 and RAI2
+    f_GPRS_SendDownlinkMsg(geran_Cell25, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell25),
+                                                                    tsc_LLCSapi_GMM,
+                                                                    tsc_LLC_PM,
+                                                                    px_GSM_CipheringOnOff,
+                                                                    cs_G_RA_UpdAcc3 (cs_GMM_UpdateResult( v_UpdateType ),
+                                                                                     cs_RAI (omit,
+                                                                                             cs_LAI(omit, f_GERAN_PLMN_Get(geran_Cell25), f_GERAN_LAC_Get(geran_Cell25)),
+                                                                                             v_RAC2 ),
+                                                                                     cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                                                                     cs_MobileIdTMSIorPTMSI ('18'O, v_PTMSI2))));
+    //Receive RAU Complete Message
+    //@siclog "Step 27" siclog@
+    // the UE sends a ROUTING AREA UPDATE COMPLETE message
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell25, car_G_LLC_UnitData_IND(cr_G_RA_UpdComplete(cr_EUTRAN_HO_InfoAny)));
+    
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_GERAN_TestBody_Set( false );
+    
+    // Test case finished, so take cell down
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_Postamble ( geran_Cell25, G1_IDLE ); // @sic R5-115769 sic@
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // end f_TC_9_2_3_1_6_GERAN
+
+  function f_TC_9_2_3_1_10_GERAN () runs on GERAN_PTC
+  {
+    fl_TC_9_2_3_1_10_11_AND_12_Body ();
+  }
+
+  function f_TC_9_2_3_1_11_GERAN () runs on GERAN_PTC
+  {
+    fl_TC_9_2_3_1_10_11_AND_12_Body ();
+  }
+
+  function f_TC_9_2_3_1_12_GERAN () runs on GERAN_PTC
+  {
+    fl_TC_9_2_3_1_10_11_AND_12_Body ();
+  }
+
+  function fl_TC_9_2_3_1_10_11_AND_12_Body () runs on GERAN_PTC
+  { /* @sic R5-113696: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test @sic R5s110318 sic@
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // @sic R5-113696 sic@
+    f_GERAN_Pre_Preamble (geran_Cell24, PS_Only); // @sic R5s110176 sic@
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 13" siclog@
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 14a1" siclog@
+    //+  IF pc_GERAN or pc_UTRAN THEN the user initiates an attach by MMI or by AT command.
+    f_UT_TriggerAttach(UT);
+    
+    //@siclog "Step 14a2" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 90 seconds on cell 5 or 24?
+    f_GERAN_CheckNoAttachOnCell (geran_Cell24, 90.0, "Step 14a2");
+    
+    //@siclog "Step 15" siclog@
+    //+   The UE is switched off.
+    f_UT_SwitchOffUE (UT, false, CNF_REQUIRED); // @sic R5s1100395 sic@
+    
+    //+ Set the cell type of cell 5 or 24 to the "Non-Suitable off cell".
+    //@siclog "Step 16" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ChPwrLvl_Off);
+    
+    // Test case now finished on GERAN side, Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_GERAN_TestBody_Set( false );
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // Ok we can now closedown
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // fl_TC_9_2_3_1_10_AND_11_GERAN
+
+  function f_TC_9_2_3_1_15_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_1_15_EUTRA) */
+    /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    var octetstring v_PLMN2 := f_U_Asn2Nas_PlmnId({ mcc := {0, 0, 1},  mnc := {0, 2} }); //PLMN2 according to 36.508, Table 6.3.2.2-1
+
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test @sic R5s110318 sic@
+
+    f_GERAN_PLMN_Set ( geran_Cell24, v_PLMN2 );
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    f_GERAN_TestBody_Set( true );
+    
+    // First Trigger
+    //@siclog "Step 12" siclog@
+    // Set Cell 24 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 13a1" siclog@
+    //+  IF pc_GERAN or pc_UTRAN THEN the user initiates an attach by MMI or by AT command.
+    f_UT_TriggerAttach(UT);
+    
+    //@siclog "Step 13a2" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds on cell 5 or 24?
+    f_GERAN_CheckNoAttachOnCell (geran_Cell24, 30.0, "Step 13a2");
+    
+    //+ Set the cell type of cell 5 or 24 to the "Non-Suitable cell".
+    //@siclog "Step 15" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    
+    // Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Test case now finished
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_TestBody_Set( false );
+    
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // f_TC_9_2_3_1_15_GERAN
+
+  function f_TC_9_2_3_1_15a_GERAN() runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_1_15a_EUTRA) */
+    f_TC_9_2_3_1_15_GERAN(); // the same functionality as in the original test case
+  }
+
+  function f_TC_9_2_3_1_17_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_1_17_EUTRA) */
+    /* @sic R5-113696: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test @sic R5s110318 sic@
+
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_TestBody_Set( true );
+      
+    // First Trigger:
+    //@siclog "Step 10" siclog@
+    // Set Cell 24 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //+ Step
+    //@siclog "Step 11a1" siclog@
+    // Check: Does the UE transmit a ROUTING AREA UPDATE REQUEST message on cell 24?
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24,
+                                             car_G_LLC_UnitData_IND (cr_G_RA_UpdReqAny (cr_GMM_UpdateType,
+                                                                                        cr_RAI (omit),
+                                                                                        cr_PTMSI_SignatureAny ifpresent,
+                                                                                        ?)));
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 11a1");
+    
+    //@siclog "Step 11a2" siclog@
+    // Send ROUTING AREA UPDATE REJECT message with cause "Roaming not allowed in this area"
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24),
+                                       tsc_LLCSapi_GMM,
+                                       tsc_LLC_PM,
+                                       '0'B,  // @sic R5s120619 sic@
+                                       cs_G_RAUpdReject(cs_GMM_Cause('00001101'B)))); // cause 'Roaming not allowed in this area' @sic R5s120104 sic@
+                                       
+    f_Delay (3.0); // @sic R5s120104, R5s120619 sic@
+    
+    //+ Set the cell type of cell 24 to the "Non-Suitable cell".
+    //@siclog "Step 12" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    
+    // Test case now finished on GERAN side, Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_GERAN_TestBody_Set( false );
+    
+    // Test case finished, so take cell down
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // f_TC_9_2_3_1_17_GERAN
+
+  function f_TC_9_2_3_1_18_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_1_18_EUTRA) */
+    /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId({ mcc := {0, 0, 1},  mnc := {0, 2} });
+
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test @sic R5s110318 sic@
+    f_GERAN_PLMN_Set(geran_Cell24, v_PLMN);
+
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_TestBody_Set( true );
+    
+    // First Trigger
+    //@siclog "Step 9" siclog@
+    // Set Cell 24 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 10a1" siclog@
+    //+  IF pc_GERAN or pc_UTRAN THEN the user initiates an attach by MMI or by AT command.
+    f_UT_TriggerAttach(UT);
+    
+    //@siclog "Step 10a2" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds on cell 24?
+    f_GERAN_CheckNoAttachOnCell (geran_Cell24, 30.0, "Step 10a2");
+    
+    //+  Set the cell type of cell 24 to the "Non-Suitable cell".
+    //@siclog "Step 11" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    
+    // Test case now finished on GERAN side, Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    f_GERAN_TestBody_Set( false );
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // f_TC_9_2_3_1_18_GERAN
+
+  function f_TC_9_2_3_1_18a_GERAN() runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_1_18a_EUTRA) */
+    f_TC_9_2_3_1_18_GERAN(); // the same functionality as in the original test case
+  }
+
+  function f_TC_9_2_3_2_3_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_2_3_EUTRA) */
+    /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    var B3_Type v_UpdateType, v_AttachType;
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var octetstring v_PLMN;
+    var O1_Type v_RAC;
+    var O2_Type v_LAC;
+    var boolean v_DetachSent := false;
+    var integer i;
+    var template (omit) MobileIdentity v_TMSI := omit;
+    timer t_Wait;
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_GERAN_TestBody_Set( true );
+    
+    for (i := 0; i<3; i := i+1) {
+      //@siclog "Step 13a1" siclog@
+      f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+      if (not (pc_CS_PS_data_centric and px_UE_CS_PS_UsageSetting_Tested == DATA_CENTRIC)) { // @sic R5s110577, R5-115715 sic@ @sic R5s120079r1 sic@ @sic R5s120274 sic@
+        
+      f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+      // Just receive the message in first
+      v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, ?);
+      // Now check to see if trigger's already been received
+      t_Wait.start(0.0);
+      alt { // @sic R5-122012 sic@
+          [not v_DetachSent] EUTRA.receive(cmr_IRAT_Trigger)
+           { // this message should have already been received
+             v_DetachSent := true;
+           }
+          []t_Wait.timeout{} // this will finish instantly, but won't be processed before the trigger (if there's already one waiting)
+      }
+      //@siclog "Step 3b1" siclog@
+      if (v_DetachSent) {
+        if (match (v_LLCDataInd, car_G_LLC_UnitData_IND(cr_G_AttachReq_MSandUENetworkCap(cr_AttachType(?, (tsc_I_AttachTypeGPRSAtt, tsc_I_AttachTypeCombined)),
+                                                                       cr_MobileIdAny(omit),
+                                                                       cr_RAI(omit),
+                                                                       ?,
+                                                                       cr_MS_RadioAccessCapLVNotSupportEUTRA,
+                                                                       omit)))) {  // @sic R5-123648 sic@
+            f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 4b1");
+            v_AttachType := v_LLCDataInd.unit.msg.attReq.attachType.attachType;
+            f_GERAN_SplitPGCycle_Set(geran_Cell24, v_LLCDataInd.unit.msg.attReq.drxParameter);
+            f_GERAN_GPRS_Authentication (geran_Cell24);
+
+            if (v_AttachType == tsc_I_AttachTypeCombined) { // @sic R5-123114 sic@
+              v_TMSI := cs_MobileIdTMSIorPTMSI('23'O, px_TMSI_Def);
+            }
+
+            f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24),
+                                                                tsc_LLCSapi_GMM,
+                                                                tsc_LLC_PM,
+                                                                px_GSM_CipheringOnOff,
+                                                                cs_G_AttachAccept (cs_GMM_AttachResult(v_AttachType),
+                                                                                   cs_RAI(omit,
+                                                                                          cs_LAI(omit, v_PLMN, v_LAC),
+                                                                                          v_RAC),
+                                                                                   cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                                                                   cs_MobileIdTMSIorPTMSI ('18'O, px_PTMSI_Def),
+                                                                                   v_TMSI)));
+    
+            //Receive GPRS Attach Complete Message
+            v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND (cr_G_AttachComplete));
+        } else {
+            f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 3b1");
+        }
+      //@siclog "Step 3a1" siclog@
+      } else { // detach not sent
+        if (match (v_LLCDataInd, car_G_LLC_UnitData_IND(cr_G_RA_UpdReqMSRadioAccessCap (cr_GMM_UpdateType,
+                                                                         cr_RAI (omit),
+                                                                         cr_PTMSI_SignatureAny ifpresent,
+                                                                         ?,
+                                                                         cr_MS_RadioAccessCapLVNotSupportEUTRA,
+                                                                         omit)))) {   // @sic R5-123648 sic@
+            v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_LLCDataInd.unit.msg.rauReq);
+            f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 4a1");
+            f_GERAN_RAUWithoutRAUReq (geran_Cell24, v_UpdateType);
+        } else {
+            f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 3a1");
+        }
+      }
+        //@siclog "Step 5 - 6" siclog@
+        f_GERAN_SwitchPowerOff ( geran_Cell24, Combined); // @sic R5s110176, R5-112619 sic@
+        f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+        f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+      }
+    }
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set( false );
+    // UE switched off in test body, so just release cell here
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // f_TC_9_2_3_2_3_GERAN
+
+  function f_TC_9_2_3_2_5_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_2_5_EUTRA) */
+
+    fl_TC_9_2_3_2_5_6_AND_7_Body ();
+  }
+
+  function f_TC_9_2_3_2_6_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_2_6_EUTRA) */
+
+    fl_TC_9_2_3_2_5_6_AND_7_Body ();
+  }
+
+  function f_TC_9_2_3_2_7_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_2_7_EUTRA) */
+
+    fl_TC_9_2_3_2_5_6_AND_7_Body ();
+  }
+
+  function fl_TC_9_2_3_2_5_6_AND_7_Body () runs on GERAN_PTC
+  { /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    f_GERAN_TestBody_Set( true );
+    
+    // First Trigger
+    //@siclog "Step 7a1" siclog@
+    // Set Cell 24 to "Serving Cell"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 7a2" siclog@
+    // Check: Does the UE transmit an ATTACH REQUEST message in the next 30 seconds on cell 24?
+    f_GERAN_CheckNoAttachOnCell ( geran_Cell24, 30.0, "Step 7a2");
+    
+    //+  Set the cell type of cell 24 to the "Non-Suitable cell".
+    //@siclog "Step 8" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ChPwrLvl_Off);  // @sic R5s110363 sic@
+    
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    // Test case now finished on GERAN side, Finished here for now
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_TestBody_Set( false );
+    
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // fl_TC_9_2_3_2_5_6_AND_7_Body
+
+  function f_TC_9_2_3_2_8_GERAN () runs on GERAN_PTC
+  { /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    var octetstring v_LAC;
+    var octetstring v_PLMN;
+    var G_L2_DATAMESSAGE_IND v_ChanReq, v_LocUpd;
+    var B10_Type v_BCCH;
+    var B3_Type v_BCC;
+    var RFN v_RFN;
+    var integer v_RR_RA;
+    var G_LogicChType v_ChannelType;
+    var SubChannelNumber v_SubChannel;
+    var template (value) MobileIdentity v_MSIdIMSI := f_Imsi2MobileIdentity (px_IMSI_Def);
+    v_MSIdIMSI.iei := '17'O;
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    
+    v_LAC := f_GERAN_LAC_Get(geran_Cell24);
+    v_PLMN := f_GERAN_PLMN_Get(geran_Cell24);
+    v_BCCH := f_GERAN_BCCHFreq_Get(geran_Cell24);
+    v_BCC := f_GERAN_BCC_Get(geran_Cell24);
+
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 14a1" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    
+    //@siclog "Step 14a2" siclog@
+    // Check: Does the UE transmit a LOCATION UPDATING REQUEST on cell 5?
+    alt {
+      []    G_L2.receive (car_G_L2_ACCESS_IND ( geran_Cell24 , tsc_PhyCh0 , tsc_RACH , ? , ? , cr_G_ChannelReq_Any ))
+        -> value v_ChanReq
+        {
+          v_RFN := v_ChanReq.access.rfn;
+          v_RR_RA := bit2int(v_ChanReq.access.burst.chReq.estCauRandomRef);
+          G_L2.send (cas_G_L2_UNITDATA_REQ (geran_Cell24,
+                                            tsc_PhyCh0,
+                                            tsc_AGCH,
+                                            15,
+                                            cs_G_RFN_Omit,
+                                            cas_ImmAss(cs_ImmediateAssignment (v_BCCH, v_BCC, v_RR_RA, v_RFN, substr(oct2bit(f_GERAN_TA_Get(geran_Cell24)),1, 6))))); // @sic R5s120587, GP-110839 sic@
+        }
+    }
+    alt {
+      []    G_L2.receive (car_G_L2_Estab_IND (geran_Cell24, ?, ?, ?, cr_G_LocationUpdatingRequest))
+        -> value v_LocUpd
+        {
+          v_ChannelType := v_LocUpd.sabm.g_LogicChType;
+          v_SubChannel := v_LocUpd.sabm.subChannel;
+        }
+    }
+    
+    // @sic R5-121849 sic@
+    G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    if (pc_UTRA) { // @sic R5-123735 sic@
+      G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+    }
+    //@siclog "Step 14a3 - 14a4" siclog@
+    f_GERAN_MM_Authentication (geran_Cell24, v_ChannelType, v_SubChannel);
+    
+    //@siclog "Step 14a5" siclog@
+    // Send Location Updating Accept
+    G_L2.send (cas_G_L2_DATA_REQ (geran_Cell24, 0, tsc_PhyCh0, v_ChannelType, v_SubChannel, cs_G_RFN_Omit, cs_G_LocationUpdatingAccept ( v_PLMN, v_LAC, v_MSIdIMSI )));
+    
+    // release channel
+    f_G_ChannelRelease (geran_Cell24, tsc_PhyCh0, v_ChannelType, v_SubChannel);
+    f_Delay (0.5); // @sic R5s120452 sic@
+    //@siclog "Step 15" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+    
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set( false );
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    
+  } // f_TC_9_2_3_2_8_UTRAN
+
+  function f_TC_9_2_3_2_9_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_2_9_EUTRA) */
+    /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var octetstring v_PLMN;
+    var O1_Type v_RAC;
+    var O2_Type v_LAC;
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    v_PLMN := f_GERAN_PLMN_Get(geran_Cell24);
+    v_RAC := f_GERAN_RAC_Get(geran_Cell24);
+    v_LAC := f_GERAN_LAC_Get(geran_Cell24);
+
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_GERAN_TestBody_Set( true );
+
+    // Step 5a1.
+    //@siclog "Step 5a1" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+
+    // The UE transmits an ATTACH REQUEST message on Cell 24
+    //@siclog "Step 5a3" siclog@
+    // Check: Does the UE send an ATTACH REQUEST?
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND ( cr_G_AttachReqWithIMSI (cr_AttachType(?, tsc_I_AttachTypeCombined),
+                                                                                                          f_Imsi2MobileIdentity(px_IMSI_Def),
+                                                                                                          cr_RAI (omit, cr_LAI(omit, v_PLMN, 'FFFE'O), ?),
+                                                                                                          cr_TMSI_Status ifpresent)));  // @sic R5s110279, R5-123644 sic@
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 5a3");
+
+    //@siclog "Step 5a4 - 5a28 Void" siclog@
+    //@siclog "Step 5a29" siclog@
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24),
+                                                                tsc_LLCSapi_GMM,
+                                                                tsc_LLC_PM,
+                                                                '0'B, // @sic R5s120442 sic@
+                                                                cs_G_AttachReject('16'O))); // @sic R5-122108 prose doesn't specify cause value sic@
+    
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set( false );
+    f_GERAN_Postamble ( geran_Cell24, G5_DEREGISTERED ); // @sic R5-112620, R5-123644 sic@
+
+  } // f_TC_9_2_3_2_9_GERAN
+
+  function f_TC_9_2_3_2_11_GERAN () runs on GERAN_PTC
+  { /* Test Purpose (see f_TC_9_2_3_2_11_EUTRA) */
+    /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+    
+    var octetstring v_PLMN2 := f_U_Asn2Nas_PlmnId({ mcc := {0, 0, 1},  mnc := {0, 2} });
+
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    f_GERAN_PLMN_Set (geran_Cell24, v_PLMN2); // @sic R5s110269 sic@
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 10a1" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 10a2" siclog@
+    // Check: Does the UE send an ATTACH REQUEST in the next 30 seconds?
+    f_GERAN_CheckNoAttachOnCell (geran_Cell24, 30.0, "Step 10a2");
+    
+    //@siclog "Step 11 Void" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+    
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set( false );
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+  
+  } // f_TC_9_2_3_2_11_GERAN
+
+  function f_TC_9_2_3_2_13_GERAN () runs on GERAN_PTC
+  { // @desc Combined tracking area update / Rejected / Roaming not allowed in this tracking area
+    
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId({mcc := {0,0,1}, mnc := {0,2}});
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    f_GERAN_PLMN_Set (geran_Cell24, v_PLMN);
+    
+    f_GERAN_CreateCell(geran_Cell24);
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    f_GERAN_SetCellPowerLevel(geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_GERAN_TestBody_Set(true);
+    
+    //@siclog "Step 10" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    f_GERAN_SetCellPowerLevel(geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 11a1" siclog@
+    // Check: Does the UE transmit a RAU REQUEST message?
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg(geran_Cell24, car_G_LLC_UnitData_IND(cr_G_RA_UpdReqAny(cr_GMM_UpdateType (-,tsc_I_UpdateTypeCombinedWithIMSI), cr_RAI(omit), cr_PTMSI_SignatureAny ifpresent, ?)));
+    f_GERAN_PreliminaryPass(__FILE__, __LINE__, "Step 11a1");
+    
+    //@siclog "Step 11a2" siclog@
+    // Send ROUTING AREA UPDATE REJECT message with cause "Roaming not allowed in this area"
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req(f_GERAN_TLLI_Get(geran_Cell24), tsc_LLCSapi_GMM, tsc_LLC_PM, '0'B,  // @sic R5s120619 sic@
+                                      cs_G_RAUpdReject(cs_GMM_Cause('00001101'B)))); // cause 'Roaming not allowed in this area' @sic R5s120104 sic@
+    
+    f_Delay (3.0); // @sic R5s120104, R5s120619 sic@
+
+    //@siclog "Step 12" siclog@
+    f_GERAN_SetCellPowerLevel(geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+    
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRA side
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set(false);
+    f_GERAN_SS_CellRelease(geran_Cell24);
+    
+  } // end of 9_2_3_2_13
+
+  function f_TC_9_2_3_2_14_GERAN () runs on GERAN_PTC
+  {
+    var G_L2_DATAMESSAGE_IND v_LocUpd;
+    var G_LogicChType v_ChannelType;
+    var SubChannelNumber v_SubChannel;
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId({mcc := {0,0,1}, mnc := {0,2}}); // @sic R5-123645 sic@
+    var O2_Type v_LAC;
+    var template (value) MobileIdentity v_MobileIdIMSI := f_Imsi2MobileIdentity(px_IMSI_Def);
+    v_MobileIdIMSI.iei := '13'O; // Need to include iei in LUAccept, but function returns without iei
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    f_GERAN_PLMN_Set(geran_Cell24, v_PLMN);
+    v_LAC := f_GERAN_LAC_Get(geran_Cell24);
+    
+    f_GERAN_CreateCell(geran_Cell24);
+    
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    f_GERAN_TestBody_Set( true );
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    
+    //@siclog "Step 7" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 8a1" siclog@
+    // Check: Does the UE transmit a LOCATION UPDATE REQUEST message?
+    f_GERAN_RRConnEst(geran_Cell24);
+    G_L2.receive (car_G_L2_Estab_IND (geran_Cell24, ?, ?, ?, cr_G_LocationUpdatingRequest)) // @sic R5-113695, R5-123645 sic@
+      -> value v_LocUpd;
+    v_ChannelType := v_LocUpd.sabm.g_LogicChType;
+    v_SubChannel := v_LocUpd.sabm.subChannel;
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 8a1");
+
+    // @sic R5-121849 sic@
+    G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    if (pc_UTRA) { // @sic R5-123735 sic@
+      G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+    }
+    //@siclog "Step 8a2 - 8a3" siclog@
+    f_GERAN_MM_Authentication (geran_Cell24, v_ChannelType, v_SubChannel);
+    
+    //@siclog "Step 8a4" siclog@
+    G_L2.send (cas_G_L2_DATA_REQ (geran_Cell24, 0, tsc_PhyCh0, v_ChannelType, v_SubChannel, cs_G_RFN_Omit, cs_G_LocationUpdatingAccept ( v_PLMN, v_LAC, omit ))); // @sic R5-113695 sic@
+    
+    // release channel
+    f_G_ChannelRelease (geran_Cell24, tsc_PhyCh0, v_ChannelType, v_SubChannel);
+    
+    //@siclog "Step 9" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+    
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait 2nd trigger from  EUTRAN side
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set( false );
+    f_GERAN_SS_CellRelease (geran_Cell24);
+    
+  } // end of 9_2_3_2_14
+
+  function f_TC_9_2_3_3_5_GERAN () runs on GERAN_PTC
+  { /* Periodic Routing Area Update (multi RAT test) */
+    /* Test Purpose (see f_TC_9_2_3_3_5_EUTRA) */
+    /* @sic R5-113805: pc_GERAN and px_RATComb_Tested are checked at top-level sic@ */
+
+    var octetstring v_PLMN;
+    var O1_Type v_RAC;
+    var O2_Type v_LAC;
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var B3_Type v_UpdateType, v_UpdateResult;
+    var template (value) LLCUnitDataReqType v_RAUAccept;
+    var template UE_NetworkCap v_UE_NetworkCap := cr_UENetworkCap_Any ('58'O) ifpresent; // @sic R5s120210 Subject to prose CR approval sic@
+    var IRAT_Coordination_MSG v_RxdMsg;
+    var GERAN_SecurityInfo_Type v_SecurityInfo;
+    var CoOrd_GUTIParam_Type v_GUTI;
+    var bitstring v_PTMSI;
+    timer t_T3323 := f_UG_SetTimerToleranceMax (7.0 * 60.0); // @sic R5-120768, R5s120210 sic@
+    timer t_T3312 := f_UG_SetTimerToleranceMin (7.0 * 60.0);  // Periodic RA Update timer - 10%
+    
+    f_GERAN_Init(EUTRA_GERAN); // This is still only a 2 PTC test
+    v_PLMN := f_GERAN_PLMN_Get(geran_Cell26);
+    v_RAC := f_GERAN_RAC_Get(geran_Cell26);
+    v_LAC := f_GERAN_LAC_Get(geran_Cell26);
+    
+    f_GERAN_CreateCell (geran_Cell24);
+
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);  // @sic R5s110777 sic@
+    f_GERAN_Pre_Preamble (geran_Cell24, NotSpecified); // @sic R5s110176 sic@
+    EUTRA.receive (cmr_IRAT_AuthInfo) -> value v_RxdMsg;
+    
+    v_SecurityInfo.authPS := v_RxdMsg.Authentication.AuthPS;
+    v_GUTI := v_RxdMsg.Authentication.GutiParams;
+    v_PTMSI := '11'B & substr (v_GUTI.M_TMSI, 2, 6) & v_GUTI.MME_Code &  substr (v_GUTI.M_TMSI, 16, 16);
+    f_GERAN_SecurityInfo_Set (v_SecurityInfo);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_GERAN_TestBody_Set( true );
+    
+    //@siclog "Step 1a1" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    // Routing Area Update on GERAN side
+    //@siclog "Step 1a2" siclog@
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND ( cr_G_RAUReq_Ids ( cr_GMM_UpdateType,  // @sic R5-113809 sic@
+                                                                                                      cr_RAI (omit),
+                                                                                                      cr_PTMSI_SignatureAny ifpresent,
+                                                                                                      ?,
+                                                                                                      cdr_MobileIdTMSI_tlv(bit2oct(v_PTMSI)), // @sic R5-121764 sic@
+                                                                                                      cr_MobileIdAny('1A'O) ifpresent,
+                                                                                                      cr_RoutingAreaId2 ifpresent)));
+    // Check ISR support
+    if (v_LLCDataInd.unit.msg.rauReq.msNetworkCap.isrSupport != '1'B) {
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 1a2");
+    }
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_LLCDataInd.unit.msg.rauReq, '100'B);
+    if (v_UpdateType == '000'B) { // @sic R5s120210 sic@
+      v_UpdateType := '011'B;  // at step 21a1 the UE will send Periodic Updating
+      v_UpdateResult := '100'B;
+      v_UE_NetworkCap := omit; // @sic R5s120478 sic@
+    } else {
+      v_UpdateType := '010'B;  // at step 21a1 the UE will send combined with IMSI attach
+      v_UpdateResult := '001'B;
+    }
+    v_RAUAccept := cs_G_RA_UpdAcc3 (cs_GMM_UpdateResult (v_UpdateResult), // @sic R5-113809, R5-120768 sic@
+                                    cs_RAI (omit, cs_LAI(omit, v_PLMN, v_LAC), v_RAC ),
+                                    cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                    omit);  // @sic R5-113809 sic@
+    // Set RAU timer to 7 minutes (see 36.523-1 9.2.3.3.5 Table 9.2.3.3.5.3.3-3)
+    // (TS 24.008 clause 10.5.7.4)
+    v_RAUAccept.rauAccept.periodicRAupdateTimer:= cs_GprsTimer_v('001'B, '00111'B);
+    //@siclog "Step 1a3" siclog@
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24), tsc_LLCSapi_GMM, tsc_LLC_PM, px_GSM_CipheringOnOff, v_RAUAccept));
+    
+    //@siclog "Step 1a4 Void" siclog@
+    
+    // @sic R5-120768 sic@
+    t_T3312.start;
+    
+    //@siclog "Step 1a5" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+    
+    // Wait for step 2 to 8 on EUTRA to complete
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait trigger from  EUTRAN side
+    
+    //@siclog "Step 9a1" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    t_T3312.timeout; // RAU can't be too early
+    t_T3323.start;
+    //@siclog "Step 9a2" siclog@
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND ( cr_G_RAUReq_Ids ( cr_GMM_UpdateType ( ?, '011'B),
+                                                                                                      cr_RAI (omit),
+                                                                                                      cr_PTMSI_SignatureAny ifpresent,
+                                                                                                      ?,
+                                                                                                      cdr_MobileIdTMSI_tlv (px_PTMSI_Def), // @sic R5s110607 sic@
+                                                                                                      cr_MobileIdAny('1A'O) ifpresent,
+                                                                                                      cr_RoutingAreaId2 ifpresent,
+                                                                                                      omit))); // @sic R5s110607 sic@
+    // If the timer times out before this it will be caught in the default behaviour
+    t_T3323.stop;
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 9a2");
+    
+    // Check ISR support
+    if (v_LLCDataInd.unit.msg.rauReq.msNetworkCap.isrSupport != '1'B) {
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 9a2");
+    }
+    // @sic UE Network Cap should not be there R5-113809 sic@
+    if (isvalue(v_LLCDataInd.unit.msg.rauReq.ueNetworkCapability)) {
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 9a2");
+    }
+    //@siclog "Step 9a3" siclog@
+    if (v_UpdateResult == '000'B) { // This value slightly different to 1a3 and 21a3 @sic R5s120478 sic@
+      v_RAUAccept.rauAccept.updateResult.ttcn_value := '100'B;
+    } else {
+      v_RAUAccept.rauAccept.updateResult.ttcn_value := '000'B;
+    }
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24), tsc_LLCSapi_GMM, tsc_LLC_PM, px_GSM_CipheringOnOff, v_RAUAccept));
+    
+    //@siclog "Step 9a4 Void" siclog@
+    
+    //@siclog "Step 9a5" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_NonSuitableCell);
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+    
+    // Wait for steps 10 to 20 on EUTRA to complete
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait trigger from  EUTRAN side
+    
+    //@siclog "Step 21a1" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 21a2" siclog@
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND ( cr_G_RAUReq_Ids ( cr_GMM_UpdateType ( ?, v_UpdateType), // @sic R5s120210 sic@
+                                                                                                      cr_RAI (omit),
+                                                                                                      cr_PTMSI_SignatureAny ifpresent,
+                                                                                                      ?,
+                                                                                                      cdr_MobileIdTMSI_tlv (px_PTMSI_Def), // @sic R5s110607 sic@
+                                                                                                      cr_MobileIdAny('1A'O) ifpresent,
+                                                                                                      cr_RoutingAreaId2 ifpresent,
+                                                                                                      v_UE_NetworkCap))); // @sic R5s110607, R5s120210 sic@
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Step 21a2");
+    
+    // Check ISR support
+    if (v_LLCDataInd.unit.msg.rauReq.msNetworkCap.isrSupport == '1'B) {
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 21a2");
+    }
+
+    //@siclog "Step 21a3" siclog@
+    v_RAUAccept.rauAccept.updateResult.ttcn_value := v_UpdateResult;
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24), tsc_LLCSapi_GMM, tsc_LLC_PM, px_GSM_CipheringOnOff, v_RAUAccept));
+    
+    //@siclog "Step 21a4 Void" siclog@
+    
+    //@siclog "Step 21a5" siclog@//
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side to release cell
+    
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set( false );
+    f_GERAN_Postamble ( geran_Cell24, G1_IDLE );
+
+  } // f_TC_9_2_3_3_5_GERAN
+
+  function f_TC_9_2_3_3_5a_GERAN () runs on GERAN_PTC
+  { /* Periodic Location Update */
+
+    var G_L2_DATAMESSAGE_IND v_LocUpd;
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var SYSTEMINFORMATIONTYPE3 v_SI3;
+    var SI13RO v_SI13RO;
+    var G_LogicChType v_ChannelType;
+    var SubChannelNumber v_SubChannel;
+    var octetstring v_PLMN;
+    var O2_Type v_LAC;
+    var O1_Type v_RAC;
+    timer t_Wait7 := 420.0; // 7 mins
+    
+    f_GERAN_Init(EUTRA_GERAN);
+    v_PLMN := f_GERAN_PLMN_Get(geran_Cell24);
+    v_LAC := f_GERAN_LAC_Get(geran_Cell24);
+    v_RAC := f_GERAN_RAC_Get(geran_Cell24);
+    v_SI13RO := f_GERAN_SysInfo_GetSI13_RestOctets (geran_Cell24);
+    v_SI13RO.gPRS_CellOptions.nMO := tsc_NMO_II;
+    f_GERAN_NMO_Set (geran_Cell24, tsc_NMO_II);  // @sic R5s120584 sic@
+    f_GERAN_SysInfo_SetSI13_RestOctets (geran_Cell24, v_SI13RO);
+    v_SI3 := f_GERAN_SysInfo_GetSI3 (geran_Cell24);
+    v_SI3.controlChDescr.t3212 := '06'O; // value of 6 mins
+    f_GERAN_SysInfo_SetSI3 (geran_Cell24, v_SI3);
+    
+    f_GERAN_CreateCell(geran_Cell24);
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA); // Wait for UE to be configured
+    f_GERAN_Pre_Preamble (geran_Cell24, NotSpecified); // @sic R5s110176 sic@
+  //  f_GERAN_InterRAT_InitialiseAuthParams();  //  @sic R5s120639 subject to prose CR approval sic@
+    
+    f_GERAN_TestBody_Set( true );
+    
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //@siclog "Step 1" siclog@
+    f_UT_SwitchOnUE(UT, false);
+    
+    // The UE transmits a LOCATION UPDATE REQUEST message
+    f_GERAN_RRConnEst(geran_Cell24);
+    G_L2.receive (car_G_L2_Estab_IND (geran_Cell24, ?, ?, ?, cr_G_LocationUpdatingRequestIMSI)) -> value v_LocUpd;  // @sic R5s120584 sic@
+    v_ChannelType := v_LocUpd.sabm.g_LogicChType;
+    v_SubChannel := v_LocUpd.sabm.subChannel;
+    
+    // @sic R5-121849 sic@
+    G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    if (pc_UTRA) { // @sic R5-123735 sic@
+      G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+    }
+    G_L2.send (cas_G_L2_DATA_REQ (geran_Cell24, 0, tsc_PhyCh0, v_ChannelType, v_SubChannel, cs_G_RFN_Omit, cs_G_LocationUpdatingAccept ( v_PLMN, v_LAC, cs_MobileIdTMSIorPTMSI('17'O, px_TMSI_Def))));
+    // Receive TMSI Reallocation Complete
+    G_L2.receive (car_G_L2_DATA_IND ( geran_Cell24, ?, ? ,?, ?, ?,  cr_G_TMSI_ReallocCmpl));
+    f_G_ChannelRelease (geran_Cell24, tsc_PhyCh0, v_ChannelType, v_SubChannel);
+    t_Wait7.start;
+    
+    //@siclog "Step 5" siclog@
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND (cr_G_AttachReq (cr_AttachType(?, tsc_I_AttachTypeGPRSAtt),
+                                                                                                   cr_MobileIdAny (omit),
+                                                                                                   cr_RAI (omit),
+                                                                                                   ?)));
+    f_GERAN_SplitPGCycle_Set(geran_Cell24, v_LLCDataInd.unit.msg.attReq.drxParameter);
+    
+    //@siclog "Step 6" siclog@
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24),
+                                                                    tsc_LLCSapi_GMM,
+                                                                    tsc_LLC_PM,
+                                                                    px_GSM_CipheringOnOff,
+                                                                    cs_G_AttachAccept (cs_GMM_AttachResult(tsc_I_AttachTypeGPRSAtt),
+                                                                                       cs_RAI(omit,
+                                                                                              cs_LAI(omit, v_PLMN, v_LAC),
+                                                                                              v_RAC),
+                                                                                       cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                                                                       cs_MobileIdTMSIorPTMSI ('18'O, px_PTMSI_Def),
+                                                                                       omit))); // @sic R5-123114 sic@
+    
+    //@siclog "Step 7" siclog@
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND (cr_G_AttachComplete));
+    
+    //@siclog "Step 8 - 9" siclog@
+    f_GERAN_ActivatePDPContext (geran_Cell24);
+    // in case the UE sends an XID once the bearer is established
+    f_GERAN_LLC_XID (geran_Cell24, false);
+    
+    //@siclog "Step 10" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    f_GERAN_SendAuthParameters (EUTRA); // Send trigger to EUTRA side
+    
+    //@siclog "Step 19-28 Void" siclog@
+    
+    //@siclog "Step 29" siclog@
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA); // Wait for trigger from  EUTRAN side
+    alt {
+      []  G_L2.receive (car_G_L2_ACCESS_IND ( geran_Cell24, tsc_PhyCh0, tsc_RACH, ?, ?, cr_G_ChannelReq_LocUpdate ))
+        { // as soon as the Chan Req arrives for the Loc Upd, we know it's going to fail
+          f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 29");
+        }
+      [] t_Wait7.timeout {}
+    }
+    //@siclog "Step 30" siclog@
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger); // Send trigger to EUTRA side
+
+    // Test case now finished
+    f_GERAN_TestBody_Set( false );
+    f_GERAN_SS_CellRelease (geran_Cell24);
+  } // end of 9_2_3_3_5a
+
+  function f_TC_9_2_3_4_1_GERAN () runs on GERAN_PTC
+  {
+    var IRAT_CoOrd_Auth_Type v_CoOrd_AuthParams;
+    var octetstring v_PLMN;
+    var bitstring v_PTMSI;
+    var template (value) CoOrd_GUTIParam_Type v_GTUIParams;
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var B3_Type v_UpdateType;
+    var B32_Type v_TLLIBits;
+    var O1_Type v_RAC_Cell24, v_RAC_Cell26;
+    var O2_Type v_LAC_Cell24, v_LAC_Cell26;
+    var B32_Type v_M_TMSIOut;
+    var template (omit) RequestedMS_Info v_RequestedMS_Info := omit;
+    
+    f_GERAN_Init(EUTRA_GERAN);
+    v_PLMN := f_GERAN_PLMN_Get(geran_Cell26);
+    v_RAC_Cell24 := f_GERAN_RAC_Get(geran_Cell24);
+    v_LAC_Cell24 := f_GERAN_LAC_Get(geran_Cell24);
+    v_RAC_Cell26 := f_GERAN_RAC_Get(geran_Cell26);
+    v_LAC_Cell26 := f_GERAN_LAC_Get(geran_Cell26);
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_CreateCell (geran_Cell26);
+    
+    f_GERAN_InterRAT_InitialiseAuthParams (); // Get and store Auth Params from EUTRA
+    f_GERAN_TestBody_Set( true );
+    
+    // First Trigger
+    //@siclog "Step 1" siclog@
+    v_CoOrd_AuthParams := f_IRAT_WaitForCoOrd_AuthParams (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ServingCell);
+    
+    //+   The UE is switched on.
+    f_UT_SwitchOnUE(UT, false); /* no USIM insertion */
+    
+    // The UE transmits an ATTACH REQUEST message on Cell 24
+    // Step 3
+    //The SS transmits an AUTHENTICATION REQUEST message.
+    // Step 4
+    //The UE transmits an AUTHENTICATION RESPONSE message.
+    // Step 8
+    // SS responds with ATTACH ACCEPT message including valid TMSI, P-TMSI (TIN set to P-TMSI) and RAI.
+    //  Editor's Note: the default message contents in 51.010 clause 40.2.4.3 allocate a Negotiated READY timer value of 32 seconds.
+    // Step 9
+    // The UE transmits an ATTACH COMPLETE message.
+    //@siclog "Step 3 - 9" siclog@
+    f_GERAN_GPRSAttach (geran_Cell24);
+    //@siclog "Step 9A - 9C" siclog@
+    f_GERAN_ActivatePDPContext (geran_Cell24);
+    f_GERAN_LLC_XID (geran_Cell24, false);
+    
+    // Need to Set GUTI based on PTMSI (which is px_PTMSI_Def), LAC and RAC, see 23.003
+    v_M_TMSIOut := '11'B & substr(oct2bit(px_PTMSI_Def), 2, 6) & oct2bit(v_RAC_Cell24) & substr(oct2bit(px_PTMSI_Def), 16, 16);
+    v_GTUIParams := cs_IRAT_GUTIStuff (f_BitstringReplaceMSB(oct2bit(v_LAC_Cell24), '1'B), substr(oct2bit(px_PTMSI_Def), 8, 8), v_M_TMSIOut);
+
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    f_GERAN_SendAuthParameters (EUTRA, v_GTUIParams);
+    
+    // Step 10 to step 20 is implementated in EUTRA side.
+    
+    // Second Trigger:
+    //  Cell 24 is switched off
+    //@siclog "Step 21" siclog@
+    v_CoOrd_AuthParams := f_IRAT_WaitForCoOrd_AuthParams (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_ChPwrLvl_Off);
+    v_PTMSI := '11'B & substr (v_CoOrd_AuthParams.GutiParams.M_TMSI, 2, 6) & v_CoOrd_AuthParams.GutiParams.MME_Code &  substr (v_CoOrd_AuthParams.GutiParams.M_TMSI, 16, 16);
+
+    //@siclog "Step 22" siclog@
+    // The signal strength of Cell 26 is raised to that of the Serving Cell and that of Cell A is lowered to that of a Suitable Neighbour Cell as defined in table 6.2.2.1-1 of TS 36.508 [18].
+    // Note: Cell A is still suitable but the UE is expected to select Cell 26.
+    f_GERAN_SetCellPowerLevel (geran_Cell26, tsc_GERAN_ServingCell);
+    
+    //+ Check: does the UE send on Cell 26 a ROUTING AREA UPDATE REQUEST with the correct parameters? [5,P]
+    //@siclog "Step 24" siclog@
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell26, car_G_LLC_UnitData_IND ( cr_G_RAUReq_Ids (cr_GMM_UpdateType, cr_RAI (omit), cr_PTMSI_SignatureAny ifpresent,
+                                                                                                     v_CoOrd_AuthParams.AuthPS.KeySeq,  // Get value from Authentication done on EUTRA during Preamble
+                                                                                                     omit,
+                                                                                                     cs_MobileIdTMSIorPTMSI ('1A'O, px_PTMSI_Def),
+                                                                                                     cr_RoutingAreaId2(v_PLMN&v_LAC_Cell24&v_RAC_Cell24))));
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_LLCDataInd.unit.msg.rauReq);
+    
+    //+Check: does the UE send on Cell 26 an RLC/MAC header with the TLLI derived from the P-TMSI that is derived from the GUTI allocated in step 18? [4,P]
+    // The RLC/MAC header will be sent and the TLLI changed during f_GPRS_ReceiveUplinkMsg, but we can check it now
+    //@siclog "Step 23" siclog@
+    v_TLLIBits := oct2bit(f_GERAN_TLLI_Get(geran_Cell26));
+    if ((substr(v_PTMSI, 2, 30) == substr(v_TLLIBits, 2, 30))){
+      f_GERAN_PreliminaryPass(__FILE__, __LINE__, "Step 23");
+    }
+    else {
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "PTMSI doesn't correlate to M-TMSI, Step 23");
+    }
+    f_GERAN_PreliminaryPass(__FILE__, __LINE__, "Step 24"); // @sic R5s120567 sic@
+    f_GERAN_GPRS_Authentication (geran_Cell26); // @sic R5-121775 sic@
+    
+    if (pc_GERAN_2_E_UTRAN_PSHO) { // @sic R5-123131 sic@
+      v_RequestedMS_Info := cs_RequestedMS_Info;
+    }
+    //+The SS sends ROUTING AREA UPDATE ACCEPT (without the allocated P-TMSI IE, but with the Requested MS Information IE indicating "E-UTRAN inter RAT information container IE requested").
+    //@siclog "Step 25" siclog@
+    f_GPRS_SendDownlinkMsg(geran_Cell26, 1, cas_G_LLC_UnitData_Req(bit2oct(v_TLLIBits),
+                                                                   tsc_LLCSapi_GMM,
+                                                                   tsc_LLC_PM, px_GSM_CipheringOnOff,
+                                                                   cs_G_RA_UpdAcc3 (cs_GMM_UpdateResult(v_UpdateType),
+                                                                                    cs_RAI(omit, cs_LAI(omit, v_PLMN, v_LAC_Cell26), v_RAC_Cell26),
+                                                                                    cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                                                                    omit,
+                                                                                    omit,
+                                                                                    v_RequestedMS_Info)));
+    
+    if (pc_GERAN_2_E_UTRAN_PSHO) { // @sic R5-123131 sic@
+      //+ UE sends ROUTING AREA UPDATE COMPLETE message
+      //@siclog "Step 26" siclog@
+      v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell26, car_G_LLC_UnitData_IND (cr_G_RA_UpdComplete(cr_EUTRAN_HO_InfoAny)));
+    }
+    
+    //+  The signal strength of Cell A is raised to that of the Serving Cell and that of Cell 26 is lowered to that of a Suitable Neighbour Cell as defined in table 6.2.2.1-1 of TS 36.508 [18].
+    //   Note: Cell 26 is still suitable but the UE is expected to select Cell A.
+    //@siclog "Step 27" siclog@
+    f_GERAN_SetCellPowerLevel (geran_Cell26, tsc_GERAN_SuitableNeighbourCell);
+    v_M_TMSIOut := '11'B & substr(oct2bit(px_PTMSI_Def), 2, 6) & oct2bit(v_RAC_Cell26) & substr(oct2bit(px_PTMSI_Def), 16, 16);
+    v_GTUIParams := cs_IRAT_GUTIStuff (f_BitstringReplaceMSB(oct2bit(v_LAC_Cell26), '1'B), substr(oct2bit(px_PTMSI_Def), 8, 8), v_M_TMSIOut);
+
+    f_GERAN_SendAuthParameters (EUTRA, v_GTUIParams);
+
+    // Finished here for now
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+
+    f_IRAT_WaitForCoOrd_Trigger(EUTRA);  // wait for E-UTRAN side to finish and then the whole test case is finished.
+    // Test case now finished on GERAN side
+    f_GERAN_TestBody_Set( false );
+
+    f_GERAN_SS_CellRelease ( geran_Cell24 );
+    f_GERAN_SS_CellRelease ( geran_Cell26 );
+
+  } // f_TC_9_2_3_4_1_GERAN
+
+}

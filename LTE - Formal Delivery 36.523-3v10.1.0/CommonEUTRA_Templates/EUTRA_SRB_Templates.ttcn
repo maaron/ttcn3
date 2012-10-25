@@ -1,0 +1,351 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module EUTRA_SRB_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_MsgContainers all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_RRC_Templates all;
+
+  const integer tsc_SRB0_LogicalChannelPriority := 1;           /* @status    APPROVED */
+
+  const integer tsc_SRB1_LogicalChannelPriority := 1;           /* @status    APPROVED */
+
+  const integer tsc_SRB2_LogicalChannelPriority := 3;           /* @status    APPROVED */
+
+  template (value) RadioBearer_Type cs_SRB_Release(SRB_Identity_Type p_Srb) :=
+  { /* @status    APPROVED */
+    Id := {
+      Srb := p_Srb
+    },
+    Config := {
+      Release := true
+    }
+  };
+
+  template (value) RadioBearer_Type cs_SRB0_ConfigDef :=
+  { /* @status    APPROVED */
+    Id := {
+      Srb := tsc_SRB0
+    },
+    Config := {
+      AddOrReconfigure := {
+        Pdcp := {
+          None:=true
+        },
+        Rlc := {
+          Rb := {
+            TM := true
+          },
+          TestMode := {
+            None:=true
+          }
+        },
+        LogicalChannelId := 0,
+        Mac := {
+          LogicalChannel := {
+            Priority := tsc_SRB0_LogicalChannelPriority,
+            PrioritizedBitRate := infinity_
+          },
+          TestMode := {
+            None:=true
+          }
+        },
+        DiscardULData := omit     // @sic RAN5 #55 sidebar meeting sic@
+      }
+    }
+  };
+
+  template (value) RadioBearer_Type cs_SRB1_ConfigDef :=
+  { /* @status    APPROVED */
+    Id := {
+      Srb := tsc_SRB1
+    },
+    Config := {
+      AddOrReconfigure := {
+        Pdcp := {
+          Config := {
+            Rb := {
+              Srb := true
+            },
+            TestMode := {
+              None:=true
+            }
+          }
+        },
+        Rlc := {
+          Rb := {
+            AM := {
+              Tx := cs_UL_AM_RLC_r8(cs_TX_AM_RLC_SRB1_Def),
+              Rx := cs_DL_AM_RLC_r8(cs_RX_AM_RLC_SRB1_Def)
+            }
+          },
+          TestMode := {
+            None:=true
+          }
+        },
+        LogicalChannelId := 1,
+        Mac := {
+          LogicalChannel := {
+            Priority := tsc_SRB1_LogicalChannelPriority,
+            PrioritizedBitRate := infinity_
+          },
+          TestMode := {
+            None:=true
+          }
+        },
+        DiscardULData := omit     // @sic RAN5 #55 sidebar meeting sic@
+      }
+    }
+  };
+
+  template (value) RadioBearer_Type cs_SRB2_ConfigDef :=
+  { /* @status    APPROVED */
+    Id := {
+      Srb := tsc_SRB2
+    },
+    Config := {
+      AddOrReconfigure := {
+        Pdcp := {
+          Config := {
+            Rb := {
+              Srb := true
+            },
+            TestMode := {
+              None:=true
+            }
+          }
+        },
+        Rlc := {
+          Rb := {
+            AM := {
+              Tx := cs_UL_AM_RLC_r8(cs_TX_AM_RLC_SRB2_Def),
+              Rx := cs_DL_AM_RLC_r8(cs_RX_AM_RLC_SRB2_Def)
+            }
+          },
+          TestMode := {
+            None:=true
+          }
+        },
+        LogicalChannelId := 2,
+        Mac := {
+          LogicalChannel := {
+            Priority := tsc_SRB2_LogicalChannelPriority,
+            PrioritizedBitRate := infinity_
+          },
+          TestMode := {
+            None:=true
+          }
+        },
+        DiscardULData := omit     // @sic RAN5 #55 sidebar meeting sic@
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_CommonRadioBearerConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                                   template (value) TimingInfo_Type p_TimingInfo,
+                                                                   template (value) RadioBearerList_Type p_RadioBearerList,
+                                                                   template (omit) boolean p_CnfFlag := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100135 sic@ */
+    /* @sic R5s110634 additional changes: optional parameter p_CnfFlag sic@ */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, p_TimingInfo, p_CnfFlag),
+    Request := {
+      RadioBearerList := p_RadioBearerList
+    }
+  };
+
+  template SYSTEM_CTRL_CNF car_CommonRadioBearerConfig_CNF(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm := {
+      RadioBearerList := true
+    }
+  };
+
+  template (value) ReqAspCommonPart_Type cs_ReqAspCommonPart_SRB(EUTRA_CellId_Type p_CellId,
+                                                                 SRB_Identity_Type p_SrbId,
+                                                                 template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                                                 boolean p_FollowOnFlag := false) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    RoutingInfo := {
+      RadioBearerId := {
+        Srb := p_SrbId
+      }
+    },
+    TimingInfo := p_TimingInfo,
+    ControlInfo := {
+      CnfFlag := false,
+      FollowOnFlag := p_FollowOnFlag
+    }
+  };
+
+  template IndAspCommonPart_Type cr_IndAspCommonPart_SRB(template (present) EUTRA_CellId_Type p_CellId,
+                                                         template (present) SRB_Identity_Type p_SrbId,
+                                                         template (present) TimingInfo_Type p_TimingInfo := cr_TimingInfo_Any) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    RoutingInfo := {
+      RadioBearerId := {
+        Srb := p_SrbId
+      }
+    },
+    TimingInfo := p_TimingInfo,
+    Status := {
+      Ok := true
+    }
+  };
+
+  template (value) SRB_COMMON_REQ cas_SRB0_RrcPdu_REQ(EUTRA_CellId_Type p_CellId,
+                                                      template (value) TimingInfo_Type p_TimingInfo,
+                                                      template (value) DL_CCCH_Message p_RrcPdu) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_SRB(p_CellId, tsc_SRB0, p_TimingInfo),
+    Signalling := {
+      Rrc := {
+        Ccch := p_RrcPdu
+      },
+      Nas := omit
+    }
+  };
+
+  template (value) SRB_COMMON_REQ cas_SRB1_RrcPdu_REQ(EUTRA_CellId_Type p_CellId,
+                                                      template (value) TimingInfo_Type p_TimingInfo,
+                                                      template (value) DL_DCCH_Message p_RrcPdu) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_SRB(p_CellId, tsc_SRB1, p_TimingInfo),
+    Signalling := {
+      Rrc := {
+        Dcch := p_RrcPdu
+      },
+      Nas := omit
+    }
+  };
+
+  template (value) SRB_COMMON_REQ cas_SRB1_RrcNasPduList_REQ(EUTRA_CellId_Type p_CellId,
+                                                             template (value) TimingInfo_Type p_TimingInfo,
+                                                             template (value) DL_DCCH_Message p_RrcPdu,
+                                                             template (omit)  NAS_MSG_RequestList_Type p_NasMsgList) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_SRB(p_CellId, tsc_SRB1, p_TimingInfo),
+    Signalling := {
+      Rrc := {
+        Dcch := p_RrcPdu
+      },
+      Nas := p_NasMsgList
+    }
+  };
+
+  template (value) SRB_COMMON_REQ cas_SRB1_RrcNasPdu_REQ(EUTRA_CellId_Type p_CellId,
+                                                         template (value) TimingInfo_Type p_TimingInfo,
+                                                         template (value) DL_DCCH_Message p_RrcPdu,
+                                                         template (value) NAS_MSG_Request_Type p_NasMsg) :=
+  /* @status    APPROVED */
+    cas_SRB1_RrcNasPduList_REQ(p_CellId, p_TimingInfo, p_RrcPdu, {p_NasMsg});
+
+  template (value) SRB_COMMON_REQ cas_SRB_NasPdu_REQ(EUTRA_CellId_Type p_CellId,
+                                                     SRB_Identity_Type p_SrbId,
+                                                     template (value) TimingInfo_Type p_TimingInfo,
+                                                     template (value) NAS_MSG_Request_Type p_NasMsg) :=
+  { /* SRB1/2: ASP to send NAS message (within RRC DLInformationTransfer)
+       @status    APPROVED */
+    Common := cs_ReqAspCommonPart_SRB(p_CellId, p_SrbId, p_TimingInfo),
+    Signalling := {
+      Rrc := omit,
+      Nas := { p_NasMsg }
+    }
+  };
+
+  template (value) SRB_COMMON_REQ cas_SRB1_NasPdu_REQ(EUTRA_CellId_Type p_CellId,
+                                                      template (value) TimingInfo_Type p_TimingInfo,
+                                                      template (value) NAS_MSG_Request_Type p_NasMsg) :=
+    /* @status    APPROVED */
+    cas_SRB_NasPdu_REQ(p_CellId, tsc_SRB1, p_TimingInfo, p_NasMsg);
+
+  template (value) SRB_COMMON_REQ cas_SRB2_NasPdu_REQ(EUTRA_CellId_Type p_CellId,
+                                                      template (value) TimingInfo_Type p_TimingInfo,
+                                                      template (value) NAS_MSG_Request_Type p_NasMsg) :=
+    /* @status    APPROVED */
+    cas_SRB_NasPdu_REQ(p_CellId, tsc_SRB2, p_TimingInfo, p_NasMsg);
+
+  template SRB_COMMON_IND car_SRB0_RrcPdu_IND(template (present) EUTRA_CellId_Type p_CellId,
+                                              template (present) UL_CCCH_Message p_RrcPdu) :=
+  { /* @sic R5s100127 further MCC160 changes sic@
+       @status    APPROVED */
+    Common := cr_IndAspCommonPart_SRB(p_CellId, tsc_SRB0, ?),
+    Signalling := {
+      Rrc := {
+        Ccch := p_RrcPdu
+      },
+      Nas := omit
+    }
+  };
+
+  template SRB_COMMON_IND car_SRB1_RrcPdu_IND(EUTRA_CellId_Type p_CellId,
+                                              template (present) UL_DCCH_Message p_RrcPdu,
+                                              template (present) TimingInfo_Type p_TimingInfo := ?) :=
+  { /* @status    APPROVED */
+    Common := cr_IndAspCommonPart_SRB(p_CellId, tsc_SRB1, p_TimingInfo),
+    Signalling := {
+      Rrc := {
+        Dcch := p_RrcPdu
+      },
+      Nas := omit
+    }
+  };
+
+  template SRB_COMMON_IND car_SRB1_RrcNasPdu_IND(EUTRA_CellId_Type p_CellId,
+                                                 template (present) UL_DCCH_Message p_RrcPdu,
+                                                 template (present) NAS_MSG_Indication_Type p_NasMsg) :=
+  { /* @status    APPROVED */
+    Common := cr_IndAspCommonPart_SRB(p_CellId, tsc_SRB1, ?),
+    Signalling := {
+      Rrc := {
+        Dcch := p_RrcPdu
+      },
+      Nas := { p_NasMsg }
+    }
+  };
+
+  template SRB_COMMON_IND car_SRB_NasPdu_IND(EUTRA_CellId_Type p_CellId,
+                                             SRB_Identity_Type p_SrbId,
+                                             template (present) NAS_MSG_Indication_Type p_NasMsg) :=
+  { /* @status    APPROVED */
+    Common := cr_IndAspCommonPart_SRB(p_CellId, p_SrbId, ?),
+    Signalling := {
+      Rrc := omit,
+      Nas := { p_NasMsg }
+    }
+  };
+
+  template SRB_COMMON_IND car_SRB1_NasPdu_IND(EUTRA_CellId_Type p_CellId,
+                                              template (present) NAS_MSG_Indication_Type p_NasMsg) :=
+    /* @status    APPROVED */
+    car_SRB_NasPdu_IND(p_CellId, tsc_SRB1, p_NasMsg);
+
+  template SRB_COMMON_IND car_SRB2_NasPdu_IND(EUTRA_CellId_Type p_CellId,
+                                              template (present) NAS_MSG_Indication_Type p_NasMsg) :=
+    /* @status    APPROVED */
+    car_SRB_NasPdu_IND(p_CellId, tsc_SRB2, p_NasMsg);
+
+  template SRB_COMMON_IND car_SRB_IND_Any :=
+  { /* @status    APPROVED */
+    Common := cr_IndAspCommonPart_SRB(?, ?),
+    Signalling := ?
+  };
+
+}

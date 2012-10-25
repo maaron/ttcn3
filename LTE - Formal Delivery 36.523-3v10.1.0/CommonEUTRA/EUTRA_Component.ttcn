@@ -1,0 +1,383 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-03 00:32:42 +0200 (Mon, 03 Sep 2012) $
+// $Rev: 7245 $
+/******************************************************************************/
+
+module EUTRA_Component {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EUTRA_ASP_CDMA2000TunnellingDefs all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_NasCtrl all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_ASP_VirtualNoiseDefs all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from IMS_PTC_CoordMsg all;
+  import from IP_PTC_CtrlMsgs all;
+  import from NAS_CommonTypeDefs all;
+  import from TestcaseProperties all;
+  import from UpperTesterCommon all;
+  import from UpperTesterDefs all;
+
+  type enumerated Combination_Type {  /* @status    APPROVED */
+    /* Combinations of system information blocks acc. to 36.508 Table 4.4.3.1.1-1; */
+    /* @sic R5-113658: new combination c10a sic@ */
+    c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c10a, c11, c12, c13, c14, c15, c16, c17
+  };
+
+  type record RNTI_Type {                       /* @status    APPROVED */
+    C_RNTI       C_RNTI
+  };
+
+  type  record EUTRA_CellSysInfo_Type {         /* @status    APPROVED */
+    // type defined to contain all sysinfo related to  a cell
+    BcchInfo_Type       BCCH_Info,              // BCCH PDUs
+    Combination_Type    Combination,            // Combinations of system information blocks  (combinition acc. 36.508 cl. 4.4.3.1.1)
+    boolean             SB1_ValueTagChanged     // set to TRUE after SB1ValueTag changed, set to FALSE after SB1 delivered to SS.
+  };
+
+  type record NAS_Parameter_Type {              /* @status    APPROVED */
+    GutiParameters_Type      Guti_Parameters,             // Guti parameters: MME groupId, MME code, M_TMSI
+    TrackingAreaCode         TrackingAreaCode,            // TAC applied in the cell
+    NAS_Lac                  LocationAreaCode             // Location Area Id, to be used in combined procedures and CS fallback
+  };
+
+  type record EUTRA_FDD_TDD_CellInfo_Type {     /* @status    APPROVED */
+    EUTRA_FDD_TDD_Mode_Type         FDD_TDD,                 // FDD or TDD mode
+    CQI_ReportPeriodic              cqi_ReportConfig,
+    SoundingRS_UL_ConfigDedicated   soundingRS_UL_Config,
+    PUCCH_ConfigDedicated           pucch_Config,
+    TDD_SubframeAssignment_Type     TDD_SubframeAssignment  optional,  // @sic R5-096691 sic@
+    SR_ConfigIndex_Type             sr_ConfigIndex  // @sic R5-102177 sic@
+  };
+
+  type record Frequency_IE_Type {               /* @status    APPROVED */
+    FrequencyBand_Type FrequencyBandIndicator,       // Frequency band indicator
+    Dl_Bandwidth_Type  DL_ChBandwidth,               // DL channel bandwidth
+    Ul_Bandwidth_Type  UL_ChBandwidth  optional,     // UL channel bandwidth
+    CarrierFreqEUTRA   UL_DL_Earfcn                  // UL and DL EARFCN
+  };
+
+  type record CellIdentities_Type {             /* @status    APPROVED */
+    CellIdentity             CellIdentity,           // Cell ID
+    PhysCellId               PhysicalCellId          // Physical cell ID
+  };
+
+  type record ReferenceCellPower_Type {         /* @status    APPROVED */
+    AbsoluteCellPower_Type         MaxReferencePower,
+    Attenuation_Type               Attenuation
+  };
+
+  type record PhysicalParameters_Type {        /* @status    APPROVED
+                                                  @sic R5s090180 sic@ */
+    CfiValue_Type                    Cfi,
+    RACH_TimingAdvance_Type          RAR_TA,   // Random access response Timing Advance @sic R5-096691 sic@
+    SR_PUCCH_ResourceIndex_Type      sr_PUCCH_ResourceIndex, // @sic R5s090312  sic@
+    P_b_Type                         PDSCH_p_b  // @sic R5-100786 sic@
+  };
+
+  type record AntennaInfo_Type {               /* @status    APPROVED */
+    AntennaInfoCommon                               SS_AntennaInfoCommon,
+    AntennaInfoCommon                               AntennaInfoCommon   optional,
+    AntennaInfoDedicated                            SS_AntennaInfoDedicated,
+    PhysicalConfigDedicated_AntennaInfo_Type        AntennaInfoDedicated
+  };
+
+  type record EUTRA_CellInfo_Type {             /* @status    APPROVED */
+    // this structure contain the information describing an EUTRA cell configuration
+    CellIdentities_Type            CellIds,                     // cell ID + physical cell ID
+    Frequency_IE_Type              Frequency,                   // Band, Bandwidth, UL EARFCN, DL EARFCN
+    EUTRA_FDD_TDD_CellInfo_Type    FDD_TDD_Info,                // Include all FDD/TDD related cell information
+    EUTRA_CellSysInfo_Type         Sysinfo,                     // Sysinfo
+    NAS_Parameter_Type             NAS_Parameters,              // PLMN_List, TAC, Guti @sic R5s100240 delete PcchConfiguration field sic@
+    CellTimingInfo_Type            CellTimingInfo,              // Tcell and SFN offset
+    ReferenceCellPower_Type        ReferencePower,              // Cell power configuration
+    CellConfigCapability_Type      CellConfigCapability,        // broadcastOnlyCell, minimumUplinkCell, fullCell
+    RNTI_Type                      RNTI,                        // RNTI associated to the cell
+    PhysicalParameters_Type        PhysicalParameters,          // Additional physical parameters
+    AntennaInfo_Type               AntennaInfo,                 // Parameters for antenna info @sic R5-100786 sic@
+    DrxCtrl_Type                   DrxCtrl,                     // @sic R5-104796 DRX support sic@
+    MeasGapCtrl_Type               MeasGapCtrl                  // @sic R5s110743 sic@
+  };
+
+  type record length(tsc_EUTRA_MaxNumberOfCells) of EUTRA_CellInfo_Type EUTRA_CellInfoList_Type;    /* array of Cells;     @status    APPROVED */
+
+  type enumerated EUTRA_Default_Enum_Type {     /* refers to common default alt_EUTRA_Standard_Default;
+                                                   @status    APPROVED */
+    StandardDefault
+  };
+
+  type record EUTRA_MobileInfo_Type {           /* @status    APPROVED */
+    NAS_Tmsi    Tmsi,
+    NAS_P_Tmsi  P_Tmsi,
+    UE_EUTRA_Capability EUTRA_Capability,
+    B3_Type     AssignedPdnType                 /* tsc_PdnType_IPv4v6, tsc_PdnType_IPv4v6, tsc_PdnType_IPv4v6 as assigned to the UE;
+                                                   @sic R5-112600 sic@ */
+  };
+
+  type enumerated EUTRA_VerdictCtrl_Type {                              /* @status    APPROVED */
+    normal,                                     /* verdict assignments as for normal L3 signalling test */
+    layer2                                      /* verdict assignments for layer2 test: FAIL for unexpected events on DRB ports  */
+  };
+
+  type enumerated EUTRA_HarqErrorHandling_Type {                        /* @status    APPROVED */
+    ignore,                                     /* ignore HARQ error indications */
+    raiseInconc,                                /* assign INCONC when there is a HARQ error indication */
+    allowOneRetransmission                      /* allow up-to one harq retransmission
+                                                   @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  type record EUTRA_Ctrl_Type {                                         /* @status    APPROVED */
+    default                             Default,                        /* default behaviour being activated on EUTRA */
+    boolean                             TestBody,                       /* true:  => fail may be assigend
+                                                                           false: => inconc is assigned instead of fail */
+    EUTRA_VerdictCtrl_Type              VerdictCtrl,                    /* Control the assignment of FAIL/INCOCN in default behaviour */
+    EUTRA_HarqErrorHandling_Type        HarqErrorHandling               /* @sic R5-106675 change 1 sic@ */
+  };
+
+  type record EUTRA_Global_Type {                                       /* @status    APPROVED */
+    EUTRA_Ctrl_Type             Ctrl,
+    EUTRA_SecurityParams_Type   Security,
+    EUTRA_CellInfoList_Type     CellArray,
+    EUTRA_MobileInfo_Type       MobileInfo
+  };
+
+  type component EUTRA_PTC {                                            /* @status    APPROVED */
+    var  EUTRA_Global_Type vc_EUTRA_Global;
+    
+    port EUTRA_SYSTEM_PORT          SYS;
+    port EUTRA_SYSIND_PORT          SYSIND;
+    port EUTRA_VNG_PORT             VNG;
+    port CDMA2000_TUNNELLING_PORT   C2KTUNNEL;                           /* @sic C2K TUNNELLING sic@ */
+    port EUTRA_SRB_PORT             SRB;
+    port EUTRA_NASCTRL_PORT         NASCTRL;
+    port EUTRA_DRB_PORT             DRB;
+    
+    port UT_PTC_MTC_PORT            UT;
+    
+    port IRAT_CO_ORD_PORT           UTRAN;
+    port IRAT_CO_ORD_PORT           GERAN;
+    port IRAT_CO_ORD_PORT           CDMA2000;
+
+    port IP_RAT_CTRL_PORT           IP;                                 /* @sic R5s100135 sic@ */
+    port IMS_CO_ORD_PORT            IMS[tsc_NoOfPDNs];
+  };
+
+  type component EUTRA_SYSTEM {                                         /* @status    APPROVED */
+    port EUTRA_SYSTEM_PORT          E_SYS;
+    port EUTRA_SYSIND_PORT          E_SYSIND;
+    port EUTRA_VNG_PORT             E_VNG;
+    port CDMA2000_TUNNELLING_PORT   E_C2KTUNNEL;                        /* @sic C2K TUNNELLING sic@ */
+    port EUTRA_DRB_PORT             E_DRB;
+  };
+
+  function f_EUTRA_PTC_Map(EUTRA_PTC p_Eutra,
+                           boolean p_C2KTunneling := false)
+  {
+    map(p_Eutra:SYS,    system:E_SYS);
+    map(p_Eutra:SYSIND, system:E_SYSIND);
+    map(p_Eutra:DRB,    system:E_DRB);
+
+    if (f_GetTestcaseAttrib_Qbased_Rsrq(testcasename())) {    /* virtual noise generator for RSRQ test cases */
+      map(p_Eutra:VNG,  system:E_VNG);
+    }
+    if (p_C2KTunneling) {
+      map(p_Eutra:C2KTUNNEL, system:E_C2KTUNNEL);
+    }
+  }
+
+  template SYSTEM_CTRL_CNF cr_SYSTEM_CTRL_CNF_Any := ?;                 /* @status    APPROVED */
+
+  template SYSTEM_IND      cr_SYSTEM_IND_Any := ?;                      /* @status    APPROVED */
+
+  template SRB_COMMON_IND  cr_SRB_COMMON_IND_Any := ?;                  /* @status    APPROVED */
+
+  template NAS_CTRL_CNF    cr_NAS_CTRL_CNF_Any := ?;                    /* @status    APPROVED */
+
+  template DRB_COMMON_IND  cr_DRB_COMMON_IND_Any := ?;                  /* @status    APPROVED */
+
+  template UT_COMMON_CNF   cr_UT_COMMON_CNF_Any := ?;                   /* @status    APPROVED */
+
+  altstep a_EUTRA_StandardDefault() runs on EUTRA_PTC
+  { /* @sic R5-101050: New clause in 36.523-3 "B.4.5 Verdict Assignment" => classification of FAIL/INCONC sic@ */
+    var SYSTEM_IND v_SYSTEM_IND;
+    var SRB_COMMON_IND v_SRB_COMMON_IND;
+    var charstring v_Msg;
+    var integer v_CURRENT_TX_NB;
+    
+    [] SYS.receive (cr_SYSTEM_CTRL_CNF_Any) {
+      /* unexpected CNF shall always result in INCONC */
+      all timer.stop;
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "unexpected receive event at port SYS");
+    }
+    
+    [] SYSIND.receive (cr_SYSTEM_IND_Any) -> value v_SYSTEM_IND {
+      if (ischosen(v_SYSTEM_IND.Indication.HarqError)) {
+        
+        select (vc_EUTRA_Global.Ctrl.HarqErrorHandling) {     /* @sic R5-106675 change 1 sic@ */
+          case (ignore) {
+            repeat;
+          }
+          case (allowOneRetransmission) {
+            if (ischosen(v_SYSTEM_IND.Indication.HarqError.UL)) {
+              v_CURRENT_TX_NB := v_SYSTEM_IND.Indication.HarqError.UL.CURRENT_TX_NB;
+            } else {
+              v_CURRENT_TX_NB := v_SYSTEM_IND.Indication.HarqError.DL.CURRENT_TX_NB;
+            }
+            if (not (v_CURRENT_TX_NB > 1)) { /* not more than one retransmission */
+              repeat;
+            }
+          }
+          case else {
+            // don't repeat but terminate test case
+          }
+        }
+      }
+      all timer.stop;
+      if (ischosen(v_SYSTEM_IND.Indication.Error)) {
+        /* error indicated by the system simulator shall always result in INCONC */
+        f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "error indicated at port SYS");
+      } else {
+        /* L1/MAC indications: all of these indications occur only when being activated by TTCN before */
+        if (ischosen(v_SYSTEM_IND.Indication.RachPreamble) or
+            ischosen(v_SYSTEM_IND.Indication.SchedReq) or
+            ischosen(v_SYSTEM_IND.Indication.UL_HARQ) or
+            ischosen(v_SYSTEM_IND.Indication.HarqError)) {    /* @sic R5s100135 sic@ */
+          /* L1 indications:
+           * at layer 1 transmission errors may occur; therefore in general this is an unspecific behaviour */
+          f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "unexpected L1 indication at port SYSIND");
+        } else {
+          /* MAC indications:
+           * BSR, C_RNTI, PHR: within the test body a FAIL shall be assigned */
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected MAC indication at port SYSIND");
+        }
+      }
+    }
+    [] SRB.receive (cr_SRB_COMMON_IND_Any) -> value v_SRB_COMMON_IND {
+      /* unexpected L3 signalling message */
+      all timer.stop;
+      if (not ispresent(v_SRB_COMMON_IND.Signalling.Rrc)) {
+        /* unexpected NAS message received in ULInformationTransfer => shall cause a FAIL when received in the test body */
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected NAS PDU at port SRB");
+      } else if (not ispresent(v_SRB_COMMON_IND.Signalling.Nas)) {
+        /* unexpected RRC message received => shall cause a FAIL when received in the test body */
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected RRC PDU at port SRB");
+      } else {
+        /* unexpected RRC message with piggybacked NAS PDU received => shall cause a FAIL when received in the test body */
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "unexpected RRC PDU with piggybacked NAS PDU at port SRB");
+      }
+    }
+    [] NASCTRL.receive (cr_NAS_CTRL_CNF_Any) {
+      /* unexpected CNF shall always result in INCONC */
+      all timer.stop;
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "unexpected receive event at port NASCTRL");
+    }
+    [] DRB.receive (cr_DRB_COMMON_IND_Any) {
+      /* unexpected data at the DRB port */
+      all timer.stop;
+      
+      v_Msg := "unexpected data at port DRB";
+      if (vc_EUTRA_Global.Ctrl.VerdictCtrl == layer2) {         /* user plane data is part of the test purpose */
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, v_Msg);
+      } else {                                                  /* user plane data is not part of the test purpose */
+        f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, v_Msg);
+      }
+    }
+    [] UT.receive (cr_UT_COMMON_CNF_Any) {
+      /* unexpected reply from the UE at the UT shall always result in INCONC */
+      all timer.stop;
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "unexpected receive event at port UT");
+    }
+    [] any timer.timeout {
+      /* Note: there is no way to distinguish local timers in the default behaviour
+       *       => there can be either an INCONC or a FAIL in the default behaviour;
+       *       => we assign an INCONC - when there shall be FAIL in case of a timeout
+       *          this needs to be handled where the timer is declared */
+      all timer.stop;
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "unexpected timeout");
+    }
+  }
+
+  function f_EUTRA_ActivateDefault(EUTRA_Default_Enum_Type p_Default) runs on EUTRA_PTC
+  {
+    deactivate(vc_EUTRA_Global.Ctrl.Default);
+
+    select (p_Default) {
+      case (StandardDefault) {
+        vc_EUTRA_Global.Ctrl.Default := activate(a_EUTRA_StandardDefault());
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "unknown default behaviour");
+      }
+    }
+  }
+
+  altstep a_EUTRA_AddDefault_PeriodicalMeasurmentReport(EUTRA_CellId_Type p_CellId,
+                                                        template (present) UL_DCCH_Message p_RrcPdu) runs on EUTRA_PTC
+  {
+    [] SRB.receive( car_SRB1_RrcPdu_IND( p_CellId, p_RrcPdu ) )
+      {
+        repeat;
+      };
+  };
+
+  function f_EUTRA_TestBody_Set(boolean p_TestBodyFlag,
+                                EUTRA_VerdictCtrl_Type p_VerdictCtrl := normal) runs on EUTRA_PTC
+  {
+    vc_EUTRA_Global.Ctrl.TestBody := p_TestBodyFlag;
+    vc_EUTRA_Global.Ctrl.VerdictCtrl := p_VerdictCtrl;
+    if (p_TestBodyFlag) {
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "initial preliminary pass");
+    }
+  }
+
+  function f_EUTRA_HarqErrorHandling_Set(EUTRA_HarqErrorHandling_Type p_HarqErrorHandling) runs on EUTRA_PTC
+  { /* @status    APPROVED */
+    vc_EUTRA_Global.Ctrl.HarqErrorHandling := p_HarqErrorHandling;
+  }
+
+  function fl_EUTRA_TestBody_Check() runs on EUTRA_PTC return boolean {
+    return vc_EUTRA_Global.Ctrl.TestBody;
+  }
+
+  function f_EUTRA_SetVerdictFailOrInconc(charstring p_FileName,
+                                          LineNo_Type p_LineNo,
+                                          charstring p_Msg) runs on EUTRA_PTC
+  {
+    if (fl_EUTRA_TestBody_Check()) {
+      f_SetVerdict(fail, p_FileName, p_LineNo, p_Msg);
+    } else {
+      f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    }
+    self.kill;    // => test case will be terminated immediately
+  }
+
+  function f_EUTRA_SetVerdictInconc(charstring p_FileName,
+                                    LineNo_Type p_LineNo,
+                                    charstring p_Msg)
+  {
+    f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+    self.kill;    // => test case will be terminated immediately
+  }
+
+  function f_EUTRA_PreliminaryPass(charstring p_FileName,
+                                   LineNo_Type p_LineNo,
+                                   charstring p_Msg) runs on EUTRA_PTC
+  {
+    if (fl_EUTRA_TestBody_Check()) {
+      f_SetVerdict(pass, p_FileName, p_LineNo, p_Msg);
+    }
+  }
+
+}

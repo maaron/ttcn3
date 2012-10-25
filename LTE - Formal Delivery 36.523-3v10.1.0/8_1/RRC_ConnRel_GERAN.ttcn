@@ -1,0 +1,77 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-25 17:02:09 +0200 (Wed, 25 Apr 2012) $
+// $Rev: 6567 $
+/******************************************************************************/
+module RRC_ConnRel_GERAN {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_CommonTemplates all;
+  import from UTRANGERAN_CommonFunctions all;
+
+  function f_TC_8_1_3_8_GERAN () runs on GERAN_PTC
+  { // RRC Connection Release: redirection from E-UTRAN to GERAN
+    var integer v_T0_RSSI_Cell24 := -70;
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd; // @sic R5s120208 sic@
+    var B3_Type v_UpdateType; // @sic R5s120208 sic@
+    
+    //Initialise test case
+    f_GERAN_Init ( EUTRA_GERAN );
+    
+    //Coordinate with E-UTRA component to send GERAN frequencies - need to do this before EUTRA cell is created
+    f_GERAN_Send_IR_SysInfoToEUTRA ( geran_Cell24 );
+    
+    //Create GERAN cell and broadcast System Infomation
+    f_GERAN_CreateCell ( geran_Cell24 );
+    f_GERAN_InterRAT_InitialiseAuthParams();  // The UE starts in EUTRA, so wait for it to send the Auth Params
+    
+    //Set GERAN cell's power level for T0
+    f_GERAN_SetCellPowerLevel( geran_Cell24, v_T0_RSSI_Cell24 );
+    
+    f_GERAN_TestBody_Set( true );
+    //------------------------------------------------
+    //Start TestBody
+    
+    //First Trigger: wait for Step1 at EUTRA side
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    //@siclog "Step 1A, 1B" siclog@
+    // The UE sends a CHANNEL REQUEST message on the cell 24.
+    // An uplink TBF is established in order to allow the UE to transmit a ROUTING AREA UPDATE REQUEST message signalling.
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND ( cr_G_RA_UpdReqAny (cr_GMM_UpdateType( '0'B, (tsc_I_UpdateTypeRAOnly, tsc_I_UpdateTypeCombined)), cr_RAI (omit), cr_PTMSI_SignatureAny ifpresent, ?)));
+    //@siclog "Step 1C" siclog@
+    // The UE transmits a ROUTING AREA UPDATE REQUEST message.
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_LLCDataInd.unit.msg.rauReq); /* @sic R5s120019 Additional Changes sic@ */
+   
+    //* @desc Tell the EUTRA component to attenuate cell 1
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+   
+    //@siclog "Step 2" siclog@
+    // Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.9 steps 4-11 indicate that the UE is camped on GERAN Cell 24?
+    // NOTE: The UE completes the RAU procedure
+    f_GERAN_RAUWithoutRAUReq (geran_Cell24, v_UpdateType, true, true);  // @sic R5s120208 sic@
+    
+    //* @desc Tell the EUTRA component that test case is over
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    
+    //End TestBody
+    //------------------------------------------------
+    f_GERAN_TestBody_Set ( false );
+    
+    f_GERAN_Postamble (geran_Cell24, G1_IDLE);
+    
+  }; //end of testcase 8.1.3.8
+
+}

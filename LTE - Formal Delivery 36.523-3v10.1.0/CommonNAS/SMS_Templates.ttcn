@@ -1,0 +1,360 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module SMS_Templates {
+
+  import from CommonDefs all;
+  import from SMS_TypeDefs all;
+
+  template (value) TransactionIdentifier_Type cs_MT_TI0_FromSS :=
+  { /* @status    APPROVED */
+    tI_Flag := '0'B,
+    tI_Value := '000'B
+  };
+
+  template TransactionIdentifier_Type cr_MT_TI0_FromUE :=
+  { /* @status    APPROVED */
+    tI_Flag := '1'B,
+    tI_Value := '000'B
+  };
+
+  template TransactionIdentifier_Type cr_MO_AnyTI_FromUE :=
+  { /* @status    APPROVED */
+    tI_Flag := '0'B,
+    tI_Value := '???'B
+  };
+
+  template (present) TypeOfNumberingPlan cr_TypeOfNumberingPlanAny :=
+  { /* @status    APPROVED */
+    extBit := ?,
+    typeOfNumber := ?,
+    numberingPlanId := ?
+  };
+
+  template (value) TypeOfNumberingPlan cs_TypeOfNumberingPlan :=
+  { /* @status    APPROVED */
+    extBit := '1'B,
+    typeOfNumber := '001'B, // international number
+    numberingPlanId := '0001'B // ISDN/telephony numbering plan (Rec. E.164/E.163)
+  };
+
+  template (present) TypeOfNumberingPlan cr_TypeOfNumberingPlan :=
+  { /* @status    APPROVED */
+    extBit := ?,
+    typeOfNumber := ?,
+    numberingPlanId := ?
+  };
+
+  template (omit) CP_UserData_Type cs_CP_UserData_DELIVER (octetstring p_Digits):=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := int2oct ((162 + lengthof (p_Digits)), 1), // 162 = 153 + 1 + 5 + 3=size of cs_RP_OriginatorAddress_dl
+    rP_PDU := {RP_DATA_dl := cs_RP_DATA_dl_DELIVER (p_Digits)}
+  };
+
+  template (omit) CP_UserData_Type cs_CP_UserData_RP_ACK_dl (O1_Type p_MsgRef):=
+  { /* @status    APPROVED */
+    // @sic R5s100604 sic@ @sic R5s110206 sic@
+    spare := omit,
+    iei := omit,
+    iel := '02'O, // the length of RPDU is 2 as RP UserData are omitted now
+    rP_PDU := {RP_ACK := cs_RP_ACK_dl(p_MsgRef)}
+  };
+
+  template (present) CP_UserData_Type cr_CP_UserData_SUBMIT :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := ?,
+    rP_PDU := {RP_DATA_ul := cr_RP_DATA_ul_SUBMIT}
+  };
+
+  template CP_UserData_Type cr_CP_UserData_RP_ACK_ul :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := ?,
+    rP_PDU := {
+      RP_ACK := cr_RP_ACK_ul
+    }
+  };
+
+  template (value) CP_DATA_Type cs_CP_DATA (template (value) TransactionIdentifier_Type p_TransactionIdentifier,
+                                            template (omit) CP_UserData_Type p_CP_UserData) :=
+  { /* @status    APPROVED */
+    transactionIdentifier := p_TransactionIdentifier,
+    protocolDiscriminator := tsc_PD_SMS,
+    messageType := tsc_MT_CP_DATA,
+    cP_UserData := p_CP_UserData
+  };
+
+  template CP_DATA_Type cr_CP_DATA (template TransactionIdentifier_Type p_TransactionIdentifier,
+                                    template CP_UserData_Type p_CP_UserData) :=
+  { /* @status    APPROVED */
+    transactionIdentifier := p_TransactionIdentifier,
+    protocolDiscriminator := tsc_PD_SMS,
+    messageType := tsc_MT_CP_DATA,
+    cP_UserData := p_CP_UserData
+  };
+
+  template (value) CP_ACK_Type cs_CP_ACK (template (value) TransactionIdentifier_Type p_TransactionIdentifier) :=
+  { /* @status    APPROVED */
+    transactionIdentifier := p_TransactionIdentifier,
+    protocolDiscriminator := tsc_PD_SMS,
+    messageType := tsc_MT_CP_ACK
+  };
+
+  template CP_ACK_Type cr_CP_ACK (template TransactionIdentifier_Type p_TransactionIdentifier) :=
+  { /* @status    APPROVED */
+    transactionIdentifier := p_TransactionIdentifier,
+    protocolDiscriminator := tsc_PD_SMS,
+    messageType := tsc_MT_CP_ACK
+  };
+
+  template CP_PDU_Type cr_CP_DATA_PDU (template TransactionIdentifier_Type p_TransactionIdentifier,
+                                       template CP_UserData_Type p_CP_UserData) :=
+  { /* @status    APPROVED */
+    CP_DATA := cr_CP_DATA (p_TransactionIdentifier, p_CP_UserData)
+  };
+
+  template (value) CP_PDU_Type cs_CP_DATA_PDU (template (value) TransactionIdentifier_Type p_TransactionIdentifier,
+                                               template (value) CP_UserData_Type p_CP_UserData) :=
+  { /* @status    APPROVED */
+    CP_DATA := cs_CP_DATA (p_TransactionIdentifier, p_CP_UserData)
+  };
+
+  template CP_PDU_Type cr_CP_ACK_PDU (template TransactionIdentifier_Type p_TransactionIdentifier) :=
+  { /* @status    APPROVED */
+    CP_ACK := cr_CP_ACK (p_TransactionIdentifier)
+  };
+
+  template (value) CP_PDU_Type cs_CP_ACK_PDU (template (value) TransactionIdentifier_Type p_TransactionIdentifier) :=
+  { /* @status    APPROVED */
+    CP_ACK := cs_CP_ACK (p_TransactionIdentifier)
+  };
+
+  template (omit) RP_OriginatorAddress_dl cs_RP_OriginatorAddress_dl :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := '04'O, // 4 semi-octets   @sic R5s100586 sic@
+    typeOfNumberingPlan := cs_TypeOfNumberingPlan,
+    digits := '001122'O
+  };
+
+  template RP_OriginatorAddress_ul cr_RP_OriginatorAddress_ul :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := '00'O
+  };
+
+  template RP_DestinationAddress_ul cr_RP_DestinationAddress_ul :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := ?,
+    typeOfNumberingPlan := cr_TypeOfNumberingPlan,
+    digits := ?
+  };
+
+  template (omit) RP_DestinationAddress_dl cs_RP_DestinationAddress_dl :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+  iel := '00'O
+  };
+
+  template (omit) RP_UserData cs_RP_UserData_DELIVER (octetstring p_Digits) :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := int2oct ((153 + lengthof (p_Digits)), 1),
+    tP_PDU := {SMS_DELIVER := cs_SMS_DELIVER (p_Digits)}
+  };
+
+  template RP_UserData cr_RP_UserData_SUBMIT :=
+  { /* @status    APPROVED */
+    spare := omit,
+    iei := omit,
+    iel := ?,
+    tP_PDU := {SMS_SUBMIT := cr_SMS_SUBMIT_VPF_REF} // fits with AT command !!
+  };
+
+  template (value) RP_DATA_dl_Type cs_RP_DATA_dl_DELIVER (octetstring p_Digits) :=
+  { /* @status    APPROVED */
+    spare5 := '00000'B,
+    rP_MessageTypeIndicator := tsc_MT_RP_DATA_dl,
+    rP_MessageReference := int2oct(0, 1),
+    rP_OriginatorAddress := cs_RP_OriginatorAddress_dl,
+    rP_DestinationAddress := cs_RP_DestinationAddress_dl,
+    rP_UserData := cs_RP_UserData_DELIVER(p_Digits)
+  };
+
+  template (present) RP_DATA_ul_Type  cr_RP_DATA_ul_SUBMIT :=
+  { /* @status    APPROVED */
+    spare5 := '00000'B,
+    rP_MessageTypeIndicator := tsc_MT_RP_DATA_ul,
+    rP_MessageReference := ?,
+    rP_OriginatorAddress := cr_RP_OriginatorAddress_ul,
+    rP_DestinationAddress := cr_RP_DestinationAddress_ul,
+    rP_UserData := cr_RP_UserData_SUBMIT
+  };
+
+  template (value) RP_ACK_Type cs_RP_ACK_dl(O1_Type p_MsgRef) :=
+  { /* @status    APPROVED */
+    spare5 := '00000'B,
+    rP_MessageTypeIndicator := tsc_MT_RP_ACK_dl,
+    rP_MessageReference := p_MsgRef,   // @sic R5s100604 sic@
+    rP_UserData := omit
+  };
+
+  template (present) RP_ACK_Type  cr_RP_ACK_ul :=
+  { /* @status    APPROVED */
+    spare5 := '00000'B,
+    rP_MessageTypeIndicator := tsc_MT_RP_ACK_ul,
+    rP_MessageReference := ?,
+    rP_UserData := *
+  };
+
+  template TP_ProtocolIdentifier_Type cr_TP_ProtocolIdentifier :=
+  { /* @status    APPROVED */
+    // @sic R5s100586 sic@
+    pidType := '00'B,
+    interworking := '0'B,
+    pidValue := '00000'B  // @sic R5s100773 sic@
+  };
+
+  template (value) TP_ProtocolIdentifier_Type cs_TP_ProtocolIdentifier :=
+  { /* @status    APPROVED */
+    // @sic R5s100586 sic@
+    pidType := '00'B,
+    interworking := '0'B,
+    pidValue := '00000'B  // @sic R5s100773 sic@
+  };
+
+  template (value) TP_DataCodingScheme_Type cs_TP_DataCodingScheme :=
+  { /* @status    APPROVED */
+    codingGroup := '0000'B,
+    codeValue := '0000'B
+  };
+
+  template TP_Address_Type cr_TP_AddressAny :=
+  { /* @status    APPROVED */
+    iel := ?,
+    typeOfNumberingPlan := cr_TypeOfNumberingPlanAny,
+    digits := *
+  };
+
+  template (value) TP_Address_Type cs_TP_Address (octetstring p_Digits) :=
+  { /* @status    APPROVED */
+    iel := int2oct(2 * lengthof(p_Digits), 1),
+    // length is number of useful semi-octets
+    // as p_digits is declared as octetstring the number must be even
+    typeOfNumberingPlan := cs_TypeOfNumberingPlan,
+    digits := p_Digits
+  };
+
+  template (value) SMS_DELIVER_Type cs_SMS_DELIVER (octetstring p_Digits) :=
+  { /* @status    APPROVED */
+    tP_ReplyPath := '0'B,
+    tP_UserDataHeaderIndicator := '0'B,
+    tP_StatusReportIndication := '0'B,
+    spare2 := '00'B,
+    tP_MoreMessagesToSend := '1'B,
+    tP_MessageTypeIndicator := tsc_MT_SMS_DELIVER,
+    tP_OriginatingAddress := cs_TP_Address (p_Digits),
+    tP_ProtocolIdentifier := cs_TP_ProtocolIdentifier,
+    tP_DataCodingScheme_Type := cs_TP_DataCodingScheme,
+    tP_ServiceCentreTimeStamp := f_GetSC_TimeStamp(),
+    tP_UserDataLength := int2oct(160,1),
+    tP_UserData := f_CharPacking_IA5toGsm7Bit(tsc_Fox, SMS_Packing)
+  };
+
+  template SMS_SUBMIT_Type cr_SMS_SUBMIT(template (present) B2_Type p_ValidityPeriodFormat := '??'B,
+                                         template TP_ValidityPeriod_Type p_ValidityPeriod := *,
+                                         template (present) TP_UserDataLength_Type p_UserDataLength := ?) :=
+  { /* @status    APPROVED */
+    tP_ReplyPath := '?'B,
+    tP_UserDataHeaderIndicator := '?'B,
+    tP_StatusReportRequest := '?'B,
+    tP_ValidityPeriodFormat := p_ValidityPeriodFormat,
+    tP_RejectDuplicates := '?'B,
+    tP_MessageTypeIndicator := tsc_MT_SMS_SUBMIT,
+    tP_MessageReference := ?,
+    tP_DestinationAddress := cr_TP_AddressAny,
+    tP_ProtocolIdentifier := cr_TP_ProtocolIdentifier,
+    tP_DataCodingScheme_Type := ?,
+    tP_ValidityPeriod  := p_ValidityPeriod,
+    tP_UserDataLength := p_UserDataLength, // @sic R5s120530 sic@
+    tP_UserData := ? // any data will do
+  };
+
+  template SMS_SUBMIT_Type cr_SMS_SUBMIT_VPF_REF := cr_SMS_SUBMIT('10'B, {TP_ValidityPeriodRelative := int2oct(167,1)}, int2oct(160,1));  /* @status    APPROVED */
+
+  group LocalFunctions {
+
+  function fl_SwappedNibbles(integer p_Val) return H2_Type
+  {
+    var integer v_LowNibble  := p_Val mod 10;
+    var integer v_HighNibble := (p_Val / 10) mod 10;
+    
+    return int2hex(v_LowNibble, 1) & int2hex(v_HighNibble, 1);
+  }
+
+  function f_GetSC_TimeStamp() return TP_ServiceCentreTimeStamp_Type
+  {
+    var Struct_tm_Type v_LocalTime;
+    var integer v_TimezoneSeconds;
+    var integer v_TimezoneVal;
+    var integer v_SignVal := 0;  // positive value per default
+    var H2_Type v_Year;
+    var H2_Type v_Month;
+    var H2_Type v_Day;
+    var H2_Type v_Hour;
+    var H2_Type v_Minute;
+    var H2_Type v_Second;
+    var H2_Type v_Timezone;
+    
+    fx_GetSystemTime(v_LocalTime, v_TimezoneSeconds);
+    
+    v_Year      := fl_SwappedNibbles(v_LocalTime.tm_year + 1900);     /* acc. to definition of struct tm */
+    v_Month     := fl_SwappedNibbles(v_LocalTime.tm_mon + 1);         /* acc. to definition of struct tm */
+    v_Day       := fl_SwappedNibbles(v_LocalTime.tm_mday);
+    v_Hour      := fl_SwappedNibbles(v_LocalTime.tm_hour);
+    v_Minute    := fl_SwappedNibbles(v_LocalTime.tm_min mod 60);      /* v_LocalTime.tm_min can be 0..61 on some systems */
+    v_Second    := fl_SwappedNibbles(v_LocalTime.tm_sec);
+    
+    /* Calculation of the timezone (-> 23.040): */
+    if (v_LocalTime.tm_isdst > 0) {                 /* The value contained in the Time Zone field must take into account daylight saving time, such that when the sending entity changes from regular
+                                                       (winter) time to daylight saving (summer) time, there is a change to the value in the Time Zone field,
+                                                       for example in the UK the winter setting is 00000000 and the summer setting is 01000000. */
+      v_TimezoneSeconds := v_TimezoneSeconds + 3600;
+    }
+    
+    if (v_TimezoneSeconds < 0) {
+      v_TimezoneSeconds := -v_TimezoneSeconds;
+      v_SignVal := 128;                             /* In the first of the two semi octets, the first bit (bit 3 of the seventh octet of the TP Service Centre Time Stamp field)
+                                                       represents the algebraic sign of this difference (0: positive, 1: negative) */
+    }
+    v_TimezoneVal := v_TimezoneSeconds / (60 * 15); /* The Time Zone indicates the difference, expressed in quarters of an hour, between the local time and GMT. */
+    v_TimezoneVal := v_TimezoneVal mod 128;         /* ... just to be sure */
+    v_TimezoneVal := v_TimezoneVal + v_SignVal;     /* set the upper bit */
+    
+    v_Timezone  := fl_SwappedNibbles(v_TimezoneVal);
+    
+    return v_Year & v_Month & v_Day & v_Hour & v_Minute & v_Second & v_Timezone;
+  }
+
+  } // end of group LocalFunctions
+
+}

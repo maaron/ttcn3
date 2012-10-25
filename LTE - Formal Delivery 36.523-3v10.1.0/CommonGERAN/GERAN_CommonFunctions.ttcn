@@ -1,0 +1,1637 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:35:48 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7308 $
+/******************************************************************************/
+
+module GERAN_CommonFunctions {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_Component all;
+  import from GERAN_Parameters all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_AuthenticationCommon all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UpperTesterFunctions all;
+
+  type enumerated GERAN_WaitForCNF_Type { waitForCNF, dontWaitForCNF };     /* @status    APPROVED */
+
+  function f_GERAN_Send_IR_SysInfoToEUTRA ( GERAN_CellId_Type p_CellId ) runs on GERAN_PTC
+  {
+    var template (value) CoOrd_GERANSysInfo_Type v_CoOrdCellInfo;
+
+    var GERAN_CellInfo_Type v_CellInfo := f_GERAN_CellInfo_Get ( p_CellId );
+
+    var integer v_Arfcn := bit2int ( v_CellInfo.freq.bCCH_Freq );
+//    var CoOrd_GERANNeighCell_Type v_NeighCells := v_CellInfo.freq.arfcnList;
+    var B3_Type v_Ncc := v_CellInfo.info.ncc;
+    var B3_Type v_Bcc := v_CellInfo.info.bcc;
+    var O2_Type v_Cell_Identity := f_GERAN_CellInfo_GetCellIdentity ( p_CellId );
+    var B1_Type v_BandIndicator := v_CellInfo.freq.bandIndicator;
+
+    v_CoOrdCellInfo := cs_CoOrdGERANSysInfo ( v_Arfcn,
+//                                              v_NeighCells, @sic R5-120604 sic@
+                                              v_Ncc,
+                                              v_Bcc,
+                                              v_Cell_Identity,
+                                              v_BandIndicator,
+                                              v_CellInfo.info.plmn,
+                                              oct2bit(v_CellInfo.info.lac),
+                                              oct2bit(v_CellInfo.info.rac),
+                                              bit2int ( v_CellInfo.freq.gPRSCh_Freq ));
+
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_SysInfo ( cs_CoOrdGERAN_SysInfoSingleCell ( v_CoOrdCellInfo ) ) );
+  }
+
+  function f_GERAN_CreateCell (GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var B10_Type v_GPRSFreq := f_GERAN_GPRSFreq_Get(p_CellId);
+    
+    f_CreateCell_GSM_Comb (p_CellId);
+    
+    f_GERAN_CreatePhyGPRSCh (p_CellId, cs_FreqInfo(v_GPRSFreq), cs_PacketChDescr(v_GPRSFreq));
+    f_CreateRLC_MAC_Entity(p_CellId);
+    f_Create_LLE_Entity(p_CellId);
+    
+    f_GERAN_SendGSMSysInfo(p_CellId);
+    
+  } // end of f_GERAN_CreateCell
+
+  function f_GERAN_CreateCell_MinUL (GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    f_CreateCell_GSM_Comb (p_CellId);
+    f_GERAN_SendGSMSysInfo(p_CellId);
+  } // end of f_GERAN_CreateCell_MinUL
+
+  group M_RAT_SysInfo {
+
+  function f_GERAN_SendGSMSysInfo(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get(p_CellId);
+    
+    G_L2.send(cas_SysInfo1(p_CellId, v_SysInfo.si1));
+    G_L2.send(cas_SysInfo2(p_CellId, v_SysInfo.si2));
+    G_L2.send(cas_SysInfo3(p_CellId, v_SysInfo.si3));
+    G_L2.send(cas_SysInfo4(p_CellId, v_SysInfo.si4));
+    G_L2.send(cas_SysInfo13(p_CellId, '0'B, v_SysInfo.si13));
+    
+    G_L2.send(cas_SysInfo2quater(p_CellId, 0, v_SysInfo.si2quater_1));
+
+    if (isvalue(v_SysInfo.si2quater_2)) {
+      G_L2.send(cas_SysInfo2quater(p_CellId, 1, v_SysInfo.si2quater_2));
+    }
+    if (isvalue(v_SysInfo.si2quater_3)) { //@sic R5s120021 sic@
+      G_L2.send(cas_SysInfo2quater(p_CellId, 2, v_SysInfo.si2quater_3));
+    }
+    if (isvalue(v_SysInfo.si2quater_4)) { //@sic R5s120129 sic@
+      G_L2.send(cas_SysInfo2quater(p_CellId, 3, v_SysInfo.si2quater_4));
+    }
+
+    if (px_GERAN_BandUnderTest ==  GSM_P900 or  px_GERAN_BandUnderTest == GSM_E900 ) {
+      G_L2.send(cas_SysInfo2bis(p_CellId, 0, v_SysInfo.si2bis));
+    }
+    else if ( px_GERAN_BandUnderTest == GSM710) {
+      G_L2.send(cas_SysInfo15(p_CellId, v_SysInfo.si15));
+    }
+    else if ( px_GERAN_BandUnderTest == T_GSM810) {
+      v_SysInfo.si15 := valueof(cs_SysInfoType15(cs_SI15_RO('0111'B)));
+      G_L2.send(cas_SysInfo15(p_CellId, v_SysInfo.si15));
+    }
+    
+    f_GERAN_SysInfo_Set(p_CellId, v_SysInfo);
+    
+  }// end of f_SendGSMSysInfo
+
+  function f_SendGSMSACCHSysInfo (GERAN_CellId_Type p_CellId,
+                                  PhysicalChId p_PhyCh,
+                                  G_LogicChType p_LogicChType) runs on GERAN_PTC
+  {
+    var GERAN_SystemInformation_Type v_SysInfo := f_GERAN_SysInfo_Get(p_CellId);
+    
+    G_L2.send(cas_SysInfo5(p_CellId, p_PhyCh, p_LogicChType, v_SysInfo.si5));
+    G_L2.send(cas_SysInfo6(p_CellId, p_PhyCh, p_LogicChType, v_SysInfo.si6));
+    if ((px_GERAN_BandUnderTest == GSM_P900 ) or ( px_GERAN_BandUnderTest == GSM_E900 )) {
+      G_L2.send(cas_SysInfo5bis(p_CellId, p_PhyCh, p_LogicChType, v_SysInfo.si5bis));
+    }
+  }
+
+  } // end of group M_RAT_SysInfo
+
+  function f_GERAN_CPHY_CONFIG_Common(template (value) G_CPHY_CONFIG_REQ p_G_CPHY_CONFIG_REQ,
+                                      GERAN_WaitForCNF_Type p_WaitForCNF := waitForCNF) runs on GERAN_PTC
+  {
+    G_CL1.clear;        /* since CNFs are not always handled explicitly there might still an 'old' CNF be in the incoming queue to be removed */
+    G_CL1.send(p_G_CPHY_CONFIG_REQ);
+    if (p_WaitForCNF == waitForCNF) {
+      G_CL1.receive(car_G_CPHY_Config_CNF);
+    } else {
+      // CNF will discarded by the default behaviour
+    }
+  }
+
+  function f_GERAN_CPHY_CONFIG_ComingFN(template (value) G_CPHY_CONFIG_REQ p_G_CPHY_CONFIG_REQ) runs on GERAN_PTC return G_CPHY_CONFIG_CNF
+  {
+    var G_CPHY_CONFIG_CNF v_G_CPHY_CONFIG_CNF;
+
+    G_CL1.clear;        /* since CNFs are not always handled explicitly there might still an 'old' CNF be in the incoming queue to be removed */
+    G_CL1.send(p_G_CPHY_CONFIG_REQ);
+    alt {
+      [] G_CL1.receive(car_G_CL1_ComingFN_CNF) -> value v_G_CPHY_CONFIG_CNF {}
+      [] G_CL1.receive(car_G_CPHY_CONFIG_CNF_Any) {
+        f_GERAN_SetVerdictInconc(__FILE__, __LINE__, "got wrong CNF instead of car_G_CL1_ComingFN_CNF");
+      }
+    }
+    return v_G_CPHY_CONFIG_CNF;
+  }
+
+  function f_GERAN_LLC_CONFIG_Common(template (value) G_LLC_CONFIG_REQ p_G_LLC_CONFIG_REQ,
+                                     GERAN_WaitForCNF_Type p_WaitForCNF := waitForCNF) runs on GERAN_PTC
+  {
+    G_CLLC.clear;        /* since CNFs are not always handled explicitly there might still an 'old' CNF be in the incoming queue to be removed */
+    G_CLLC.send(p_G_LLC_CONFIG_REQ);
+    if (p_WaitForCNF == waitForCNF) {
+      G_CLLC.receive(car_G_CLLC_Config_CNF);
+    } else {
+      // CNF will discarded by the default behaviour
+    }
+  }
+
+  function f_Create_LLE_Entity(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    f_GERAN_LLC_CONFIG_Common(cas_G_CLLC_CreateLLE_REQ (p_CellId, enum2int(p_CellId))); // @sic R5s120572 sic@
+  }
+
+  function f_LLC_TLLI_Assign(GERAN_CellId_Type p_CellId,
+                             TLLI p_OldTLLI,
+                             TLLI p_NewTLLI,
+                             GERAN_WaitForCNF_Type p_WaitForCNF := waitForCNF) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    f_GERAN_LLC_CONFIG_Common(cas_G_CLLC_Assign_Req(p_CellId, p_OldTLLI, p_NewTLLI, v_SecurityInfo.gprsCipherAlg, v_SecurityInfo.authPS.KcGSM), p_WaitForCNF);
+  } // end of f_LLC_TLLI_Assign
+
+  function f_GERAN_RLC_CONFIG_Common(template (value) G_RLC_CONFIG_REQ p_G_RLC_CONFIG_REQ,
+                                     GERAN_WaitForCNF_Type p_WaitForCNF := waitForCNF) runs on GERAN_PTC
+  {
+    G_CRLC.clear;        /* since CNFs are not always handled explicitly there might still an 'old' CNF be in the incoming queue to be removed */
+    G_CRLC.send(p_G_RLC_CONFIG_REQ);
+    if (p_WaitForCNF == waitForCNF) {
+      G_CRLC.receive(car_G_RLC_Config_CNF);
+    } else {
+      // CNF will discarded by the default behaviour
+    }
+  }
+
+  function f_CreateRLC_MAC_Entity(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    f_GERAN_RLC_CONFIG_Common(cas_G_CRLC_CreateRLC_MAC_REQ(p_CellId));
+  }
+
+  function f_CreateCell_GSM_Comb(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var B3_Type v_NCC := f_GERAN_NCC_Get(p_CellId);
+    var B3_Type v_BCC := f_GERAN_BCC_Get(p_CellId);
+    var O1_Type v_TA := f_GERAN_TA_Get(p_CellId);
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    
+    f_SetBS_IdCode (p_CellId, v_NCC, v_BCC, v_TA);
+    
+    v_SecurityInfo.cipherMode.startingCiph := '0'B;
+    f_GERAN_SecurityInfo_Set(v_SecurityInfo);
+    
+    f_GERAN_CreatePhyCombinedCellControlCh (p_CellId);
+    f_SendGSMSACCHSysInfo (p_CellId, tsc_PhyCh0, tsc_SACCH_C4); // @sic R5s110433 sic@
+  }// end of f_CreateCell_GSM_Comb
+
+  function f_SetBS_IdCode (GERAN_CellId_Type p_CellId,
+                           B3_Type p_NCC,
+                           B3_Type p_BCC,
+                           O1_Type p_TA) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    f_GERAN_CPHY_CONFIG_Common(cas_G_CL1_CreateCell_REQ(p_CellId, p_NCC, p_BCC, p_TA));
+  } // end of f_SetBS_IdCode
+
+  function f_GERAN_CreatePhyCombinedCellControlCh(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var B10_Type v_BCCH := f_GERAN_BCCHFreq_Get(p_CellId);
+    var B3_Type v_TSC := f_GERAN_BCC_Get (p_CellId); // @sic R5s110168 change 8.4 sic@
+    var O1_Type v_TA := f_GERAN_TA_Get(p_CellId);
+    var B1_Type v_BandInd := f_GERAN_BandInd_Get(p_CellId);
+    var B5_Type v_L1Pwr := '01111'B; // arbitrary value
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    var ControlChDescr v_CtrlChDesc := f_GERAN_ControlChDesc_Get (p_CellId);
+    var integer i;
+    var template (value) ChannelSpecificInfo v_ChSpecific;
+    
+    v_ChSpecific := cs_ChSpecificPara(cs_SDCCH4_Ch(v_SecurityInfo.cipherMode, v_SecurityInfo.authCS.KcGSM, v_L1Pwr, substr(oct2bit(v_TA), 1, 7)), // @sic R5s110657 sic@
+                                      cs_CCCH_Info(v_CtrlChDesc.bS_PA_MFRMS, v_CtrlChDesc.bS_AG_BLKS_RES));
+    
+    // FCCH + SCH + BCCH + CCCH + SDCCH/4(0..3) + SACCH/C4(0..3)
+    f_GERAN_CPHY_CONFIG_Common(cas_CombinedCellControlCh(p_CellId, tsc_PhyCh0, CombinedControlCH, v_BCCH, v_TSC, v_ChSpecific, (tsc_GERAN_ChPwrLvl_Off+tsc_Power_ueVOffset), v_BandInd)); /* @sic R5s110433 sic@
+                                                                                                                                                                                             @sic R5s120050 MCC160 implementation sic@ */
+    // Now turn off Measurement Reports on SACCH/4
+    for ( i := 0; i <4; i := i + 1)  {
+      G_CL1.send (cas_G_CL2_MeasRptControl_REQ(p_CellId, tsc_PhyCh0, tsc_SACCH_C4, i, false)); // @sic R5s110433 sic@
+    }
+    
+    alt {
+      [] G_CL1.receive (car_G_CPHY_Config_CNF) {
+        if (i > 1) {
+          i := i - 1;
+          repeat;
+        }
+      }
+    }
+  } // end of f_GERAN_CreatePhyCombinedCellControlCh
+
+  function f_GERAN_CreatePhyGPRSCh(GERAN_CellId_Type p_CellId,
+                                   template (value) FreqInfo p_FreqInfo,
+                                   template (value) PacketChDescr p_PktCh)  runs on GERAN_PTC
+  {
+    var B1_Type v_BandInd := f_GERAN_BandInd_Get(p_CellId);
+    
+    // PDTCH/F + PACCH/F + PTCCH/F
+    f_GERAN_CPHY_CONFIG_Common(cas_CreateGPRSCh(p_CellId, tsc_PhyCh1, PDTCH, p_FreqInfo, p_PktCh.tN, p_PktCh.tSC,  (tsc_GERAN_ChPwrLvl_Off+tsc_Power_ueVOffset), v_BandInd)); /* @sic R5s110433 sic@
+                                                                                                                                                                                 @sic R5s120050 MCC160 implementation sic@ */
+  } // end of f_SS_CreatePhyGPRSCh
+
+  function f_GERAN_CreateTCH(GERAN_CellId_Type p_CellId,
+                             GERAN_WaitForCNF_Type p_WaitForFinalCNF := waitForCNF,
+                             ChannelCombination_Enum p_ChanComb := TCH_F) runs on GERAN_PTC
+  {
+    var B1_Type v_BandInd := f_GERAN_BandInd_Get(p_CellId);
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    var B5_Type v_L1Pwr := '01111'B; // arbitrary value
+    var O1_Type v_TA := f_GERAN_TA_Get(p_CellId);
+    var B10_Type v_Freq := f_GERAN_TCHFreq_Get(p_CellId);
+    
+    select (p_ChanComb) {
+      case (TCH_F) {
+        f_GERAN_CPHY_CONFIG_Common(cas_CreateTCH(p_CellId,
+                                                 tsc_TchCh,
+                                                 TCH_F,
+                                                 cs_FreqInfo(v_Freq),
+                                                 tsc_TN1,
+                                                 px_TSC,
+                                                 cs_DedCh(cs_G_ChModeSpeechFROrHRV1, cs_CipherModeSettingGSM, v_SecurityInfo.authCS.KcGSM, v_L1Pwr, substr(oct2bit(v_TA), 1, 7)), // @sic R5s110657 sic@
+                                                 (tsc_GERAN_ChPwrLvl_Off+tsc_Power_ueVOffset), // @sic R5s110433 sic@
+                                                 v_BandInd));
+      }
+    } // no other channel combinations implemented
+    f_SendGSMSACCHSysInfo (p_CellId, tsc_TchCh, tsc_SACCH_TF);
+    
+    // Now turn off Measurement Reports on SACCH_TF
+    f_GERAN_CPHY_CONFIG_Common(cas_G_CL2_MeasRptControl_REQ(p_CellId, tsc_TchCh, tsc_SACCH_TF, 0, false), p_WaitForFinalCNF);
+  }
+
+  function f_GERAN_InterRAT_InitialiseAuthParams () runs on GERAN_PTC
+  {
+    var IRAT_Coordination_MSG v_RxdMsg;
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    
+    EUTRA.receive (cmr_IRAT_AuthInfo) -> value v_RxdMsg;
+    
+    v_SecurityInfo.authPS := v_RxdMsg.Authentication.AuthPS;
+    if ( isvalue (v_RxdMsg.Authentication.AuthCS)) // @sic R5s120498 sic@
+    {
+      v_SecurityInfo.authCS := v_RxdMsg.Authentication.AuthCS;
+    }
+    
+    f_GERAN_SecurityInfo_Set (v_SecurityInfo);
+  }
+
+  function f_GERAN_Pre_Preamble(GERAN_CellId_Type p_CellId,
+                                UTRAN_GERAN_ATTACH_Type p_AttachType) runs on GERAN_PTC
+  {
+    f_GERAN_SetCellPowerLevel (p_CellId, tsc_GERAN_ServingCell);
+    f_UT_SwitchOnUE(UT, false);
+    f_GERAN_IdleUpdated (p_CellId, true);
+    f_GERAN_SwitchPowerOff (p_CellId, p_AttachType); // @sic R5s110176 sic@
+    f_GERAN_SetCellPowerLevel (p_CellId, tsc_GERAN_ChPwrLvl_Off);
+    
+    // then tell EUTRA it can do it's preamble
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+  }
+
+  function f_GERAN_Preamble (GERAN_CellId_Type p_CellId, boolean p_CheckEUTRA := false) runs on GERAN_PTC
+  {
+    f_GERAN_SetCellPowerLevel (p_CellId, tsc_GERAN_ServingCell);
+    f_UT_SwitchOnUE(UT, false);
+    f_GERAN_IdleUpdated (p_CellId, true, p_CheckEUTRA); // @sic GP-110050, R5s110596 sic@
+    
+    // Now get the security parameters that have been updated and send to EUTRA
+    f_GERAN_SendAuthParameters (EUTRA);
+    
+  } // end of f_GERAN_Preamble
+
+  function f_GERAN_SendAuthParameters (IRAT_CO_ORD_PORT p_Port,
+                                       template (omit) CoOrd_GUTIParam_Type p_GUTI := omit) runs on GERAN_PTC
+  {
+    // Now get the security parameters that have been updated
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get ();
+    var Common_AuthenticationParams_Type v_AuthCS := v_SecurityInfo.authCS;
+    
+    p_Port.send (cms_IRAT_AuthInfo(v_SecurityInfo.authPS,
+                                   v_AuthCS,
+                                   p_GUTI,
+                                   v_SecurityInfo.CSinOtherRAT));
+    
+  }
+
+  function f_GERAN_IdleUpdated (GERAN_CellId_Type p_CellId,
+                                boolean p_DoAuth := false,
+                                boolean p_CheckEUTRA := false) runs on GERAN_PTC
+  {
+    var SubChannelNumber v_SubChannel;
+    var B2_Type v_NMO := f_GERAN_NMO_Get (p_CellId);
+    var float v_Wait1S := f_UG_SetTimerToleranceMax(1.0);
+    
+    if ((not pc_G_operation_mode_C) and (v_NMO == tsc_NMO_II)) {   // @sic R5s120584 sic@
+      v_SubChannel := f_GERAN_LocationUpdate (p_CellId, p_DoAuth);
+      // wait for the UE to relax
+      f_Delay(v_Wait1S);
+      f_GERAN_DisableCiphering(p_CellId, tsc_PhyCh0, tsc_SDCCH_4, v_SubChannel);
+    }
+    f_GERAN_GPRSAttach(p_CellId, p_DoAuth, p_CheckEUTRA); // GP-110050
+  }//end of f_GERAN_IdleUpdated
+
+  function f_GERAN_GPRSAttach(GERAN_CellId_Type p_CellId, boolean p_DoAuth := true, boolean p_CheckEUTRA := false) runs on GERAN_PTC
+  {
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var ATTACHREQUEST v_AttachRequest;
+    var B3_Type v_AttachType;
+    var octetstring v_PLMN := f_GERAN_PLMN_Get(p_CellId);
+    var O1_Type v_RAC := f_GERAN_RAC_Get(p_CellId);
+    var O2_Type v_LAC := f_GERAN_LAC_Get(p_CellId);
+    var B1_Type v_Ciph :=  '0'B;
+    var integer v_LLMEId := enum2int(p_CellId); // @sic R5s120572 sic@
+    var template (omit) MobileIdentity v_TMSI := omit;
+       
+    // Receive GPRS Attach Request Message
+    if (p_CheckEUTRA) { // GP-110050
+      v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND (cr_G_AttachReq_EUTRANCap (cr_AttachTypeAny,
+                                                                                                               cr_MobileIdAny (omit),
+                                                                                                               cr_RAI (omit),
+                                                                                                               ?)));
+      v_AttachRequest := v_LLCDataInd.unit.msg.attReq;
+      if (not ((v_AttachRequest.msRadioAccessCap.valuePart.listofValues[0].raCapability.singleAccess.eutraFDD == '1'B) or
+               (v_AttachRequest.msRadioAccessCap.valuePart.listofValues[0].raCapability.singleAccess.eutraTDD == '1'B)) and
+          not ((v_AttachRequest.msRadioAccessCap.valuePart.listofValues[0].raCapability.singleAccess.geran2EutraSupport == '10'B) or
+               (v_AttachRequest.msRadioAccessCap.valuePart.listofValues[0].raCapability.singleAccess.geran2EutraSupport == '11'B)) and
+          not ((v_AttachRequest.msClassmark3.eutraFDDSupport == '1'B) or
+               (v_AttachRequest.msClassmark3.eutraFDDSupport == '1'B))) {
+        f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE doesn't support EUTRA");
+      }
+    } else {
+      v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (p_CellId, car_G_LLC_UnitData_IND (cr_G_AttachReq (cr_AttachTypeAny,
+                                                                                                 cr_MobileIdAny (omit),
+                                                                                                 cr_RAI (omit),
+                                                                                                 ?)));
+    }
+    v_AttachType := v_LLCDataInd.unit.msg.attReq.attachType.attachType;
+    f_GERAN_SplitPGCycle_Set(p_CellId, v_LLCDataInd.unit.msg.attReq.drxParameter);
+    
+    if (p_DoAuth) {
+      f_GERAN_GPRS_Authentication (p_CellId);
+      v_Ciph := px_GSM_CipheringOnOff;
+    }
+    
+    if (v_AttachType == tsc_I_AttachTypeCombined) { // @sic R5-123114 sic@
+      v_TMSI := cs_MobileIdTMSIorPTMSI('23'O, px_TMSI_Def);
+    }
+       
+    // Send GPRS Attach Accept
+    f_GPRS_SendDownlinkMsg(p_CellId, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(p_CellId),
+                                                                tsc_LLCSapi_GMM,
+                                                                tsc_LLC_PM,
+                                                                v_Ciph, // @sic R5s110593 sic@
+                                                                cs_G_AttachAccept (cs_GMM_AttachResult(v_AttachType),
+                                                                                   cs_RAI(omit,
+                                                                                          cs_LAI(omit, v_PLMN, v_LAC),
+                                                                                          v_RAC),
+                                                                                   cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                                                                   cs_MobileIdTMSIorPTMSI ('18'O, px_PTMSI_Def),
+                                                                                   v_TMSI),
+                                                                v_LLMEId)); // @sic R5s120572 sic@
+    
+    //Receive GPRS Attach Complete Message
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (p_CellId, car_G_LLC_UnitData_IND (cr_G_AttachComplete));
+    
+  }// end of GPRSAttach
+
+  function f_GERAN_GPRS_Authentication (GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var TLLI v_TLLI;
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    var B32_Type    v_AuthRES_High;
+    var bitstring   v_AuthRES;
+    var integer v_LLMEId := enum2int(p_CellId); // @sic R5s120572 sic@
+    
+    v_SecurityInfo.authPS := f_AuthenticationInit (v_SecurityInfo.authPS);
+    f_GERAN_SecurityInfo_Set(v_SecurityInfo);  // @sic R5s110596 sic@
+    
+    // Send AUTHENTICATION AND CIPHERING REQUEST using relevant PS keys computed before.
+    f_GPRS_SendDownlinkMsg(p_CellId, 1, cas_G_LLC_UnitData_Req ( f_GERAN_TLLI_Get(p_CellId),
+                                                                 tsc_LLCSapi_GMM,
+                                                                 tsc_LLC_PM,
+                                                                 tsc_LLC_NoCiph,
+                                                                 cs_G_AuthAndCiphReq (cs_GMM_AuthRAND(v_SecurityInfo.authPS.RandValue),
+                                                                                      cs_GMM_KeySeq(v_SecurityInfo.authPS.KeySeq),
+                                                                                      v_SecurityInfo.gprsCipherAlg,
+                                                                                      cs_GMM_AUTN(v_SecurityInfo.authPS.AUTN)),
+                                                                 v_LLMEId)); // @sic R5s120572 sic@
+
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (p_CellId, car_G_LLC_UnitData_IND
+                                             (( cr_G_AuthAndCiphRsp (cr_AuthRspAny, cr_AuthCiphRspExtAny),
+                                                cr_G_AuthAndCiphRsp (cr_AuthRspAny, omit),
+                                                cr_G_AuthAndCiphFailureAny)));
+    if (match (v_LLCDataInd, car_G_LLC_UnitData_IND ( cr_G_AuthAndCiphRsp (cr_AuthRspAny, cr_AuthCiphRspExtAny))))
+      {// AUTHENTICATION AND CIPHERING RESPONSE including both Authentication Response parameters (RES and RES ext)
+        v_AuthRES_High := v_LLCDataInd.unit.msg.authCipherResp.authRsp.rES;
+        v_AuthRES := v_AuthRES_High & v_LLCDataInd.unit.msg.authCipherResp.authRspExt.rES;
+        
+        // don't change the TLLI, only the ciphering algorithm
+        v_TLLI := f_GERAN_TLLI_Get(p_CellId); // careful, because this might have changed in ULTBF
+        f_LLC_TLLI_Assign(p_CellId, v_TLLI, v_TLLI);
+        
+        // Verify that the received Authentication Response parameters match expected response:
+        if (v_AuthRES != substr(v_SecurityInfo.authPS.XRES, 0, lengthof(v_AuthRES))) {
+          f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Authentication Failed");
+        }
+      }
+    else if (match (v_LLCDataInd, car_G_LLC_UnitData_IND (cr_G_AuthAndCiphRsp (cr_AuthRspAny, omit))))
+      {// AUTHENTICATION AND CIPHERING RESPONSE including only one Authentication Response parameter (RES)
+        v_AuthRES_High := v_LLCDataInd.unit.msg.authCipherResp.authRsp.rES;
+        
+        // don't change the TLLI, only the ciphering algorithm
+        v_TLLI := f_GERAN_TLLI_Get(p_CellId); // careful, because this might have changed in ULTBF
+        f_LLC_TLLI_Assign(p_CellId, v_TLLI, v_TLLI);
+        
+        // Verify that the received Authentication Response parameters match expected response.
+        if (v_AuthRES_High != substr(v_SecurityInfo.authPS.XRES, 0, lengthof(v_AuthRES_High))) {
+          f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Authentication Failed");
+        }
+      }
+    else if (match (v_LLCDataInd, car_G_LLC_UnitData_IND ( cr_G_AuthAndCiphFailureAny)))
+      { //AUTHENTICATION AND CIPHERING Failure, so stop execution
+        f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Received Authentication and Ciphering Failure");
+      }
+    else { // shouldn't get here because it should match with one of the above 3
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Unexpected message");
+    }
+  }//end of f_GPRS_Authentication
+
+  function f_GPRS_ReceiveUplinkMsg (GERAN_CellId_Type p_CellId,
+                                    template G_LLC_DATAMESSAGE_IND p_DataMsgInd,
+                                    charstring p_StepNo := "") runs on GERAN_PTC  return G_LLC_DATAMESSAGE_IND
+  {
+    var G_L2_DATAMESSAGE_IND v_ChanReq;
+    var template (omit) G_LLC_DATAMESSAGE_IND v_ULDataInd;
+    
+    G_L2.receive (car_G_L2_ACCESS_IND ( p_CellId, tsc_PhyCh0, tsc_RACH, ?, ?, cr_ChanReqOnePhase )) -> value v_ChanReq;
+    if (p_StepNo != "") {
+      f_GERAN_PreliminaryPass (__FILE__, __LINE__, p_StepNo);
+    }
+    v_ULDataInd := fl_ULTBFOnePhase (p_CellId, v_ChanReq.access, p_DataMsgInd); // @sic R5s120050 MCC160 implementation sic@
+    return valueof(v_ULDataInd); // return this to the calling function
+  }
+
+  function fl_ULTBFOnePhase(GERAN_CellId_Type p_CellId,
+                            G_L2_ACCESS_IND p_AccessInd,
+                            template G_LLC_DATAMESSAGE_IND p_DataMsgInd := omit) runs on GERAN_PTC return template (omit) G_LLC_DATAMESSAGE_IND
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    var G_LLC_DATAMESSAGE_IND v_ULDataInd;
+    var G_CPHY_CONFIG_CNF v_G_CL1_ComingFN_CNF;
+    var G_RLC_DATAMESSAGE_IND v_G_RLC_ControlMsg_IND;
+    var RFN v_StartingTime;
+    var TLLI v_NewTLLI, v_TLLI;
+    var B5_Type v_Gamma := f_GERAN_GAMMA_Get(p_CellId);
+    var B10_Type v_GPRSFreq := f_GERAN_GPRSFreq_Get(p_CellId);
+    var integer v_RR_RA;
+    var RFN v_RFN;
+    
+    v_RFN := p_AccessInd.rfn;
+    v_RR_RA := bit2int(p_AccessInd.burst.chReq.estCauRandomRef);
+    if ((119 > v_RR_RA) or (v_RR_RA > 127)) {// establishment cause should be one phase access
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "wrong establishment cause");
+    }
+
+    v_G_CL1_ComingFN_CNF := f_GERAN_CPHY_CONFIG_ComingFN(cas_G_CL1_ComingFN_REQ( p_CellId, tsc_PhyCh1, tsc_PACCH_F));
+    v_StartingTime := v_G_CL1_ComingFN_CNF.comingFN;
+    
+    // Send IA with Poll Bit set so that a PCA is received
+    G_L2.send (cas_G_L2_UNITDATA_REQ (p_CellId,
+                                      tsc_PhyCh0,
+                                      tsc_AGCH, 15,
+                                      cs_G_RFN_Omit,
+                                      cas_ImmAss (cs_P_ImmediateAssignment ('0'B,
+                                                                            v_GPRSFreq,
+                                                                            v_RR_RA,
+                                                                            v_RFN,
+                                                                            substr(oct2bit(f_GERAN_TA_Get(p_CellId)),1, 6), // @sic R5s120587 sic@
+                                                                            cs_IARO_PUA( v_Gamma,
+                                                                                         (v_StartingTime.t1_ & v_StartingTime.t3 & v_StartingTime.t2))))));  // @sic GP-110839 sic@
+    
+    // Configure the Uplink TBF for Dynamic Allocation, USF 0 on timeslot 4
+    f_GERAN_RLC_CONFIG_Common(cas_ActivateTBF_UplinkDyn(p_CellId, 1), dontWaitForCNF);  // don't wait for CNF to avoid race condition with incoming car_G_RLC_ControlMsg_IND
+    
+    // Now wait for PCA, which means the TBF is up and running
+    alt {
+      [] G_RLC.receive (car_G_RLC_ControlMsg_IND(p_CellId, tsc_PhyCh1, cr_PacketControlAcknowledgement))
+        -> value v_G_RLC_ControlMsg_IND
+        {
+          /* NOTE: in general another receive event follows to this receive event to get the L3 message from the mobile;
+           *       nevertheless as long as it is necessary to configure the TLLI at the SS the PCA must come first
+           *       and configuration of the TLLI must happen before the L3 message is received */
+          
+          v_NewTLLI := v_G_RLC_ControlMsg_IND.ctrl.msg.pktCtrlAck.tLLI;
+          v_TLLI := f_GERAN_TLLI_Get(p_CellId);
+          if (v_NewTLLI != v_TLLI)  //if the TLLI hasn't changed, don't bother calling LLCAssignReq
+            {//Assign the value received from the MS
+              f_LLC_TLLI_Assign (p_CellId, v_TLLI, v_NewTLLI, dontWaitForCNF);  // don't wait for CNF to avoid race condition with incoming data (L3 message)
+              f_GERAN_OldTLLI_Set(p_CellId, v_TLLI);
+              f_GERAN_TLLI_Set(p_CellId, v_NewTLLI);
+            }
+        }
+    }
+    if (ispresent(p_DataMsgInd)) {
+      interleave {  // to resolve RACE CONDITION between G_LLC and G_RLC
+        [] G_LLC.receive (p_DataMsgInd) -> value v_ULDataInd {}                                                // Receive the message
+        [] G_RLC.receive (car_G_RLC_ControlMsg_IND(p_CellId, tsc_PhyCh1, cr_PacketControlAcknowledgement)) {}  // receive PCA that's sent when the TBF is released
+      }
+      return v_ULDataInd;
+    }
+    return omit;
+  } // end of f_ULTBFOnePhase
+
+  function f_GPRS_ConfigureDownlinkTBF(GERAN_CellId_Type p_CellId,
+                                       integer p_USFRate := 1) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    var B5_Type v_Gamma := f_GERAN_GAMMA_Get(p_CellId);
+    var B10_Type v_GPRSFreq := f_GERAN_GPRSFreq_Get(p_CellId);
+    var DRXparameter v_SplitPGCycle := f_GERAN_SplitPGCycle_Get(p_CellId);
+    var ControlChDescr v_CtrlCh := f_GERAN_ControlChDesc_Get(p_CellId);
+    var TLLI v_TLLI := f_GERAN_TLLI_Get(p_CellId);
+    var template (value) PagingReqType v_PagingReqType := cs_G_PagingRequest_ImmAss (cs_P_ImmediateAssignment ('1'B,
+                                                                                                               v_GPRSFreq,
+                                                                                                               0,
+                                                                                                               cs_RFN_0,
+                                                                                                               substr(oct2bit(f_GERAN_TA_Get(p_CellId)),1, 6), // @sic R5s120587 sic@
+                                                                                                               cs_IARO_PDA(v_TLLI, v_Gamma)));
+    var integer k, m;
+    
+    f_GERAN_RLC_CONFIG_Common(cas_ActivateTBF_Downlink(p_CellId, tsc_PhyCh1, p_USFRate));
+    
+    if ((v_SplitPGCycle.splitPGcycleCode == '00000000'B) or (v_SplitPGCycle.splitOnCCCH == '0'B)) {
+      k := fl_PagingGroupCalculate (px_IMSI_Def, v_CtrlCh.cCCH_CONF,
+                                         (3 - bit2int(v_CtrlCh.bS_AG_BLKS_RES))* (bit2int(v_CtrlCh.bS_PA_MFRMS)+2)); // @sic R5s120106, R5s120357 sic@
+      G_L2.send(cas_G_Paging_REQ(p_CellId, k, v_PagingReqType));
+    }
+    else {
+      m := (3 - bit2int(v_CtrlCh.bS_AG_BLKS_RES)) * 64;
+      k := fl_PacketPagingGroupCalculate(px_IMSI_Def,
+                                         bit2int(v_CtrlCh.cCCH_CONF),
+                                         m,
+                                         (3 - bit2int(v_CtrlCh.bS_AG_BLKS_RES))* (bit2int(v_CtrlCh.bS_PA_MFRMS)+2), // @sic R5s120357 sic@
+                                         v_SplitPGCycle.splitPGcycleCode);
+      G_L2.send(cas_GPRS_Paging_REQ(p_CellId, k, bit2int(v_SplitPGCycle.splitPGcycleCode), v_PagingReqType));
+    }
+  }
+
+  function f_GPRS_SendDownlinkMsg (GERAN_CellId_Type p_CellId,
+                                   integer p_USFRate := 1,
+                                   template (value) G_LLC_DATAMESSAGE_REQ p_Msg) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    f_GPRS_ConfigureDownlinkTBF(p_CellId, p_USFRate);
+    G_LLC.send (p_Msg);
+  } // end of f_GPRS_SendDownlinkMsg
+
+  function f_GERAN_SS_CellRelease (GERAN_CellId_Type p_CellId,
+                                   boolean p_MinUL := false,
+                                   boolean p_TCH := false) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    f_GERAN_CPHY_CONFIG_Common(cas_G_CL1_DeleteChannel_REQ ( p_CellId, tsc_PhyCh0));
+    if (not p_MinUL) {
+      f_GERAN_CPHY_CONFIG_Common(cas_G_CL1_DeleteChannel_REQ ( p_CellId, tsc_PhyCh1));
+    }
+    if (not p_TCH) { // @sic R5s120498 sic@
+      f_GERAN_CPHY_CONFIG_Common(cas_G_CL1_DeleteChannel_REQ ( p_CellId, tsc_TchCh));
+    }
+    f_GERAN_CPHY_CONFIG_Common(cas_G_CL1_DeleteCell_REQ ( p_CellId ));
+  } //end of f_GPRS_SS_CellRelease
+
+  function f_GERAN_DisableCiphering (GERAN_CellId_Type p_CellId,
+                                     PhysicalChId p_PhyCh,
+                                     G_LogicChType p_ChannelType,
+                                     SubChannelNumber p_SubChannel) runs on GERAN_PTC
+  {
+    var G_LogicChType v_AssociatedCh;
+    
+    select (p_ChannelType) {
+      case (tsc_SDCCH_4) {
+        v_AssociatedCh := tsc_SACCH_C4;
+      }
+      case (tsc_SDCCH_8) {
+        v_AssociatedCh := tsc_SACCH_C8;
+      }
+      case (tsc_TCH_F) {
+        v_AssociatedCh := tsc_FACCH_F;
+      }
+    }
+    if (px_GSM_CipheringOnOff == '1'B) {
+      G_CL1.clear;    /* @sic R5s120050 MCC160 implementation sic@ */
+      G_CL1.send (cas_G_CL1_CipherModeModify_REQ(p_CellId, p_PhyCh, p_ChannelType, p_SubChannel, (cs_CipherModeSetting('0'B))));
+      G_CL1.send (cas_G_CL1_CipherModeModify_REQ(p_CellId, p_PhyCh, v_AssociatedCh, p_SubChannel, (cs_CipherModeSetting('0'B))));
+      G_CL1.receive (car_G_CPHY_Config_CNF);
+      G_CL1.receive (car_G_CPHY_Config_CNF);
+    } // end of if - don't do anything if ciphering turned off
+  } // end of f_G_DisableCiphering
+
+  function f_GERAN_LocationUpdate (GERAN_CellId_Type p_CellId,
+                                   boolean p_DoAuth := false) runs on GERAN_PTC return SubChannelNumber
+  {
+    var G_L2_DATAMESSAGE_IND v_ChanReq, v_LocUpd;
+    var B10_Type v_BCCH := f_GERAN_BCCHFreq_Get(p_CellId);
+    var B3_Type v_BCC := f_GERAN_BCC_Get(p_CellId);
+    var octetstring v_PLMN := f_GERAN_PLMN_Get(p_CellId);
+    var O2_Type v_LAC := f_GERAN_LAC_Get(p_CellId);
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    var RFN v_RFN;
+    var integer v_RR_RA;
+    var G_LogicChType v_ChannelType;
+    var SubChannelNumber v_SubChannel;
+    
+    alt {
+      [] G_L2.receive (car_G_L2_ACCESS_IND ( p_CellId , tsc_PhyCh0 , tsc_RACH , ? , ? , cr_G_ChannelReq_Any ))
+        -> value v_ChanReq
+        {
+          v_RFN := v_ChanReq.access.rfn;
+          v_RR_RA := bit2int(v_ChanReq.access.burst.chReq.estCauRandomRef);
+          G_L2.send (cas_G_L2_UNITDATA_REQ (p_CellId, tsc_PhyCh0, tsc_AGCH, 15, cs_G_RFN_Omit, cas_ImmAss(cs_ImmediateAssignment (v_BCCH, v_BCC, v_RR_RA, v_RFN, substr(oct2bit(f_GERAN_TA_Get(p_CellId)),1, 6))))); // @sic R5s120587, GP-110839 sic@
+        }
+    }
+    alt {
+      [] G_L2.receive (car_G_L2_Estab_IND (p_CellId, ?, ?, ?, cr_G_LocationUpdatingRequest))
+        -> value v_LocUpd
+        {
+          v_ChannelType := v_LocUpd.sabm.g_LogicChType;
+          v_SubChannel := v_LocUpd.sabm.subChannel;
+        }
+    }
+    v_SecurityInfo.CSinOtherRAT := true;
+    f_GERAN_SecurityInfo_Set(v_SecurityInfo);
+    
+    // @sic R5s120339 sic@
+    G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    if (pc_UTRA) { // @sic R5-123245 sic@
+      G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+    }
+    if (p_DoAuth) {
+      f_GERAN_MM_Authentication (p_CellId, v_ChannelType, v_SubChannel);
+    }
+    f_GERAN_Ciphering_Mode_Setting (p_CellId, tsc_PhyCh0, v_ChannelType, v_SubChannel);
+    
+    // Send Location Updating Accept
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_PhyCh0, v_ChannelType, v_SubChannel, cs_G_RFN_Omit, cs_G_LocationUpdatingAccept ( v_PLMN, v_LAC, cs_MobileIdTMSIorPTMSI('17'O, px_TMSI_Def) )));
+    // Receive TMSI Reallocation Complete
+    G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? ,?, ?, ?,  cr_G_TMSI_ReallocCmpl));
+    
+    // release channel
+    f_G_ChannelRelease (p_CellId, tsc_PhyCh0, v_ChannelType, v_SubChannel);
+    
+    return (v_SubChannel);
+  } // end of f_G_LocationUpdate
+
+  function f_GERAN_Ciphering_Mode_Setting (GERAN_CellId_Type p_CellId,
+                                           PhysicalChId p_PhyCh,
+                                           G_LogicChType p_ChannelType,
+                                           SubChannelNumber p_SubChannel) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    if (px_GSM_CipheringOnOff == '1'B)
+      {
+        // Turn Ciphering On in SS
+        f_GERAN_CPHY_CONFIG_Common(cas_G_CL1_CipheringControl_REQ(p_CellId, p_PhyCh, '1'B));
+        
+        //Turn Ciphering ON in UE - algorithm set to px_CiphAlg
+        G_L2.send (cas_G_L2_DATA_REQ ( p_CellId, 0, p_PhyCh, p_ChannelType, p_SubChannel, cs_G_RFN_Omit, cs_G_CipheringModeCommand('1'B)));
+        alt {
+          [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ? , p_PhyCh, ?, ?, ?, cr_G_CipheringModeComplete)) {};
+          [] G_L2.receive {
+            f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Ciphering Failed"); // if receive anything other than Complete, fail
+          }
+        }
+      } // don't do anything if ciphering not turned on
+  } // end of f_G_Ciphering_Mode_Setting
+
+  function f_G_ChannelRelease (GERAN_CellId_Type p_CellId,
+                               PhysicalChId p_PhyCh,
+                               G_LogicChType p_ChannelType,
+                               SubChannelNumber p_SubChannel) runs on GERAN_PTC
+  {
+    G_L2.send (cas_G_L2_DATA_REQ ( p_CellId, 0, p_PhyCh, p_ChannelType, p_SubChannel, cs_G_RFN_Omit, cs_G_ChRelease));
+  } // end of f_G_ChannelRelease
+
+  function f_GERAN_SetCellPowerLevel (GERAN_CellId_Type p_CellId,
+                                      TX_Power p_Pwr,
+                                      boolean p_MinUL := false) runs on GERAN_PTC
+  {
+    f_GERAN_SetChPwrLevel (p_CellId, tsc_PhyCh0, p_Pwr);  // GSM Combined Ctrl Ch
+    if (not p_MinUL) {
+      f_GERAN_SetChPwrLevel (p_CellId, tsc_PhyCh1, p_Pwr);  //GPRS Ch
+    }
+  }
+
+  function f_GERAN_SetChPwrLevel (GERAN_CellId_Type p_CellId,
+                                  PhysicalChId p_PhyCh,
+                                  TX_Power p_Pwr,
+                                  GERAN_WaitForCNF_Type p_WaitForCNF := waitForCNF) runs on GERAN_PTC
+  { /* @sic R5s120050 MCC160 implementation sic@ */
+    var integer v_PwruVemf := p_Pwr + 113;
+    f_GERAN_CPHY_CONFIG_Common(cas_G_CL1_ChangePowerLevel_REQ ( p_CellId, p_PhyCh, v_PwruVemf), p_WaitForCNF);
+  }
+
+  function fl_PagingGroupCalculate (hexstring p_IMSI,
+                                    B3_Type p_CCCH_Conf,
+                                    integer p_N) return integer
+  {
+    var integer v_Length := lengthof (p_IMSI);
+    var integer v_IMSIShort := (hex2int(p_IMSI[v_Length-3])*100) + (hex2int(p_IMSI[v_Length-2])*10) + (hex2int(p_IMSI[v_Length-1])); // IMSI mod 1000 is last 3 digits @sic R5s120106 sic@
+    var integer v_BC_CC_Chans := 0;
+    
+    // 05.02, cl 3.3.2.3: LSB indicates whether combined or not, the next 2 bit indicate num of channels, at least 1
+    select (p_CCCH_Conf) {
+      case ('000'B,'001'B) {
+        v_BC_CC_Chans := 1;
+      }
+      case ('010'B) {
+        v_BC_CC_Chans := 2;
+      }
+      case ('100'B) {
+        v_BC_CC_Chans := 3;
+      }
+      case ('110'B) {
+        v_BC_CC_Chans := 4;
+      }
+    }
+    return ((v_IMSIShort mod (p_N * v_BC_CC_Chans)) mod p_N);
+  }
+
+  function fl_PacketPagingGroupCalculate (hexstring p_IMSI,
+                                          integer p_KC_Conf,
+                                          integer p_M,
+                                          integer p_N,
+                                          B8_Type p_SplitPGCycleBits) return integer
+  {
+    var integer v_Length := lengthof (p_IMSI);
+    var integer v_IMSIShort := (hex2int(p_IMSI[v_Length-3])*100) + (hex2int(p_IMSI[v_Length-2])*10) + (hex2int(p_IMSI[v_Length-1])); // IMSI mod 1000 is last 3 digits @sic R5s120106 sic@
+    var integer v_SplitPGCycle := bit2int(p_SplitPGCycleBits);
+    var integer i := 0;
+    var integer v_Val := 0;
+    var integer v_LoopCount := 0;
+    
+    if (p_M < v_SplitPGCycle)
+      {
+        v_LoopCount := p_M;
+      }
+    else
+      {
+        v_LoopCount := v_SplitPGCycle;
+      }
+    // for I = (0,...,Min(M, SplitPGCycle)-1
+    for (i := 0; i < v_LoopCount; i := i +1)
+      {
+        // MAX(I*M) div SPLITPGCycle, I)
+        if (((i*p_M)/v_SplitPGCycle) > i)
+          {
+            v_Val := v_Val + ((i * p_M)/v_SplitPGCycle);
+          }
+        else
+          {
+            v_Val := v_Val + i;
+          }
+      }
+    return (((v_IMSIShort/(p_KC_Conf*p_N))*p_N) + (v_IMSIShort mod p_N) + v_Val) mod p_M;
+  }
+
+  function f_GERAN_LLC_XID(GERAN_CellId_Type p_CellId,
+                           boolean p_RAUComplete) runs on GERAN_PTC
+  {
+    var B10_Type v_BCCH_ARFCN := f_GERAN_GPRSFreq_Get (p_CellId); // @sic R5s120587 sic@
+    var G_L2_DATAMESSAGE_IND v_ChanReq;
+    var G_LLC_DATAMESSAGE_IND v_XID;
+
+    timer t_Wait10S := 10.0;
+    
+    t_Wait10S.start;
+    alt {
+      [p_RAUComplete]  G_LLC.receive (car_G_LLC_UnitData_IND (cr_G_RA_UpdComplete))
+        {
+          repeat;
+        }
+      [] G_RLC.receive (car_G_RLC_ControlMsg_IND (p_CellId, tsc_PhyCh1, cr_PacketResourceRequestAny))
+        {
+          G_RLC.send (cas_G_RLC_ControlMsg_REQ_PACCH( p_CellId, tsc_PhyCh1, 1, tsc_UplinkTFI, cs_PacketUplinkAssignment(v_BCCH_ARFCN, substr(oct2bit(f_GERAN_TA_Get(p_CellId)),1, 6)))); // @sic R5s120587 sic@
+          repeat;
+        }
+      [] G_LLC.receive (car_G_LLC_XID_IndAny)
+        -> value v_XID
+        {
+          t_Wait10S.stop;
+          // Wait for end of TBF
+          // RACE CONDITION: Do we need to check the flag here ???
+          G_RLC.receive (car_G_RLC_ControlMsg_IND(p_CellId, tsc_PhyCh1, cr_PacketControlAcknowledgement)); // RACE CONDITION
+          fl_SendXIDRes (p_CellId, v_XID.xid.sAPI);
+        }
+      [] G_RLC.receive (car_G_RLC_ControlMsg_IND(p_CellId, tsc_PhyCh1, cr_PacketControlAcknowledgement))
+        {
+          // RACE CONDITION: Do we need to set a flag here ???
+          repeat;
+        }
+      [] G_L2.receive (car_G_L2_ACCESS_IND ( p_CellId , tsc_PhyCh0, tsc_RACH, ?, ?, cr_ChanReqOnePhase ))
+        -> value v_ChanReq
+        {
+          fl_ULTBFOnePhase (p_CellId, v_ChanReq.access); // @sic R5s120050 MCC160 implementation sic@
+          repeat;
+        }
+      [] t_Wait10S.timeout {} // No XID coming
+    }
+    
+  } //end of f_GERAN_LLC_XID
+
+  function fl_SendXIDRes(GERAN_CellId_Type p_CellId,
+                         SAPI p_SAPI) runs on GERAN_PTC
+  {
+    var G_L2_DATAMESSAGE_IND v_ChanReq;
+    timer t_Wait5S := 5.0;
+    
+    f_GPRS_SendDownlinkMsg(p_CellId, 1, cas_G_LLC_XID_Res(f_GERAN_TLLI_Get(p_CellId), p_SAPI, omit));
+    
+    t_Wait5S.start;
+    alt {
+      [] t_Wait5S.timeout {}
+      [] G_LLC.receive (car_G_LLC_XID_IndAny)
+        { // already send response, so ignore this
+          repeat;
+        }
+      [] G_L2.receive (car_G_L2_ACCESS_IND ( p_CellId , tsc_PhyCh0 , tsc_RACH , ? , ? , cr_ChanReqOnePhase ))
+        -> value v_ChanReq
+        {
+          t_Wait5S.stop;
+          fl_ULTBFOnePhase (p_CellId, v_ChanReq.access, car_G_LLC_XID_IndAny); // @sic R5s120050 MCC160 implementation sic@
+          
+        }
+    } // end of alt
+  } // end of fl_SendXIDRes
+
+  function f_GERAN_RAU(GERAN_CellId_Type p_CellId,
+                       template (present) B1_Type p_FOR,
+                       template (present) B3_Type p_Type,
+                       boolean p_DoAuth := false,
+                       boolean p_WaitForXID := false) runs on GERAN_PTC
+  {
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var B3_Type v_UpdateType;
+    
+    // Receive RAU Request Message
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (p_CellId, car_G_LLC_UnitData_IND ( cr_G_RA_UpdReqAny (cr_GMM_UpdateType( p_FOR, p_Type), cr_RAI (omit), cr_PTMSI_SignatureAny ifpresent, ?)));
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_LLCDataInd.unit.msg.rauReq); /* @sic R5s120019 Additional Changes sic@ */
+    
+    f_GERAN_RAUWithoutRAUReq (p_CellId, v_UpdateType, p_DoAuth, p_WaitForXID); // @sic R5s110720 sic@
+    
+  }// end of f_GERAN_RAU
+
+  function f_GERAN_RAUWithoutRAUReq (GERAN_CellId_Type p_CellId,
+                                     B3_Type p_UpdateType,
+                                     boolean p_DoAuth := false,
+                                     boolean p_WaitForXID := false) runs on GERAN_PTC
+  {
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var octetstring v_PLMN := f_GERAN_PLMN_Get(p_CellId);
+    var O1_Type v_RAC := f_GERAN_RAC_Get(p_CellId);
+    var O2_Type v_LAC := f_GERAN_LAC_Get(p_CellId);
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    var integer v_LLMEId := enum2int(p_CellId); // @sic R5s120572 sic@
+    
+    if (p_UpdateType == tsc_I_UpdateTypeCombinedWithIMSI or p_UpdateType == tsc_I_UpdateTypeCombined) {
+      v_SecurityInfo.CSinOtherRAT := true;
+      f_GERAN_SecurityInfo_Set(v_SecurityInfo);
+    }
+    
+    if (p_DoAuth) {
+      // Do Authentication
+      f_GERAN_GPRS_Authentication (p_CellId);
+    }
+    // Send RAU Accept
+    f_GPRS_SendDownlinkMsg(p_CellId, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(p_CellId),
+                                                                tsc_LLCSapi_GMM,
+                                                                tsc_LLC_PM,
+                                                                px_GSM_CipheringOnOff,
+                                                                cs_G_RA_UpdAcc3 (cs_GMM_UpdateResult( p_UpdateType ),
+                                                                                 cs_RAI(omit,
+                                                                                        cs_LAI(omit, v_PLMN, v_LAC),
+                                                                                        v_RAC),
+                                                                                 cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                                                                 cs_MobileIdTMSIorPTMSI ('18'O, px_PTMSI_Def),
+                                                                                 omit ),
+                                                                v_LLMEId)); // @sic R5s120572 sic@
+                                                                                 
+    if ( p_WaitForXID) { // @sic R5s110720 sic@
+      f_GERAN_LLC_XID (p_CellId, true);
+    } else {
+      //Receive RAU Complete Message
+      v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (p_CellId, car_G_LLC_UnitData_IND (cr_G_RA_UpdComplete));
+    }
+  } // end of f_GERAN_RAUWithoutRAUReq
+
+  function f_GERAN_508CheckCampOnNewGeranCell ( GERAN_CellId_Type p_CellId,
+                                                boolean p_WaitForXID := true ) runs on GERAN_PTC
+  {
+    f_GERAN_RAU (p_CellId, '0'B, (tsc_I_UpdateTypeRAOnly, tsc_I_UpdateTypeCombined), true, p_WaitForXID); // @sic R5s110087, R5s110720 sic@
+    f_GERAN_PreliminaryPass(__FILE__, __LINE__, "");
+  }
+
+  function f_GERAN_IdleMode_RAU(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    const float const_IdleMode_GenericTimer_GERAN := 360.0;   /* Idle mode generic timer according to 36.523-3 cl. 7.8 */
+    timer t_IdleMode_GenericTimer := f_UG_SetTimerToleranceMax(const_IdleMode_GenericTimer_GERAN);
+
+    t_IdleMode_GenericTimer.start;
+    f_GERAN_508CheckCampOnNewGeranCell ( p_CellId, true ); // @sic R5s110720 sic@
+    t_IdleMode_GenericTimer.stop;
+  }
+
+  function f_GERAN_ActivatePDPContext(GERAN_CellId_Type p_CellId,
+                                      template (value) QualityOfService p_QoS := cs_QoS_PDP2 (omit)) runs on GERAN_PTC
+  {
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var TI v_TI;
+    var template (value) PktDataProtoAddr v_PDPAddr1 := f_UG_GetPktDataProtoAddr(true);
+    var integer v_LLMEId := enum2int(p_CellId); // @sic R5s120572 sic@
+    
+    f_UT_ActivatePDPContextUG (UT,
+                               1, // CId, don't care what the value is
+                               p_QoS);
+    
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (p_CellId, car_G_LLC_UnitData_IND ( cr_G_ActPDP_ContextReqMO_Any));
+    v_TI := v_LLCDataInd.unit.msg.actPDPContextReq.ti;
+    
+    // Send Accept
+    v_TI.tiFlag := '1'B;
+    f_GPRS_SendDownlinkMsg(p_CellId, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(p_CellId),
+                                                                tsc_LLCSapi_GMM,
+                                                                tsc_LLC_PM,
+                                                                px_GSM_CipheringOnOff,
+                                                                cs_G_PDPContextAccept (v_TI,
+                                                                                       cs_LLC_SAPI_11,
+                                                                                       p_QoS,
+                                                                                       v_PDPAddr1,
+                                                                                       cs_ProtocolConfigOptions_PPP),
+                                                                v_LLMEId)); // @sic R5s120572 sic@
+  }// end of f_GERAN_ActivatePDPContext
+
+  function f_GERAN_SwitchPowerOff(GERAN_CellId_Type p_CellId, UTRAN_GERAN_ATTACH_Type p_AttachType) runs on GERAN_PTC
+  {
+    var B2_Type v_Nmo := f_GERAN_NMO_Get ( p_CellId );
+    var GERAN_POSTAMBLE_CONDITIONS v_Geran_Postamble_Condition := fl_GERAN_SetPostambleCondition (p_AttachType); // @sic R5s110176 sic@
+    var TLLI v_TLLI := f_GERAN_TLLI_Get(p_CellId);
+    
+    if (pc_SwitchOnOff) // The UE can actually be switched off
+      {
+        f_UT_SwitchOffUE (UT, false);
+        
+        if ((v_Geran_Postamble_Condition == GERAN_C3) or (v_Geran_Postamble_Condition == GERAN_C2 and v_Nmo == '01'B)) {
+          // Then expect an IMSI Detach
+          f_GERAN_RRConnEst(p_CellId); // @sic R5s120584 sic@
+          G_L2.receive (car_G_L2_Estab_IND (p_CellId, ?, ?, ?, cr_G_Imsi_DetachInd));
+          // @sic R5s120584 subject to prose CR approval sic@
+          G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+          G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+        }
+        
+        if (v_Geran_Postamble_Condition != GERAN_C3) { // as long as GPRS is supported
+          f_GPRS_ReceiveUplinkMsg (p_CellId, car_G_LLC_UnitData_IND ( cr_G_DetachRequest( cr_DetachTypeOnSwitchOff, cdr_MobileIdTMSI_tlv(?))));
+        }
+      }
+    else
+      {// The power must be removed from the UE
+        f_UT_PowerOffUE (UT);
+      }
+    // @sic R5s120056 sic@
+    if (tsc_TLLI_Initial != v_TLLI)  //if the TLLI hasn't changed, don't bother calling LLCAssignReq
+      {
+        f_LLC_TLLI_Assign (p_CellId, v_TLLI, tsc_TLLI_Initial);
+        f_GERAN_OldTLLI_Set(p_CellId, v_TLLI);
+        f_GERAN_TLLI_Set(p_CellId, tsc_TLLI_Initial);
+      }
+    
+  }// end of f_GERAN_DetachOnSwitchOff
+
+  function f_GERAN_Postamble (GERAN_CellId_Type         p_CellId,
+                              GERAN_POSTAMBLE_STATE_TYPE p_GERAN_POSTAMBLE_STATE,
+                              UTRAN_GERAN_ATTACH_Type p_AttachType := NotSpecified,
+                              boolean p_DoUpdate := false,
+                              G_LogicChType p_TCHType := -1) runs on GERAN_PTC
+  {
+    var boolean v_IsCombined := f_GERAN_AttachTypeCheck (p_AttachType); // @sic R5s110176 sic@
+    var B2_Type v_Nmo := f_GERAN_NMO_Get ( p_CellId );
+    var B3_Type v_UpdateType := tsc_I_UpdateTypeRAOnly;
+    var boolean v_IsTCH := false;
+
+    if (p_TCHType > -1) { // @sic R5s120498 sic@
+     v_IsTCH := true;
+    }
+    if (v_IsCombined and v_Nmo == '00'B) {
+      v_UpdateType := tsc_I_UpdateTypeCombined;
+    }
+    select ( p_GERAN_POSTAMBLE_STATE) {
+      case ( G1_IDLE ) {
+        //Switch/Power off UE
+        f_GERAN_SwitchPowerOff ( p_CellId, p_AttachType); // @sic R5s110176 sic@
+      }
+      case ( G2_PSHANDOVER ) {
+        if (p_DoUpdate) {
+          f_GERAN_RAU ( p_CellId, '0'B, v_UpdateType);
+          if (v_IsCombined and v_Nmo == '01'B) { // If NMO II and C2, then have to do LAU too
+            f_GERAN_LocationUpdate (p_CellId);
+          }
+        }
+        //Switch/Power off UE
+        f_GERAN_SwitchPowerOff ( p_CellId, p_AttachType); // @sic R5s110176 sic@
+      }
+      case ( G3_CSFALLBACK ) {
+        //Perform CS Fallback procedure
+        f_GERAN_CS_Fallback ( p_CellId, p_AttachType );
+        
+        //Switch/Power off UE
+        f_GERAN_SwitchPowerOff ( p_CellId, p_AttachType); // @sic R5s110176 sic@
+      }
+      case ( G4_CSCALL ) {
+        //Disconnect the active CC call
+        f_GERAN_CC_Disconnect ( p_CellId, p_TCHType );
+        v_IsTCH := true; // @sic R5s120498 sic@
+        
+        //SwitchPower off UE
+        f_GERAN_SwitchPowerOff ( p_CellId, p_AttachType); // @sic R5s110176 sic@
+      }
+      case ( G5_DEREGISTERED ) {
+        if ( pc_SwitchOnOff == true ) {
+          //Simply switch the UE off
+          f_UT_SwitchOffUE(UT, false);
+        } else {//just remove power from UE
+          f_UT_PowerOffUE ( UT );
+        }
+      }
+      case else {//No state defined - just remove power from UE
+        f_UT_PowerOffUE ( UT );
+      }
+    }
+    //Release the GERAN cell
+    f_GERAN_SS_CellRelease ( p_CellId, -, v_IsTCH ); // @sic R5s120498 sic@
+  }
+
+  function fl_GERAN_SetPostambleCondition(UTRAN_GERAN_ATTACH_Type p_AttachType) return GERAN_POSTAMBLE_CONDITIONS
+  {
+    var boolean v_IsCombined := f_GERAN_AttachTypeCheck(p_AttachType); // @sic R5s110176 sic@
+    var GERAN_POSTAMBLE_CONDITIONS v_GERAN_POSTAMBLE_CONDITION := GERAN_C1;
+    
+    if ( v_IsCombined ) {//combined attach case
+      if ( pc_GPRS ) {
+        v_GERAN_POSTAMBLE_CONDITION := GERAN_C2;
+      }
+      else {
+        v_GERAN_POSTAMBLE_CONDITION := GERAN_C3;
+      }
+    }
+    return v_GERAN_POSTAMBLE_CONDITION;
+  }
+
+  function f_GERAN_CS_Fallback(GERAN_CellId_Type p_CellId,
+                               UTRAN_GERAN_ATTACH_Type p_AttachType,
+                               boolean p_AlreadyRegisteredToLAC := false) runs on GERAN_PTC
+  {
+    var B2_Type v_Nmo := f_GERAN_NMO_Get ( p_CellId );
+    var G_L2_DATAMESSAGE_IND v_G_L2_DATAMESSAGE_IND;
+    var G_LogicChType v_ChannelType;
+    var SubChannelNumber v_SubChannel;
+    var GERAN_POSTAMBLE_CONDITIONS v_Geran_Postamble_Condition := fl_GERAN_SetPostambleCondition (p_AttachType); // @sic R5s110176 sic@
+    
+    alt {
+      //Step 1a1: Receive CM Service Request
+      [] G_L2.receive (car_G_L2_Estab_IND (p_CellId,
+                                           ?,
+                                           ?,
+                                           ?,
+                                           cr_G_CMServiceRequest ( ? ) ) )
+        -> value v_G_L2_DATAMESSAGE_IND
+        {
+          v_ChannelType := v_G_L2_DATAMESSAGE_IND.sabm.g_LogicChType;
+          v_SubChannel := v_G_L2_DATAMESSAGE_IND.sabm.subChannel;
+          //Step 1a2: Send CM Service Reject with reject cause #32 (Service Option not supported)
+          G_L2.send ( cas_G_L2_DATA_REQ (p_CellId,
+                                         0,
+                                         tsc_PhyCh0,
+                                         v_ChannelType,
+                                         v_SubChannel,
+                                         cs_G_RFN_Omit,
+                                         cs_G_CMServiceReject ( tsc_ServiceOptionNotSupported ) ) );
+        }
+      //Step 1b1: Receive Paging Response
+      [] G_L2.receive (car_G_L2_Estab_IND (p_CellId,
+                                           ?,
+                                           ?,
+                                           ?,
+                                           cr_G_PagRsp (?,?)))
+        {}//Do nothing
+    }
+    
+    // @sic R5s120339 sic@
+    G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    if (pc_UTRA) { // @sic R5-123245 sic@
+      G_L2.receive (car_G_L2_DATA_IND (geran_Cell24, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+    }
+    //Steps 2a1-2a3 / 2b1-2b3
+    if ((v_Geran_Postamble_Condition == GERAN_C3 and not p_AlreadyRegisteredToLAC)
+        or (v_Geran_Postamble_Condition == GERAN_C2 and v_Nmo == '01'B and p_AlreadyRegisteredToLAC)) {
+      f_GERAN_LocationUpdate (p_CellId);
+    }
+    
+    //Steps 2a4-2a6 / 2c1-2c3
+    if ((v_Geran_Postamble_Condition == GERAN_C3 and not p_AlreadyRegisteredToLAC) or
+        (v_Geran_Postamble_Condition == GERAN_C2 and ((v_Nmo == '01'B and p_AlreadyRegisteredToLAC) or
+                                                      (v_Nmo == '00'B and not p_AlreadyRegisteredToLAC)))) {
+      f_GERAN_RAU (p_CellId, ?, ?);
+    }
+    
+  }// end of f_GERAN_CS_Fallback
+
+  function f_GERAN_CC_Disconnect(GERAN_CellId_Type p_CellId,
+                                 G_LogicChType     p_ChannelType,
+                                 SubChannelNumber  p_SubChannel := 15,  // @sic R5s120498 sic@
+                                 template (value) TI p_Calltype := cs_TI_MT)
+    runs on GERAN_PTC
+  {
+    //Send Disconnect message
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId,
+                                  0,
+                                  tsc_TchCh,   // @sic R5s120498 sic@
+                                  p_ChannelType,
+                                  p_SubChannel,
+                                  cs_G_RFN_Omit,
+                                  cs_G_Disconnect(p_Calltype)));   // @sic R5s120498 sic@
+    
+    //Receive Release message
+    G_L2.receive (car_G_L2_DATA_IND (p_CellId, ?, tsc_TchCh,?, ?, ?, cr_G_Release(?)));
+    
+    //Send Release Complete message
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId,
+                                  0,
+                                  tsc_TchCh,   // @sic R5s120498 sic@
+                                  p_ChannelType,
+                                  p_SubChannel,
+                                  cs_G_RFN_Omit,
+                                  cs_G_RelCmpl(p_Calltype)));   // @sic R5s120498 sic@
+  }
+
+  function f_GERAN_AttachTypeCheck (UTRAN_GERAN_ATTACH_Type p_AttachType) return boolean
+  {
+    var boolean v_IsCombined := false;
+    
+    select (p_AttachType) {  // @sic R5s110176 sic@
+      case (Combined) {
+        v_IsCombined := true;
+      }
+      case (PS_Only) {
+        v_IsCombined := false;
+      }
+      case (NotSpecified) {
+        if( pc_Combined_Attach) {
+          if (pc_Attach) { // So both set to true
+            if (px_AttachTypeTested == COMBINED_ATTACH) { // only now check the PIXIT value
+              v_IsCombined := true;
+            }
+          } else { // only combined set to true
+            v_IsCombined := true;
+          }
+        } else if (not pc_Attach) { // so neither set to true
+          f_GERAN_SetVerdictInconc(__FILE__, __LINE__, "Neither pc_Attach nor pc_Combined_Attach set to true");
+        }
+      }
+    }
+    return v_IsCombined;
+  }
+
+  function f_GERAN_CheckNoAttachOnCell ( GERAN_CellId_Type p_CellId,
+                                         float p_Wait,
+                                         charstring p_StepNo ) runs on GERAN_PTC
+  {
+    timer t_Wait := f_UG_SetTimerToleranceMin(p_Wait );
+    t_Wait.start;
+    alt {
+      [] G_L2.receive (car_G_L2_ACCESS_IND ( p_CellId , tsc_PhyCh0 , tsc_RACH , ? , ? , ? ))
+        {
+          t_Wait.stop;
+          f_GERAN_SetVerdictFailOrInconc (__FILE__, __LINE__, p_StepNo);
+        }
+      [] t_Wait.timeout {}
+    }
+  } // end of f_GERAN_CheckNoAttachOnCell
+
+  function f_GERAN_PagewithPTMSI (GERAN_CellId_Type p_CellId,
+                                  octetstring p_PTMSI) runs on GERAN_PTC
+  {
+    var DRXparameter v_SplitPGCycle  := f_GERAN_SplitPGCycle_Get(p_CellId);
+    var ControlChDescr v_CtrlCh := f_GERAN_ControlChDesc_Get(p_CellId);
+    var template (value) PagingReqType v_PagingReqType := cs_G_PagingRequest1_Def(cs_MobileIdTMSIorPTMSI(omit, p_PTMSI));
+    var integer k, m;
+    
+    if ((v_SplitPGCycle.splitPGcycleCode == '00000000'B) or (v_SplitPGCycle.splitOnCCCH == '0'B))
+      {
+        k := fl_PagingGroupCalculate (px_IMSI_Def, v_CtrlCh.cCCH_CONF,
+                                         (3 - bit2int(v_CtrlCh.bS_AG_BLKS_RES))* (bit2int(v_CtrlCh.bS_PA_MFRMS)+2)); // @sic R5s120106, R5s120357 sic@
+        G_L2.send (cas_G_Paging_REQ (p_CellId, k, v_PagingReqType));
+      }
+    else
+      {
+        m := (3 - bit2int(v_CtrlCh.bS_AG_BLKS_RES)) * 64;
+        k := fl_PacketPagingGroupCalculate(px_IMSI_Def,
+                                           bit2int(v_CtrlCh.cCCH_CONF),
+                                           m,
+                                           (3 - bit2int(v_CtrlCh.bS_AG_BLKS_RES))* (bit2int(v_CtrlCh.bS_PA_MFRMS)+2), // @sic R5s120357 sic@
+                                           v_SplitPGCycle.splitPGcycleCode);
+        
+        G_L2.send (cas_GPRS_Paging_REQ (p_CellId, k, bit2int(v_SplitPGCycle.splitPGcycleCode), v_PagingReqType));
+      }
+  }
+
+  function f_GERAN_MM_Authentication (GERAN_CellId_Type p_CellId,
+                                      G_LogicChType p_ChannelType,
+                                      SubChannelNumber p_SubChannel) runs on GERAN_PTC
+  {
+    var G_L2_DATAMESSAGE_IND v_AuthResponse;
+    var GERAN_SecurityInfo_Type v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+    var B32_Type v_AuthRES_High;
+    var bitstring v_AuthRES;
+    
+    v_SecurityInfo.authCS := f_AuthenticationInit (v_SecurityInfo.authCS);
+    
+    G_L2.send (cas_G_L2_DATA_REQ ( p_CellId ,
+                                   0,
+                                   tsc_PhyCh0,
+                                   p_ChannelType,
+                                   p_SubChannel,
+                                   cs_G_RFN_Omit,
+                                   cs_G_AuthReq(v_SecurityInfo.authCS.KeySeq, v_SecurityInfo.authCS.RandValue, cs_GSM_AUTN(v_SecurityInfo.authCS.AUTN))));
+    alt {
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?,  cr_G_AuthRspAnyExt))
+        -> value v_AuthResponse
+        {//Receive Authentication Response with extension
+          v_AuthRES_High := v_AuthResponse.l3.msg.authResponse.authRsp.rES;
+          v_AuthRES := v_AuthRES_High & v_AuthResponse.l3.msg.authResponse.authRspExt.rES;
+          // Verify that the received Authentication Response parameters match expected response:
+          if (v_AuthRES != substr(v_SecurityInfo.authCS.XRES, 0, lengthof(v_AuthRES))) {
+            f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Authentication Failed");
+          }
+        }
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?,  cr_G_AuthRspAnyNoExt))
+        -> value v_AuthResponse
+        {//Receive Authentication Response without extension
+          v_AuthRES_High := v_AuthResponse.l3.msg.authResponse.authRsp.rES;
+          // Verify that the received Authentication Response parameters match expected response.
+          if (v_AuthRES_High != substr(v_SecurityInfo.authCS.XRES, 0, lengthof(v_AuthRES_High))) {
+            f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Authentication Failed");
+          }
+        }
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?, cr_G_AuthFailAny))
+        {
+          f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Received Authentication Failure");
+        }
+    } //end of alt
+    f_GERAN_SecurityInfo_Set (v_SecurityInfo); // @sic R5s120498 sic@
+  }
+
+  function f_GERAN_RRConnEst (GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var RFN v_RFN;
+    var integer v_RR_RA;
+    var G_L2_DATAMESSAGE_IND v_ChanReq;
+    var B10_Type v_BCCH := f_GERAN_BCCHFreq_Get(p_CellId);
+    var B3_Type v_BCC := f_GERAN_BCC_Get(p_CellId);
+    
+    //Receive CHANNEL REQUEST
+    alt {
+      [] G_L2.receive (car_G_L2_ACCESS_IND (p_CellId,
+                                            tsc_PhyCh0,
+                                            tsc_RACH,
+                                            ?,
+                                            ?,
+                                            cr_G_ChannelReq_Any))
+        -> value v_ChanReq
+        {
+          v_RFN := v_ChanReq.access.rfn;
+          v_RR_RA := bit2int(v_ChanReq.access.burst.chReq.estCauRandomRef);
+        }
+    }
+    
+    //Send IMMEDIATE ASSIGNMENT
+    G_L2.send (cas_G_L2_UNITDATA_REQ (p_CellId,
+                                      tsc_PhyCh0,
+                                      tsc_AGCH,
+                                      15,
+                                      cs_G_RFN_Omit,
+                                      cas_ImmAss(cs_ImmediateAssignment (v_BCCH, v_BCC, v_RR_RA, v_RFN, substr(oct2bit(f_GERAN_TA_Get(p_CellId)),1, 6))))); // @sic R5s120587 sic@
+  }
+
+  function f_GERAN_EnterU10_MT_Step10_19(GERAN_CellId_Type p_CellId,
+                                         G_LogicChType p_ChannelType,
+                                         SubChannelNumber p_SubChannel) runs on GERAN_PTC return G_LogicChType
+  {
+    var G_LogicChType v_TCHType;
+
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_PhyCh0, p_ChannelType, p_SubChannel, cs_G_RFN_Omit, cs_G_SetupMTCall ( cs_BcapSpeechMT )));
+    G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? ,?, ?, ?,  cr_G_CallConfirmed (?, ?)));
+    
+    v_TCHType := f_GERAN_EnterU10_MT_Step12_19 (p_CellId, p_ChannelType, p_SubChannel);
+    return v_TCHType;
+  }
+
+  function f_GERAN_EnterU10_MT_Step12_19 (GERAN_CellId_Type p_CellId,
+                                          G_LogicChType p_ChannelType,
+                                          SubChannelNumber p_SubChannel) runs on GERAN_PTC return G_LogicChType
+  {
+    var G_LogicChType v_TCHType;
+    var SubChannelNumber v_TCHSubChannel;
+    var G_L2_DATAMESSAGE_IND v_EstInd, v_Connect;
+    var TI v_Ti_R, v_Ti_S;// Transaction Identifier. r = value used to receive CC PDU. s = value used to send CC PDU.
+    var template (value) L2DataReqType v_AssignmentCmd := cs_G_AssignmentCommand(cs_G_ChModeSpeechFROrHRV1,
+                                                                                 cs_G_ChannelDescr ( '00001'B, tsc_TN1, f_GERAN_TCHFreq_Get(p_CellId), px_TSC ),
+                                                                                 omit,
+                                                                                 omit,
+                                                                                 omit,
+                                                                                 omit,
+                                                                                 cs_CipherModeSettingGSM) ;
+    
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_PhyCh0, p_ChannelType, p_SubChannel, cs_G_RFN_Omit,  ( v_AssignmentCmd )));
+    G_L2.receive (car_G_L2_Estab_IND (p_CellId, ?, ?, ?, omit)) -> value v_EstInd;           // receive establish indication first
+    
+    v_TCHType := v_EstInd.sabm.g_LogicChType;
+    v_TCHSubChannel := v_EstInd.sabm.subChannel;
+    
+    alt {
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, tsc_TchCh, ?, ?, ?,  cr_G_AssignmentComplete)) {}
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? , ?, ?, ?,  cr_G_AssignmentFailure)) {
+        f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Assignment Failed");
+      }
+    }
+    alt {
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? ,?, ?, ?,  cr_G_Connect (cr_TI_Any)))
+        -> value v_Connect{}
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? ,?, ?, ?,  cr_G_Alerting (?))) {
+        f_UT_AnswerCSCall (UT);
+        G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? ,?, ?, ?,  cr_G_Connect (cr_TI_Any)))
+          -> value v_Connect;
+      }
+    }
+    
+    // release old channel
+    G_L2.send (cas_G_L2_Release_REQ(p_CellId, tsc_PhyCh0, p_ChannelType, p_SubChannel));
+    G_L2.receive (car_G_L2_Release_CNF);
+    
+    v_Ti_R := v_Connect.l3.msg.connectul.ti;
+    v_Ti_S := v_Ti_R;
+    v_Ti_S.tiFlag := '1'B;
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_TchCh, v_TCHType, v_TCHSubChannel, cs_G_RFN_Omit, cs_G_ConnectAck ( v_Ti_S )));
+    
+    return v_TCHType;
+  }
+
+  function f_GERAN_EnterU10_MT (GERAN_CellId_Type p_CellId,
+                                integer p_TCHPwrLvl := tsc_GERAN_ServingCell) runs on GERAN_PTC return G_LogicChType
+  {
+    var ControlChDescr v_CtrlCh := f_GERAN_ControlChDesc_Get(p_CellId);
+    var integer k := fl_PagingGroupCalculate (px_IMSI_Def, v_CtrlCh.cCCH_CONF,
+                                              (3 - bit2int(v_CtrlCh.bS_AG_BLKS_RES))* (bit2int(v_CtrlCh.bS_PA_MFRMS)+2)); // @sic R5s120106, R5s120357 sic@
+    var G_L2_DATAMESSAGE_IND v_PagRsp;
+    var G_LogicChType v_ChannelType, v_TCHType;
+    var SubChannelNumber v_SubChannel;
+    timer t_Wait5s := 5.0; // simple timer to wait for a Suspension Req
+    
+    f_GERAN_CreateTCH (p_CellId); // Create the physical channel first
+    f_GERAN_SetChPwrLevel (p_CellId, tsc_TchCh, p_TCHPwrLvl); // @sic R5s120502 sic@
+    
+    G_L2.send (cas_G_Paging_REQ (p_CellId , k, cs_G_PagingRequest1_Def (cs_MobileIdTMSIorPTMSI (omit, px_TMSI_Def))));
+    
+    f_GERAN_RRConnEst(p_CellId);
+    
+    //Receive PAGING RESPONSE
+    alt {
+      [] G_L2.receive (car_G_L2_Estab_IND (p_CellId, ?, ?, ?, cr_G_PagRsp (?, cr_MobileIdTMSI_lv (px_TMSI_Def))))
+        -> value v_PagRsp
+        {
+          v_ChannelType := v_PagRsp.sabm.g_LogicChType;
+          v_SubChannel := v_PagRsp.sabm.subChannel;
+        }
+    }
+    
+    //Receive ClassmarkChange
+    G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    
+    alt { // if UTRAN Classmark Change arrives first
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange))
+        {
+          t_Wait5s.start;
+          alt { // Wait a while to see if a GPRS Suspension Req is also sent
+            [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?, cr_GPRS_SuspensionReq(?, cr_RAI (omit), ?)))
+              {
+                t_Wait5s.stop;
+              }
+            [] t_Wait5s.timeout {}
+          }
+        }
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?, cr_GPRS_SuspensionReq(?, cr_RAI (omit), ?)))
+        {
+          G_L2.receive (car_G_L2_DATA_IND ( p_CellId,  ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+        }
+    }
+    
+    f_GERAN_MM_Authentication (p_CellId, v_ChannelType, v_SubChannel);
+    f_GERAN_Ciphering_Mode_Setting (p_CellId, tsc_PhyCh0, v_ChannelType, v_SubChannel);
+    
+    // From sending Setup all the way to Connect Acknowledge
+    v_TCHType := f_GERAN_EnterU10_MT_Step10_19 (p_CellId, v_ChannelType, v_SubChannel);
+    
+    return v_TCHType;
+  }
+
+  function f_GERAN_EnterU10_MO_Steps5_19(GERAN_CellId_Type p_CellId,
+                                         G_LogicChType     p_ChannelType,
+                                         SubChannelNumber  p_SubChannel) runs on GERAN_PTC return G_LogicChType
+  {
+    var G_L2_DATAMESSAGE_IND v_SetUp, v_EstInd;
+    var TI v_Ti_S; //Sending Transaction Identifier
+    var G_LogicChType v_TCHType;
+    var SubChannelNumber v_TCHSubChannel;
+    var template (value) L2DataReqType v_AssignmentCmd := cs_G_AssignmentCommand(cs_G_ChModeSpeechFROrHRV1,
+                                                                                 cs_G_ChannelDescr ( '00001'B, tsc_TN1, f_GERAN_TCHFreq_Get(p_CellId), px_TSC ),
+                                                                                 omit,
+                                                                                 omit,
+                                                                                 omit,
+                                                                                 omit,
+                                                                                 cs_CipherModeSettingGSM);
+    
+    //@siclog "Step 5-6" siclog@
+    //AUTHENTICATION REQUEST and AUTHENTICATION RESPONSE
+    f_GERAN_MM_Authentication (p_CellId, p_ChannelType, p_SubChannel);
+    
+    //@siclog "Step 7-9" siclog@
+    //CIPHERING MODE COMMAND & CIPHERING MODE COMPLETE
+    f_GERAN_Ciphering_Mode_Setting (p_CellId, tsc_PhyCh0, p_ChannelType, p_SubChannel);
+    
+    //@siclog "Step 10" siclog@
+    //Receive Set Up message
+    G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? ,?, ?, ?,  cr_G_SetupUL_MO)) -> value v_SetUp;
+    v_Ti_S := v_SetUp.l3.msg.setupul.ti;
+    v_Ti_S.tiFlag := '1'B;
+    
+    //@siclog "Step 11" siclog@
+    //Send call proceeding
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_PhyCh0, p_ChannelType, p_SubChannel, cs_G_RFN_Omit, cs_G_CallProc( v_Ti_S )));
+    
+    //@siclog "Step 12" siclog@
+    //Send Alert message
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_PhyCh0, p_ChannelType, p_SubChannel, cs_G_RFN_Omit, cs_G_Alert(v_Ti_S)));
+    
+    //@siclog "Step 13" siclog@
+    f_UT_AnswerCSCall (UT);
+    
+    //@siclog "Step 14-15" siclog@
+    //Assignment of Traffic Channel
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_PhyCh0, p_ChannelType, p_SubChannel, cs_G_RFN_Omit,  (v_AssignmentCmd)));
+    G_L2.receive (car_G_L2_Estab_IND (p_CellId, ?, ?, ?, omit)) // receive establish indication first
+      -> value v_EstInd;
+    v_TCHType := v_EstInd.sabm.g_LogicChType;
+    v_TCHSubChannel := v_EstInd.sabm.subChannel;
+    alt {
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, tsc_TchCh,?, ?, ?,  cr_G_AssignmentComplete)) {}
+      [] G_L2.receive (car_G_L2_DATA_IND ( p_CellId, ?, ? ,?, ?, ?,  cr_G_AssignmentFailure)) {
+        f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Assignment Failed");
+      }
+    }
+    
+    //@siclog "Step 16" siclog@
+    //Send Connect message
+    G_L2.send (cas_G_L2_DATA_REQ (p_CellId, 0, tsc_TchCh, v_TCHType, v_TCHSubChannel, cs_G_RFN_Omit, cs_G_Connect(v_Ti_S))); // @sic R5s120600 sic@
+    
+    //@siclog "Step 17" siclog@
+    //Receive CONNECT ACKNOWLEDGE
+    G_L2.receive (car_G_L2_DATA_IND (p_CellId, ?, ?, ?, ?, ?, cr_G_ConnAck(cr_TI_Any)));
+    return v_TCHType;
+  }
+
+  function f_GERAN_Trigger_UplinkData (GERAN_CellId_Type p_CellId,
+                                       integer p_Data,
+                                       integer p_Sapi := tsc_LLCSapi_11) runs on GERAN_PTC
+  {
+    f_UT_GeranUplinkData (UT, int2str(p_Data), int2str(p_Sapi));
+    f_GERAN_Receive_UplinkDataStart (p_CellId);
+  }
+
+  function f_GERAN_Receive_UplinkDataStart(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var G_L2_DATAMESSAGE_IND v_ChanReq;
+    var G_CPHY_CONFIG_CNF v_G_CL1_ComingFN_CNF;
+    var G_RLC_DATAMESSAGE_IND v_G_RLC_ControlMsg_IND;
+    var RFN v_StartingTime;
+    var TLLI v_NewTLLI, v_TLLI;
+    var B5_Type v_Gamma := f_GERAN_GAMMA_Get(p_CellId);
+    var B10_Type v_GPRSFreq := f_GERAN_GPRSFreq_Get(p_CellId);
+    var integer v_RR_RA;
+    var RFN v_RFN;
+    
+    // @sic R5s120521 sic@
+    G_L2.receive (car_G_L2_ACCESS_IND ( p_CellId, tsc_PhyCh0, tsc_RACH, ?, ?, (cr_ChanReqOnePhase, cr_ChanReqTwoPhase) )) -> value v_ChanReq;
+
+    // finish configuring the TBF
+    v_RFN := v_ChanReq.access.rfn;
+    v_RR_RA := bit2int(v_ChanReq.access.burst.chReq.estCauRandomRef);
+    if ((111 > v_RR_RA) or (v_RR_RA > 127)) {// establishment cause should be one or two phase access
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "wrong establishment cause");
+    }
+    
+    v_G_CL1_ComingFN_CNF := f_GERAN_CPHY_CONFIG_ComingFN(cas_G_CL1_ComingFN_REQ( p_CellId, tsc_PhyCh1, tsc_PACCH_F));
+    v_StartingTime := v_G_CL1_ComingFN_CNF.comingFN;
+    
+    // Send IA
+    G_L2.send (cas_G_L2_UNITDATA_REQ (p_CellId,
+                                      tsc_PhyCh0,
+                                      tsc_AGCH, 15,
+                                      cs_G_RFN_Omit,
+                                      cas_ImmAss (cs_P_ImmediateAssignment ('0'B,
+                                                                            v_GPRSFreq,
+                                                                            v_RR_RA,
+                                                                            v_RFN,
+                                                                            substr(oct2bit(f_GERAN_TA_Get(p_CellId)),1, 6), // @sic R5s120587 sic@
+                                                                            cds_IARO_SingleBlkPUA( v_Gamma,
+                                                                                         (v_StartingTime.t1_ & v_StartingTime.t3 & v_StartingTime.t2))))));  // @sic GP-110839 sic@
+    
+    // Configure the Uplink TBF for Dynamic Allocation, USF 0 on timeslot 4
+    f_GERAN_RLC_CONFIG_Common(cas_ActivateTBF_UplinkDyn(p_CellId, 1), dontWaitForCNF);  // don't wait for CNF to avoid race condition with incoming car_G_RLC_ControlMsg_IND
+    
+    // Now wait for the PRR
+    alt {
+      [] G_RLC.receive(car_G_RLC_ControlMsg_IND(p_CellId, tsc_PhyCh1, cr_PacketResourceRequestAny))
+        -> value v_G_RLC_ControlMsg_IND
+        {
+          v_NewTLLI := v_G_RLC_ControlMsg_IND.ctrl.msg.pktResReq.tlli;
+          v_TLLI := f_GERAN_TLLI_Get(p_CellId);
+          if (v_NewTLLI != v_TLLI)  //if the TLLI hasn't changed, don't bother calling LLCAssignReq
+            {//Assign the value received from the MS
+              f_LLC_TLLI_Assign (p_CellId, v_TLLI, v_NewTLLI, dontWaitForCNF);  // don't wait for CNF to avoid race condition with incoming data (L3 message)
+              f_GERAN_OldTLLI_Set(p_CellId, v_TLLI);
+              f_GERAN_TLLI_Set(p_CellId, v_NewTLLI);
+            }
+          G_RLC.send (cas_G_RLC_ControlMsg_REQ_PACCH( p_CellId, tsc_PhyCh1, 1, tsc_UplinkTFI, cds_PacketUplinkAssignment_TwoPhase(v_GPRSFreq,
+                                                                                                                                  substr(oct2bit(f_GERAN_TA_Get(p_CellId)),1, 6), // @sic R5s120587 sic@
+                                                                                                                                  v_NewTLLI)));
+        }
+     }
+  }
+
+  altstep a_GERAN_Receive_UplinkData(GERAN_CellId_Type p_CellId,
+                                     inout boolean p_EndOfTBF) runs on GERAN_PTC
+  {
+    timer t_WaitForMoreData := 0.1;
+
+    // Receive the message
+    [] G_LLC.receive (car_G_LLC_UnitData_IND(cr_PacketData (?)))
+      { // ok, received another data block, so carry on
+        repeat;
+      }
+    [] G_RLC.receive (car_G_RLC_ControlMsg_IND(p_CellId, tsc_PhyCh1, cr_PacketControlAcknowledgement)) // RACE CONDITION
+      {
+        t_WaitForMoreData.start;
+        alt {
+        [] G_LLC.receive (car_G_LLC_UnitData_IND(cr_PacketData (?)))
+           {
+             t_WaitForMoreData.stop;
+           }
+        [] t_WaitForMoreData.timeout {}
+        }
+        p_EndOfTBF := true;
+      }
+  }
+
+}

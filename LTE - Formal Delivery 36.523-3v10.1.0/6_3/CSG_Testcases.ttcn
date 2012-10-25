@@ -1,0 +1,340 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:52:40 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7310 $
+/******************************************************************************/
+module CSG_Testcases {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CSG_Functions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_NASCommonFunctions all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRCSteps all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  function f_TC_6_3_1_EUTRA() runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams;
+    var template (value) CellPowerList_Type v_CellPowerList_T0toT1;
+    var template (value) CellPowerList_Type v_CellPowerList_T1toT2;
+    var template (value) CellPowerList_Type v_CellPowerList_T2toT3;
+    var template (value) CellPowerList_Type v_CellPowerList_T3toT4;
+    var template (value) CellPowerList_Type v_CellPowerList_Postamble;  // @sic R5s120102 sic@
+    var CSG_Identity v_CSG_Identity_Cell3 := '000000000000000000000000011'B;
+    var Q_Rxlevmin_Type v_Q_Rxlevmin := -70;
+
+    v_CellPowerList_T0toT1 := {
+      cs_CellPower(eutra_Cell23, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE),
+      cs_CellPower(eutra_Cell3, tsc_ServingCellRS_EPRE)
+    };
+    v_CellPowerList_T1toT2 := {
+      cs_CellPower(eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower(eutra_Cell3, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower(eutra_Cell11, tsc_CellRS_EPRE_65),
+      cs_CellPower(eutra_Cell23, tsc_NonSuitableOffCellRS_EPRE)
+    };
+    v_CellPowerList_T2toT3 := {
+      cs_CellPower(eutra_Cell1, tsc_CellRS_EPRE_65),
+      cs_CellPower(eutra_Cell11, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE),
+      cs_CellPower(eutra_Cell23, tsc_ServingCellRS_EPRE)
+    };
+    v_CellPowerList_T3toT4 := {
+      cs_CellPower(eutra_Cell3, tsc_ServingCellRS_EPRE),
+      cs_CellPower(eutra_Cell11, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower(eutra_Cell23, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE)
+    };
+    v_CellPowerList_Postamble := {  // @sic r5s120102 sic@
+      cs_CellPower(eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower(eutra_Cell3, tsc_ServingCellRS_EPRE),
+      cs_CellPower(eutra_Cell11, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower(eutra_Cell23, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE)
+    };
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init(c3);
+    
+    //Set system information combination 13 in cell 3
+    f_EUTRA_ChangeSysinfoCombination (eutra_Cell3, c13);
+    
+    //Set TAC according to 36.523-1 Table 6.0.1-2: Tracking Area Code (TAC) for E-UTRAN cells
+    //TAC for Cell 3, cell 11 is set to 3 and 11 separately in f_EUTRA_Init
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell3, tsc_IdleMode_TAC_Cell3);
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell11, tsc_IdleMode_TAC_Cell11);
+    f_EUTRA_CellInfo_SetTAC (eutra_Cell23, tsc_IdleMode_TAC_Cell23);
+    
+    //Set Sys. info for Cell 1 according to Table 6.3.1.3.2-1
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Ind(eutra_Cell3, true);
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Id(eutra_Cell3, v_CSG_Identity_Cell3);
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin (eutra_Cell1, v_Q_Rxlevmin);
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin (eutra_Cell3, v_Q_Rxlevmin);
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin (eutra_Cell11, v_Q_Rxlevmin);
+    f_EUTRA_CellInfo_SetSysInfo_Q_Rxlevmin (eutra_Cell23, v_Q_Rxlevmin);
+
+    //Set SIB4 for cell 1 according to Table 6.3.8.3.3-3 and according to default message contents defined in 36.508
+    f_EUTRA_CellInfo_SetSIB4 (eutra_Cell3, cs_SIB4_Csg_PhysCellIdRange_StartOnly (3));
+    
+    f_EUTRA_SetCellConfigCapability( eutra_Cell23, minimumUplinkCell);
+    
+    // Initialise maximum power reference to -65 for cell 1 & 11 @sic R5s120102 sic@
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell1, -65);
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell11, -65);
+
+    //Create and configure Cells
+    f_EUTRA_CellConfig_Def(eutra_Cell1);
+    f_EUTRA_CellConfig_Def(eutra_Cell3);
+    f_EUTRA_CellConfig_Def(eutra_Cell11);
+    f_EUTRA_CellConfig_Def(eutra_Cell23);
+
+    f_UT_USIM_Insert (UT, "USIM with service n86 available");
+    // Empty UE CSG list in USIM
+    f_EUTRA_EmptyCSG_AllowedList(eutra_Cell3);
+    // Broadcast correct CSG id
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Id(eutra_Cell3, v_CSG_Identity_Cell3);
+    f_EUTRA_SS_ConfigureSysinfo(eutra_Cell3);   // @sic R5s120617 sic@
+
+    f_EUTRA_Preamble(eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_UE_Detach_SwitchOffUe(eutra_Cell1, RRC_IDLE);
+
+    f_EUTRA_TestBody_Set (true);
+     
+    //@siclog "Step 1" siclog@
+    //The UE is switched on.
+    f_EUTRA_SwitchOnUEandStartIP(eutra_Cell1); // @sic R5s120065 sic@
+    
+    //@siclog "Step 2 - 17" siclog@
+
+    // Steps 2 to 17 of the registration procedure described in TS 36.508 subclause 4.5.2.3 are performed on Cell 1.
+    // NOTE: the UE performs registration and the RRC connection is released.
+    f_EUTRA_AttachProcedure (eutra_Cell1, "No Verdict", NORMAL); // @sic R5s110176 sic@
+
+    //@siclog "Step 18" siclog@
+    //The SS changes Cell 3 and Cell 23 levels according to row "T1" in table 6.3.1.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_T0toT1);
+
+    //@siclog "Step 19" siclog@
+    // The UE is made to perform manual CSG ID selection and select Cell 3.
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_Cell3);
+    f_UT_ManualPLMN_CSG(UT, f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity), v_CSG_Identity_Cell3);
+
+    //@siclog "Step 20" siclog@
+    // 20   Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.7 indicate that the UE is camped on Cell 3?
+    // NOTE: The UE performs a TAU procedure and the RRC connection is released.
+    f_EUTRA_IdleMode_TAU(eutra_Cell3);
+
+    //@siclog "Step 21" siclog@
+    // The SS changes Cell1, Cell 3, Cell 11 and Cell 23 levels according to row "T2" in table 6.3.1.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_T1toT2);
+
+    //@siclog "Step 22-27" siclog@
+    //Steps 1 to 6 of the TAU procedure described in TS 36.508 subclause 6.4.2.7 are performed on Cell 11.
+    //NOTE: the UE performs a TAU and the RRC connection is released.
+    f_EUTRA_TrackingAreaUpdate (eutra_Cell11);
+
+    //@siclog "Step 28" siclog@
+    //The SS changes Cell 1, Cell 11 and Cell 23 levels according to row "T3" in table 6.3.1.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_T2toT3);
+
+    //@siclog "Step 29-34" siclog@
+    //Steps 1 to 6 of the TAU procedure described in TS 36.508 subclause 6.4.2.7 are performed on Cell 1.
+    //NOTE: the UE performs a TAU and the RRC connection is released.
+    f_EUTRA_TrackingAreaUpdate (eutra_Cell1);
+
+    //@siclog "Step 35" siclog@
+    //  The SS changes Cell 3, Cell 11 and Cell 23 levels according to row "T4" in table 6.3.1.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_T3toT4);
+
+    //@siclog "Step 36" siclog@
+    //  Check: Does the test result of Steps 1 to 5 of the generic test procedure in TS 36.508 subclause 6.4.2.7 indicate that the UE is camped on Cell 3 within 6 mins?
+    //  NOTE: The UE performs a TAU procedure.
+    f_EUTRA_IdleMode_TAU(eutra_Cell3);
+
+    f_EUTRA_TestBody_Set (false);
+    
+    // Bring USIM to initial empty CSG list
+    f_EUTRA_SetCellPowerList (v_CellPowerList_Postamble);  // @sic R5s120102 sic@
+    f_EUTRA_BringUSIMtoInital_CSG (eutra_Cell3, eutra_Cell23);
+    f_EUTRA_Postamble(eutra_Cell3, E4_DEREGISTERED); //Test case finished, so take cell down
+  } // end of 6.3.1
+
+  function f_TC_6_3_6_EUTRA() runs on EUTRA_PTC
+  {
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT2;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT3;
+    var Q_Hyst_Type v_Q_Hyst := dB0;
+    var CSG_Identity v_CSG_Identity_Cell2 := '000000000000000000000000010'B;
+    var CSG_Identity v_CSG_Identity_Cell3 := '000000000000000000000000011'B;
+
+    var float v_WaitTime := 60.0;
+    timer t_IdleMode_GenericTimer := tsc_IdleMode_GenericTimer;
+
+    v_CellPowerList_AtT0 := {
+      cs_CellPower(eutra_Cell1, -115),
+      cs_CellPower(eutra_Cell2, -97),
+      cs_CellPower(eutra_Cell3, -85)
+    };
+    v_CellPowerList_AtT1 := {
+      cs_CellPower(eutra_Cell1, -85),
+      cs_CellPower(eutra_Cell2, -91),
+      cs_CellPower(eutra_Cell3, -73)
+    };
+    v_CellPowerList_AtT2 := {
+      cs_CellPower(eutra_Cell1, -85),
+      cs_CellPower(eutra_Cell2, -79),
+      cs_CellPower(eutra_Cell3, -115)
+    };
+    v_CellPowerList_AtT3 := {
+      cs_CellPower(eutra_Cell2, -115),
+      cs_CellPower(eutra_Cell3, -73)
+    };
+
+    //Initialise all cells, security and mobile parameters
+    //@sic R5s110166 : Combination 13 for all cells sic@
+    //@sic R5-113333 : Combination 3 for cell 1 sic@
+    f_EUTRA_Init(c3);
+    
+    //Change system information combination of cells 2 and 3 to 13
+    f_EUTRA_ChangeSysinfoCombination (eutra_Cell2, c13); //@sic R5-113333 sic@
+    f_EUTRA_ChangeSysinfoCombination (eutra_Cell3, c13); //@sic R5-113333 sic@
+
+    //Set maximum cell powel level for Cell 1, 2 & 3
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell2, -73);
+    f_EUTRA_CellInfo_InitMaxReferencePower(eutra_Cell3, -73);
+
+    //Set Sys. info for Cell 1, 2, & 3 to be used in creation
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Ind(eutra_Cell2, true);
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Ind(eutra_Cell3, true);
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Id(eutra_Cell2, v_CSG_Identity_Cell2);
+    f_EUTRA_CellInfo_SetSysInfo_Csg_Id(eutra_Cell3, v_CSG_Identity_Cell3);
+    f_EUTRA_CellInfo_SetSysInfo_Q_Hyst(eutra_Cell1, v_Q_Hyst);
+    f_EUTRA_CellInfo_SetSysInfo_Q_Hyst(eutra_Cell2, v_Q_Hyst);
+    f_EUTRA_CellInfo_SetSysInfo_Q_Hyst(eutra_Cell3, v_Q_Hyst);
+    f_EUTRA_CellInfo_SetSIB4(eutra_Cell2, cs_SIB4_Csg_PhysCellIdRange_StartOnly(2));
+    f_EUTRA_CellInfo_SetSIB4(eutra_Cell3, cs_SIB4_Csg_PhysCellIdRange_StartOnly(3));
+
+    //Create and configure Cell 1
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell2);
+    f_EUTRA_CellConfig_Def (eutra_Cell3);
+
+    if (pc_Allowed_CSG_list) {
+      //Autonumous procedure to empty the UE's Allowed CSG list is FFS - for now use USIM with service n86 available
+      /* 24.301 Annex C
+       * The following EMM parameters shall be stored on the USIM if the corresponding file is present:
+       * ...
+       * - Allowed CSG list; and
+       * ...
+       * If the corresponding file is not present on the USIM, these EMM parameters except allowed CSG list are stored
+       * in a non-volatile memory in the ME together with the IMSI from the USIM.
+       * The allowed CSG list is stored in a non-volatile memory in the ME if the UE supports CSG selection.
+       */
+      /* Questions:
+       * 1. The UE will consider its Allowed CSGs List as valid until it receives a new list from the network
+       *    (e.g. in the next normal tracking area update or periodic tracking area update) or it is commanded by
+       *    the network to delete all TACs in the Allowed CSGs List.
+       *    How can UE be commanded to delete all TACs in the Allowed CSG list?
+       * 2. Is the Allowed CSG List cleared at power down?
+       * 3. Is there any mapping between TAI list and Allowed CSG list => CSG Mobility list?
+       */
+      /* Assumptions
+       * 24.801 cl. 10.12.2.4
+       *   "The working assumption is that the allowed CSG list shall be stored in the UICC and,
+       *    as an implementation option, can be stored additionally in the ME. If stored in the ME,
+       *    when the ME detects that the UICC has been changed, the CSG list will be deleted from the ME."
+       *  24.801 cl. 10.12.3.4
+       *   "The UE will store the Allowed CSGs list either in the ME or in the USIM and it will consider
+       *    its Allowed CSGs list as valid until it receives a new list in the next EMM procedure or it is commanded
+       *    by the network to delete all entries in the Allowed CSGs list"
+       */
+      //Insert a USIM containing default values expect service n86 (TS 31.102) is "available", but the Allowed CSG List shall be empty
+      f_UT_USIM_Insert (UT, "USIM with service n86 available");
+      // Empty UE Allowed CSG list in USIM @sic R5s120102 sic@
+      f_EUTRA_EmptyCSG_AllowedList (eutra_Cell2);
+      // Broadcast correct CSG id
+      f_EUTRA_CellInfo_SetSysInfo_Csg_Id(eutra_Cell2, v_CSG_Identity_Cell2);
+      f_EUTRA_SS_ConfigureSysinfo(eutra_Cell2);
+    }
+
+    //Preamble to ensure UE is in stable state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+
+    //Bring UE to initial state
+    f_EUTRA_UE_Detach_SwitchOffUe (eutra_Cell1, RRC_IDLE);
+
+    //Set cell power level according to T0
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+    
+    f_EUTRA_TestBody_Set (true);
+
+    //@siclog "Step 1" siclog@
+    //Switch on UE
+    f_EUTRA_SwitchOnUEandStartIP(eutra_Cell1); // @sic R5s120065 sic@
+
+    //@siclog "Step 2" siclog@
+    //Check for no RRCConnectionRequest message on Cell 2 & 3
+    f_EUTRA_CheckNoAttachOn2Cells(eutra_Cell2,
+                                  eutra_Cell3,
+                                  v_WaitTime,
+                                  "Step 2: RRCConnectionRequest message received on Cell 2 or 3");
+    
+    //@siclog "Step 3" siclog@
+    //Set cell power levels according to T1
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+    t_IdleMode_GenericTimer.start;
+    
+    //@siclog "Step 4" siclog@
+    //Receive RRCConnectionRequest in cell 1
+    f_EUTRA_RRC_ConnectionRequest_Def(eutra_Cell1);   // @sic R5-120721 change 3 sic@
+    
+    //Stop Idle Mode Geberic Timer
+    t_IdleMode_GenericTimer.stop;
+    // @verdict pass RRCConnectionRequest message received on Cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 6.3.6 Step 4");
+
+    //@siclog "Step 5 - 19" siclog@
+    //Perform step 3 to 17 of the registration procedure defined in 36.508 cl. 4.5.2.3
+    f_EUTRA_IdleUpdated_WithoutRRCConnReq (eutra_Cell1, STATE2_IDLEUPDATE);
+    
+    //@siclog "Step 20" siclog@
+    //Set cell power levels according to T2
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT2);
+
+    //@siclog "Step 21" siclog@
+    //Check for no RRCConnectionRequest message on Cell 2 & 3
+    f_EUTRA_CheckNoAttachOn2Cells (eutra_Cell2,
+                                   eutra_Cell3,
+                                   v_WaitTime,
+                                   "Step 21: RRCConnectionRequest message received on Cell 2 or 3");
+
+    //@siclog "Step 22" siclog@
+    //Set cell power levels according to T3
+    f_EUTRA_SetCellPowerList(v_CellPowerList_AtT3);
+    
+    //@siclog "Step 23" siclog@
+    //Check for no RRCConnectionRequest message on Cell 2 & 3
+    f_EUTRA_CheckNoAttachOn2Cells(eutra_Cell2,
+                                  eutra_Cell3,
+                                  v_WaitTime,
+                                  "Step 23: RRCConnectionRequest message received on Cell 2 or 3");
+    
+    f_EUTRA_TestBody_Set(false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+}

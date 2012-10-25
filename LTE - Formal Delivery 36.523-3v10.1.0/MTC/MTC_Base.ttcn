@@ -1,0 +1,93 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-11 11:50:04 +0200 (Mon, 11 Jun 2012) $
+// $Rev: 6815 $
+/******************************************************************************/
+
+module MTC_Base {
+
+  import from UpperTesterCommon all;
+  import from UpperTesterDefs all;
+
+  const integer tsc_UT_NoCnfExpected := -1;                     /* special value to indicate that no confirmation is expected;
+                                                                   @status    APPROVED */
+
+  const integer tsc_NoOfCordPorts := 4;                         /* @status    APPROVED */
+
+  const integer tsc_MTC_PortIndex_EUTRA := 0;                   /* @status    APPROVED */
+
+  const integer tsc_MTC_PortIndex_UTRAN := 1;                   /* @status    APPROVED */
+
+  const integer tsc_MTC_PortIndex_GERAN := 2;                   /* @status    APPROVED */
+
+  const integer tsc_MTC_PortIndex_CDMA2000 := 3;                /* @status    APPROVED */
+
+  type record UT_Ctrl_Type {                                    /* @status    APPROVED */
+    integer CoordPortIndex,                                     /* index of the coordination port to which a confirmation shall be sent back;
+                                                                   tsc_UT_NoCnfExpected when no confimation is expected */
+    boolean UE_SwitchedOn
+  };
+
+  type component MTC_BASE {                                     /* @status    APPROVED */
+    var UT_Ctrl_Type vc_UT_Ctrl;
+
+    // Ports:
+    port MTC_System_Ut      Ut;                            // Upper Tester: Port at MTC connected to the system interface
+    port UT_MTC_PTC_PORT    PTC_Ut[tsc_NoOfCordPorts];     // coordination ports to up to 4 PTCs
+  };
+
+  type component MTC_BASE_SYSTEM {                              /* @status    APPROVED */
+    port MTC_System_Ut       Ut;
+  };
+
+  function f_MTC_BASE_Map()
+  {
+    map(mtc:Ut, system:Ut);
+  }
+
+  function f_MTC_BASE_Init() runs on MTC_BASE
+  {
+    f_MTC_BASE_CoordPortIndex_Set(tsc_UT_NoCnfExpected);
+    vc_UT_Ctrl.UE_SwitchedOn  := false;
+  }
+
+  function f_MTC_BASE_CoordPortIndex_Set(integer p_CoordPortIndex) runs on MTC_BASE
+  {
+    vc_UT_Ctrl.CoordPortIndex := p_CoordPortIndex;
+  }
+
+  function f_MTC_BASE_CoordPortIndex_Get() runs on MTC_BASE return integer
+  {
+    return vc_UT_Ctrl.CoordPortIndex;
+  }
+
+  function f_MTC_BASE_IsWaitingForCnf() runs on MTC_BASE return boolean
+  {
+    return ((vc_UT_Ctrl.CoordPortIndex >= 0) and (vc_UT_Ctrl.CoordPortIndex < tsc_NoOfCordPorts));
+  }
+
+  function f_MTC_BASE_UE_SwitchedOn_Set(boolean p_UE_SwitchedOn) runs on MTC_BASE
+  {
+    vc_UT_Ctrl.UE_SwitchedOn := p_UE_SwitchedOn;
+  }
+
+  function f_MTC_BASE_UE_SwitchedOn_Get() runs on MTC_BASE return boolean
+  {
+    return vc_UT_Ctrl.UE_SwitchedOn;
+  }
+
+  function f_MTC_Stop(verdicttype p_Verdict)
+  {
+    /* Note: the assignment of the final verdict is according to table 28 in the TTCN-3 core spec (cl. 24.1);
+       i.e. at the end of a test case "pass" may always be assigned since it overrules "none" only */
+    setverdict(p_Verdict);
+    all component.stop;                       // stop the NAS emulator and IP PTC (if started)
+    mtc.stop;
+  }
+
+}

@@ -1,0 +1,465 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+
+module EUTRA_AspCommon_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_CommonDefs all;
+
+  template (value) SubFrameTiming_Type cs_SubFrameTiming(SystemFrameNumber_Type p_SystemFrameNumber,
+                                                         SubFrameNumber_Type p_SubFrameNumber) :=
+  { /* @status    APPROVED */
+    /* @sic R5s110154 sic@ */
+    SFN := { Number := p_SystemFrameNumber },
+    Subframe := { Number := p_SubFrameNumber }
+  };
+
+  template (value) TimingInfo_Type cs_TimingInfo_Now := {Now := true};  /* @status    APPROVED */
+
+  template (value) TimingInfo_Type cs_TimingInfo_SFN(SystemFrameNumber_Type p_SFN) :=
+  { /* @status    APPROVED */
+    SubFrame := {
+      SFN := { Number := p_SFN },
+      Subframe := { Any := true }
+    }
+  };
+
+  template (value) TimingInfo_Type cs_TimingInfo_SubFrame(SubFrameNumber_Type p_Subframe) :=
+  { /* @status    APPROVED */
+    SubFrame := {
+      SFN := { Any := true },
+      Subframe := { Number := p_Subframe }
+    }
+  };
+
+  template (value) TimingInfo_Type cs_TimingInfo(SystemFrameNumber_Type p_SFN,
+                                                 integer p_SubframeOffset) :=
+  { /* @sic R5s100172 sic@ */
+    /* @status    APPROVED */
+    SubFrame := {
+      SFN := { Number := (p_SFN + (p_SubframeOffset / 10)) mod 1024},
+      Subframe := { Number := p_SubframeOffset mod 10 }
+    }
+  };
+
+  template TimingInfo_Type cr_TimingInfo_Any :=
+  { /* @status    APPROVED */
+    SubFrame := {
+      SFN := ? ,
+      Subframe := ?
+    }
+  };
+
+  template TimingInfo_Type cr_TimingInfo(template (present) SystemFrameNumber_Type p_SFN,
+                                         template (present) SubFrameNumber_Type p_Subframe) :=
+  { /* @status    APPROVED */
+    SubFrame := {
+      SFN := { Number := p_SFN },
+      Subframe := { Number := p_Subframe }
+    }
+  };
+
+  function f_TimingInfo_IsNow(template (value) TimingInfo_Type p_TimingInfo) return boolean
+  {
+    return match(valueof(p_TimingInfo), cs_TimingInfo_Now);
+  }
+
+  function f_CnfFlag_Set(template (value) TimingInfo_Type p_TimingInfo,
+                         template (omit) boolean p_CnfFlag := omit) return boolean
+  {
+    var boolean v_CnfFlag;
+    
+    if (isvalue(p_CnfFlag)) {
+      v_CnfFlag := valueof(p_CnfFlag);
+    } else {
+      v_CnfFlag := f_TimingInfo_IsNow(p_TimingInfo);
+    }
+    return v_CnfFlag;
+  }
+
+  template CnfAspCommonPart_Type cr_CnfAspCommonPart_CellCfg(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    RoutingInfo := { None := true },
+    TimingInfo := ?,
+    Result := { Success := true }
+  };
+
+  template (value) ReqAspCommonPart_Type cs_ReqAspCommonPart_CellCfg(EUTRA_CellId_Type p_CellId,
+                                                                     template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                                                     template (omit) boolean p_CnfFlag := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5s110634 additional changes: f_CnfFlag_Set sic@ */
+    CellId := p_CellId,
+    RoutingInfo := { None := true },
+    TimingInfo := p_TimingInfo,
+    ControlInfo := {
+      CnfFlag      := f_CnfFlag_Set(p_TimingInfo, p_CnfFlag),
+      FollowOnFlag := false
+    }
+  };
+
+  template (value) ReqAspCommonPart_Type cs_ReqAspCommonPart_RB(EUTRA_CellId_Type p_CellId,
+                                                                RadioBearerId_Type p_RB_Id,
+                                                                template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                                                boolean p_CnfFlag := tsc_NoCnfReq) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    RoutingInfo := {
+      RadioBearerId := p_RB_Id
+    },
+    TimingInfo := p_TimingInfo,
+    ControlInfo := {
+      CnfFlag := p_CnfFlag,
+      FollowOnFlag := false
+    }
+  };
+
+  template RoutingInfo_Type cr_RoutingInfo_None :=
+  { /* @status    APPROVED */
+    None := true
+  };
+
+  template IndAspCommonPart_Type cr_IndAspCommonPart_Common(template (present) EUTRA_CellId_Type p_CellId,
+                                                            template (present) RoutingInfo_Type p_RoutingInfo,
+                                                            template (present) TimingInfo_Type p_TimingInfo := cr_TimingInfo_Any) :=
+  { /* @status    APPROVED */
+    CellId                 :=  p_CellId,
+    RoutingInfo            := p_RoutingInfo,
+    TimingInfo             := p_TimingInfo,
+    Status                 := {
+      Ok := true
+    }
+  };
+
+  template IndAspCommonPart_Type cr_IndAspCommonPart_SysInd(template (present) EUTRA_CellId_Type p_CellId,
+                                                            template (present) TimingInfo_Type p_TimingInfo := cr_TimingInfo_Any) :=
+                                                                                                                                   /* @status    APPROVED */
+    cr_IndAspCommonPart_Common (p_CellId, cr_RoutingInfo_None, p_TimingInfo);
+
+  template IndAspCommonPart_Type cr_IndAspCommonPart_RB(template (present) EUTRA_CellId_Type p_CellId,
+                                                        template (present) RadioBearerId_Type p_RbId,
+                                                        template (present) TimingInfo_Type p_TimingInfo := cr_TimingInfo_Any) :=
+    /* @status    APPROVED */
+    cr_IndAspCommonPart_Common (p_CellId, {RadioBearerId := p_RbId}, p_TimingInfo);
+
+  template SYSTEM_CTRL_CNF car_CellConfig_Power_CNF :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(eutra_Cell_NonSpecific),
+    Confirm := {
+      CellAttenuationList := true
+    }
+  };
+
+  template SYSTEM_CTRL_CNF car_CellConfig_CNF(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm := {
+      Cell := true
+    }
+  };
+
+  template SYSTEM_CTRL_CNF car_EnquireTiming(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm := {
+      EnquireTiming := true
+    }
+  };
+
+  template SYSTEM_CTRL_CNF car_SYSTEM_CTRL_L1MACInd_CNF(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm := {
+      L1MacIndCtrl := true
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_EnquireTiming(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId),
+    Request := {
+      EnquireTiming := true
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_ReleaseCell_REQ(EUTRA_CellId_Type p_CellId,
+                                                         template (value) TimingInfo_Type p_TimingInfo) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg( p_CellId, p_TimingInfo, tsc_NoCnfReq), // Don't request a confirmation
+    Request := {
+      Cell := {
+        Release := true
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_RachPreambleIndConfig_REQ(EUTRA_CellId_Type p_CellId,
+                                                                 L1Mac_IndicationMode_Type p_RachPreambleMode) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, cs_TimingInfo_Now, tsc_NoCnfReq),
+    Request := {
+      L1MacIndCtrl := cs_EnableRachPreamble_Req(p_RachPreambleMode)
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_HarqErrorIndication_REQ(EUTRA_CellId_Type p_CellId,
+                                                               L1Mac_IndicationMode_Type p_Mode := enable) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, cs_TimingInfo_Now),
+    Request := {
+      L1MacIndCtrl := cs_HarqErrorInd_Req(p_Mode)
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_PdcpHandoverInit_REQ(EUTRA_CellId_Type p_SourceCellId,
+                                                            EUTRA_CellId_Type p_TargetCellId) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_TargetCellId, cs_TimingInfo_Now),
+    Request := {
+      PdcpHandoverControl := {
+        HandoverInit := {
+          SourceCellId := p_SourceCellId
+        }
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_PdcpHandoverComplete_REQ(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cs_ReqAspCommonPart_CellCfg(p_CellId, cs_TimingInfo_Now, tsc_NoCnfReq),   // note: there shall be no CNF to avoid race conditions in case of UL data pending
+    Request := {
+      PdcpHandoverControl := {
+        HandoverComplete := true
+      }
+    }
+  };
+
+  template SYSTEM_CTRL_CNF car_PdcpHandoverControl_CNF(EUTRA_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    Common := cr_CnfAspCommonPart_CellCfg(p_CellId),
+    Confirm := {
+      PdcpHandoverControl := true
+    }
+  };
+
+  template SYSTEM_IND car_SYSTEM_IND_Any :=
+  { /* @status    APPROVED */
+    Common        := cr_IndAspCommonPart_SysInd(?, cr_TimingInfo_Any),
+    Indication    := ?
+  };
+
+  template RachPreamble_Type cr_RachPreamble(template (present) PrachPreambleIndex_Type p_PrachPreambleIndex) :=
+  { /* @status    APPROVED */
+    RAPID        := p_PrachPreambleIndex,
+    PRTPower     := ?
+  };
+
+  template SYSTEM_IND car_PRACH_Preamble_IND(EUTRA_CellId_Type p_CellId,
+                                             template (present) TimingInfo_Type p_TimingInfo,
+                                             template (present) RachPreamble_Type p_RachPreamble := cr_RachPreamble(tsc_EUTRA_PrachPreambleIndex_Dedicated_Def)) :=
+  { /* @status    APPROVED */
+    Common := cr_IndAspCommonPart_SysInd (p_CellId, p_TimingInfo),
+    Indication := {
+      RachPreamble := p_RachPreamble
+    }
+  };
+
+  template SYSTEM_IND car_PRACH_Preamble_IND_Any(EUTRA_CellId_Type p_CellId,
+                                                   template (present) TimingInfo_Type p_TimingInfo) :=
+    /* @status    APPROVED */
+    car_PRACH_Preamble_IND(p_CellId, p_TimingInfo, cr_RachPreamble(?));
+
+  const L1Mac_IndicationMode_Type tsc_L1Mac_IndicationMode_Enable :=  enable;      /* @status    APPROVED */
+
+  const L1Mac_IndicationMode_Type tsc_L1Mac_IndicationMode_Disable :=  disable;    /* @status    APPROVED */
+
+  template (value) L1Mac_IndicationControl_Type cs_EnableRachPreamble_Req(L1Mac_IndicationMode_Type p_RachPreambleMode) :=
+  { /* @status    APPROVED */
+    RachPreamble  := p_RachPreambleMode, /* To enable/disable reporting of PRACH preamble received. */
+    SchedReq  := omit,
+    BSR       := omit,
+    UL_HARQ   := omit,
+    C_RNTI    := omit,
+    PHR       := omit,
+    HarqError := omit,
+    PeriodicRI := omit
+  };
+
+  template (value) L1Mac_IndicationControl_Type cs_HarqErrorInd_Req(L1Mac_IndicationMode_Type p_Mode) :=
+  { /* @status    APPROVED */
+    RachPreamble  := omit,
+    SchedReq  := omit,
+    BSR       := omit,
+    UL_HARQ   := omit,
+    C_RNTI    := omit,
+    PHR       := omit,
+    HarqError := p_Mode,
+    PeriodicRI := omit
+  };
+
+  template (value) TDD_Config_Type cs_TDD_Config_r8(template (value) TDD_Config p_TDD_Config) :=
+  { /* @status    APPROVED */
+    R8 := p_TDD_Config
+  };
+
+  template (value) PHICH_Config_Type cs_PHICH_Config_r8(template (value) PHICH_Config p_PHICH_Config) :=
+  { /* @status    APPROVED */
+    R8 := p_PHICH_Config
+  };
+
+  template (value) PRACH_Config_Type cs_PRACH_Config_r8(template (value) PRACH_Config p_PRACH_Config) :=
+  { /* @status    APPROVED */
+    R8 := p_PRACH_Config
+  };
+
+  template (value) PUCCH_ConfigCommon_Type cs_PUCCH_ConfigCommon_r8(template (value) PUCCH_ConfigCommon p_PUCCH_ConfigCommon) :=
+  { /* @status    APPROVED */
+    R8 := p_PUCCH_ConfigCommon
+  };
+
+  template (value) PUCCH_ConfigDedicated_Type cs_PUCCH_ConfigDedicated_r8(template (value) PUCCH_ConfigDedicated p_PUCCH_ConfigDedicated,
+                                                                          template (omit)  PUCCH_ConfigDedicated_v1020 p_PUCCH_ConfigDedicated_v1020 := omit) :=
+  { /* @status    APPROVED */
+    R8andLater := {
+      pucch_ConfigDedicated := p_PUCCH_ConfigDedicated,
+      pucch_ConfigDedicated_v1020 := p_PUCCH_ConfigDedicated_v1020
+    }
+  };
+
+  template (value) PUSCH_ConfigCommon_Type cs_PUSCH_ConfigCommon_r8(template (value) PUSCH_ConfigCommon p_PUSCH_ConfigCommon) :=
+  { /* @status    APPROVED */
+    R8 := p_PUSCH_ConfigCommon
+  };
+
+  template (value) PUSCH_ConfigDedicated_Type cs_PUSCH_ConfigDedicated_r8(template (value) PUSCH_ConfigDedicated p_PUSCH_ConfigDedicated,
+                                                                          template (omit)  PUSCH_ConfigDedicated_v1020 p_PUSCH_ConfigDedicated_v1020 := omit) :=
+  { /* @status    APPROVED */
+    R8andLater := {
+      pusch_ConfigDedicated := p_PUSCH_ConfigDedicated,
+      pusch_ConfigDedicated_v1020 := p_PUSCH_ConfigDedicated_v1020
+    }
+  };
+
+  template (value) SoundingRS_UL_ConfigCommon_Type cs_SoundingRS_UL_ConfigCommon_r8(template (value) SoundingRS_UL_ConfigCommon p_SoundingRS_UL_ConfigCommon) :=
+  { /* @status    APPROVED */
+    R8 := p_SoundingRS_UL_ConfigCommon
+  };
+
+  template (value) SoundingRS_UL_ConfigDedicated_Type cs_SoundingRS_UL_ConfigDedicated_r8(template (value) SoundingRS_UL_ConfigDedicated p_SoundingRS_UL_ConfigDedicated,
+                                                                                          template (omit)  SoundingRS_UL_ConfigDedicated_v1020 p_SoundingRS_UL_ConfigDedicated_v1020 := omit) :=
+  { /* @status    APPROVED */
+    R8andLater := {
+      soundingRS_UL_ConfigDedicated := p_SoundingRS_UL_ConfigDedicated,
+      soundingRS_UL_ConfigDedicated_v1020 := p_SoundingRS_UL_ConfigDedicated_v1020
+    }
+  };
+
+  template (value) SchedulingRequestConfig_Type cs_SchedulingRequestConfig_r8(template (value) SchedulingRequestConfig p_SchedulingRequestConfig,
+                                                                              template (omit)  SchedulingRequestConfig_v1020 p_SchedulingRequestConfig_v1020 := omit) :=
+  { /* @status    APPROVED */
+    R8andLater := {
+      schedulingRequestConfig := p_SchedulingRequestConfig,
+      schedulingRequestConfig_v1020 := p_SchedulingRequestConfig_v1020
+    }
+  };
+
+  template (value) CQI_ReportConfig_Type cs_CQI_ReportConfig_r8andLater(template (value) CQI_ReportConfig p_CQI_ReportConfig,
+                                                                        template (omit)  CQI_ReportConfig_v920 p_CQI_ReportConfig_v920 := omit) :=
+  { /* @status    APPROVED */
+    R8andLater := {
+      cqi_ReportConfig := p_CQI_ReportConfig,
+      cqi_ReportConfig_v920 := p_CQI_ReportConfig_v920
+    }
+  };
+
+  template (value) RACH_ConfigCommon_Type cs_RACH_ConfigCommon_r8(template (value) RACH_ConfigCommon p_RACH_ConfigCommon) :=
+  { /* @status    APPROVED */
+    R8 := p_RACH_ConfigCommon
+  };
+
+  template (value) RACH_ConfigDedicated_Type cs_RACH_ConfigDedicated_r8(template (value) RACH_ConfigDedicated p_RACH_ConfigDedicated) :=
+  { /* @status    APPROVED */
+    R8 := p_RACH_ConfigDedicated
+  };
+
+  template (value) AntennaInfoCommon_Type cs_AntennaInfoCommon_r8(template (value) AntennaInfoCommon p_AntennaInfoCommon) :=
+  { /* @status    APPROVED */
+    R8 := p_AntennaInfoCommon
+  };
+
+  template (value) AntennaInfoDedicated_Type cs_AntennaInfoDedicated_r8andLater(template (value) AntennaInfoDedicated p_AntennaInfoDedicated,
+                                                                                template (omit)  AntennaInfoDedicated_v920 p_AntennaInfoDedicated_v920 := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5w110104 */
+    R8andLater := {
+      antennaInfo := p_AntennaInfoDedicated,
+      antennaInfo_v920 := p_AntennaInfoDedicated_v920
+    }
+  };
+
+  template (value) PDCP_Config_Type cs_PDCP_Config_r8(template (value) PDCP_Config p_PDCP_Config) :=
+  { /* @status    APPROVED */
+    R8 := p_PDCP_Config
+  };
+
+  template (value) UL_AM_RLC_Type cs_UL_AM_RLC_r8(template (value) UL_AM_RLC p_UL_AM_RLC) :=
+  { /* @status    APPROVED */
+    R8 := p_UL_AM_RLC
+  };
+
+  template (value) DL_AM_RLC_Type cs_DL_AM_RLC_r8(template (value) DL_AM_RLC p_DL_AM_RLC) :=
+  { /* @status    APPROVED */
+    R8 := p_DL_AM_RLC
+  };
+
+  template (value) UL_UM_RLC_Type cs_UL_UM_RLC_r8(template (value) UL_UM_RLC p_UL_UM_RLC) :=
+  { /* @status    APPROVED */
+    R8 := p_UL_UM_RLC
+  };
+
+  template (value) DL_UM_RLC_Type cs_DL_UM_RLC_r8(template (value) DL_UM_RLC p_DL_UM_RLC) :=
+  { /* @status    APPROVED */
+    R8 := p_DL_UM_RLC
+  };
+
+  template (value) TTI_BundlingConfig_Type cs_TTI_BundlingConfig_r8(boolean p_TtiBundling) :=
+  { /* @status    APPROVED */
+    R8 := p_TtiBundling
+  };
+
+  template (value) SpsConfigurationDL_Type cs_SpsConfigurationDL_r8(template (value) SPS_ConfigDL.setup p_SpsConfigDL) :=
+  { /* @status    APPROVED */
+    R8 := p_SpsConfigDL
+  };
+
+  template (value) SpsConfigurationUL_Type cs_SpsConfigurationUL_r8(template (value) SPS_ConfigUL.setup p_SpsConfigUL) :=
+  { /* @status    APPROVED */
+    R8 := p_SpsConfigUL
+  };
+
+  template (value) UplinkPowerControlCommon_Type cs_UplinkPowerControlCommon_r8(template (value) UplinkPowerControlCommon p_UplinkPowerControlCommon) :=
+  { /* @status    APPROVED */
+    R8 := p_UplinkPowerControlCommon
+  };
+
+  template (value) UplinkPowerControlDedicated_Type cs_UplinkPowerControlDedicated_r8(template (value) UplinkPowerControlDedicated p_UplinkPowerControlDedicated,
+                                                                                      template (omit)  UplinkPowerControlDedicated_v1020 p_UplinkPowerControlDedicated_v1020 := omit) :=
+  { /* @status    APPROVED */
+    R8andLater := {
+      uplinkPowerControlDedicated := p_UplinkPowerControlDedicated,
+      uplinkPowerControlDedicated_v1020 := p_UplinkPowerControlDedicated_v1020
+    }
+  };
+
+}

@@ -1,0 +1,389 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module UTRAN_NAS_PDU_Templates {
+
+  import from NAS_24008Templates all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRAN_Parameters all;
+  import from UTRAN_TypeDefs all;
+
+  template (value) RRCDataReqType cs_U_AttachAcc(template (value) AttachResult p_AttachRes,
+                                                 template (value) RoutingAreaId p_RAI,
+                                                 template (omit) PTMSI_Signature p_PTMSIsig,
+                                                 template (omit) MobileIdentity p_PTMSI,
+                                                 template (omit) MobileIdentity p_TMSI) :=
+  { /* @status    APPROVED */
+    attachAccept := cs_AttachAcc_Common(p_AttachRes, p_RAI, p_PTMSIsig, p_PTMSI, omit, p_TMSI) // @sic R5-123114 sic@
+  };
+
+  template (value) RRCDataReqType cs_U_AttachReject( RejCau p_Cause) :=
+  { /* @status    APPROVED */
+    attachReject := cs_AttachRej_Common(p_Cause)  // @sic R5s110596 sic@
+  };
+
+  template (value) RRCDataReqType cs_U_AuthReq(template (value) KeySeq p_KeySeq,
+                                               template (value) MM_RAND p_RAND,
+                                               template (value) AUTN p_AUTN) :=
+  { /* @status    APPROVED */
+    authenticationRequest := cs_AuthReq_Common(p_KeySeq, p_RAND, p_AUTN)
+  };
+
+  template (value) RRCDataReqType cs_U_AuthAndCiphReq(template (value) RAND p_Rand,
+                                                      template (value) CiphKeySeqNum p_CiphKeySeqNum,
+                                                      template (value) AUTN p_Autn) :=
+  { /* @status    APPROVED */
+    authenticationAndCipheringRequest := cs_AuthAndCiphReq_Common(p_Rand, p_CiphKeySeqNum, px_CipherAlg, p_Autn)
+  };
+
+  template (value) RRCDataReqType cs_U_LocUpdAcpTMSI(octetstring p_PLMN,
+                                                     octetstring p_LAC) :=
+  { /* @status    APPROVED */
+    locationUpdatingAccept := cs_LocUpdAcp_Common (p_PLMN, p_LAC, cs_MobileIdTMSIorPTMSI ('17'O, px_TMSI_Def), omit)
+  };
+
+  template (value) RRCDataReqType cs_U_LocUpdAcpIMSI(octetstring p_PLMN,
+                                                     octetstring p_LAC,
+                                                     template (value) MobileIdentity p_IMSIMobileIdWithIEI) :=
+  { /* @status    APPROVED */
+    locationUpdatingAccept := cs_LocUpdAcp_Common (p_PLMN, p_LAC, p_IMSIMobileIdWithIEI, omit)
+  };
+
+  template (value) RRCDataReqType cs_U_LocUpdAcp_NoMobId(octetstring p_PLMN, // @sic R5-112706 sic@
+                                                         octetstring p_LAC) :=
+  { /* @status    APPROVED */
+    locationUpdatingAccept := cs_LocUpdAcp_Common (p_PLMN, p_LAC, omit, omit)
+  };
+
+  template (value) RRCDataReqType cs_U_RA_UpdAcc3(template (value) UpdateResult p_UpdateResult,
+                                                  template (value) RoutingAreaId p_RAI,
+                                                  template (omit) PTMSI_Signature p_PTMSIsig,
+                                                  template (omit) MobileIdentity p_PTMSI) :=
+  { /* @status    APPROVED */
+    routingAreaUpdateAccept := cs_RA_UpdAcc_Common (p_UpdateResult,
+                                                    p_RAI,
+                                                    p_PTMSIsig,
+                                                    p_PTMSI)
+  };
+
+  template (value) RRCDataReqType cs_U_RAUpdReject(template (value) GMM_Cause p_RejectCause)  :=
+  { /* @status    APPROVED */
+    routingAreaUpdateReject := cs_RAUpdReject_Common (p_RejectCause)
+  };
+
+  template (value) RRCDataReqType cs_U_CM_ServAcc :=
+  { /* @status    APPROVED */
+    cmServiceAccept := {
+      skipIndicator := '0000'B,
+      mMProtocolDiscriminator := '0101'B,
+      msgType := '00100001'B
+    }
+  };
+
+  template (value) RRCDataReqType cs_U_CM_ServRej(RejCau p_RejCau) :=
+  { /* @status    APPROVED */
+    cmServiceReject := cs_CM_ServRej (p_RejCau)
+  };
+
+  template (value) RRCDataReqType cs_U_CallProc ( template (value) TI p_TI ):=
+  { /* @status    APPROVED */
+    callProceeding := cs_CallProc_Common ( p_TI )
+  };
+
+  template (value) RRCDataReqType cs_U_Alert ( template (value) TI p_TI ) :=
+  { /* @status    APPROVED */
+    alertingdl := cs_Alert_Common ( p_TI )
+  };
+
+  template (value) RRCDataReqType cs_U_Connect ( template (value) TI p_TI ) :=
+  { /* @status    APPROVED */
+    connectdl := cs_Connect_Common ( p_TI )
+  };
+
+  template (value) RRCDataReqType cs_U_ActivatePDPContextAccept(template (value) ACTIVATEPDPCONTEXTACCEPTdl p_ActivatePDPContextAccept) :=
+  { /* @status    APPROVED */
+    activatePDPContextAccept := p_ActivatePDPContextAccept
+  };
+
+  template (value) RRCDataReqType cs_U_Disconnect ( template (value) TI p_Ti ) :=
+  { /* @status    APPROVED */
+    disconnectDL := cs_Disconnect_Common(p_Ti)
+  };
+
+  template (value) RRCDataReqType cs_U_RelCmpl(template (value) TI p_Ti) :=
+  { /* @status    APPROVED */
+    releaseComplete := cs_RelCmpl_Common(p_Ti)
+  };
+
+  template RRCDataIndType cr_U_AttachComplete :=
+  { /* @status    APPROVED */
+    attachComplete := cr_AttachComplete_Common
+  };
+
+  template RRCDataIndType cr_U_DetachRequest(template DetachType p_Type,
+                                             template MobileIdentity p_Ptmsi,
+                                             template PTMSI_Signature p_Signature := cr_PTMSI_Signature2Any ifpresent) := // @sic R5s110112 sic@
+  { /* @status    APPROVED */
+    detachRequest := cr_DetachReq_Common (p_Type, p_Ptmsi, p_Signature)
+  };
+
+  template RRCDataIndType cr_U_AttachReq (template (present)  AttachType p_AttachType,
+                                          template (present)  MobileIdentity p_MobId,
+                                          template (present)  RoutingAreaId p_RAI,
+                                          template (present) KeySeq p_KeySeq,
+                                          template (present) MS_RadioAccessCap_LV p_MS_RadioAccessCap := cr_MS_RadioAccessCapLVAny) :=
+  { /* @status    APPROVED */
+    attachRequest := cr_AttachReq_Common(p_AttachType, p_MobId, p_RAI, p_KeySeq, p_MS_RadioAccessCap)
+  };
+
+  template RRCDataIndType cr_U_AttachReq_MSandUENetworkCap (template (present)  AttachType p_AttachType,
+                                                            template (present)  MobileIdentity p_MobId,
+                                                            template (present)  RoutingAreaId p_RAI,
+                                                            template (present) KeySeq p_KeySeq,
+                                                            template (present) MS_RadioAccessCap_LV p_MS_RadioAccessCap := cr_MS_RadioAccessCapLVAny,
+                                                            template UE_NetworkCap p_UENetworkCap := cr_UENetworkCap_Any ('58'O) ifpresent) :=
+  { /* @status    APPROVED */
+    attachRequest := cr_AttachReq_Common(p_AttachType,
+                                         p_MobId,
+                                         p_RAI,
+                                         p_KeySeq,
+                                         p_MS_RadioAccessCap,
+                                         -,
+                                         -,
+                                         -,
+                                         -,
+                                         -,
+                                         -,
+                                         -,
+                                         p_UENetworkCap)
+  };
+
+  template RRCDataIndType cr_U_AttachReqIMSInoTMSI (template (present)  AttachType p_AttachType,
+                                                    template (present)  MobileIdentity p_MobIdIMSI,
+                                                    template (present)  RoutingAreaId p_RAI,
+                                                    template TMSI_Status p_TMSI_Status := cr_TMSI_Status ('0'B)) :=
+  { /* @status    APPROVED */
+    attachRequest := cr_AttachReq_Common(p_AttachType,
+                                         p_MobIdIMSI,
+                                         p_RAI,
+                                         '111'B, // No key available
+                                         -,
+                                         omit, // No P-TMSI
+                                         -,
+                                         p_TMSI_Status, // @sic R5s110279 sic@
+                                         -,
+                                         -,
+                                         -,
+                                         -,
+                                         -,
+                                         omit,
+                                         omit)
+  };
+
+  template RRCDataIndType cr_U_AuthFailAny :=
+  { /* @status    APPROVED */
+    authenticationFailure := cr_AuthFailAny_Common
+  };
+
+  template RRCDataIndType cr_U_AuthAndCiphFailureAny :=
+  { /* @status    APPROVED */
+    authenticationAndCipheringFailure := cr_AuthAndCiphFailure_Common
+  };
+
+  template RRCDataIndType cr_U_AuthAndCiphRsp (template AuthRsp p_AuthRsp,
+                                               template AuthRspExt p_AuthRspExt) :=
+  { /* @status    APPROVED */
+    authenticationAndCipheringResponse := cr_AuthAndCiphRsp_Common (p_AuthRsp, p_AuthRspExt)
+  };
+
+  template RRCDataIndType cr_U_AuthRspAnyExt :=
+  { /* @status    APPROVED */
+    authenticationResponse := cr_AuthResponse_Common(cr_AuthRspExtAny)
+  };
+
+  template RRCDataIndType cr_U_AuthRspAnyNoExt :=
+  { /* @status    APPROVED */
+    authenticationResponse := cr_AuthResponse_Common
+  };
+
+  template RRCDataIndType cr_U_LocationUpdatingRequest :=
+  { /* @status    APPROVED */
+    locationUpdatingRequest := cr_LocUpdReq_Common (?)
+  };
+
+  template RRCDataIndType cr_U_LocationUpdatingRequestIMSI :=
+  { /* @status    APPROVED */
+    locationUpdatingRequest := cr_LocUpdReq_Common (?, cdr_LocUpdTypeIMSI)
+  };
+
+  template RRCDataIndType cr_U_RA_UpdReqAny (template (present) UpdateType p_UpdateType,
+                                             template (present) RoutingAreaId p_RAI,
+                                             template PTMSI_Signature p_PTMSISig,
+                                             template (present) KeySeq p_KeySeq,
+                                             template (present) MS_RadioAccessCap_LV p_MsRadioAccessCap := cr_MS_RadioAccessCapLVAny) :=
+  { /* @status    APPROVED */
+    routingAreaUpdateRequest := cr_RAURequest_Common(p_UpdateType,
+                                                     p_RAI,
+                                                     p_PTMSISig,
+                                                     cr_TMSI_Status ('0'B),
+                                                     p_KeySeq,
+                                                     p_MsRadioAccessCap)
+  };
+
+  template RRCDataIndType cr_U_RA_UpdReq_MSandUENetworkCap (template (present) UpdateType p_UpdateType,
+                                                            template (present) RoutingAreaId p_RAI,
+                                                            template PTMSI_Signature p_PTMSISig,
+                                                            template (present) KeySeq p_KeySeq,
+                                                            template (present) MS_RadioAccessCap_LV p_MsRadioAccessCap := cr_MS_RadioAccessCapLVAny,
+                                                            template UE_NetworkCap p_UENetworkCap := cr_UENetworkCap_Any ('58'O)) :=
+  { /* @status    APPROVED */
+    routingAreaUpdateRequest := cr_RAURequest_Common(p_UpdateType,
+                                                     p_RAI,
+                                                     p_PTMSISig,
+                                                     cr_TMSI_Status ('0'B),
+                                                     p_KeySeq,
+                                                     p_MsRadioAccessCap,
+                                                     -,
+                                                     -,
+                                                     -,
+                                                     -,
+                                                     -,
+                                                     -,
+                                                     -,
+                                                     p_UENetworkCap)
+  };
+
+  template RRCDataIndType cr_U_PagRsp ( template (present) KeySeq         p_KeySeq,
+                                        template (present) MobileIdentity p_MobileId ) :=
+  { /* @status    APPROVED */
+    pagingResponse := cr_PagRsp_Common ( p_KeySeq, p_MobileId )
+  };
+
+  template RRCDataIndType cr_U_RAUpdComplete :=
+  { /* @status    APPROVED */
+    routingAreaUpdateComplete:= cr_RAUpdComplete_Common
+  };
+
+  template ESETUP cr_ESetup ( template (present) Bcap p_Bcap ) :=
+  { /* @status    APPROVED */
+    ti                       := cr_TI_MO,
+    cC_ProtocolDiscriminator := '0011'B,
+    msgType                  := '??001110'B,
+    bcap                     := p_Bcap ifpresent,
+    streamId                 := cr_StreamIdAny ifpresent,
+    supportedCodecs          := cr_CodecListAny ifpresent, // @sic R5s110547 sic@
+    emergCategory            := cr_ServCategoryAny ifpresent
+  };
+
+  template RRCDataIndType cr_U_ESetup ( template ESETUP p_Esetup ) :=
+  { /* @status    APPROVED */
+    esetup := p_Esetup
+  };
+
+  template RRCDataIndType cr_U_ServReqAny ( template (present) KeySeq p_KeySeq ) :=
+  { /* @status    APPROVED */
+    cmServiceRequest := cr_CM_ServReq ( p_KeySeq )
+  };
+
+  template RRCDataIndType cr_U_ServReq_MO_TMSI (template (present) KeySeq p_KeySeq) :=
+  { /* @status    APPROVED */
+    cmServiceRequest := cr_CM_ServReq(p_KeySeq,
+                                      '0001'B,  //'Mobile originating call establishment or packet mode connection establishment'
+                                      cr_MobileIdTMSI_lv (px_TMSI_Def))
+  };
+
+  template RRCDataIndType cr_U_ServReq_MO_TMSI_Emergency (template (present) KeySeq p_KeySeq) :=
+  { /* @status    APPROVED */
+    //@sic R5s120111 sic@
+    cmServiceRequest := cr_CM_ServReq(p_KeySeq,
+                                      '0010'B,  //'Emergency call establishment'
+                                      cr_MobileIdTMSI_lv (px_TMSI_Def))
+  };
+
+  template RRCDataIndType cr_U_ConnAck ( template TI p_TI ) :=
+  { /* @status    APPROVED */
+    connectAcknowledge := cr_ConnAck_Common(p_TI)
+  };
+
+  template RRCDataIndType cr_U_ServiceRequest(template ServiceType p_ServiceType,
+                                              template MobileIdentity p_PTMSI,
+                                              template (present) KeySeq p_KeySeq) :=
+  { /* @status    APPROVED */
+    serviceRequest := {
+      skipIndicator   := '0000'B,
+      gMMProtocolDiscriminator := tsc_GMM_PD,
+      msgType         := '00001100'B,
+      serviceType     := p_ServiceType,
+      ciphKeySeqNo    := cr_CiphKeySeqNum(omit, p_KeySeq),
+      ptmsi           := p_PTMSI,
+      pDP_ContextStatus := cr_PDP_ContextStatusAny ifpresent,
+      mBMS_ContextStatus := cr_MBMS_ContextStatusAny ifpresent,
+      uplinkDataStatus := cr_UplinkDataStatusAny ifpresent,
+      deviceProperties  := cr_DeviceProperties_Any('D'H) ifpresent  /* cl. 10.5.7.8 O TV 1 IEI=0xD- @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template RRCDataIndType cr_U_TMSI_ReallocCmpl :=
+  { /* @status    APPROVED */
+    tmsiReallocationComplete := cr_TMSI_ReallocCmpl_Common
+  };
+
+  template RRCDataIndType cr_U_Imsi_DetachInd :=
+  { /* @status    APPROVED */
+    imsiDetachIndication := cr_IMSI_DetachInd_Common (-, ?) // @sic R5s110777, R5-120624 sic@
+  };
+
+  template RRCDataIndType cr_U_ActPDP_ContextReqMo(template (present) QualityOfService p_QualityOfService := cr_QualityOfService_Any) :=
+  { /* @status    APPROVED */
+    /* @sic R5s110771 sic@ */
+    activatePDPContextRequestul := cr_ActPDP_ContextReqMO_Common ( p_QualityOfService )
+  };
+
+  template RRCDataIndType cr_U_Rel(template TI p_Ti) :=
+  { /* @status    APPROVED */
+    releaseUL := cr_Rel_Common(p_Ti)
+  };
+
+  template RRCDataIndType cr_U_CallConfirmed(template TI p_TI,
+                                             template StreamId p_StrId := *) := // @sic R5s120070 sic@
+  { /* @status    APPROVED */
+    callConfirmed := cr_CallConf_Common (p_TI, p_StrId)
+  };
+
+  template (value) RRCDataReqType cs_U_SetupMTCall( template (value) Bcap p_Bcap) :=
+  { /* @status    APPROVED */
+    setupdl := cs_SetupMT_Common(p_Bcap)
+  };
+
+  template RRCDataIndType cr_U_SetupMOCall(template (present) Bcap p_Bcap) :=
+  { /* @status    APPROVED */
+    setupul :=  cdr_SetupMO_Speech_Common(p_Bcap)
+  };
+
+  template RRCDataIndType cr_U_Alerting (template TI p_TI) :=
+  { /* @status    APPROVED */
+    alertingul := cr_Alert_Common (p_TI)
+  };
+
+  template RRCDataIndType cr_U_Connect (template TI p_TI) :=
+  { /* @status    APPROVED */
+    connectul := cr_Connect_Common (p_TI)
+  };
+
+  template (value) RRCDataReqType cs_U_ConnectAck (template (value) TI p_TI ) :=
+  { /* @status    APPROVED */
+    connectAcknowledge := cs_ConnAck_Common(p_TI)
+  };
+
+}

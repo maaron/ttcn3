@@ -1,0 +1,693 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module EUTRA_ConfigurationSteps {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from TestcaseProperties all;
+
+  function f_EUTRA_DlCcchMsgInSeparateMacPdu() return boolean
+  {
+    var charstring v_TestcaseName := testcasename();
+    return f_GetTestcaseAttrib_DlCcchMsgInSeparateMacPdu(v_TestcaseName);
+  }
+
+  function f_EUTRA_SS_CommonRadioBearerConfig(EUTRA_CellId_Type p_CellId,
+                                              template (value) RadioBearerList_Type p_RadioBearerList,
+                                              template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                              template (omit) boolean p_CnfFlag := omit) runs on EUTRA_PTC
+  { /* @sic R5s100135 sic@ */
+    /* @sic R5s100801, R5s110634 additional comments: optional parameter p_CnfFlag sic@ */
+    var boolean v_CnfFlag := f_CnfFlag_Set(p_TimingInfo, p_CnfFlag);
+    
+    SYS.send(cas_CommonRadioBearerConfig_REQ(p_CellId, p_TimingInfo, p_RadioBearerList, v_CnfFlag));
+    if (v_CnfFlag == tsc_CnfReq) {
+      SYS.receive(car_CommonRadioBearerConfig_CNF(p_CellId));
+    }
+  }
+
+  function f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB(EUTRA_CellId_Type p_CellId,
+                                                        template (value) RadioBearer_Type p_RadioBearer,
+                                                        template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) runs on EUTRA_PTC
+  { /* @sic R5s100072 sic@ */
+    var template (value) RadioBearerList_Type v_RadioBearerList := { p_RadioBearer };
+    f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_RadioBearerList, p_TimingInfo);
+  }
+
+  function f_EUTRA_SS_CommonCellConfig(EUTRA_CellId_Type p_CellId,
+                                       template (value) SYSTEM_CTRL_REQ p_SYSTEM_CTRL_REQ) runs on EUTRA_PTC
+  { /* @sic R5-104796 DRX support sic@
+       Note: function updates DRX parameters in cell configuration; in the future the TA period may need to be taken into account too (FFS) */
+    var CellConfigInfo_Type v_CellConfigInfo;
+    var DrxCtrl_Type v_DrxCtrl;
+    var MeasGapCtrl_Type v_MeasGapCtrl;
+
+    if (not ischosen(p_SYSTEM_CTRL_REQ.Request.Cell)) {
+      FatalError(__FILE__, __LINE__, "f_EUTRA_SS_CommonCellConfig shall get handed over CellConfigRequest");
+    }
+    if (ischosen(p_SYSTEM_CTRL_REQ.Request.Cell.AddOrReconfigure)) {
+      v_CellConfigInfo := valueof(p_SYSTEM_CTRL_REQ.Request.Cell.AddOrReconfigure);
+      if (ispresent(v_CellConfigInfo.Active)) {
+        if (ispresent(v_CellConfigInfo.Active.CcchDcchDtchConfig)) {
+          if (ispresent(v_CellConfigInfo.Active.CcchDcchDtchConfig.DrxCtrl)) {
+            v_DrxCtrl := v_CellConfigInfo.Active.CcchDcchDtchConfig.DrxCtrl;
+            f_EUTRA_CellInfo_SetDrxCtrl(p_CellId, v_DrxCtrl);
+          }
+          if (ispresent(v_CellConfigInfo.Active.CcchDcchDtchConfig.MeasGapCtrl)) {    // @sic R5s110743 sic@
+            v_MeasGapCtrl := v_CellConfigInfo.Active.CcchDcchDtchConfig.MeasGapCtrl;
+            f_EUTRA_CellInfo_SetMeasGapCtrl(p_CellId, v_MeasGapCtrl);
+          }
+        }
+      }
+    }
+
+    SYS.send(p_SYSTEM_CTRL_REQ);
+    if (valueof(p_SYSTEM_CTRL_REQ.Common.ControlInfo.CnfFlag) == true) {  /* @sic R5s100135 sic@ */
+      SYS.receive(car_CellConfig_CNF(p_CellId));
+    }
+  }
+
+  function f_EUTRA_SS_DrxCtrlConfig(EUTRA_CellId_Type p_CellId,
+                                    template (value) DrxCtrl_Type p_NewDrxCtrl,
+                                    template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                    template (omit) boolean p_CnfFlag := omit) runs on EUTRA_PTC
+  { /* @sic R5s100801, R5s110634 addtional changes: optional parameter p_CnfFlag sic@ */
+    var DrxCtrl_Type v_OldDrxCtrl := f_EUTRA_CellInfo_GetDrxCtrl(p_CellId);
+
+    if (ischosen(p_NewDrxCtrl.None) and ischosen(v_OldDrxCtrl.None)) {
+      return;
+    }
+    if (not ischosen(p_NewDrxCtrl.None) and not ischosen(v_OldDrxCtrl.None)) {
+      FatalError(__FILE__, __LINE__, "Reconfiguration of DRX - not supported (yet)");
+    }
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_DrxCtrl_REQ(p_CellId, p_TimingInfo, p_NewDrxCtrl, p_CnfFlag));
+  }
+
+  function f_EUTRA_SS_MeasGapCtrlConfig(EUTRA_CellId_Type p_CellId,
+                                        template (value) MeasGapCtrl_Type p_NewMeasGapCtrl,
+                                        template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                        template (omit) boolean p_CnfFlag := omit) runs on EUTRA_PTC
+  { /* Reconfiguration of measurement gaps:
+       when measurement gaps are already configured SS will only be re-configured when the measurement gap configuration really changes;
+       in this case since RRCConnectionReconfiguration is scheduled in general (-> f_EUTRA_RRCConnectionReconfiguration_MeasConfig)
+       the RRCConnectionReconfiguration follows the requirments for the old configuration and then 5ms later SS changes to the new configuration
+       (i.e. for sending the RLC STATUS PDU to acknowledge the RRCConnectionReconfigurationComplete SS shall already consider the new configuration)
+       @sic R5s110776 change 2.2 sic@ */
+
+    var MeasGapCtrl_Type v_OldMeasGapCtrl := f_EUTRA_CellInfo_GetMeasGapCtrl(p_CellId);
+
+    if (match(v_OldMeasGapCtrl, p_NewMeasGapCtrl)) {
+      return;
+    }
+
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_MeasGapCtrl_REQ(p_CellId, p_TimingInfo, p_NewMeasGapCtrl, p_CnfFlag));
+  }
+
+  function f_EUTRA_SS_CommonL1MacIndCtrlConfig(EUTRA_CellId_Type p_CellId,
+                                               template (value) SYSTEM_CTRL_REQ p_SYSTEM_CTRL_REQ) runs on EUTRA_PTC
+  {
+    SYS.send(p_SYSTEM_CTRL_REQ);
+    if (valueof(p_SYSTEM_CTRL_REQ.Common.ControlInfo.CnfFlag) == true) {
+      SYS.receive(car_SYSTEM_CTRL_L1MACInd_CNF(p_CellId));
+    }
+  }
+
+  function f_EUTRA_SS_PdcpHandoverCtrl(EUTRA_CellId_Type p_CellId,
+                                       template (value) SYSTEM_CTRL_REQ p_SYSTEM_CTRL_REQ) runs on EUTRA_PTC
+  {
+    SYS.send(p_SYSTEM_CTRL_REQ);
+    if (valueof(p_SYSTEM_CTRL_REQ.Common.ControlInfo.CnfFlag) == true) {
+      SYS.receive(car_PdcpHandoverControl_CNF(p_CellId));
+    }
+  }
+
+  function f_EUTRA_SS_ConfigureSRBs(EUTRA_CellId_Type p_CellId,
+                                    template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) runs on EUTRA_PTC
+  { /* @sic R5s100072 sic@ */
+    var template (value) RadioBearerList_Type v_SrbList := {
+      cs_SRB0_ConfigDef,
+      cs_SRB1_ConfigDef,
+      cs_SRB2_ConfigDef
+    };
+    f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_SrbList, p_TimingInfo);
+  };
+
+  function f_EUTRA_SS_DRB1_DefConfig(EUTRA_CellId_Type  p_CellId,
+                                       template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) runs on EUTRA_PTC
+  { /* @sic R5s100072  sic@ */
+    var template (value) RadioBearerList_Type v_DrbList := {
+      cs_OneDRB_ConfigAM(tsc_DRB1)
+    };
+
+    f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_DrbList, p_TimingInfo);
+  }
+
+  function f_EUTRA_SS_DRB_AddConfig(EUTRA_CellId_Type  p_CellId,
+                                    integer p_NoOfAddDRBs_AM,
+                                    integer p_NoOfAddDRBs_UM) runs on EUTRA_PTC
+  {
+    var template (value) RadioBearerList_Type v_DRB_ToAddModList;
+    var integer v_DRB_Id;
+    var integer n, m;
+
+    if (p_NoOfAddDRBs_AM + p_NoOfAddDRBs_UM > 0) {          // @sic R5s100100 sic@
+      v_DRB_Id := tsc_DRB1 + 1;                             // DRB1 is the default bearer
+      for (n := 0; n < p_NoOfAddDRBs_AM; n := n + 1) {
+        v_DRB_ToAddModList[n] := cs_OneDRB_ConfigAM(v_DRB_Id);
+        v_DRB_Id := v_DRB_Id + 1;
+      }
+      for (m := 0; m < p_NoOfAddDRBs_UM; m := m + 1) {
+        v_DRB_ToAddModList[n+m] := cs_OneDRB_ConfigUM(v_DRB_Id);
+        v_DRB_Id := v_DRB_Id + 1;
+      }
+      
+      f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_DRB_ToAddModList);
+    }
+  };
+
+  function f_EUTRA_SS_SRBs_DRBs_Release(EUTRA_CellId_Type  p_CellId,
+                                        template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                        DRB_IdentityList_Type p_DrbList := tsc_DrbList_Def,
+                                        template (omit) boolean p_CnfFlag := omit) runs on EUTRA_PTC
+  { /* @sic R5s100801, R5s110634 additional comments: optional parameter p_CnfFlag, R5s110602 sic@ */
+    var template (value) RadioBearerList_Type v_SrbDrbList := {
+      cs_SRB_Release(tsc_SRB1),
+      cs_SRB_Release(tsc_SRB2)
+    };
+    var integer i := lengthof(v_SrbDrbList);
+    var integer k;
+    
+    for (k:=0; k < lengthof(p_DrbList); k:= k+1) {
+      v_SrbDrbList[i+k] := cs_DRB_Release(p_DrbList[k]);    /* @sic R5s100279 change 1 sic@ */
+    }
+
+    f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_SrbDrbList, p_TimingInfo, p_CnfFlag);
+  }
+
+  function f_EUTRA_SS_SRBs_DRBs_Config(EUTRA_CellId_Type  p_CellId,
+                                       template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                       template (value) RadioBearerList_Type p_DrbConfigList := cs_DrbConfigList_Def,
+                                       template (omit) boolean p_CnfFlag := omit) runs on EUTRA_PTC
+  { /* @sic R5s100801, R5s110634 additional comments: optional parameter p_CnfFlag, R5s110602 sic@ */
+    var template (value) RadioBearerList_Type v_SrbDrbList := {
+      cs_SRB1_ConfigDef,
+      cs_SRB2_ConfigDef
+    };
+    var integer i := lengthof(v_SrbDrbList);
+    var integer k;
+    
+    for (k:=0; k < lengthof(p_DrbConfigList); k:= k+1) {
+      v_SrbDrbList[i+k] := p_DrbConfigList[k];          /* @sic R5s100279 change 2 sic@ */
+    }
+
+    f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_SrbDrbList, p_TimingInfo, p_CnfFlag);
+  }
+
+  function f_EUTRA_SS_SRBs_DRBs_Reset(EUTRA_CellId_Type  p_CellId,
+                                      integer p_DelayBeforeResetInMilliSec := 0) runs on EUTRA_PTC
+  { /* Note: this function shall use timing info "Now" only otherwise between release and config there have to be at least 5ms */
+    /* @sic R5s100803: new parameter for the delay sic@ */
+    if (p_DelayBeforeResetInMilliSec > 0) {
+      f_Delay (int2float(p_DelayBeforeResetInMilliSec) / 1000.0);
+    }
+    f_EUTRA_SS_SRBs_DRBs_Release(p_CellId);
+    f_EUTRA_SS_SRBs_DRBs_Config(p_CellId);
+  }
+
+  function f_EUTRA_SS_SRBs_DRBs_Reset_StopULGrant_noPUCCHSync(EUTRA_CellId_Type  p_CellId,
+                                                              integer p_DelayBeforeResetInMilliSec := 0 ) runs on EUTRA_PTC
+  {
+    if (p_DelayBeforeResetInMilliSec > 0) {
+      f_Delay (int2float(p_DelayBeforeResetInMilliSec) / 1000.0);
+    }
+    f_EUTRA_StopULGrantTransmission(p_CellId, cs_TimingInfo_Now);
+    f_EUTRA_SS_SRBs_DRBs_Release(p_CellId);
+    f_EUTRA_SS_SRBs_DRBs_Config(p_CellId);
+  }
+
+  function f_EUTRA_CellConfig_Def(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    f_EUTRA_SS_ConfigureActiveCell(p_CellId);
+    f_EUTRA_SS_ConfigureSRBs(p_CellId);
+    f_EUTRA_SS_DRB1_DefConfig(p_CellId);
+  }
+
+  function f_EUTRA_CellConfig_DRB_Common(EUTRA_CellId_Type p_CellId,
+                                         integer p_NoOfAddDRBs_AM,
+                                         integer p_NoOfAddDRBs_UM) runs on EUTRA_PTC
+  {
+    f_EUTRA_CellConfig_Def(p_CellId);
+    f_EUTRA_SS_DRB_AddConfig(p_CellId, p_NoOfAddDRBs_AM, p_NoOfAddDRBs_UM);
+  }
+
+  function f_EUTRA_CellConfig_DefPlusUM(EUTRA_CellId_Type p_CellId,
+                                        template (value) PDCP_Config p_PdcpConfig := cs_508_PDCP_Config_DRB_UM) runs on EUTRA_PTC
+  { /* @sic R5-120666 sic@ */
+    f_EUTRA_CellConfig_Def(p_CellId);
+    f_EUTRA_SS_CommonRadioBearerConfig_SingleDRB(p_CellId, cs_OneDRB_ConfigUM(tsc_DRB2,p_PdcpConfig));
+  }
+
+  function f_EUTRA_CellConfig_SRBs_Only (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    // create cell and send out system information
+    f_EUTRA_SS_ConfigureActiveCell(p_CellId);
+    f_EUTRA_SS_ConfigureSRBs(p_CellId);
+  }
+
+  function fl_SibMappingInfo_Check(SIB_MappingInfo p_SIB_MappingInfo,
+                                   SIB_Type p_SIB_Type)
+    return boolean
+  {
+    var integer i;
+
+    for (i:=0; i < lengthof(p_SIB_MappingInfo); i := i+1) {
+      if (p_SIB_MappingInfo[i] == p_SIB_Type) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function f_EUTRA_SS_SetupSchedulingInfo(SystemInformationBlockType1 p_SIB1,
+                                          EUTRA_FDD_TDD_Mode_Type  p_FDD_TDD)
+    return template (value) AllSiSchedul_Type
+  {
+    var template (value) SiSchedulList_Type v_SiSchedulList;
+    var template (omit) SiSchedulList_Type v_SiSchedulSegmentList := omit; // @sic R5s110341 sic@
+    var integer v_NoOfSIs := lengthof(p_SIB1.schedulingInfoList);     // TTCN-3 3.4.1: sizeof replaced by lengthof
+    var integer v_SubframeOffset;                          /* offset within the SI-window */
+    var integer v_RV;                                      /* @sic R5s100302 change 9; R5s110295 sic@ */
+    var integer v_SI_I:=0;                                 /* @sic R5s110341 sic@ */
+    var integer v_Segment_I := 0;                          /* @sic R5-112161 sic@ */
+    var integer I;
+    
+    for (I := 0; I < v_NoOfSIs; I:= I + 1) {
+      /* Assigne the subframe offset according to 36.523-3 Table 7.7.2.2;
+         mapping of the SIBs to the SIs is specified in 36.508 cl. 4.4.3.1.2 "Scheduling of system information blocks"
+         => there is a maximum of 4 SIs */
+     select (p_FDD_TDD) {
+       case (FDD) {
+         select (I) {
+           case (0) {   // Subframe offset for SI1
+             v_SubframeOffset := 1;
+             v_RV := 2;
+           }
+           case (1) { // Subframe offset for SI2
+             v_SubframeOffset := 1;
+             v_RV := 2;
+           }
+           // @sic R5-096691: 3 -> 1 sic@
+           case (2) { // Subframe offset for SI3
+             v_SubframeOffset := 3;
+             v_RV := 1;                /* @sic R5s100302 change 9 sic@ */
+           }
+           case (3) {   // Subframe offset for SI4
+             v_SubframeOffset := 7;
+             v_RV := 1;                /* @sic R5s100302 change 9 R5s110016 sic@ */
+           }
+           case (4) {   // Subframe offset for SI5
+             v_SubframeOffset := 7;
+             v_RV := 1;                /* @sic R5-110471 sic@ */
+           }
+           case else {
+             FatalError (__FILE__, __LINE__, "No subframe offset defined for that SI");
+           }
+         }
+       }
+       case (TDD) {  // @sic R5-096691 sic@
+         select (I) {
+           case (0) { // Subframe offset for SI1
+             v_SubframeOffset := 4;
+             v_RV := 0;    /* @sic R5s110016 sic@ */
+           }
+           case (1) { // Subframe offset for SI2
+             v_SubframeOffset := 4;
+             v_RV := 0;    /* @sic R5s110016 sic@ */
+           }
+           case (2) { // Subframe offset for SI3
+             v_SubframeOffset := 9;
+             v_RV := 2;
+           }
+           case (3) {
+             v_SubframeOffset := 9;
+             v_RV := 2;
+           }  // Subframe offset for SI4
+           case (4) {
+             v_SubframeOffset := 9;    // @sic r5-110471 sic@
+             v_RV := 2;
+           }  // Subframe offset for SI5
+           case else {
+             FatalError (__FILE__, __LINE__, "No subframe offset defined for that SI");
+           }
+         }
+       }
+     }
+     
+     // For SibType11 and SibType12: add the sheduling information to the segmented sheduling List: v_SiSchedulSegmentList
+     // For other SibTypes add the sheduling in the scheduling list v_SiSchedulList
+     // @sic R5-112161 sic@
+     if (fl_SibMappingInfo_Check(p_SIB1.schedulingInfoList[I].sib_MappingInfo, sibType11) or
+         fl_SibMappingInfo_Check(p_SIB1.schedulingInfoList[I].sib_MappingInfo, sibType12_v920))  // @sic R5s110342 sic@
+       {
+         v_SiSchedulSegmentList[v_Segment_I] := cs_SiSchedul_Def(p_SIB1.schedulingInfoList[I].si_Periodicity, v_SubframeOffset);
+         /* @sic R5s100302 change 9 sic@ */
+         if (match(dci_1C, v_SiSchedulSegmentList[v_Segment_I].Window[0].DciInfo.Format)) {  // @sic R5s110341 sic@
+           v_SiSchedulSegmentList[v_Segment_I].Window[0].DciInfo.RedundancyVersionList[0] := v_RV;
+         }
+         v_Segment_I := v_Segment_I+1;
+       }
+     else
+       {
+         v_SiSchedulList[v_SI_I] := cs_SiSchedul_Def(p_SIB1.schedulingInfoList[I].si_Periodicity, v_SubframeOffset);
+         /* @sic R5s100302 change 9 sic@ */
+         if (match(dci_1C, v_SiSchedulList[v_SI_I].Window[0].DciInfo.Format)) {
+           v_SiSchedulList[v_SI_I].Window[0].DciInfo.RedundancyVersionList[0] := v_RV;
+         }
+         v_SI_I := v_SI_I+1;
+       }
+    }
+    return cs_SiSchedulList_Def(p_SIB1.si_WindowLength, v_SiSchedulList, v_SiSchedulSegmentList);
+  }
+
+  function f_EUTRA_SS_ConfigureActiveCell(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get (p_CellId);
+    var template (value) AllSiSchedul_Type    v_SiSchedul;
+    var template (value) ContentionResolution_ContainedRlcPdu_Type v_ContentionResolution_ContainedRlcPdu;
+    var template (value) DL_CCCH_Message v_RrcConnSetup;
+    var octetstring v_EncodedRrcConnSetup;
+    //Get FDD or TDD mode from Cell-configuration
+    var EUTRA_FDD_TDD_Mode_Type  v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD (p_CellId);
+
+    var template (value) StaticCellInfo_Type v_StaticCellInfo;
+
+    v_SiSchedul := f_EUTRA_SS_SetupSchedulingInfo(v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1, v_EUTRA_FDD_TDD_Mode);      /* derive SS's scheduling information from SIB1 */
+    select (v_EUTRA_FDD_TDD_Mode) {
+      case (FDD) {
+        v_StaticCellInfo := cs_StaticCellInfo_FDD(v_CellInfo.CellIds.PhysicalCellId,
+                                                  v_CellInfo.Frequency.FrequencyBandIndicator,
+                                                  v_CellInfo.Frequency.UL_DL_Earfcn.dl_CarrierFreq,
+                                                  v_CellInfo.Frequency.UL_DL_Earfcn.ul_CarrierFreq,
+                                                  v_CellInfo.Frequency.DL_ChBandwidth,
+                                                  v_CellInfo.Frequency.UL_ChBandwidth,
+                                                  v_CellInfo.CellTimingInfo.Tcell,       /* @sic R5s100029 change 3 sic@ */
+                                                  v_CellInfo.CellTimingInfo.SfnOffset);  /* @sic R5s100029 change 3 sic@ */
+      }
+
+      case (TDD) {
+        v_StaticCellInfo := cs_StaticCellInfo_TDD (v_CellInfo.CellIds.PhysicalCellId,
+                                                   v_CellInfo.Frequency.FrequencyBandIndicator,
+                                                   v_CellInfo.Frequency.UL_DL_Earfcn.dl_CarrierFreq,
+                                                   v_CellInfo.Frequency.DL_ChBandwidth, // @sic R5s100190 sic@
+                                                   v_CellInfo.CellTimingInfo.Tcell,   // @sic R5s100513 sic@
+                                                   v_CellInfo.CellTimingInfo.SfnOffset,   // @sic R5s100513 sic@
+                                                   v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.tdd_Config);
+      }
+    }
+
+    if (f_EUTRA_DlCcchMsgInSeparateMacPdu()) {     /* @sic R5-120721 change 3 sic@ */
+      v_ContentionResolution_ContainedRlcPdu := cs_ContentionResolution_RlcPdu_None;
+    } else {
+      v_RrcConnSetup := f_EUTRA_508_RRCConnectionSetup(p_CellId);
+      v_EncodedRrcConnSetup := f_RRC_DL_CCCH_Encvalue(v_RrcConnSetup);
+      v_ContentionResolution_ContainedRlcPdu := cs_ContentionResolution_RlcPdu(v_EncodedRrcConnSetup);
+    }
+
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_CellConfig_Def_REQ(p_CellId,
+                                                                 cs_TimingInfo_Now,
+                                                                 v_StaticCellInfo,
+                                                                 v_SiSchedul,
+                                                                 v_CellInfo,
+                                                                 v_ContentionResolution_ContainedRlcPdu));
+    if (f_TestcaseIsL2Testcase() or f_TestcaseIsDrbTestcase()) {     /* @sic R5s100135, R5-106675 change 1 sic@ */
+      f_EUTRA_SS_CommonL1MacIndCtrlConfig(p_CellId, cas_HarqErrorIndication_REQ(p_CellId));
+    }
+  }
+
+  function f_SS_ConfigActiveCellInfo(EUTRA_CellId_Type p_CellId,
+                                     template (value) TimingInfo_Type p_TimingInfo,
+                                     template (value) ActiveCellConfig_Type p_ActiveCellConfig) runs on EUTRA_PTC
+  {
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_ActiveCellConfig_REQ(p_CellId, p_TimingInfo, p_ActiveCellConfig));
+  }
+
+  function f_EUTRA_SS_ConfigRachPreambleIndMode(EUTRA_CellId_Type p_CellId,
+                                                L1Mac_IndicationMode_Type p_RachPreambleMode) runs on EUTRA_PTC
+  {
+    f_EUTRA_SS_CommonL1MacIndCtrlConfig(p_CellId, cas_RachPreambleIndConfig_REQ (p_CellId, p_RachPreambleMode));
+  }
+
+  function f_EUTRA_SS_ConfigRachProcedure(EUTRA_CellId_Type p_CellId,
+                                          template (omit) C_RNTI p_CRNTI,
+                                          template (value) RachProcedureConfig_Type p_RachProcedureConfig,
+                                          template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,  // @sic R5s100178 sic@
+                                          template (omit) boolean p_CnfFlag := omit) runs on EUTRA_PTC
+  { /* @sic R5s100801, R5s110634 addtional changes: optional parameter p_CnfFlag sic@ */
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_RachProcedureConfig_REQ(p_CellId, p_CRNTI, p_RachProcedureConfig, p_TimingInfo, p_CnfFlag));
+  }
+
+  function f_RRC_DL_CCCH_Encvalue(template (value) DL_CCCH_Message p_CCCH_Message) return octetstring
+  {
+    var bitstring v_Bitstring := encvalue(p_CCCH_Message);
+    var octetstring v_Octetstring := bit2oct(f_OctetAlignedBitString(v_Bitstring));
+    return v_Octetstring;
+  }
+
+  function f_EUTRA_508_RRCConnectionSetup(EUTRA_CellId_Type p_CellId,
+                                          RRC_TransactionIdentifier p_RRC_TI := tsc_RRC_TI_Def,
+                                          TimeAlignmentTimer p_TimeAlignmentTimer := sf750) runs on EUTRA_PTC return template (value) DL_CCCH_Message
+  { /* @sic function introduced for implementation of R5-120721 change 3 sic@ */
+    var EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info(p_CellId);
+    var SR_PUCCH_ResourceIndex_Type v_Sr_PUCCH_ResourceIndex := f_EUTRA_CellInfo_GetSR_PUCCH_ResourceIndex(p_CellId);
+    var PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated(p_CellId);
+    var SR_ConfigIndex_Type v_SR_ConfigIndex := f_EUTRA_CellInfo_GetSR_ConfigIndex(p_CellId);
+
+    return cs_508_RRCConnectionSetup(p_RRC_TI,
+                                     v_EUTRA_FDD_TDD_Info.pucch_Config,
+                                     v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,        // @sic R5-120497 sic@
+                                     v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,    // @sic R5-120497 sic@
+                                     v_Sr_PUCCH_ResourceIndex,
+                                     v_AntennaInfo,
+                                     v_SR_ConfigIndex,
+                                     p_TimeAlignmentTimer);
+  }
+
+  function f_EUTRA_SS_ConfigRachProcedure_Def(EUTRA_CellId_Type p_CellId,
+                                              template (omit) C_RNTI p_CRNTI := omit,
+                                              template (omit) RACH_ConfigCommon_Type p_RACH_ConfigCommon := omit,
+                                              template (omit) RACH_TimingAdvance_Type p_RAR_TA := omit,
+                                              template (omit) DL_CCCH_Message p_DL_CCCH_Message := omit,
+                                              template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                              template (omit) boolean p_CnfFlag := omit) runs on EUTRA_PTC
+  { /* p_RAR_TA            if omit, the TA is taken from the configuration of the given cell
+     * p_DL_CCCH_Message   if omit, depending on the test case attribute 'DlCcchMsgInSeparateMacPdu'
+     *                              either there is no DL CCCH msg sent together with the contention resolution MAC-CE
+     *                              or the default RRC Conection Setup is sent together with the contention resolution MAC-CE  @sic acc. to R5s100029 change 3 sic@ */
+    var Dl_Bandwidth_Type v_Dl_Bandwidth := f_EUTRA_CellInfo_GetDL_ChBandwidth(p_CellId);
+    var RACH_TimingAdvance_Type v_RAR_TA;
+    var octetstring v_EncodedDlCcchMsg;
+    var template (value) ContentionResolution_ContainedRlcPdu_Type v_ContentionResolution_ContainedRlcPdu;
+    var template (omit) DL_CCCH_Message v_DL_CCCH_Message := omit;
+    
+    if (isvalue(p_RAR_TA)) {
+      v_RAR_TA := valueof(p_RAR_TA);
+    } else {
+      v_RAR_TA := f_EUTRA_CellInfo_GetRAR_TA(p_CellId);
+    }
+    
+    if (isvalue(p_DL_CCCH_Message)) {
+      v_DL_CCCH_Message := p_DL_CCCH_Message;
+    }
+    else if (not f_EUTRA_DlCcchMsgInSeparateMacPdu()) {
+      v_DL_CCCH_Message := f_EUTRA_508_RRCConnectionSetup(p_CellId);
+    }
+    if (isvalue(v_DL_CCCH_Message)) {
+      v_EncodedDlCcchMsg := f_RRC_DL_CCCH_Encvalue(valueof(v_DL_CCCH_Message));
+      v_ContentionResolution_ContainedRlcPdu := cs_ContentionResolution_RlcPdu(v_EncodedDlCcchMsg);
+    } else {
+      v_ContentionResolution_ContainedRlcPdu := cs_ContentionResolution_RlcPdu_None;
+    }
+
+    f_EUTRA_SS_ConfigRachProcedure (p_CellId,
+                                    p_CRNTI,
+                                    cs_RachProcedureConfig_Def(p_RACH_ConfigCommon,
+                                                               v_RAR_TA,
+                                                               v_Dl_Bandwidth,
+                                                               v_ContentionResolution_ContainedRlcPdu),
+                                    p_TimingInfo,
+                                    p_CnfFlag);
+  }
+
+  function fl_EUTRA_ChangeCellAttenuation(EUTRA_CellId_Type p_CellId,
+                                          AbsoluteCellPower_Type p_NewPowerLevel) runs on EUTRA_PTC return Attenuation_Type
+  {
+    var ReferenceCellPower_Type v_CurrentCellPower := f_EUTRA_CellInfo_GetCellPower(p_CellId);
+    var AbsoluteCellPower_Type v_CurrentRefPowerLevel := v_CurrentCellPower.MaxReferencePower;
+    var Attenuation_Type v_Attenuation;
+    var integer v_AttenuationValue;
+
+    if (p_NewPowerLevel == tsc_NonSuitableOffCellRS_EPRE) {
+      v_Attenuation.Off := true;
+    } else {
+      v_AttenuationValue := v_CurrentRefPowerLevel - p_NewPowerLevel;  // v_CurrentRefPowerLevel and p_NewPowerLevel both are negative values
+
+      if (v_AttenuationValue < 0) {  // i.e. |p_NewPowerLevel| < |v_CurrentRefPowerLevel|
+        FatalError (__FILE__, __LINE__, "Initial reference power has invalid value");
+      } else {
+        v_Attenuation.Value := v_AttenuationValue;
+      }
+    }
+
+    v_CurrentCellPower.Attenuation := v_Attenuation;
+    f_EUTRA_CellInfo_SetCellPower(p_CellId, v_CurrentCellPower);
+
+    return v_Attenuation;
+  }
+
+  type record CellPower_Type {                  /* @status    APPROVED */
+    EUTRA_CellId_Type CellId,
+    AbsoluteCellPower_Type NewPowerLevel
+  };
+
+  type record length(1..tsc_EUTRA_MaxNumberOfCells) of CellPower_Type CellPowerList_Type;       /* used together with f_EUTRA_SetCellPowerList
+                                                                                                   @status    APPROVED */
+
+  template (value) CellPower_Type cs_CellPower(EUTRA_CellId_Type p_CellId,
+                                               AbsoluteCellPower_Type p_NewPowerLevel) :=
+  { /* @status    APPROVED */
+    CellId := p_CellId,
+    NewPowerLevel := p_NewPowerLevel
+  }
+
+  function f_EUTRA_TimingOtherCell(EUTRA_CellId_Type p_CellId1,
+                                   template (value) TimingInfo_Type p_TimingInfo1,
+                                   EUTRA_CellId_Type p_CellId2) runs on EUTRA_PTC return template (value) TimingInfo_Type
+  {
+    const integer tsc_Tf := 307200;   // frame duration Tf = 307200 * Ts = 10ms; System Time Unit Ts = 1/(15000 * 2048)
+
+    var SubFrameTiming_Type v_SubFrameTiming;
+    var SubFrameNumber_Type v_SubFrameNumber;
+    var SystemFrameNumber_Type v_SFN;
+    var CellTimingInfo_Type v_CellTimingInfo1;
+    var CellTimingInfo_Type v_CellTimingInfo2;
+    var integer v_SystemTimeUnits;
+    var integer v_Subframes;
+
+    if (not f_TimingInfo_IsNow(p_TimingInfo1)) {
+      v_SubFrameTiming := valueof(p_TimingInfo1.SubFrame);
+      if (ischosen(v_SubFrameTiming.SFN.Any) or ischosen(v_SubFrameTiming.Subframe.Any)) {
+        FatalError(__FILE__, __LINE__, "cannot convert any SFN or any subframe for other cell");
+      }
+      v_SFN := v_SubFrameTiming.SFN.Number;
+      v_SubFrameNumber := v_SubFrameTiming.Subframe.Number;
+      v_CellTimingInfo1 := f_EUTRA_CellInfo_GetCellTimingInfo(p_CellId1);
+      v_CellTimingInfo2 := f_EUTRA_CellInfo_GetCellTimingInfo(p_CellId2);
+
+      // TimingInfo of cell 1 as SystemTimeUnits
+      v_SystemTimeUnits := ((v_SFN * 10) + v_SubFrameNumber) * tsc_Tf/10;
+      
+      // TimingInfo converted for cell 2
+      v_SystemTimeUnits := v_SystemTimeUnits                                      // SystemTimeUnits for cell 1 @sic r5s120289 sic@
+        + ((v_CellTimingInfo1.SfnOffset * tsc_Tf) + v_CellTimingInfo1.Tcell)     // subtract SNF offset and TCell of cell 1 (=> normalised time)
+        - ((v_CellTimingInfo2.SfnOffset * tsc_Tf) + v_CellTimingInfo2.Tcell);     // add SNF offset and TCell of cell 2
+      
+      v_SystemTimeUnits := (v_SystemTimeUnits + tsc_Tf * 1024) mod (tsc_Tf * 1024);  // to avoid negative values @sic r5s120289 sic@
+      v_Subframes := ((v_SystemTimeUnits * 10) + (tsc_Tf / 2)) / tsc_Tf;             // total number of subframes in cell 2 (rounded) @sic r5s120289 sic@
+      
+      v_SubFrameNumber := v_Subframes mod 10;
+      v_SFN := v_Subframes / 10;
+
+      return cs_TimingInfo(v_SFN, v_SubFrameNumber);
+    }
+    else {
+      return cs_TimingInfo_Now;
+    }
+  }
+
+  function f_EUTRA_SetCellPowerList(template (value) CellPowerList_Type p_CellPowerList,
+                                      template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now,
+                                      EUTRA_CellId_Type p_CellId := eutra_Cell_NonSpecific) runs on EUTRA_PTC
+  { /* @sic R5-110877: in context with adjusting power levels of multiple cells usage of cas_CellConfig_Power_REQ is corrected acc. to ASP documentation sic@ */
+    var integer i;
+    var boolean v_CnfFlag;
+    var CellPower_Type v_CellPower;
+    var template (value) CellAttenuationList_Type v_CellAttenuationList;
+
+    v_CnfFlag := f_TimingInfo_IsNow(p_TimingInfo);
+
+    if (v_CnfFlag and (p_CellId != eutra_Cell_NonSpecific)) {
+      FatalError(__FILE__, __LINE__, "p_CellId shall be eutra_Cell_NonSpecific when p_TimingInfo is cs_TimingInfo_Now");
+    }
+    if (not v_CnfFlag and (p_CellId == eutra_Cell_NonSpecific)) {
+      FatalError(__FILE__, __LINE__, "p_CellId shall refer to cell related to given p_TimingInfo");
+    }
+    
+    for (i:=0; i<lengthof(p_CellPowerList); i:=i+1) {
+      v_CellPower := valueof(p_CellPowerList[i]);   // valueof cannot be avoided here
+      v_CellAttenuationList[i].CellId := v_CellPower.CellId;
+      v_CellAttenuationList[i].Attenuation := fl_EUTRA_ChangeCellAttenuation(v_CellPower.CellId, v_CellPower.NewPowerLevel);
+      
+      if (v_CnfFlag) { v_CellAttenuationList[i].TimingInfo := omit; }
+      else           { v_CellAttenuationList[i].TimingInfo := f_EUTRA_TimingOtherCell(p_CellId, p_TimingInfo, v_CellPower.CellId); }  // @sic R5w110207 sic@
+    }
+
+    SYS.send( cas_CellConfig_Power_REQ(v_CellAttenuationList, p_TimingInfo, p_CellId, v_CnfFlag));
+    if (v_CnfFlag) {
+      SYS.receive(car_CellConfig_Power_CNF);
+    }
+  }
+
+  function f_EUTRA_SetCellPower(EUTRA_CellId_Type p_CellId,
+                                AbsoluteCellPower_Type p_NewPowerLevel,
+                                template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) runs on EUTRA_PTC
+  { /* @sic R5-110877: in context with adjusting power levels of multiple cells usage of cas_CellConfig_Power_REQ is corrected acc. to ASP documentation sic@ */
+    var template (value) CellPowerList_Type v_CellPowerList := { cs_CellPower(p_CellId, p_NewPowerLevel) };
+    var EUTRA_CellId_Type v_ReferenceCellId;
+
+    if (f_TimingInfo_IsNow(p_TimingInfo)) {
+      v_ReferenceCellId := eutra_Cell_NonSpecific;
+    } else {
+      v_ReferenceCellId := p_CellId;
+    }
+    f_EUTRA_SetCellPowerList(v_CellPowerList, p_TimingInfo, v_ReferenceCellId);
+  }
+
+  function f_EUTRA_StartDefULGrantTransmission(EUTRA_CellId_Type p_CellId,
+                                               template (value) TimingInfo_Type p_TimingInfo := cs_TimingInfo_Now) runs on EUTRA_PTC
+  {
+    var template (value) PUCCH_Synch_Type v_PUCCH_Synch := cs_PUCCH_Synch_Auto_Def; // @sic R5-101177, R5-101178, R5-101050 sic@
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_ULGrantAllocation_Def_REQ (p_CellId, p_TimingInfo, v_PUCCH_Synch));
+  }
+
+  function f_EUTRA_StopULGrantTransmission(EUTRA_CellId_Type p_CellId,
+                                           template (value) TimingInfo_Type p_TimingInfo) runs on EUTRA_PTC
+  {
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_ULGrantAllocation_Stop_REQ (p_CellId, p_TimingInfo));
+  }
+
+  function f_EUTRA_ReleaseAllCells() runs on EUTRA_PTC
+  { /* @sic R5-103847: new function to release all cells in one go (replacing f_EUTRA_ReleaseCells and f_EUTRA_ReleaseCell) sic@  */
+    var EUTRA_CellId_Type v_CellId := eutra_Cell_NonSpecific;
+    SYS.send(cas_ReleaseCell_REQ(v_CellId, cs_TimingInfo_Now));
+    // cas_ReleaseCell_REQ requires no confirmation
+  }
+
+}

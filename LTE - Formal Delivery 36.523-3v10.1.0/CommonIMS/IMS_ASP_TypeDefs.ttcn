@@ -1,0 +1,144 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-07 21:23:45 +0200 (Tue, 07 Aug 2012) $
+// $Rev: 7104 $
+/******************************************************************************/
+
+module IMS_ASP_TypeDefs {
+  import from CommonDefs all;
+  import from LibSip_SIPTypesAndValues all;
+  import from IP_ASP_TypeDefs all;
+
+  //****************************************************************************
+  // Data ASPs
+  //****************************************************************************
+
+  type enumerated IMS_ProtectedUnprotected_Type {protected, unprotected};
+
+  type record IMS_RoutingInfo_Type {
+    IMS_ProtectedUnprotected_Type       Security,              // protected or unprotected
+    InternetProtocol_Type               Protocol,              // UDP or TCP
+    IP_AddrInfo_Type                    UE_Address optional,   // sent by the IP PTC when there is an initial request on unprotected connection
+    IP_AddrInfo_Type                    NW_Address optional    // sent by the IP PTC when there is an initial request on unprotected connection
+  };
+
+  type union IMS_Request_Type {
+    REGISTER_Request            Register,
+    INVITE_Request              Invite,
+    OPTIONS_Request             Options,
+    BYE_Request                 Bye,
+    CANCEL_Request              Cancel,
+    ACK_Request                 Ack,
+    PRACK_Request               Prack,
+    NOTIFY_Request              Notify,
+    SUBSCRIBE_Request           Subscribe,
+    PUBLISH_Request             Publish,
+    UPDATE_Request              Update,
+    REFER_Request               Refer,
+    MESSAGE_Request             Message
+  };
+
+  type Response IMS_Response_Type; // Alias for 'Response' as defined in LibSip_SIPTypesAndValues
+
+  type record IMS_DATA_REQ {
+    IMS_RoutingInfo_Type        RoutingInfo,
+    IMS_Request_Type            Request
+  };
+
+  type record IMS_DATA_RSP {
+    IMS_RoutingInfo_Type        RoutingInfo,
+    IMS_Response_Type           Response
+  };
+
+  //****************************************************************************
+  // Configuration ASPs and common definitions
+  //****************************************************************************
+
+  type record IMS_UnprotectedPorts_Type {
+    PortNumber_Type     Port_us,                // UE side: 5060 per default; may be set to other value by initial request (REGISTER) by the UE
+    PortNumber_Type     Port_ps                 // network side: 5060 (without choice)
+  };
+
+  type record IMS_ProtectedPorts_Type {
+    PortNumber_Type     Port_us,                // UE side: Server
+    PortNumber_Type     Port_uc,                // UE side: Client
+    PortNumber_Type     Port_ps,                // network side: Server
+    PortNumber_Type     Port_pc                 // network side: Client
+  };
+
+  type record IMS_SPIs_Type {
+    IPsec_SPI_Type      SPI_us,                 // SPI at UE side: assigned by the UE
+    IPsec_SPI_Type      SPI_uc,                 // SPI at UE side: assigned by the UE
+    IPsec_SPI_Type      SPI_ps  optional,       // SPI at network side: to be assigned by TTCN
+    IPsec_SPI_Type      SPI_pc  optional        // SPI at network side: to be assigned by TTCN
+  };
+
+  type record IMS_SecurityInfo_Type {
+    IP_AddrInfo_Type                    NW_Address,             // network address of the chosen IMS server (e.g. IPv4, IPv6)
+    IP_AddrInfo_Type                    UE_Address,             // UE address as used for security protected connections
+    IMS_ProtectedPorts_Type             ProtectedPorts,
+    IMS_SPIs_Type                       SPIs,
+    IPsec_IntegrityAlgorithm_Type       IntegrityAlgorithm,
+    IPsec_CipheringAlgorithm_Type       CipheringAlgorithm
+  };
+
+  type record IMS_PortsAndSecurityConfigReq_Type {
+    PortNumber_Type                     UnprotectedPort_us  optional,    // 5060 per default
+    IMS_SecurityInfo_Type               SecurityInfo
+  };
+
+  type record IMS_PortsAndSecurityConfigCnf_Type {
+    IMS_ProtectedPorts_Type             ProtectedPorts,
+    IMS_SPIs_Type                       SPIs
+  };
+
+  type union IMS_CONFIG_REQ {
+    IPsec_SecurityKeys_Type             InstallKey,
+    IMS_PortsAndSecurityConfigReq_Type  PortsAndSecurityConfig
+  };
+
+  type union IMS_CONFIG_CNF {
+    Null_Type                           InstallKey,
+    IMS_PortsAndSecurityConfigCnf_Type  PortsAndSecurityConfig
+  };
+
+  //****************************************************************************
+  // Port definitions
+  //****************************************************************************
+
+  type port IMS_IP_CTRL_PORT message {          // Control port at the IMS PTC to configure IP for IMS
+    out IMS_CONFIG_REQ;
+    in  IMS_CONFIG_CNF;
+  };
+
+  type port IP_IMS_CTRL_PORT message {          // Control port at the IP PTC to get configuration from IMS
+    out IMS_CONFIG_CNF;
+    in  IMS_CONFIG_REQ;
+  };
+
+  type port IMS_IP_CLIENT_PORT message {        // IMS client: send requests, receive response
+    out IMS_DATA_REQ;
+    in  IMS_DATA_RSP;
+  };
+
+  type port IP_IMS_CLIENT_PORT message {        // counter part for the IMS client at the IP PTC: receive requests, send response
+    out IMS_DATA_RSP;
+    in  IMS_DATA_REQ;
+  };
+
+  type port IMS_IP_SERVER_PORT message {        // IMS server: send response, receive requests
+    out IMS_DATA_RSP;
+    in  IMS_DATA_REQ;
+  };
+
+  type port IP_IMS_SERVER_PORT message {        // counter part for the IMS server at the IP PTC: receive response, send requests
+    out IMS_DATA_REQ;
+    in  IMS_DATA_RSP;
+  };
+
+}

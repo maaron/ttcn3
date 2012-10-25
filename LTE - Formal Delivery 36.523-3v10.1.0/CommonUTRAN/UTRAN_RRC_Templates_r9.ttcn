@@ -1,0 +1,229 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:33:38 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7241 $
+/******************************************************************************/
+
+module UTRAN_RRC_Templates_r9 {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_RRC_CommonTemplates all;
+  import from UTRAN_RRC_Templates all;
+
+  template (value) DL_AddReconfTransChInformation_r9 cs_DL_AddReconfTransChInfo_r9(TransportChannelIdentity p_DlTrChId,
+                                                                                   TransportChannelIdentity p_UlTrChId,
+                                                                                   template (omit) QualityTarget p_QualityTarget := cs_QualityTarget) :=
+  { /* @status    APPROVED */
+    dl_TransportChannelType := {
+      dch := p_DlTrChId
+    },
+    tfs_SignallingMode := {
+      sameAsULTrCH := {
+        ul_TransportChannelType := dch,
+        ul_TransportChannelIdentity := p_UlTrChId
+      }
+    },
+    dch_QualityTarget := p_QualityTarget
+  };
+
+  template (value) DL_AddReconfTransChInfoList_r9 cs_DL_AddReconfTransChInfoListDCCH_SRB_r9 :=
+  { /* @status    APPROVED */
+    cs_DL_AddReconfTransChInfo_r9(tsc_DL_DCH5, tsc_UL_DCH5)
+  };
+
+  template (value) RRCConnectionSetup_r9_IEs cs_RRCConnectionSetup_r9_IEs_FACH_FDD(U_RNTI p_U_RNTI_New,
+                                                                                   C_RNTI p_CRNTI_New) :=
+  { /* @status    APPROVED */
+    activationTime := omit,
+    new_U_RNTI := p_U_RNTI_New,
+    new_c_RNTI := p_CRNTI_New,
+    new_H_RNTI := omit,
+    newPrimary_E_RNTI := omit,
+    newSecondary_E_RNTI := omit,
+    rrc_StateIndicator := cell_FACH,
+    utran_DRX_CycleLengthCoeff := cs_UTRAN_DRX_CycleLengthCoefficient_r7,
+    capabilityUpdateRequirement := cs_CapabilityUpdateRequirement_r8_FDD,
+    supportForChangeOfUE_Capability := false,
+    defaultConfigForCellFACH := omit,
+    specificationMode := {
+      complete := {
+        srb_InformationSetupList := cs_SRB_InformationSetupList2_r8_FACH,
+        ul_CommonTransChInfo := cs_UL_CommTrChInfoDCCH_13_6k_r4_FDD,
+        ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCCH_3_4k_r8,
+        dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_FDD,
+        dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCCH_SRB_r9
+      }
+    },
+    frequencyInfo := omit,
+    multi_frequencyInfo := omit,
+    dtx_drx_TimingInfo := omit,
+    dtx_drx_Info := omit,
+    hs_scch_LessInfo := omit,
+    maxAllowedUL_TX_Power := omit,
+    ul_DPCH_Info := omit,
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := omit,
+    dl_InformationPerRL_List := omit,
+    dl_SecondaryCellInfoFDD := omit,
+    sps_Information_TDD128 := omit
+  };
+
+  template (value) RRCConnectionSetup_r9_IEs cds_RRCConnectionSetup_r9_IEs_FACH_TDD(U_RNTI p_U_RNTI_New,
+                                                                                    C_RNTI p_CRNTI_New)
+    modifies cs_RRCConnectionSetup_r9_IEs_FACH_FDD :=
+  { /* @status    APPROVED */
+    capabilityUpdateRequirement := cds_CapabilityUpdateRequirement_r8_TDD,
+    specificationMode := {
+      complete := {
+        ul_CommonTransChInfo := cs_UL_CommTrChInfoDCCH_13_6k_r4_TDD,
+        dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_TDD
+      }
+    }
+  };
+
+  template (value) RRCConnectionSetup_r9_IEs cs_RRCConnectionSetup_r9_IEs_DCH_FDD(PrimaryScramblingCode p_PrmbScrmCode,
+                                                                                  U_RNTI p_U_RNTI_New,
+                                                                                  UL_ScramblingCode p_UL_ScramblingCode) :=
+  { /* @status    APPROVED */
+    activationTime := omit,
+    new_U_RNTI := p_U_RNTI_New,
+    new_c_RNTI := omit,
+    new_H_RNTI := omit,
+    newPrimary_E_RNTI := omit,
+    newSecondary_E_RNTI := omit,
+    rrc_StateIndicator := cell_DCH,
+    utran_DRX_CycleLengthCoeff := cs_UTRAN_DRX_CycleLengthCoefficient_r7,
+    capabilityUpdateRequirement := cs_CapabilityUpdateRequirement_r8_FDD,
+    supportForChangeOfUE_Capability := false,
+    defaultConfigForCellFACH := omit,
+    specificationMode := {
+      complete := {
+        srb_InformationSetupList := cs_SRB_InformationSetupList2_r8_DCH,
+        ul_CommonTransChInfo := cs_UL_CommTrChInfoDCCH_13_6k_r4_FDD,
+        ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCCH_13_6k_r8,
+        dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_FDD,
+        dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCCH_SRB_r9
+      }
+    },
+    frequencyInfo := omit,
+    multi_frequencyInfo := omit,
+    dtx_drx_TimingInfo := omit,
+    dtx_drx_Info := omit,
+    hs_scch_LessInfo := omit,
+    maxAllowedUL_TX_Power := omit,
+    ul_DPCH_Info := cs_UL_DPCH_13_6_StandAlone_FDD(p_UL_ScramblingCode),
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := cs_DL_CommonInfoDCH_SRB_FDD(tsc_DL_DPCH1_SFP_SRB, fixed, false),
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r8_FDD(p_PrmbScrmCode, tsc_DL_DPCH1_ChC_SRB, tsc_DL_DPCH1_2ndScrC),
+    dl_SecondaryCellInfoFDD := omit,
+    sps_Information_TDD128 := omit
+  };
+
+  template (value) RRCConnectionSetup_r9_IEs cs_RRCConnectionSetup_r9_IEs_DCH_TDD(U_RNTI p_U_RNTI_New,
+                                                                                  CellParametersID p_CellParametersID) :=
+  { /* @status    APPROVED */
+    activationTime := omit,
+    new_U_RNTI := p_U_RNTI_New,
+    new_c_RNTI := omit,
+    new_H_RNTI := omit,
+    newPrimary_E_RNTI := omit,
+    newSecondary_E_RNTI := omit,
+    rrc_StateIndicator := cell_DCH,
+    utran_DRX_CycleLengthCoeff := cs_UTRAN_DRX_CycleLengthCoefficient_r7,
+    capabilityUpdateRequirement := cds_CapabilityUpdateRequirement_r8_TDD,
+    supportForChangeOfUE_Capability := false,
+    defaultConfigForCellFACH := omit,
+    specificationMode := {
+      complete := {
+        srb_InformationSetupList := cs_SRB_InformationSetupList2_r8_DCH,
+        ul_CommonTransChInfo := cs_UL_CommTrChInfoDCCH_13_6k_r4_TDD,
+        ul_AddReconfTransChInfoList := cs_UL_AddReconfTransChInfoListDCCH_13_6k_r8,
+        dl_CommonTransChInfo := cs_DL_CommonTransChInfoSameAsUL_r4_TDD,
+        dl_AddReconfTransChInfoList := cs_DL_AddReconfTransChInfoListDCCH_SRB_r9
+      }
+    },
+    frequencyInfo := omit,
+    multi_frequencyInfo := omit,
+    dtx_drx_TimingInfo := omit,
+    dtx_drx_Info := omit,
+    hs_scch_LessInfo := omit,
+    maxAllowedUL_TX_Power := omit,
+    ul_DPCH_Info := cs_UL_DPCH_13_6_StandAlone_TDD,
+    ul_EDCH_Information := omit,
+    dl_HSPDSCH_Information := omit,
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,
+    dl_InformationPerRL_List := cs_DL_InformationPerRL_r8_TDD ( p_CellParametersID, cs_DL_DPCH_InfoPerRL_SRB_TDD ),
+    dl_SecondaryCellInfoFDD := omit,
+    sps_Information_TDD128 := omit
+  };
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetup_r9(template (value) InitialUE_Identity p_InitUEId,
+                                                           RRC_TransactionIdentifier p_RRC_Ti,
+                                                           template (value) RRCConnectionSetup_r9_IEs p_RRCConnectionSetup_r9_IEs) :=
+  { /* @status    APPROVED */
+    integrityCheckInfo := omit,
+    message_ := {
+      rrcConnectionSetup := {
+        later_than_r3 := {
+          initialUE_Identity := p_InitUEId,
+          rrc_TransactionIdentifier := p_RRC_Ti,
+          criticalExtensions := {
+            criticalExtensions := {
+              criticalExtensions := {
+                criticalExtensions := {
+                  criticalExtensions := {
+                    criticalExtensions := {
+                      r9 := {
+                        rrcConnectionSetup_r9 := p_RRCConnectionSetup_r9_IEs,
+                        rrcConnectionSetup_r9_add_ext := omit,
+                        v950NonCriticalExtensions := omit
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetupFACH_r9_FDD(template (value) InitialUE_Identity p_InitUEId,
+                                                                   RRC_TransactionIdentifier p_RRC_Ti,
+                                                                   U_RNTI p_U_RNTI_New,
+                                                                   C_RNTI p_CRNTI_New) :=
+    /* @status    APPROVED */
+    cs_108_RRC_ConnSetup_r9(p_InitUEId, p_RRC_Ti, cs_RRCConnectionSetup_r9_IEs_FACH_FDD(p_U_RNTI_New, p_CRNTI_New));
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetupFACH_r9_TDD(template (value) InitialUE_Identity p_InitUEId,
+                                                                   RRC_TransactionIdentifier p_RRC_Ti,
+                                                                   U_RNTI p_U_RNTI_New,
+                                                                   C_RNTI p_CRNTI_New) :=
+    /* @status    APPROVED */
+    cs_108_RRC_ConnSetup_r9(p_InitUEId, p_RRC_Ti, cds_RRCConnectionSetup_r9_IEs_FACH_TDD(p_U_RNTI_New, p_CRNTI_New));
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetupDCH_r9_FDD(template (value) InitialUE_Identity p_InitUEId,
+                                                                  RRC_TransactionIdentifier p_RRC_Ti,
+                                                                  PrimaryScramblingCode p_PrmbScrmCode,
+                                                                  U_RNTI p_U_RNTI_New,
+                                                                  UL_ScramblingCode p_UL_ScramblingCode) :=
+    /* @status    APPROVED */
+    cs_108_RRC_ConnSetup_r9(p_InitUEId, p_RRC_Ti, cs_RRCConnectionSetup_r9_IEs_DCH_FDD(p_PrmbScrmCode, p_U_RNTI_New, p_UL_ScramblingCode));
+
+  template (value) DL_CCCH_Message cs_108_RRC_ConnSetupDCH_r9_TDD(template (value) InitialUE_Identity p_InitUEId,
+                                                                  RRC_TransactionIdentifier p_RRC_Ti,
+                                                                  U_RNTI p_U_RNTI_New,
+                                                                  CellParametersID p_CellParametersID) :=
+    /* @status    APPROVED */
+    cs_108_RRC_ConnSetup_r9(p_InitUEId, p_RRC_Ti, cs_RRCConnectionSetup_r9_IEs_DCH_TDD(p_U_RNTI_New, p_CellParametersID));
+
+}

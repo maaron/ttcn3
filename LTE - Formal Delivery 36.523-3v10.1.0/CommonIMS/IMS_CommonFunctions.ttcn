@@ -1,0 +1,160 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-07 21:23:45 +0200 (Tue, 07 Aug 2012) $
+// $Rev: 7104 $
+/******************************************************************************/
+
+module IMS_CommonFunctions {
+
+  import from CommonDefs all;
+  import from IP_ASP_TypeDefs all;
+  import from IMS_ASP_TypeDefs all;
+  import from IMS_ASP_Templates all;
+  import from NAS_AuthenticationCommon all;
+  import from LibSip_SIPTypesAndValues all;
+  import from IMS_SIP_Templates all;
+
+  //****************************************************************************
+  // security/authentication functions:
+  //----------------------------------------------------------------------------
+
+   // functions to calculate the MD5 Message-Digest Algorithm according to RFC 1321
+  external function fx_MD5_Hex(octetstring p_Data) return octetstring;
+
+  /**
+   * Desc: Convert a bitstring into its Base64 representation
+   * Adapted from Java Base64 implementation in en.wikibooks.org
+   */
+  function f_Bitstring2Base64 (bitstring p_Bitstring) return charstring
+  {
+    const charstring tsc_Base64Table :=   // The 64 encoding characters
+      "ABCDEFGHIJKLMNOP" &
+      "QRSTUVWXYZabcdef" &
+      "ghijklmnopqrstuv" &
+      "wxyz0123456789+/";
+    var octetstring v_S := bit2oct(p_Bitstring); // String to be encoded
+    var bitstring v_BS;
+    var charstring v_R := ""; // Result encoded string
+    var charstring v_P := ""; // Padding
+    var integer v_C := lengthof(v_S) mod 3;
+    var integer v_Idx;
+
+    // Add right zero pad to make string a multiple of 3 characters
+    if (v_C > 0){
+      while(v_C < 3){
+        v_P := v_P & "=";
+        v_S := v_S & '00'O;
+        v_C := v_C + 1;
+      }
+    }
+    // Run over the bitstring
+    v_BS := oct2bit(v_S);
+    for (v_C := 0; v_C < lengthof(v_BS) / 6; v_C := v_C + 1) {
+      v_Idx := bit2int(substr(v_BS, v_C*6, 6));
+      v_R := v_R & tsc_Base64Table[v_Idx];
+    }
+    // Now return result considering padding
+    return substr(v_R, 0, (lengthof(v_R) - lengthof(v_P))) & v_P;
+  }
+  
+  function f_GetRndTag() return charstring
+  {
+    var charstring v_Value;
+    //v_Value is initialized with a random value with at least 32 bits of randomness
+    // 4294967296 is a 32 bits integer
+    v_Value := int2str(float2int(4294967296.0 * rnd()));
+    return v_Value;
+  }
+  
+  function f_IMS_AuthenticationInit(template (value) B128_Type p_Rand,
+                                    AuthenticationError_Type p_AuthenticationError := noError) return Common_AuthenticationParams_Type
+  {
+    var Common_AuthenticationParams_Type v_AuthenticationParams := valueof(cs_CommonAuthParams_Init(p_Rand));
+    return f_AuthenticationInit(v_AuthenticationParams, p_AuthenticationError);    // as defined for NAS (NAS_AuxiliaryDefsAndFunctions)
+  }
+
+  function f_IMS_Authorization_CheckDigestResponse(CommaParam_List p_DigestResponse,
+                                                   bitstring p_XRES) return boolean
+  { // input is the comma separated parameter list: digestResponse from the Authorization header
+    // and the value of XRES calculated in ts_AuthenticationInit
+    // This function calculates the digest response (v_RequestDigest) for p_XRES according to
+    // RFC 2617 and compares it with the response received from the UE (v_Dresponse)
+    
+    var octetstring v_METHOD    := char2oct("REGISTER");
+    var octetstring v_Username  := char2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "username"));
+    var octetstring v_Realm     := char2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "realm"));
+    var octetstring v_DigestUri := char2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "uri"));
+    var octetstring v_Nonce     := char2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "nonce"));
+    var octetstring v_NC        := char2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "nc"));
+    var octetstring v_CNonce    := char2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "cnonce"));
+    var octetstring v_Qop       := char2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "qop"));
+
+    var octetstring v_Passwd    := bit2oct(p_XRES);
+    var octetstring v_Dresponse := str2oct(f_SIP_CommaParamList_GetParamValue (p_DigestResponse, "response"));
+
+    var octetstring v_Secret;
+    var octetstring v_HA2;
+    var octetstring v_Data;
+    var octetstring v_RequestDigest;
+    
+    var octetstring v_A1;
+    var octetstring v_A2;
+    var octetstring v_SecretData;
+    
+    // RFC 2617 3.2.2.2
+    // A1 = unq(username-value) ":" unq(realm-value) ":" passwd
+    v_A1 := v_Username & tsc_COLON_HEX & v_Realm & tsc_COLON_HEX & v_Passwd;
+    
+    // H(A1)
+    v_Secret := char2oct(f_StringToLower(oct2str(fx_MD5_Hex(v_A1))));
+    
+    // RFC 2617 3.2.2.3
+    // A2 = Method ":" digest-uri-value
+    v_A2 := v_METHOD & tsc_COLON_HEX & v_DigestUri;
+    v_HA2 := char2oct(f_StringToLower(oct2str(fx_MD5_Hex(v_A2))));
+    
+    // RFC 2617 3.2.2.1
+    //   unq(nonce-value)
+    //   ":" nc-value
+    //   ":" unq(cnonce-value)
+    //   ":" unq(qop-value)
+    //   ":" H(A2)
+    
+    v_Data := v_Nonce & tsc_COLON_HEX & v_NC & tsc_COLON_HEX & v_CNonce & tsc_COLON_HEX & v_Qop & tsc_COLON_HEX & v_HA2;
+    
+    //now apply KD function described in RFC 2617 section 3.2.1
+    //KD(secret, data) = H(concat(secret, ":", data))
+    v_SecretData := v_Secret & tsc_COLON_HEX & v_Data;
+    v_RequestDigest := fx_MD5_Hex(v_SecretData);
+    
+    return (v_RequestDigest == v_Dresponse);
+  }
+  
+  //****************************************************************************
+  // auxilliary functions:
+  //----------------------------------------------------------------------------
+  
+  function f_IMS_ConvertIpAddrToHostFormat(IP_AddrInfo_Type p_AddrInfo) return charstring
+  {
+    
+    var charstring v_AddrStr := "";
+    if (ischosen(p_AddrInfo.V4)) { v_AddrStr := p_AddrInfo.V4.Addr; }
+    if (ischosen(p_AddrInfo.V6)) { v_AddrStr := "[" & p_AddrInfo.V6.Addr & "]"; }
+    return v_AddrStr;
+  }
+  
+  function f_IMS_RoutingInfo_ULtoDL(IMS_RoutingInfo_Type p_RoutingInfo_UL) return template (value) IMS_RoutingInfo_Type
+  { /* return routing information for DL data corresponding to the routing information received in UL;
+       NOTE: in DL we never send any IP addresses */
+    return cs_IMS_RoutingInfo(p_RoutingInfo_UL.Security,
+                              p_RoutingInfo_UL.Protocol,
+                              p_RoutingInfo_UL.UE_Address,   // may be omit
+                              p_RoutingInfo_UL.NW_Address);  // may be omit
+  }
+  
+}

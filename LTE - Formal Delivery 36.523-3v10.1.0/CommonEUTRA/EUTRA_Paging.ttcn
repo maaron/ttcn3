@@ -1,0 +1,375 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module EUTRA_Paging {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_Timing all;
+  import from Parameters all;
+
+  const integer tsc_SfnDelay := 13;     /* @desc tsc_SfnDelay: Delay for calculation of the next paging frame.
+                                         *       Value set to 10+3 to give a minimum of 100ms (Ref: 36-523-3 cl. 7.3) to allow SS to configure the PAGING
+                                         *       and also to calculate for possible delay in SS & TTCN (30ms).
+                                         * @status    APPROVED */
+
+  const integer tsc_SfnDelayConnected := 256;     /* @desc tsc_SfnDelayConnected: Delay for calculation of the next paging frame when UE is in connected mode.
+                                                   *       Value set to 256 to give a minimum of 2560ms (2*PagingCycle) to allow SS to configure the PAGING
+                                                   *       and also to calculate for possible delay in SS & TTCN.
+                                                   * @status    APPROVED */
+
+  template (value) PagingUE_Identity cs_PagingUE_Identity_S_TMSI(MMEC p_Mmec,
+                                                                 M_TMSI_Type p_M_Tmsi) :=
+  { /* @status    APPROVED */
+    s_TMSI := {
+      mmec := p_Mmec,
+      m_TMSI := p_M_Tmsi
+    }
+  };
+
+  template (value) PagingRecordList cs_NasPaging_OneRecord(template (value) PagingUE_Identity p_PagingUE_Identity) :=
+  { /* @status    APPROVED */
+    {
+      ue_Identity := p_PagingUE_Identity,
+      cn_Domain := ps
+    }
+  };
+
+  template (value) PagingRecordList cs_DomainNasPaging_OneRecord(template (value) PagingUE_Identity p_PagingUE_Identity,
+                                                                   CN_Domain_Type                     p_Cn_Domain) :=
+  { /* @status    APPROVED */
+    {
+      ue_Identity := p_PagingUE_Identity,
+      cn_Domain := p_Cn_Domain
+    }
+  };
+
+  template (value) PCCH_Message cs_RRC_Paging(template (omit)  PagingRecordList p_PagingRecordList,
+                                              template (omit)  Paging_SystemInfoModification_Type p_SystemInfoModification,
+                                              template (omit)  Paging_ETWS_Indication p_EtwsIndication := omit,
+                                              template (omit)  Paging_v890_IEs p_CMAS_Paging := omit) :=
+  { /* @status    APPROVED */
+  
+    message_ := {
+      c1 := {
+        paging := {
+          pagingRecordList := p_PagingRecordList,
+          systemInfoModification := p_SystemInfoModification,
+          etws_Indication := p_EtwsIndication,   // @sic R5-112161: add p_EtwsIndication parameter sic@
+          nonCriticalExtension := p_CMAS_Paging    // @sic R5-121854 sic@
+        }
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_CellConfig_Paging_REQ_Common(EUTRA_CellId_Type                          p_CellId,
+                                                                      template (value) SubFrameTiming_Type p_PagingOccassion,
+                                                                      template (value) PCCH_Message        p_PCCH_Message,
+                                                                      template (omit)  Paging_SubframeOffsetList_Type p_SubframeOffsetList := omit) :=
+  { /* @status    APPROVED */
+    /*  @sic R5-110803 change 4: new parameter  sic@ */
+    Common := {
+      CellId := p_CellId,
+      RoutingInfo := { None := true },
+      TimingInfo := {
+        SubFrame := p_PagingOccassion
+      },
+      ControlInfo := {
+        CnfFlag := false,         /* @sic R5s100135 sic@ */
+        FollowOnFlag := false
+      }
+    },
+    Request := {
+      Paging := {
+        Paging := p_PCCH_Message,
+        SubframeOffsetList := p_SubframeOffsetList
+      }
+    }
+  };
+
+  template (value) SYSTEM_CTRL_REQ cas_CellConfig_Paging_REQ(EUTRA_CellId_Type                          p_CellId,
+                                                             template (value) SubFrameTiming_Type p_PagingOccassion,
+                                                             template (value) PagingRecordList    p_PagingRecordList) :=
+    /* @status    APPROVED */
+    cas_CellConfig_Paging_REQ_Common( p_CellId, p_PagingOccassion, cs_RRC_Paging( p_PagingRecordList, omit));
+
+  template (value) SYSTEM_CTRL_REQ cas_CellConfig_PagingSysinfoMod_REQ(EUTRA_CellId_Type                          p_CellId,
+                                                                       template (value) SubFrameTiming_Type p_PagingOccassion,
+                                                                       template (omit) PagingRecordList     p_PagingRecordList,
+                                                                       template (omit)  Paging_SubframeOffsetList_Type p_SubframeOffsetList := omit,
+                                                                       template (omit)  Paging_SystemInfoModification_Type p_SystemInfoModification := true_,
+                                                                       template (omit)  Paging_ETWS_Indication p_EtwsIndication := omit,
+                                                                       template (omit)  Paging_v890_IEs p_CMAS_Paging := omit) :=   // @sic R5-121854 sic@
+  /* @status    APPROVED */
+  /* @sic R5-110803 change 4: new parameter  sic@ */
+    cas_CellConfig_Paging_REQ_Common( p_CellId, p_PagingOccassion, cs_RRC_Paging( p_PagingRecordList, p_SystemInfoModification, p_EtwsIndication, p_CMAS_Paging), p_SubframeOffsetList);
+
+  function f_EUTRA_GetPagingCycleValue(DefaultPagingCycle_Type p_PagingCycle) return integer
+  {
+    var integer v_PagingCycleValue;
+
+    select (p_PagingCycle) {
+      case (rf32) { v_PagingCycleValue := 32; }
+      case (rf64) { v_PagingCycleValue := 64; }
+      case (rf128) { v_PagingCycleValue := 128;}
+      case (rf256) { v_PagingCycleValue := 256;}
+      case else {  FatalError(__FILE__, __LINE__, "PagingCycle has unrecognizable value");}
+    }
+    return v_PagingCycleValue;
+  }
+
+  function f_EUTRA_Calculate_PF_PO(SystemFrameNumber_Type  p_Sfn,
+                                   DefaultPagingCycle_Type p_T,
+                                   PCCH_Config.nB          p_Nb,
+                                   hexstring               p_Imsi,
+                                   EUTRA_FDD_TDD_Mode_Type p_Fdd_Tdd) return SubFrameTimingList_Type
+  {
+    var integer v_T := 0;//Range of DRX values 32, 64, 128, 256 radioframes. The UE specific DRX parameter, if allocated and having shorter DRX than T, shall override T
+    var integer v_Nb := 0;//4T, 2T, T, 1/2T, 1/4T, 1/8T, 1/16T, 1/32T
+    var integer v_N := 0;//min(T,nB)
+    var integer v_Ns := 0;//max(1,nB/T)
+    var charstring v_Imsi_String := hex2str(p_Imsi);
+    var integer v_Imsi_Integer := str2int(v_Imsi_String);
+    var integer v_Ue_Id := v_Imsi_Integer mod 1024;
+    var SubFrameNumber_Type v_Po := 0;
+    var SubFrameTimingList_Type v_PagingOccasionList;
+    var integer v_SfnModT;
+    var integer v_NextSfn := (p_Sfn + tsc_SfnDelay) mod 1024;
+    var integer v_FirstPagingFrame;
+    var integer v_I_s;//i_s = floor(UE_ID/N) mod Ns
+    var integer v_I3;
+    var integer v_NextPagingFrame;
+
+    //* @desc Derive integer type T from enumerated type defaultPagingCycle
+    v_T := f_EUTRA_GetPagingCycleValue(p_T);
+
+    //* @desc Calculate integer type nB based on enumerated type p_Nb and integer type T
+    select (p_Nb) {
+      case (fourT) {
+        v_Nb := 4*v_T;
+      }
+      case (twoT) {
+        v_Nb := 2*v_T;
+      }
+      case (oneT) {
+        v_Nb := v_T;
+      }
+      case (halfT) {
+        v_Nb := v_T/2;
+      }
+      case (quarterT) {
+        v_Nb := v_T/4;
+      }
+      case (oneEighthT) {
+        v_Nb := v_T/8;
+      }
+      case (oneSixteenthT) {
+        v_Nb := v_T/16;
+      }
+      case (oneThirtySecondT) {
+        v_Nb := v_T/32;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "Provided value for nB is unrecognizable");
+      }
+    }
+
+    //* @desc Derive N and Ns based on values on nB and T
+    if (v_T <= v_Nb) { v_N := v_T } else { v_N := v_Nb }
+    if (1 >= ( v_Nb/v_T)) { v_Ns := 1 } else { v_Ns := v_Nb/v_T }
+
+    //* @desc Calculate next available PF based on v_NextSfn and SFN mod T = (T div N)*(UE_ID mod N)
+    v_SfnModT := (v_T / v_N) * (v_Ue_Id mod v_N);
+
+    if ((v_NextSfn mod v_T) < v_SfnModT) {
+      v_FirstPagingFrame := ((v_NextSfn - v_NextSfn mod v_T) + v_SfnModT) mod 1024
+    }
+    else {
+      v_FirstPagingFrame := (v_T * (((v_NextSfn - v_NextSfn mod v_T) / v_T) + 1) + v_SfnModT) mod 1024
+    }
+
+    //* @desc Calculate i_s = floor(UE_ID/N) mod Ns
+    v_I_s := (v_Ue_Id / v_N) mod v_Ns;
+
+    //* @desc Derive PO based on i_s, Ns and FDD or TDD
+    select (v_I_s) {
+      case (0) {
+        if (v_Ns == 1 and p_Fdd_Tdd == FDD) {
+          v_Po := 9;
+        }
+        else if (v_Ns == 2 and p_Fdd_Tdd == FDD) {
+          v_Po := 4;
+        }
+      }
+      case (1) {
+        if (v_Ns == 2) {
+          if (p_Fdd_Tdd == FDD) {
+            v_Po := 9;
+          }
+          else {
+            v_Po := 5;
+          }
+        }
+        else if (v_Ns == 4) {
+          if (p_Fdd_Tdd == FDD) {
+            v_Po := 4;
+          }
+          else {
+            v_Po := 1;
+          }
+        }
+        else {
+          FatalError(__FILE__, __LINE__, "PO is calculated to N/A");
+        }
+      }
+      case (2) {
+        if (v_Ns == 4) {
+          v_Po := 5;
+        }
+        else {
+          FatalError(__FILE__, __LINE__, "PO is calculated to N/A");
+        }
+      }
+      case (3) {
+        if (v_Ns == 4) {
+          if (p_Fdd_Tdd == FDD) {
+            v_Po := 9;
+          }
+          else {
+            v_Po := 6;
+          }
+        }
+        else {
+          FatalError(__FILE__, __LINE__, "PO is calculated to N/A");
+        }
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "Provided value for i_s is unrecognizable");
+      }
+    }
+
+    //* @desc Fill and save PagingOccasionList
+    for (v_I3 := 0; v_I3 < 10; v_I3 := v_I3 + 1) {
+      v_NextPagingFrame := (v_FirstPagingFrame + (v_I3*v_T) ) mod 1024;
+      v_PagingOccasionList[v_I3] := {
+        SFN  := {
+          Number := v_NextPagingFrame
+        },
+        Subframe := {
+          Number := v_Po
+        }
+      }
+    }
+
+    return v_PagingOccasionList;
+  }
+
+  function f_EUTRA_UE_Page_NoReaction(EUTRA_CellId_Type p_CellId,
+                                      template (value) PagingRecordList  p_PagingRecordList,
+                                      float p_NoReactionTimer) runs on EUTRA_PTC
+  {
+    var PCCH_Config v_SI_Pcch_Configuration;
+    var PCCH_Config.defaultPagingCycle v_PagingCycle;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Mode;
+    var SubFrameTiming_Type v_CurrentTiming;
+    var SubFrameTimingList_Type v_PoList;
+    var hexstring v_Imsi := px_IMSI_Def;
+    timer t_NoReaction;
+
+    f_Delay(tsc_EUTRA_DelayForCellSelection); // @sic R5s110306 sic@
+
+    //Derive FDD or TDD mode from Cell-configuration
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD(p_CellId);
+
+    //Derive DRX params from SYS Info
+    v_SI_Pcch_Configuration := f_EUTRA_CellInfo_GetPCCH_ConfigInSYSINFO(p_CellId);
+
+    // @sic R5s100240 : Removed derivation of UE specicif drx parameters. Calculation of smallest paging cycle is modified. sic@
+
+    //Set the Pagingcycle
+    v_PagingCycle := v_SI_Pcch_Configuration.defaultPagingCycle;
+
+    //Get current SFN and subframe
+    v_CurrentTiming := f_EUTRA_GetCurrentTiming(p_CellId);
+    
+    //Calculate next Paging Occassion
+    v_PoList := f_EUTRA_Calculate_PF_PO(v_CurrentTiming.SFN.Number, v_PagingCycle, v_SI_Pcch_Configuration.nB, v_Imsi, v_EUTRA_FDD_TDD_Mode);
+    
+    SYS.send(cas_CellConfig_Paging_REQ(p_CellId, v_PoList[0], p_PagingRecordList));
+
+    if (v_PoList[0].SFN.Number > v_CurrentTiming.SFN.Number) {
+      p_NoReactionTimer := p_NoReactionTimer + 0.01 * (int2float(v_PoList[0].SFN.Number - v_CurrentTiming.SFN.Number));
+    }
+    else {
+      p_NoReactionTimer := p_NoReactionTimer + 0.01 * (int2float(1024 - v_CurrentTiming.SFN.Number + v_PoList[0].SFN.Number));
+    }
+    
+    t_NoReaction.start(p_NoReactionTimer);
+    
+    alt { /* @sic R5s100135: CNF removed sic@ */
+      [] SRB.receive(car_SRB0_RrcPdu_IND(p_CellId, cr_508_RRCConnectionRequest))
+        {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Page NoReaction");
+        }
+      [] t_NoReaction.timeout {}
+    }
+  }
+
+  function f_EUTRA_UE_Page_Def(EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParameters := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    
+    f_EUTRA_UE_Page(p_CellId,
+                    cs_NasPaging_OneRecord(cs_PagingUE_Identity_S_TMSI(v_GutiParameters.MME_Code, v_GutiParameters.M_TMSI)));
+    // @sic R5s100398 sic@
+  }
+
+  function f_EUTRA_UE_Page(EUTRA_CellId_Type p_CellId,
+                           template (value) PagingRecordList p_PagingRecordList) runs on EUTRA_PTC
+  {
+    var PCCH_Config v_SI_Pcch_Configuration;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Mode;
+    var PCCH_Config.defaultPagingCycle v_PagingCycle;
+    var SubFrameTiming_Type v_CurrentTiming;
+    var SubFrameTimingList_Type v_PoList;
+    var hexstring v_Imsi := px_IMSI_Def;
+    
+    f_Delay(tsc_EUTRA_DelayForCellSelection); // @sic R5s110306 sic@
+    
+    //Derive FDD or TDD mode from Cell-configuration
+    v_EUTRA_FDD_TDD_Mode := f_EUTRA_CellInfo_GetFDD_TDD(p_CellId);
+    
+    //Derive DRX params from SYS Info
+    v_SI_Pcch_Configuration := f_EUTRA_CellInfo_GetPCCH_ConfigInSYSINFO(p_CellId);
+    
+    // @sic R5s100240 : Removed derivation of UE specicif drx parameters. Calculation of smallest paging cycle is modified. sic@
+    
+    //Set the Pagingcycle
+    v_PagingCycle := v_SI_Pcch_Configuration.defaultPagingCycle;
+    
+    //Get current SFN and subframe
+    v_CurrentTiming := f_EUTRA_GetCurrentTiming(p_CellId);
+    
+    //Calculate next Paging Occassion
+    v_PoList := f_EUTRA_Calculate_PF_PO(v_CurrentTiming.SFN.Number, v_PagingCycle, v_SI_Pcch_Configuration.nB, v_Imsi, v_EUTRA_FDD_TDD_Mode);
+    
+    SYS.send(cas_CellConfig_Paging_REQ(p_CellId, v_PoList[0], p_PagingRecordList));
+    
+    /* @sic R5s100135 CNF removed sic@ */
+  }
+
+}

@@ -1,0 +1,94 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2011-12-03 22:37:27 +0100 (Sat, 03 Dec 2011) $
+// $Rev: 5903 $
+/******************************************************************************/
+
+module IP_PTC_Component {
+
+  import from CommonDefs all;
+  import from IMS_ASP_TypeDefs all;
+  import from IP_ASP_TypeDefs all;
+  import from IP_PTC_CtrlMsgs all;
+
+  type record AddrServerInfo_Type {             /* @status    APPROVED */
+    charstring         ServerAddr       optional,               /* the server's address;
+                                                                   global address in case of IPv6 */
+    charstring         ClientAddr       optional,               /* IP address to be assigned to the UE via DHCP or ICMPv6;
+                                                                   global address in case of IPv6 */
+    IP_DrbInfo_Type    DrbInfo          optional                /* omit as long as a server is not started;
+                                                                   NOTE: the cell is "Any" i.e. it does not matter in terms of the server */
+  };
+
+  type record length(tsc_NoOfPDNs) of AddrServerInfo_Type IP_AddrServerArray_Type;      /* @status    APPROVED */
+
+  type record PDN_IP_AddrServer_Type {       /* @status    APPROVED */
+    IP_AddrServerArray_Type    DHCP,                            /* NOTE: this information is needed for assignment of the IP address only */
+    IP_AddrServerArray_Type    ICMPv6                           /* NOTE: this information is needed for assignment of the IP address only */
+    //IP_AddrServerArray_Type         DNS_Udp,
+    //IP_AddrServerArray_Type         DNS_Tcp
+  };
+
+  type record IMS_Server_Type {                                 /* @status    APPROVED */
+    /* !!!!! TCP !!!!! For support of TCP we need to store references of client connection to the UE, which are to be used when IMS is stopped */
+    IMS_UnprotectedPorts_Type   UnprotectedPorts,               /* Port_us, Port_ps */
+    IP_AddrInfo_Type            IPv4Addr            optional,   /* the server's IPv4 address, omit as long as the server is not started */
+    IP_AddrInfo_Type            IPv6Addr            optional,   /* the server's IPv6 address, omit as long as the server is not started */
+    IPsec_SecurityKeys_Type     SecurityKeys        optional,   /* security keys to be applied for security associations */
+    IMS_SecurityInfo_Type       SecurityInfo        optional,   /* if present => IPsec and UDP server for protected signalling are started */
+    IP_DrbInfo_Type             DrbInfo             optional    /* omit as long as the server is not started;
+                                                                 * NOTE: the cell is "Any" i.e. it does not matter in terms of the server;
+                                                                 *       nevertheless the cell shall not be changed in between start of the IMS server
+                                                                 *       and establishement of the protected servers and connections */
+  };
+
+  type record length(tsc_NoOfPDNs) of IMS_Server_Type IMS_ServerArray_Type;     /* @status    APPROVED */
+
+  type record IP_PTC_IMS_Info_Type {                            /* @status    APPROVED */
+    IMS_ServerArray_Type        Server
+  };
+
+  type component IP_PTC {               /* @status    APPROVED */
+    var IP_RoutingTable_Type    vc_IP_PTC_DRB_RoutingTable;
+    var PDN_IP_AddrServer_Type  vc_IP_PTC_PDN_AddrServer;
+    var IP_PTC_IMS_Info_Type    vc_IP_PTC_IMS_Info;
+
+    // ports connected to IMS:
+    port IP_IMS_CTRL_PORT       IMS_CTRL[tsc_NoOfPDNs];
+    port IP_IMS_SERVER_PORT     IMS_Server[tsc_NoOfPDNs];
+    port IP_IMS_CLIENT_PORT     IMS_Client[tsc_NoOfPDNs];
+
+    // coordination ports:
+    port IP_PTC_CTRL_PORT       EUTRA_CTRL;
+    port IP_PTC_CTRL_PORT       UTRAN_CTRL;
+    port IP_PTC_CTRL_PORT       GERAN_CTRL;
+
+    // system ports
+    port IP_CONTROL_PORT        IP_CTRL;
+    port IPSEC_CONTROL_PORT     IPSEC_CTRL;
+    port IP_SOCKET_PORT         IP_SOCK;
+  };
+
+  type component IP_SYSTEM {                                    /* @status    APPROVED */
+    port IP_CONTROL_PORT        IP_CTRL;
+    port IPSEC_CONTROL_PORT     IPSEC_CTRL;
+    port IP_SOCKET_PORT         IP_SOCK;
+  };
+
+  function f_IP_PTC_CreateAndMap() return IP_PTC
+  {
+    var IP_PTC v_IP_PTC := IP_PTC.create alive;
+
+    map(v_IP_PTC:IP_CTRL,    system:IP_CTRL);
+    map(v_IP_PTC:IPSEC_CTRL, system:IPSEC_CTRL);
+    map(v_IP_PTC:IP_SOCK,    system:IP_SOCK);
+
+    return v_IP_PTC;
+  }
+
+}

@@ -1,0 +1,1633 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:49:20 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7317 $
+/******************************************************************************/
+
+module UTRAN_CommonFunctions {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_AuthenticationCommon all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CellInfo all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_Component all;
+  import from UTRAN_ConfigurationSteps all;
+  import from UTRAN_NAS_PDU_Templates all;
+  import from UTRAN_Parameters all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_RRC_Templates_r9 all;
+  import from UTRAN_TTCN_ASP_Templates all;
+  import from UTRAN_TypeDefs all;
+  import from UpperTesterFunctions all;
+
+  function f_UTRAN_Send_IR_SysInfoToEUTRA (UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var template (value) CoOrd_UTRANSysInfo_Type v_Cell;
+    var B1_Type v_Diversity := '0'B;
+    var B1_Type v_Tstd := '0'B;
+    var FrequencyInfo v_FreqInfo := f_UTRAN_CellInfo_GetFrequencyInfo(p_CellId);
+    var UTRAN_CellInfo_Type_FDD v_FDDInfo;
+    var UTRAN_CellInfo_Type_TDD v_TDDInfo;
+    
+    if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD)
+      {
+        v_FDDInfo := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+        v_Cell := {FDD := cs_CoOrdUTRANSysInfo_FDD (v_FreqInfo.modeSpecificInfo.fdd.uarfcn_DL,
+                                                    v_FDDInfo.priScrmCode,
+                                                    v_FDDInfo.uL_ScramblingCode,
+                                                    f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(p_CellId)),
+                                                    f_UTRAN_GetCellIndentity(p_CellId),
+                                                    oct2bit(f_UTRAN_CellInfo_GetLAC(p_CellId)),
+                                                    oct2bit(f_UTRAN_CellInfo_GetRAC(p_CellId)))};
+      }
+    else // TDD
+      {
+        v_TDDInfo := f_UTRAN_CellInfo_GetTDDSpecific(p_CellId);
+        if (v_TDDInfo.transmissionDiversityApplied == applied)
+          {
+            v_Diversity := '1'B;
+          }
+        if (v_TDDInfo.dwPCHInfo.tstd_Indicator == applied)
+          {
+            v_Tstd := '1'B;
+          }
+        v_Cell := {TDD := cs_CoOrdUTRANSysInfo_TDD (v_FreqInfo.modeSpecificInfo.tdd.uarfcn_Nt,
+                                                    v_TDDInfo.cellParametersID,
+                                                    v_Diversity,
+                                                    v_Tstd,
+                                                    f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(p_CellId)),
+                                                    f_UTRAN_GetCellIndentity(p_CellId),
+                                                    oct2bit(f_UTRAN_CellInfo_GetLAC(p_CellId)),
+                                                    oct2bit(f_UTRAN_CellInfo_GetRAC(p_CellId)))};
+      }
+    
+    f_IRAT_SendCoOrd(EUTRA, cms_IRAT_SysInfo(cs_CoOrdUTRAN_SysInfoSingleCell(v_Cell)));
+  }
+
+  function f_UTRAN_SendAuthCoOrdParameters (IRAT_CO_ORD_PORT p_Port,
+                                            template (omit) CoOrd_GUTIParam_Type p_GUTI := omit) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    p_Port.send (cms_IRAT_AuthInfo(v_SecurityInfo.authKeys.AuthPS, v_SecurityInfo.authKeys.AuthPS, p_GUTI, v_SecurityInfo.authKeys.CSinOtherRAT));
+  }
+
+  function f_UTRAN_RRC_Security(UTRAN_CellId_Type p_CellId,
+                                boolean p_NewKey,
+                                CN_DomainIdentity p_CN_Domain) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var boolean v_Int_ModifyFlag := false;   // True means that an Integrity Modification is being done at that stage.
+    var template (value) RB_ActivationTimeInfoList v_RB_ActivationTimeInfoList;
+    var CRLC_RRC_MessageSN_CNF v_CRLC_RRC_MessageSN_CNF;
+    var RRC_SequenceNumber v_SN_RB0, v_SN_RB1, v_SN_RB2, v_SN_RB2_UL, v_SN_RB3, v_SN_RB4;
+    var ActivationTime v_CipherActTime;  /* TTCN-2: tcv_CipherActTime is set in f_CMAC_CipherCfg_r6 but only if parameter p_CalcNewActTime is set
+                                            and the cell configuration causes configuration of ciphering at the SS
+                                            => in TTCN-3 we set CipherActTime and hand it over to f_UTRAN_CMAC_CipherCfg
+                                            as well as to fl_UTRAN_StartSecurityUE */
+    v_CipherActTime := f_UTRAN_CalculateActTime(f_UTRAN_CPHY_GetFrameNumber(p_CellId, tsc_DL_DPCH1));
+    
+    v_SecurityInfo.dL_CipherMode := valueof(cs_CipheringModeCmdOn(px_UTRAN_CipheringAlgorithm));
+    
+    if (p_CN_Domain == cs_domain) {v_SecurityInfo.cs_cipheringStarted := true;}
+    else                          {v_SecurityInfo.ps_cipheringStarted := true;}
+    
+    v_SecurityInfo.recentSecureDomain := p_CN_Domain;
+    if (v_SecurityInfo.integrityStarted) {     // Modify integrity
+      
+      v_CRLC_RRC_MessageSN_CNF := f_UTRAN_CRLC_RRC_MessageSN_Get(tsc_RB0);
+      v_SN_RB0 := v_CRLC_RRC_MessageSN_CNF.count_I_LSB_DL;
+      
+      v_CRLC_RRC_MessageSN_CNF := f_UTRAN_CRLC_RRC_MessageSN_Get(tsc_RB1);
+      v_SN_RB1 := v_CRLC_RRC_MessageSN_CNF.count_I_LSB_DL;
+      
+      v_CRLC_RRC_MessageSN_CNF := f_UTRAN_CRLC_RRC_MessageSN_Get(tsc_RB2);
+      v_SN_RB2 := v_CRLC_RRC_MessageSN_CNF.count_I_LSB_DL;
+      v_SN_RB2_UL := v_CRLC_RRC_MessageSN_CNF.count_I_LSB_UL;
+      
+      v_CRLC_RRC_MessageSN_CNF := f_UTRAN_CRLC_RRC_MessageSN_Get(tsc_RB3);
+      v_SN_RB3 := v_CRLC_RRC_MessageSN_CNF.count_I_LSB_DL;
+      
+      v_CRLC_RRC_MessageSN_CNF := f_UTRAN_CRLC_RRC_MessageSN_Get(tsc_RB4);
+      v_SN_RB4 := v_CRLC_RRC_MessageSN_CNF.count_I_LSB_DL;
+      
+      v_SecurityInfo.dL_Integrity := valueof(cs_IntegrityProtectModify_P(v_SN_RB0, v_SN_RB1, v_SN_RB2, v_SN_RB3,  v_SN_RB4, uia2));
+      v_Int_ModifyFlag := true;
+      if (px_UTRAN_CipheringAlgorithm == uea2) // @sic R5s110216 sic@
+      {
+        v_SecurityInfo.dL_Integrity.integrityProtectionAlgorithm := uia2;
+      }
+      else
+      {
+        v_SecurityInfo.dL_Integrity.integrityProtectionAlgorithm := uia1;
+      }
+    }
+    else {                                            // Start integrity
+      v_SecurityInfo.integrityStarted := true;
+      if (px_UTRAN_CipheringAlgorithm == uea2) {
+          v_SecurityInfo.dL_Integrity := valueof(cs_IntegrityProtectStart(px_FRESH, uia2));
+      } else {
+          v_SecurityInfo.dL_Integrity := valueof(cs_IntegrityProtectStart(px_FRESH, uia1));
+      }
+      v_SecurityInfo.dl_IntegrityCheckInfo := valueof(cs_IntegrityCheckInfo0);
+      v_Int_ModifyFlag := false;
+    }
+    
+    if (p_NewKey == true) {
+      //Authentication was done, reset HFN
+      v_SecurityInfo.authKeys.HFN := '00000000000000000000'B;
+      if (p_CN_Domain == cs_domain) {v_SecurityInfo.start_CS := '00000000000000000000'B;}
+      else                          {v_SecurityInfo.start_PS := '00000000000000000000'B;}
+    }
+    else {
+      if (p_CN_Domain == cs_domain) {v_SecurityInfo.authKeys.HFN := v_SecurityInfo.start_CS;}
+      else                          {v_SecurityInfo.authKeys.HFN := v_SecurityInfo.start_PS;}
+    }
+    f_UTRAN_Security_Set(v_SecurityInfo);     // write back information
+    
+    // DownloadSecurityKey:
+    f_UTRAN_SS_DownloadSecurityKey(p_CellId, p_CN_Domain);
+    
+    // ActivateSecurity_DL_SS:
+    if (not v_Int_ModifyFlag) {        // If Start of Integrity: Set DL RRC_MSN to 0, else skip it.
+      f_UTRAN_SetDL_RRC_MessageSN(p_CellId);
+    }
+    f_UTRAN_CRLC_IntegrityActivate(cas_CRLC_DL_IntegrityActivateReq(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    v_SecurityInfo.dL_Integrity));
+    
+    if (((v_SecurityInfo.ps_cipheringStarted) and (v_SecurityInfo.recentSecureDomain == ps_domain)) or
+        ((v_SecurityInfo.cs_cipheringStarted) and (v_SecurityInfo.recentSecureDomain == cs_domain))) {
+      v_RB_ActivationTimeInfoList := f_UTRAN_ActivateCiphering_DL_SS (p_CellId, v_CipherActTime);
+    } else {
+      v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs (0, 0, 0, 0);
+    }
+     
+    if (v_Int_ModifyFlag) {
+      f_UTRAN_CRLC_IntegrityActivate(cas_CRLC_UL_IntegrityActivateReq(utran_CellDedicated,
+                                                                      v_SecurityInfo.recentSecureDomain,
+                                                                      cs_RB2_IntegrityProtActivationInfoList(v_SN_RB2_UL)));
+    } else {
+      f_UTRAN_CRLC_IntegrityActivate(cas_CRLC_UL_IntegrityActivateReq(utran_CellDedicated,
+                                                                      v_SecurityInfo.recentSecureDomain,
+                                                                      cs_RB2_IntegrityProtActivationInfoList(0)));
+    }
+    f_UTRAN_CRLC_ProhibitRLC_Ack(tsc_RB2, cas_CRLC_ProhibitRLC_Ack_REQ(utran_CellDedicated, tsc_RB2));
+    
+    // lt_StartSecurity_UE:
+    v_SecurityInfo := fl_UTRAN_StartSecurityUE(p_CellId,
+                                               v_CellConfig,
+                                               v_SecurityInfo,
+                                               v_RB_ActivationTimeInfoList,
+                                               p_CN_Domain,
+                                               v_CipherActTime);
+    f_UTRAN_Security_Set(v_SecurityInfo);
+    
+    f_UTRAN_CRLC_ProhibitRLC_Ack(tsc_RB2, cas_CRLC_ContinueRLC_Ack_REQ(utran_CellDedicated, tsc_RB2));
+    
+    if (((v_SecurityInfo.ps_cipheringStarted) and (v_SecurityInfo.recentSecureDomain == ps_domain)) or
+        ((v_SecurityInfo.cs_cipheringStarted) and (v_SecurityInfo.recentSecureDomain == cs_domain))) {
+      f_UTRAN_CRLC_ResumeSecurity(p_CellId);
+    }
+  }
+
+  function f_UTRAN_SS_SecurityDownloadStart(CN_DomainIdentity p_Domain,
+                                            START_Value       p_StartValue) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+
+    if (p_Domain == cs_domain) {
+      v_SecurityInfo.start_CS := p_StartValue;
+    } else if (p_Domain == ps_domain) {
+      v_SecurityInfo.start_PS := p_StartValue;
+    }
+    f_UTRAN_Security_Set(v_SecurityInfo);
+  }
+
+  function f_UTRAN_SS_DownloadSecurityKey(UTRAN_CellId_Type p_CellId,
+                                          CN_DomainIdentity p_Domain) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var B20_Type v_HFN := v_SecurityInfo.authKeys.HFN;
+    var KeyCiphering v_KC;
+    var IntegrityKey v_IK;
+    //    var GSM_CipheringKey v_GSM_ck := v_SecurityInfo.authKeys.AuthKcGSM;
+    
+    if (p_Domain == cs_domain)
+      {
+        v_KC := v_SecurityInfo.authKeys.AuthCS.CKey;
+        v_IK := v_SecurityInfo.authKeys.AuthCS.IKey;
+        v_HFN := v_SecurityInfo.start_CS; // @sic R5s110788 sic@
+      }
+    else {
+      v_KC := v_SecurityInfo.authKeys.AuthPS.CK;
+      v_IK := v_SecurityInfo.authKeys.AuthPS.IK;
+      v_HFN := v_SecurityInfo.start_PS; // @sic R5s110788 sic@
+    }
+
+    select (v_CellConfig) {
+      case (cell_FACH_NoConn, cell_FACH, cell_FACH_NoDedicated) {
+        // Cell FACH
+        f_UTRAN_CRLC_SecurityMode_Config(p_Domain, v_HFN, v_KC, v_IK);
+      }
+      case (cell_DCH_StandAloneSRB_NoConn,
+            cell_DCH_StandAloneSRB,
+            cell_DCH_64kPS_RAB_SRB,
+            cell_DCH_HS_DSCH,  // @sic R5s110683 sic@
+            cell_DCH_E_HS,
+            cell_E_HS) {
+        // Cell DCH; no TM RAB
+        f_UTRAN_CRLC_SecurityMode_Config(p_Domain, v_HFN, v_KC, v_IK);
+      }
+      case (cell_DCH_Speech) {
+        // cell DCH with TM RAB
+        f_UTRAN_CRLC_SecurityMode_Config(p_Domain, v_HFN, v_KC, v_IK);
+        f_UTRAN_CMAC_SecurityMode_Config(p_Domain, v_HFN, v_KC);
+      }
+    }
+  }
+
+  function fl_UTRAN_StartSecurityUE(UTRAN_CellId_Type p_CellId,
+                                    RB_ConfigType p_CellConfig,
+                                    UTRAN_SecurityInfo_Type p_SecurityInfo,
+                                    template (value) RB_ActivationTimeInfoList p_RB_ActivationTimeInfoList,
+                                    CN_DomainIdentity p_CN_Domain,
+                                    ActivationTime p_CipherActTime,
+                                    boolean p_IntegrityOnly := false) runs on UTRAN_PTC return UTRAN_SecurityInfo_Type
+  {
+    var UTRAN_SecurityInfo_Type  v_SecurityInfo := p_SecurityInfo;
+    var IntegrityProtActivationInfo v_IntegrityActInfo;
+    var bitstring v_UE_SystemSpecificCap  := int2bit(f_InitSystemSpecificCap(),7);
+    var U_RLC_AM_IND v_RLC_AM_DATA_IND;
+    var template (omit) ActivationTime v_CipherActTime;
+    var template (omit) InterRAT_UE_SecurityCapList v_UE_SysSpecCap;
+    var template (omit) CipheringModeInfo_r7 v_CipheringModeInfo;
+
+    // ********** Send SecurityModeCommand:
+    if (pc_GERAN) {
+      v_UE_SysSpecCap := cs_UE_SysSpecCap(v_UE_SystemSpecificCap);
+    }
+    else { // NOT pc_GERAN
+      v_UE_SysSpecCap := omit;
+    }
+
+    if (((p_CellConfig == cell_DCH_Speech)) and (v_SecurityInfo.recentSecureDomain == cs_domain)) {
+      // Ciphering on TM  RAB present, hence include Ciphering activation time
+      // Ciphering for signalling RBs 1 to 4
+      v_CipherActTime := p_CipherActTime;
+    } else {
+      // Ciphering for signalling RBs 1 to 4
+      v_CipherActTime := omit;
+    }
+
+    if (p_IntegrityOnly == true) {      // @sic R5s110382 sic@
+      v_CipheringModeInfo := omit;
+    }
+    else {
+      v_CipheringModeInfo := cs_CipheringModeInfo_r7(v_SecurityInfo.dL_CipherMode,
+                                                     p_RB_ActivationTimeInfoList,
+                                                     v_CipherActTime);
+    }
+
+    U_AM.send(cas_RLC_Data_Req_NoCnf(utran_CellDedicated,
+                                     tsc_RB2,
+                                     cs_108_RRC_SecModeCmd(v_SecurityInfo.dl_IntegrityCheckInfo,
+                                                           cs_RRC_SecModeCmd(tsc_RRC_TI,
+                                                                             v_SecurityInfo.cipheringAlgorithmCapability,
+                                                                             v_SecurityInfo.integrProtAlgCap,
+                                                                             v_CipheringModeInfo,
+                                                                             v_SecurityInfo.dL_Integrity,
+                                                                             p_CN_Domain,
+                                                                             v_UE_SysSpecCap))));
+    // ********** Receive SecurityModeComplete:
+    alt {
+      [p_IntegrityOnly]     U_AM.receive ( car_RLC_Data_Ind ( utran_CellDedicated,                                         // @sic R5s110382 sic@
+                                                              tsc_RB2,
+                                                              cr_108_RRC_SecModeCmpl(tsc_RRC_TI, omit))) -> value v_RLC_AM_DATA_IND { }
+      [not p_IntegrityOnly] U_AM.receive ( car_RLC_Data_Ind ( utran_CellDedicated,
+                                                              tsc_RB2,
+                                                              cr_108_RRC_SecModeCmpl(tsc_RRC_TI, ?))) -> value v_RLC_AM_DATA_IND { }
+      [] U_AM.receive ( car_RLC_Data_Ind( utran_CellDedicated,
+                                          tsc_RB2,
+                                          cr_108_SecModeFail(tsc_RRC_TI, ?))) {
+        f_UTRAN_SetVerdictFailOrInconc (__FILE__, __LINE__, "Security Failed");
+      }
+    }
+    
+    if (not p_IntegrityOnly) {       // UL ciphering information is present
+      v_SecurityInfo.uL_CipherMode := v_RLC_AM_DATA_IND.data.aM_message.uL_DCCH_Message.message_.securityModeComplete.rb_UL_CiphActivationTimeInfo;
+      if (f_UTRAN_CellInfo_GetFDD_TDD(p_CellId) == UTRAN_FDD) {
+      f_UTRAN_CRLC_CipheringActivate(cas_CRLC_UL_CipherActReq_FDD(utran_CellDedicated,
+                                                                  v_SecurityInfo.recentSecureDomain,
+                                                                  v_SecurityInfo.uL_CipherMode,
+                                                                  notInc))
+      }
+      else {
+      f_UTRAN_CRLC_CipheringActivate(cas_CRLC_UL_CipherActReq_TDD(utran_CellDedicated,
+                                                                  v_SecurityInfo.recentSecureDomain,
+                                                                  v_SecurityInfo.uL_CipherMode,
+                                                                  notInc))
+      };
+    }
+    // integrity:
+    v_SecurityInfo.uL_Integrity := v_RLC_AM_DATA_IND.data.aM_message.uL_DCCH_Message.message_.securityModeComplete.ul_IntegProtActivationInfo;
+    v_IntegrityActInfo := v_SecurityInfo.uL_Integrity;
+        
+    f_UTRAN_CRLC_IntegrityActivate(cas_CRLC_UL_IntegrityActivateReq(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    cs_RestRB_IntegrityProtActivationInfoList(v_IntegrityActInfo.rrc_MessageSequenceNumberList[0],
+                                                                                                              v_IntegrityActInfo.rrc_MessageSequenceNumberList[1],
+                                                                                                              v_IntegrityActInfo.rrc_MessageSequenceNumberList[3],
+                                                                                                              v_IntegrityActInfo.rrc_MessageSequenceNumberList[4])));
+    return v_SecurityInfo;
+  }
+
+  function f_InitSystemSpecificCap() return integer
+  {
+    var integer v_UE_SystemSpecificCap := 0;
+    
+    if (pc_GERAN) {
+      v_UE_SystemSpecificCap := v_UE_SystemSpecificCap + 1; //A5_1 always supported
+      v_UE_SystemSpecificCap := v_UE_SystemSpecificCap + 4; // A5_3 always Supported
+    }
+    return v_UE_SystemSpecificCap;
+  }
+
+  function f_UTRAN_AttachAccept(UTRAN_CellId_Type p_CellId,
+                                B3_Type p_AttachType) runs on UTRAN_PTC
+  {
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(p_CellId));
+    var octetstring v_LAC := f_UTRAN_CellInfo_GetLAC(p_CellId);
+    var octetstring v_RAC := f_UTRAN_CellInfo_GetRAC(p_CellId);
+    var template (omit) MobileIdentity v_TMSI := omit;
+    
+    if (p_AttachType == tsc_I_AttachTypeCombined) { // @sic R5-123114 sic@
+      v_TMSI := cs_MobileIdTMSIorPTMSI('23'O, px_TMSI_Def);
+    }
+       
+    U_Dc.send(cas_DataReq_PS(utran_CellDedicated,                // ATTACH ACCEPT for combined CS/PS
+                             tsc_RB3,
+                             cs_U_AttachAcc(cs_GMM_AttachResult(p_AttachType),
+                                            cs_RAI(omit,
+                                                   cs_LAI(omit, v_PLMN, v_LAC),
+                                                   v_RAC),
+                                            cs_PTMSI_Signature(px_PTMSI_SigDef),
+                                            cs_MobileIdTMSIorPTMSI('18'O, px_PTMSI_Def),
+                                            v_TMSI)));
+    
+    U_Dc.receive(car_PS_UplinkDirectTransfer(utran_CellDedicated,
+                                             tsc_RB3,
+                                             cr_U_AttachComplete));
+  }
+
+  function f_UTRAN_GMMOnly_Attach(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var START_Value v_START_Value_ps := '00000000000000000000'B;
+    var START_Value v_START_Value_cs := '00000000000000000000'B;
+    var RB_ConfigType v_CellConfig;
+    var RRC_DATA_IND v_RRC_DataInd;
+    var boolean v_NewKeyFlag := true;
+    var B2_Type v_NMO := f_UTRAN_CellInfo_GetNMO(p_CellId);
+    
+    f_UTRAN_RRC_ConnEst(p_CellId); // Establish RRC connection
+    v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);  // Updated in RRC Conn Est
+    
+    alt {
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_AttachReq(cr_AttachType(?, (tsc_I_AttachTypeGPRSAtt, tsc_I_AttachTypeCombined)),
+                                                                                             cr_MobileIdAny(omit),
+                                                                                             cr_RAI(omit),
+                                                                                             ?) ))
+        -> value v_RRC_DataInd {
+        v_START_Value_ps := v_RRC_DataInd.ttcn_start;
+        f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_START_Value_ps);
+      }
+      [ pc_SupportOpModeA and ((v_NMO == tsc_NMO_II) or not pc_AutomaticAttachSwitchON)] U_Dc.receive(car_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_LocationUpdatingRequest))
+        -> value v_RRC_DataInd {
+        v_START_Value_cs := v_RRC_DataInd.ttcn_start;
+        f_UTRAN_SS_SecurityDownloadStart(cs_domain, v_START_Value_cs);
+        
+        if ((v_NMO == tsc_NMO_II) and  pc_AutomaticAttachSwitchON) { // need to wait for Attach Req before finishing LAU
+          U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_AttachReq(cr_AttachType(?, (tsc_I_AttachTypeGPRSAtt, tsc_I_AttachTypeCombined)),
+                                                                                              cr_MobileIdAny(omit),
+                                                                                              cr_RAI(omit),
+                                                                                              ?) ))
+            -> value v_RRC_DataInd;
+          v_START_Value_ps := v_RRC_DataInd.ttcn_start;
+          f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_START_Value_ps);
+          f_UTRAN_LocationUpdate_WithoutLAUReq(p_CellId, v_START_Value_cs, true);
+        } else { // else finish LAU first @sic R5s110705, R5s110801 sic@
+          f_UTRAN_LocationUpdate_WithoutLAUReq(p_CellId, v_START_Value_cs, true);
+          // then trigger the Attach Req
+          select (v_CellConfig) {
+            case (cell_FACH) {
+              f_UTRAN_RRC_ConnRel(p_CellId, cell_Fach_Dcch);
+            }
+            case else {
+              f_UTRAN_RRC_ConnRel(p_CellId, cell_Dch);
+            }
+          }
+          f_Delay (1.0);
+          f_UT_TriggerAttach(UT);
+          f_UTRAN_RRC_ConnEst(p_CellId); // Establish RRC connection
+          
+          U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_AttachReq(cr_AttachType(?, (tsc_I_AttachTypeGPRSAtt, tsc_I_AttachTypeCombined)),
+                                                                                              cr_MobileIdAny(omit),
+                                                                                              cr_RAI(omit),
+                                                                                              ?) ))
+            -> value v_RRC_DataInd;
+          v_START_Value_ps := v_RRC_DataInd.ttcn_start;
+          f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_START_Value_ps);
+        }
+      }
+    }
+    
+    f_UTRAN_GMM_Authentication();
+    f_UTRAN_RRC_Security(p_CellId,                        // SECURITY MODE COMMAND, SECURITY MODE COMPLETE
+                         v_NewKeyFlag,
+                         ps_domain);
+    
+    f_UTRAN_AttachAccept(p_CellId, v_RRC_DataInd.msg.attachRequest.attachType.attachType);       // ATTACH ACCEPT, ATTACH COMPLETE
+    
+    select (v_CellConfig) {
+      case (cell_FACH) {
+        f_UTRAN_RRC_ConnRel(p_CellId, cell_Fach_Dcch);
+      }
+      case else {
+        f_UTRAN_RRC_ConnRel(p_CellId, cell_Dch);
+      }
+    }
+  }
+
+  function f_Get_cs_108_RRC_ConnSetupFACH(UTRAN_CellId_Type  p_CellId,
+                                          template (value) InitialUE_Identity p_InitialUE_Id)
+    runs on UTRAN_PTC return template (value) DL_CCCH_Message
+  { // @sic R5-123750 sic@
+    
+    var template (value) DL_CCCH_Message v_RRC_ConnSetupFACH;
+    var U_RNTI v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI(p_CellId);
+    var C_RNTI v_C_RNTI := f_UTRAN_CellInfo_GetC_RNTI(p_CellId);
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI;
+    
+    select (f_FddTddMessageClass(p_CellId)) {
+      case (FDDr8) {
+        v_RRC_ConnSetupFACH := cs_108_RRC_ConnSetupFACH_r8_FDD(p_InitialUE_Id, v_RRC_TI, v_U_RNTI, v_C_RNTI);
+      }
+      case (FDDr9) {
+        v_RRC_ConnSetupFACH := cs_108_RRC_ConnSetupFACH_r9_FDD(p_InitialUE_Id, v_RRC_TI, v_U_RNTI, v_C_RNTI);
+      }
+      case (TDDr9) {
+        v_RRC_ConnSetupFACH := cs_108_RRC_ConnSetupFACH_r9_TDD(p_InitialUE_Id, tsc_RRC_TI, v_U_RNTI, v_C_RNTI);
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "");
+      }
+    }
+    return v_RRC_ConnSetupFACH;
+  }
+
+  function f_Get_cs_108_RRC_ConnSetupDCH(UTRAN_CellId_Type  p_CellId,
+                                         template (value) InitialUE_Identity p_InitialUE_Id)
+    runs on UTRAN_PTC return template (value) DL_CCCH_Message
+  { // @sic R5-123750 sic@
+   
+    var template (value) DL_CCCH_Message v_RRC_ConnSetupDCH;
+    var U_RNTI v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI(p_CellId);
+    var UTRAN_CellInfo_Type_FDD v_CellInfoFDD := f_UTRAN_CellInfo_GetFDDSpecific(p_CellId);
+    var UTRAN_CellInfo_Type_TDD v_CellInfoTDD := f_UTRAN_CellInfo_GetTDDSpecific(p_CellId);
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI;
+    
+    select (f_FddTddMessageClass(p_CellId)) {
+      case (FDDr8) {
+        v_RRC_ConnSetupDCH := cs_108_RRC_ConnSetupDCH_r8_FDD(p_InitialUE_Id, v_RRC_TI, v_CellInfoFDD.priScrmCode, v_U_RNTI, v_CellInfoFDD.uL_ScramblingCode);
+      }
+      case (FDDr9) {
+        v_RRC_ConnSetupDCH := cs_108_RRC_ConnSetupDCH_r9_FDD(p_InitialUE_Id, v_RRC_TI, v_CellInfoFDD.priScrmCode, v_U_RNTI, v_CellInfoFDD.uL_ScramblingCode);
+      }
+      case (TDDr9) {
+        v_RRC_ConnSetupDCH := cs_108_RRC_ConnSetupDCH_r9_TDD(p_InitialUE_Id, v_RRC_TI, v_U_RNTI, v_CellInfoTDD.cellParametersID);
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "");
+      }
+    }
+    return v_RRC_ConnSetupDCH;
+  }
+
+  function f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq ( UTRAN_CellId_Type  p_CellId,
+                                                         template (value) InitialUE_Identity p_InitialUE_Id ) runs on UTRAN_PTC
+  { // This function assumes that DCH is already configured and is ready for an RRC connection to be established
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType (p_CellId);
+    var template (value) DL_CCCH_Message v_RRC_ConnSetup;
+
+    select (v_CellConfig) {
+      case (cell_FACH_NoConn) {
+        v_RRC_ConnSetup := f_Get_cs_108_RRC_ConnSetupFACH(p_CellId, p_InitialUE_Id);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_FACH);
+      }
+      case (cell_DCH_StandAloneSRB_NoConn) {
+        v_RRC_ConnSetup := f_Get_cs_108_RRC_ConnSetupDCH(p_CellId, p_InitialUE_Id);
+        f_UTRAN_CellInfo_SetConfigType(p_CellId, cell_DCH_StandAloneSRB);
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid configuration");
+      }
+    }
+    U_UM.send(cas_RRC_ConnSetup(p_CellId, tsc_RB0, v_RRC_ConnSetup));
+    f_UTRAN_RRC_ReceiveConnSetupCmpl(p_CellId);
+  }
+
+  function f_UTRAN_CheckReleaseIndicator(UTRAN_CellId_Type p_CellId,
+                                         AccessStratumReleaseIndicator p_ReleaseIndicator_UE)
+    runs on UTRAN_PTC
+  { // @sic R5-123750 sic@
+
+    select (f_FddTddMessageClass(p_CellId)) {
+      case (FDDr8) {
+        if (not match(p_ReleaseIndicator_UE, complement(rel_4, rel_5, rel_6, rel_7))) {
+          FatalError(__FILE__, __LINE__, "Wrong Access Startum release indicator");
+        }
+      }
+      case (FDDr9, TDDr9) {
+        if (not match(p_ReleaseIndicator_UE, complement(rel_4, rel_5, rel_6, rel_7, rel_8))) {
+          FatalError(__FILE__, __LINE__, "Wrong Access Startum release indicator");
+        }
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "");
+      }
+    }
+  }
+
+  function f_UTRAN_RRC_ConnEst(UTRAN_CellId_Type p_CellId,
+                               template (present) EstablishmentCause p_EstCause := ?) runs on UTRAN_PTC
+  { // This function assumes that DCH is already configured and is ready for an RRC connection to be established
+    
+    var InitialUE_Identity v_InitialUE_Id;
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    
+    alt {
+      [] U_TM.receive(car_RRC_ConnReq(p_CellId,
+                                      tsc_RB0,
+                                      cr_108_RRC_ConnReq_r8(p_EstCause))) -> value v_RLC_TR_DATA_IND
+        {
+          v_InitialUE_Id := v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.initialUE_Identity;
+          f_UTRAN_CheckReleaseIndicator ( p_CellId, v_RLC_TR_DATA_IND.tM_message.uL_CCCH_Message.message_.rrcConnectionRequest.v3d0NonCriticalExtensions.v4b0NonCriticalExtensions.rrcConnectionRequest_v4b0ext.accessStratumReleaseIndicator);
+        }
+    }
+    f_UTRAN_RRC_ConnEst_WithoutRRCConnectionReq ( p_CellId, v_InitialUE_Id );
+  }
+
+  function f_UTRAN_RRC_ReceiveConnSetupCmpl(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var RRCConnectionSetupComplete v_RRCConnectionSetupComplete;
+    var U_RLC_AM_IND v_RLC_AM_DATA_IND;
+    var STARTList v_STARTList;
+    var integer v_DomainCnt;
+    var boolean v_ConfigIsDCH;
+    var integer I;
+    var UE_CapabilityContainer_IEs v_UE_CapabilityContainer;
+    var bitstring v_UeCapabilityContainerBitstring;
+
+    select (v_CellConfig) {
+      case (cell_DCH_StandAloneSRB_NoConn,
+            cell_DCH_StandAloneSRB,
+            cell_E_HS_StandAloneSRB) {
+        v_ConfigIsDCH := true;
+      }
+      case (cell_FACH_NoConn,
+            cell_FACH) {
+        v_ConfigIsDCH := false;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid configuration");
+      }
+    }
+    
+    alt {
+      [] U_AM.receive ( car_RLC_Data_Ind ( utran_CellDedicated,
+                                           tsc_RB2,
+                                           cr_108_RRC_ConnSetupCmpl(tsc_RRC_TI, ?))) // TTCN2 checks all UE capabilities at this point
+        -> value v_RLC_AM_DATA_IND
+        {
+          v_RRCConnectionSetupComplete := v_RLC_AM_DATA_IND.data.aM_message.uL_DCCH_Message.message_.rrcConnectionSetupComplete;
+        }
+      // swallow any excess ConnReq messages that haven't been processed yet
+      [] U_TM.receive(car_RRC_ConnReq(?, tsc_RB0, cr_RRC_RrcConnReqAny))
+        {
+          repeat;
+        }
+    }
+    // get start list
+    v_STARTList := v_RRCConnectionSetupComplete.startList;
+    v_SecurityInfo.cipheringAlgorithmCapability := v_RRCConnectionSetupComplete.ue_RadioAccessCapability.securityCapability.cipheringAlgorithmCap;
+    v_SecurityInfo.integrProtAlgCap := v_RRCConnectionSetupComplete.ue_RadioAccessCapability.securityCapability.integrityProtectionAlgorithmCap;
+    v_DomainCnt := lengthof(v_STARTList);
+    if ((v_DomainCnt > 0) and (v_DomainCnt <= 2)) {
+      for (I:=0; I<v_DomainCnt; I:=I+1) {
+        if (v_STARTList[I].cn_DomainIdentity == cs_domain) {
+          v_SecurityInfo.start_CS := v_STARTList[I].start_Value;
+        } else {
+          v_SecurityInfo.start_PS := v_STARTList[I].start_Value;
+        }
+      }
+    } else {
+      FatalError(__FILE__, __LINE__, "invalid configuration");
+    }
+    f_UTRAN_Security_Set(v_SecurityInfo);
+
+    // Retreive and store the EUTRA capabilities
+    // @sic R5-123734 sic@
+    v_UeCapabilityContainerBitstring := v_RRCConnectionSetupComplete.v370NonCriticalExtensions.v380NonCriticalExtensions.v3a0NonCriticalExtensions.laterNonCriticalExtensions.v3g0NonCriticalExtensions.v4b0NonCriticalExtensions.v590NonCriticalExtensions.v5c0NonCriticalExtensions.v690NonCriticalExtensions.rrcConnectionSetupComplete_v690ext.ueCapabilityContainer;
+    if ( decvalue (v_UeCapabilityContainerBitstring, v_UE_CapabilityContainer ) != 0) {
+        f_UTRAN_MobileInfo_EUTRACapability_Set (v_UE_CapabilityContainer.v6b0NonCriticalExtensions. v6e0NonCriticalExtensions. v770NonCriticalExtensions. v790NonCriticalExtensions. v860NonCriticalExtensions. ue_RATSpecificCapability_v860ext. eutra_RadioAccessCapability. ue_EUTRA_Capability);
+     }
+  }
+
+  function f_UTRAN_RRC_ConnRel(UTRAN_CellId_Type p_CellId,
+                               RRC_Rel_Status    p_RRC_RelStatus,
+                               boolean p_ConnEstFollows := false) runs on UTRAN_PTC
+  { /* @sic R5s120049: new parameter p_ConnEstFollows; change of default behaviour in case an RRC connection establishment is expected immediately after this function sic@ */
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var integer v_N308 := 2;     // Maximum number of retransmissions of the RRC CONNECTION RELEASE COMPLETE message.
+    
+    f_Delay(1.0);
+    
+    if (p_RRC_RelStatus == cell_Dch) {
+      fl_UTRAN_RRC_ConnRel_DCH(v_SecurityInfo.dl_IntegrityCheckInfo, v_N308);
+      
+    } else if (p_RRC_RelStatus == cell_Fach_Dcch) {
+      U_UM.send(cas_RRC_ConnRelDCCH(utran_CellDedicated,
+                                    tsc_RB1,
+                                    cs_108_RRC_ConnRelDCCH_r4(v_SecurityInfo.dl_IntegrityCheckInfo, tsc_RRC_TI)));
+      U_AM.receive ( car_RLC_Data_Ind ( utran_CellDedicated,
+                                        tsc_RB2,
+                                        cr_108_RRC_ConnRelCmpl(tsc_RRC_TI)));
+      f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "");
+      f_Delay(1.0);
+      
+    } else if (p_RRC_RelStatus == cell_Fach_Ccch) {
+      U_UM.send(cas_RRC_ConnRelCCCH(p_CellId,
+                                    tsc_RB0,
+                                    cs_108_RRC_ConnRelCCCH_r5(cs_U_RNTI_Def, tsc_RRC_TI)));
+    } else {
+      FatalError(__FILE__, __LINE__, "invalid configuration");
+    }
+
+    //  TO DO - Implement DPCH re-configuration
+
+    if (p_ConnEstFollows) { f_UTRAN_Default_BlockTM(true); }    /* @sic R5s120049 R5s120086 (R5s120107) sic@ */
+    f_UTRAN_RestartCRLC_ForNextConnection(p_CellId);
+    f_UTRAN_SS_ResetSecurityKey();
+    if (p_ConnEstFollows) { f_UTRAN_Default_BlockTM(false); }   /* @sic R5s120049 R5s120086 (R5s120107) sic@ */
+  }
+
+  function fl_UTRAN_RRC_ConnRel_DCH(IntegrityCheckInfo p_IntegrityCheckInfo,
+                                    integer            p_N308) runs on UTRAN_PTC
+  {
+    var integer v_K := 1;
+    timer t_WaitForRrcConRel := f_UG_SetTimerToleranceMax (5.0);
+    
+    U_UM.send(cas_RRC_ConnRelDCCH(utran_CellDedicated,
+                                  tsc_RB1,
+                                  cs_108_RRC_ConnRelDCCH_r4(p_IntegrityCheckInfo, tsc_RRC_TI, p_N308)));
+    
+    U_UM.receive(car_RRC_ConnRelCmplUM(utran_CellDedicated,
+                                       tsc_RB1,
+                                       cr_108_RRC_ConnRelCmpl(tsc_RRC_TI)));
+    f_UTRAN_PreliminaryPass(__FILE__, __LINE__, "");
+    
+    //UE sends RRC Connection Release Complete for N308 times
+    do {
+      t_WaitForRrcConRel.start;
+      alt {
+        [] t_WaitForRrcConRel.timeout {
+          f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Insufficient RRC Connection Release");
+          return;
+        }
+        [] U_UM.receive(car_RRC_ConnRelCmplUM(utran_CellDedicated,
+                                              tsc_RB1,
+                                              cr_108_RRC_ConnRelCmpl(tsc_RRC_TI))) {
+          t_WaitForRrcConRel.stop;
+          v_K := v_K + 1;
+        }
+      }
+    } while (not (v_K == (p_N308 + 1)));
+  }
+
+  function f_UTRAN_GMM_Authentication() runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo:= f_UTRAN_Security_Get();
+    var Common_AuthenticationParams_Type v_Auth_Params := v_SecurityInfo.authKeys.AuthPS;
+    var RRC_DATA_IND v_RRC_DataInd;
+    var AUTHENTICATIONANDCIPHERINGRESPONSE v_AuthAndCipherResp;
+    var B32_Type    v_AuthRES_High;
+    var bitstring   v_AuthRES;
+
+    v_Auth_Params := f_AuthenticationInit(v_Auth_Params);        // modified by f_AuthenticationInit
+    v_SecurityInfo.authKeys.AuthPS := v_Auth_Params;
+    
+    // AUTHENTICATION AND CIPHERING REQUEST using relevant PS keys computed before:
+    U_Dc.send(cas_DataReq_PS(utran_CellDedicated,
+                             tsc_RB3,
+                             cs_U_AuthAndCiphReq(cs_GMM_AuthRAND(px_eAuthRAND),
+                                                 cs_GMM_KeySeq(v_Auth_Params.KeySeq),
+                                                 cs_GMM_AUTN(v_Auth_Params.AUTN))));
+    alt {
+      // AUTHENTICATION AND CIPHERING RESPONSE including both Authentication Response paramters (RES and RES ext)
+      [] U_Dc.receive(car_PS_UplinkDirectTransfer(utran_CellDedicated,
+                                                  tsc_RB3,
+                                                  cr_U_AuthAndCiphRsp(cr_AuthRspAny,
+                                                                      cr_AuthCiphRspExtAny)))
+        -> value v_RRC_DataInd
+        {
+        v_AuthAndCipherResp := v_RRC_DataInd.msg.authenticationAndCipheringResponse;
+        v_AuthRES_High := v_AuthAndCipherResp.authRsp.rES;
+        v_AuthRES := v_AuthRES_High & v_AuthAndCipherResp.authRspExt.rES;
+        // Verify that the received Authentication Response parameters match expected response:
+        if (v_AuthRES != substr(v_Auth_Params.XRES, 0, lengthof(v_AuthRES))) {
+          f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Authentication Failed");
+          }
+      }
+      // AUTHENTICATION AND CIPHERING RESPONSE including only one Authentication Response paramters (RES):
+      [] U_Dc.receive(car_PS_UplinkDirectTransfer(utran_CellDedicated,
+                                                  tsc_RB3,
+                                                  cr_U_AuthAndCiphRsp(cr_AuthRspAny,
+                                                                      omit)))
+        -> value v_RRC_DataInd
+        {
+        v_AuthAndCipherResp := v_RRC_DataInd.msg.authenticationAndCipheringResponse;
+        v_AuthRES_High := v_AuthAndCipherResp.authRsp.rES;
+        // Verify that the received Authentication Response parameters match expected response:
+        if (v_AuthRES_High != substr(v_Auth_Params.XRES, 0, lengthof(v_AuthRES_High))) {
+          f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Authentication Failed");
+          }
+      }
+      // AUTHENTICATION AND CIPHERING Failure, then stop execution by assigning INCONCLUSIVE verdict as this might be a USIM issue.
+      [] U_Dc.receive(car_PS_UplinkDirectTransfer(utran_CellDedicated,
+                                                  tsc_RB3,
+                                                  cr_U_AuthAndCiphFailureAny)) {
+        FatalError(__FILE__, __LINE__, "received AUTHENTICATION_AND_CIPHERING_FAILURE");
+        }
+    }
+    f_UTRAN_Security_Set(v_SecurityInfo);
+  }
+
+  function f_UTRAN_MM_Authentication () runs on UTRAN_PTC
+  {
+    var RRC_DATA_IND v_RRC_DataInd;
+    var AuthRsp v_AuthRsp;
+    var AuthRspExt v_AuthRspExt;
+    var bitstring v_AuthRES;
+    var B32_Type v_AuthRES_High;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var Common_AuthenticationParams_Type v_CommonAuthParams := f_AuthenticationInit (v_SecurityInfo.authKeys.AuthPS);
+    
+    // @sic R5s110318 sic@
+    v_SecurityInfo.authKeys.AuthCS.CKey := v_CommonAuthParams.CK;
+    v_SecurityInfo.authKeys.AuthCS.IKey := v_CommonAuthParams.IK;
+    v_SecurityInfo.authKeys.AuthCS.CKeySeq := v_CommonAuthParams.KeySeq;
+    f_UTRAN_Security_Set(v_SecurityInfo);
+
+    U_Dc.send(cas_DataReq_CS (utran_CellDedicated,
+                              tsc_RB3,
+                              cs_U_AuthReq(v_SecurityInfo.authKeys.AuthCS.CKeySeq,
+                                           v_CommonAuthParams.RandValue,
+                                           cs_GSM_AUTN(v_CommonAuthParams.AUTN))));
+    
+    alt {
+      //Receive Authentication Response with extension
+      [] U_Dc.receive (car_UplinkDirectTransfer (utran_CellDedicated,
+                                                 tsc_RB3,
+                                                 cr_U_AuthRspAnyExt)) -> value v_RRC_DataInd
+        {
+          v_AuthRsp := v_RRC_DataInd.msg.authenticationResponse.authRsp;
+          v_AuthRspExt := v_RRC_DataInd.msg.authenticationResponse.authRspExt;
+          
+          //First 32 bits of XRES correspond to AuthRsp and remaining bits correspond to AuthRspExt.
+          //So instead of checking the AuthRsp and AuthRspExt separately,the 2 strings are concatenated and compared against XRES.
+          v_AuthRES_High := v_AuthRsp.rES;
+          v_AuthRES := v_AuthRES_High & v_AuthRspExt.rES;
+          
+          //Bitwaise XOR of XRES and v_AuthRES should result in all zeroes which implies that the 2 bitstrings should match exactly.
+          if (v_AuthRES != substr(v_CommonAuthParams.XRES, 0, lengthof(v_AuthRES))) {
+            f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Received incorrect authentication parameters");
+          }
+        }
+      
+      //Receive Authentication Response without extension
+      [] U_Dc.receive (car_UplinkDirectTransfer (utran_CellDedicated,
+                                                 tsc_RB3,
+                                                 cr_U_AuthRspAnyNoExt)) -> value v_RRC_DataInd
+        {
+          v_AuthRsp := v_RRC_DataInd.msg.authenticationResponse.authRsp;
+          v_AuthRES_High := v_AuthRsp.rES;
+          
+          //Bitwise XOR of XRES and v_AuthRES should result in all zeroes which implies that the 2 bitstrings should match exactly.
+          if( v_AuthRES_High != substr(v_CommonAuthParams.XRES, 0, lengthof(v_AuthRES_High))) {
+            f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Received incorrect authentication parameters");
+          }
+        }
+      
+      [] U_Dc.receive (car_UplinkDirectTransfer (utran_CellDedicated,
+                                                 tsc_RB3,
+                                                 cr_U_AuthFailAny))
+        {
+          f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Authentication failure received");
+        }
+    }
+  }
+
+  function f_UTRAN_InterRAT_InitialiseAuthParams() runs on UTRAN_PTC
+  {
+    f_UTRAN_InterRAT_InitialiseAuthParams_Common (EUTRA);
+  }
+
+  function f_UTRAN_InterRAT_InitialiseAuthParams_Common(IRAT_CO_ORD_PORT p_Port) runs on UTRAN_PTC
+  {
+    var IRAT_Coordination_MSG v_RxdMsg;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    
+    p_Port.receive (cmr_IRAT_AuthInfo) -> value v_RxdMsg; // @sic R5s120568 sic@
+    
+    v_SecurityInfo.authKeys.AuthPS := v_RxdMsg.Authentication.AuthPS;
+    if (isvalue(v_RxdMsg.Authentication.StartPS)) { // @sic R5-120764 sic@
+      v_SecurityInfo.start_PS := v_RxdMsg.Authentication.StartPS;
+    }
+    if (isvalue(v_RxdMsg.Authentication.StartCS)) { // @sic R5-120764 sic@
+      v_SecurityInfo.start_CS := v_RxdMsg.Authentication.StartCS;
+    }
+    //@sic R5-120637 enhancements for SRVCC sic@
+    if ( isvalue (v_RxdMsg.Authentication.AuthCS))
+    {
+      v_SecurityInfo.authKeys.AuthCS.CKey := v_RxdMsg.Authentication.AuthCS.CK;
+      v_SecurityInfo.authKeys.AuthCS.IKey := v_RxdMsg.Authentication.AuthCS.IK;
+      v_SecurityInfo.authKeys.AuthCS.CKeySeq:= v_RxdMsg.Authentication.AuthCS.KeySeq;
+      }
+    
+    f_UTRAN_Security_Set (v_SecurityInfo);
+  }
+
+  function f_UTRAN_Interleaved_RauLau ( UTRAN_CellId_Type p_CellId,
+                                        boolean           p_NoSecurityAfterHO := false ) runs on UTRAN_PTC
+  {
+    var RRC_DATA_IND v_RRC_DataInd_RAU, v_RRC_DataInd_LAU;
+    var B3_Type v_UpdateType_Ra := '000'B;
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId ( f_UTRAN_CellInfo_GetPLMNIdentity ( p_CellId ) );
+    var octetstring v_LAC := f_UTRAN_CellInfo_GetLAC ( p_CellId );
+    var octetstring v_RAC := f_UTRAN_CellInfo_GetRAC ( p_CellId );
+    var START_Value v_RAU_START_Value := '00000000000000000000'B;
+    var START_Value v_LAU_START_Value := '00000000000000000000'B;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+
+    interleave {
+      //Step 1c1: Receive Routing Area Update Request message with update type 'RA Update'
+      [] U_Dc.receive ( car_PS_InitDirectTransfer ( utran_CellDedicated,
+                                                    tsc_RB3,
+                                                    cr_U_RA_UpdReqAny ( cr_GMM_UpdateType ( ?, v_UpdateType_Ra ),
+                                                                        cr_RAI ( omit ),
+                                                                        cr_PTMSI_SignatureAny ifpresent,
+                                                                        ? ) ) ) -> value v_RRC_DataInd_RAU {} //FFS - Could KeySeq be derived from Security/Cell info?
+        //Step 1c6: Wait for Location Updating Request message
+      [] U_Dc.receive ( car_InitDirectTransfer ( utran_CellDedicated,
+                                                 tsc_RB3,
+                                                 cr_U_LocationUpdatingRequest ) ) -> value v_RRC_DataInd_LAU {}
+      }
+
+    // Store flag to be sent to LTE later; @sic R5-110746 sic@
+    v_SecurityInfo.authKeys.CSinOtherRAT := true;
+    f_UTRAN_Security_Set (v_SecurityInfo);
+    
+    v_RAU_START_Value := v_RRC_DataInd_RAU.ttcn_start;
+    v_LAU_START_Value := v_RRC_DataInd_LAU.ttcn_start;
+    
+    if (not p_NoSecurityAfterHO) {
+        //Continue with the Routing Area Update Procedure
+        //Step 1c2-1c3: SECURITY MODE COMMAND and SECURITY MODE COMPLETE
+        f_UTRAN_SS_SecurityDownloadStart ( ps_domain, v_RAU_START_Value );
+        f_UTRAN_RRC_Security ( p_CellId, false, ps_domain );
+    }
+    //Step 1c4: Send ROUTING AREA UPDATE ACCEPT
+    U_Dc.send ( cas_DataReq_PS ( p_CellId, tsc_RB3, cs_U_RA_UpdAcc3 ( cs_GMM_UpdateResult ( v_UpdateType_Ra ),
+                                                                      cs_RAI ( omit,
+                                                                               cs_LAI ( omit, v_PLMN, v_LAC ),
+                                                                               v_RAC ),
+                                                                      cs_PTMSI_Signature ( px_PTMSI_SigDef ),
+                                                                      cs_MobileIdTMSIorPTMSI ( '18'O, px_PTMSI_Def )) ) );
+    
+    // Step 1c5: Receive ROUTING AREA UPDATE COMPLETE
+    U_Dc.receive ( car_PS_InitDirectTransfer ( utran_CellDedicated, tsc_RB3, cr_U_RAUpdComplete ) );
+    
+    //Then do the Location Updating Procedure
+    //Step 1c7-1c8: SECURITY MODE COMMAND and SECURITY MODE COMPLETE
+    f_UTRAN_SS_SecurityDownloadStart ( cs_domain, v_LAU_START_Value );
+    f_UTRAN_RRC_Security ( p_CellId, false, cs_domain );
+    
+    //Step 1c9: Transmits a LOCATION UPDATING ACCEPT message
+    U_Dc.send ( cas_DataReq_CS ( utran_CellDedicated,
+                                 tsc_RB3,
+                                 cs_U_LocUpdAcpTMSI ( v_PLMN, v_LAC ) ) );
+    
+    //Step 1c10: Receive TMSI Reallocation Complete
+    U_Dc.receive ( car_InitDirectTransfer ( utran_CellDedicated,
+                                            tsc_RB3,
+                                            cr_U_TMSI_ReallocCmpl ) );
+  }
+
+  function f_UTRAN_PS_RAU_HO ( UTRAN_CellId_Type p_CellId, UTRAN_GERAN_ATTACH_Type p_AttachType ) runs on UTRAN_PTC
+  {
+    var B2_Type v_Nmo := f_UTRAN_CellInfo_GetNMO ( p_CellId );
+    var UTRA_POSTAMBLE_CONDITIONS v_Utra_Postamble_Condition := fl_UTRA_SetPostambleCondition (p_AttachType); // @sic R5s110176 sic@
+    
+    //Step 1c1 - 1c10: Perform Routing Area procedure and Location Updating procedure for the scenario
+    // - NMO2 and (C1 or C3)
+    if (v_Nmo == tsc_NMO_II and ((v_Utra_Postamble_Condition == UTRA_C1) or (v_Utra_Postamble_Condition == UTRA_C3))) {
+      f_UTRAN_Interleaved_RauLau ( p_CellId, true ); // @sic R5s110382 sic@
+    }
+    //Step 1a1-1a5 & 1b1-1b5 Routing Area Update/Combined Routing Area Update procedure for the scenarios
+    // - NMO1 and (C1 or C3)
+    // - (NMO1 or NMO2) and (C2 or C3)
+    else {
+      f_UTRAN_GMM_RAU_MappedContext ( p_CellId, true ); // @sic R5s110382 sic@
+    }
+  }
+
+  function f_UTRAN_CC_Disconnect ( UTRAN_CellId_Type p_CellId,
+                                   template (value) TI  p_TI_S:= cs_TI_MO ) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType ( p_CellId );
+
+    if ( v_CellConfig == cell_DCH_Speech or v_CellConfig == cell_Four_DTCH_PS_CS) { // @sic R5s120070 sic@
+      // Step 1: Transmit Downlink Direct Transfer with a Disconnect message
+      U_Dc.send ( cas_DataReq_CS ( utran_CellDedicated, tsc_RB3, cs_U_Disconnect ( p_TI_S ) ) ); // @sic R5s110547 sic@
+      
+      // Step 2: Receive Uplink Direct Transfer with a Release message
+      U_Dc.receive ( car_UplinkDirectTransfer ( utran_CellDedicated, tsc_RB3, cr_U_Rel ( cr_TI_Any ) ) );
+
+      // Step 3: Transmit Downlink Direct Transfer with a Release Complete message
+      U_Dc.send ( cas_DataReq_CS ( utran_CellDedicated, tsc_RB3,  cs_U_RelCmpl ( p_TI_S ) ) ); // @sic R5s110547 sic@
+      
+      //FFS - SS configuration and update of Cellconfig.
+    }
+  }
+
+  function f_UTRAN_WaitForRAUOnSameRRC ( UTRAN_CellId_Type p_CellId,
+                                         B3_Type p_UpdateType := tsc_I_UpdateTypeCombinedWithIMSI) runs on UTRAN_PTC
+  {
+    var START_Value v_START_Value := '00000000000000000000'B;
+    var RRC_DATA_IND v_RRC_DataInd;
+
+    timer t_WaitForGMM := 5.0; // @sic R5-120721 sic@
+    
+    t_WaitForGMM.start;
+    alt { //  @sic R5s110787 sic@
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                cr_U_RA_UpdReqAny (cr_GMM_UpdateType(?, p_UpdateType),
+                                                                   cr_RAI (omit),
+                                                                   cr_PTMSI_SignatureAny ifpresent,
+                                                                   ? ))) // @sic R5s110216 sic@
+        -> value v_RRC_DataInd
+        {
+          t_WaitForGMM.stop;
+        }
+      [] t_WaitForGMM.timeout
+        {
+          f_UTRAN_RRC_ConnRel ( p_CellId, cell_Dch, true);
+          f_UTRAN_RRC_ConnEst ( p_CellId);
+          U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                 tsc_RB3,
+                                                 cr_U_RA_UpdReqAny (cr_GMM_UpdateType(?, p_UpdateType),
+                                                                    cr_RAI (omit),
+                                                                    cr_PTMSI_SignatureAny ifpresent,
+                                                                    ? ))) // @sic R5s110216 sic@
+            -> value v_RRC_DataInd;
+        }
+    }
+    v_START_Value := v_RRC_DataInd.ttcn_start;
+    f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_START_Value);
+    f_UTRAN_GMM_RAU_Without_RAUReq ( p_CellId, v_START_Value, tsc_I_UpdateTypeCombined, false, false ); // @sic R5s110787 sic@
+  }
+
+  function f_UTRAN_SwitchPower_Off ( UTRAN_CellId_Type         p_CellId,
+                                    UTRA_POSTAMBLE_STATE_Type p_Utra_Postamble_State,
+                                    UTRAN_GERAN_ATTACH_Type p_AttachType) runs on UTRAN_PTC
+  {
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var integer v_AttFlag := f_UTRAN_CellInfo_GetAttFlag ( p_CellId );
+    var RRC_Rel_Status v_RRC_Rel_Status := cell_Dch;
+    var UTRA_POSTAMBLE_CONDITIONS v_Utra_Postamble_Condition := fl_UTRA_SetPostambleCondition (p_AttachType); // @sic R5s110176 sic@
+    var B2_Type v_Nmo := f_UTRAN_CellInfo_GetNMO(p_CellId);
+    
+    if ( v_CellConfig == cell_FACH or v_CellConfig == cell_FACH_NoConn ) {
+      v_RRC_Rel_Status := cell_Fach_Dcch;
+    };
+    
+    //Step 1: The UE can be switched off
+    if ( pc_SwitchOnOff == true ) {
+      //Step 1: The UE is switched off
+      f_UT_SwitchOffUE(UT, false);
+      
+      //Step 2-4: RRC Connection establishment when UE is in UTRA idle end state
+      if ( p_Utra_Postamble_State == U1_IDLE ) {
+        f_UTRAN_RRC_ConnEst ( p_CellId, detach );
+        alt {
+          //Step 5a1, 5c1 & 5d1: Receive Detach Request message for the different scenarios
+          // - NMO1 and (C1 or C3) : detach type = power switched off, GPRS/IMSI combined detach
+          // - (NMO1 or NMO2) and C2 : detach type = power switched off, PS detach
+          // - NMO2 and (C1 or C3) : detach type = power switched off, PS detach
+          [] U_Dc.receive ( car_PS_InitDirectTransfer ( utran_CellDedicated,
+                                                        tsc_RB3,
+                                                        cr_U_DetachRequest ( cr_DetachTypeOnSwitchOff,
+                                                                             cr_MobileIdAny('18'O) ifpresent ) ) ) // @sic R5s120162 sic@
+            {
+              //Step 5d2: Receive IMSI Detach indication
+              // - NMO2 and (C1 or C3)
+              if ( v_AttFlag == 1 and
+                   ( (v_Nmo == tsc_NMO_II and (v_Utra_Postamble_Condition == UTRA_C1 or v_Utra_Postamble_Condition == UTRA_C3)) ) ) { // @sic R5s110155, R5-115770 sic@
+                U_Dc.receive ( car_InitDirectTransfer ( utran_CellDedicated,  // @sic R5s110155, R5s110695, R5s120529 sic@
+                                                          tsc_RB3,
+                                                          cr_U_Imsi_DetachInd ) );
+              }
+            }
+          // Step 5b1 or 5d2: Receive IMSI detach Indication
+          // - (NMO1 or NMO2) and C4
+          // When NMO2 and (C1 or C3) : CS and PS are run independently and SS shall accept either PS detach first or IMSI detach first.
+          [] U_Dc.receive ( car_InitDirectTransfer ( utran_CellDedicated,
+                                                     tsc_RB3,
+                                                     cr_U_Imsi_DetachInd ) )
+            {
+              //Step 5d1: Receive Detach request for the scenario
+              // - NMO2 and (C1 or C3)
+              if ( v_AttFlag == 1 and
+                    v_Nmo == tsc_NMO_II and // @sic R5-115770 sic@
+                   (v_Utra_Postamble_Condition == UTRA_C1 or v_Utra_Postamble_Condition == UTRA_C3) ) {
+                U_Dc.receive ( car_PS_InitDirectTransfer ( utran_CellDedicated,
+                                                           tsc_RB3,
+                                                           cr_U_DetachRequest ( cr_DetachTypeOnSwitchOff,
+                                                                                cr_MobileIdAny('18'O) ifpresent, // @sic R5s120162 sic@
+                                                                                cr_PTMSI_Signature2Any ifpresent ))); // @sic R5s110462 sic@
+              }
+              else {//IMSI Detach only
+              }
+            }
+        } // End of alt
+      }
+      else { // UE is in connected mode; @sic R5s110155 sic@
+        alt {
+          //Step 5a1, 5c1 & 5d1: Receive Detach Request message for the different scenarios
+          // - NMO1 and (C1 or C3) : detach type = power switched off, GPRS/IMSI combined detach
+          // - (NMO1 or NMO2) and C2 : detach type = power switched off, PS detach
+          // - NMO2 and (C1 or C3) : detach type = power switched off, PS detach
+          [] U_Dc.receive ( car_PS_UplinkDirectTransfer ( utran_CellDedicated,
+                                                          tsc_RB3,
+                                                          cr_U_DetachRequest ( cr_DetachTypeOnSwitchOff,
+                                                                               cr_MobileIdAny('18'O) ifpresent, // @sic R5s120162 sic@
+                                                                               cr_PTMSI_Signature2Any ifpresent ) ) ) // @sic R5s110594 sic@
+            {
+              //Step 5d2: Receive IMSI Detach indication
+              // - NMO2 and (C1 or C3)
+              if ( v_AttFlag == 1 and
+                   ( (v_Nmo == tsc_NMO_II and (v_Utra_Postamble_Condition == UTRA_C1 or v_Utra_Postamble_Condition == UTRA_C3)) ) ) { // @sic R5s110155, R5-115770 sic@
+                  U_Dc.receive ( car_InitDirectTransfer ( utran_CellDedicated,  // @sic R5s110155, R5s110695, R5s120529 sic@
+                                                                  tsc_RB3,
+                                                            cr_U_Imsi_DetachInd ) );
+              }
+            }
+          // Step 5b1 or 5d2: Receive IMSI detach Indication
+          // - (NMO1 or NMO2) and C4
+          // When NMO2 and (C1 or C3) : CS and PS are run independently and SS shall accept either PS detach first or IMSI detach first.
+          [] U_Dc.receive ( car_InitDirectTransfer ( utran_CellDedicated,   // @sic R5s110695, R5s120529 sic@
+                                                          tsc_RB3,
+                                                          cr_U_Imsi_DetachInd ) )
+            {
+              //Step 5d1: Receive Detach request for the scenario
+              // - NMO2 and (C1 or C3)
+              if ( v_AttFlag == 1 and
+                    v_Nmo == tsc_NMO_II and // @sic R5-115770 sic@
+                   (v_Utra_Postamble_Condition == UTRA_C1 or v_Utra_Postamble_Condition == UTRA_C3) ) {
+                U_Dc.receive ( car_PS_UplinkDirectTransfer ( utran_CellDedicated,
+                                                             tsc_RB3,
+                                                             cr_U_DetachRequest ( cr_DetachTypeOnSwitchOff,
+                                                                                  cr_MobileIdAny('18'O) ifpresent, // @sic R5s120162 sic@
+                                                                                  cr_PTMSI_Signature2Any ifpresent ) ) ); // @sic R5s110594 sic@
+              }
+              else {//IMSI Detach only
+              }
+            }
+        } // End of alt
+      }
+      //Step 6-7: Release RRC connection when the UE has been switched off
+      f_UTRAN_RRC_ConnRel_AfterSwitchOff ( p_CellId, v_RRC_Rel_Status );
+    }
+    //Step 1: The power must be removed from the UE
+    else {
+      f_UT_PowerOffUE (UT);
+    }
+  }
+
+  function fl_UTRA_SetPostambleCondition (UTRAN_GERAN_ATTACH_Type p_AttachType) return UTRA_POSTAMBLE_CONDITIONS
+  {
+    var boolean v_IsCombined := f_UTRAN_AttachTypeCheck(p_AttachType); // @sic R5s110176 sic@
+    var UTRA_POSTAMBLE_CONDITIONS v_UTRA_POSTAMBLE_CONDITION := UTRA_C1;
+    
+    if ( v_IsCombined ) {//combined attach case
+      if ( pc_CS and pc_PS ) {
+        v_UTRA_POSTAMBLE_CONDITION := UTRA_C3;
+        }
+      else if ( pc_CS and (not pc_PS) ) {
+        v_UTRA_POSTAMBLE_CONDITION := UTRA_C4;
+      }
+    }
+    else {//attach case
+      if ( pc_PS and (not pc_CS) ) {
+        v_UTRA_POSTAMBLE_CONDITION := UTRA_C2;
+      }
+    }
+    return v_UTRA_POSTAMBLE_CONDITION;
+  }
+
+  function f_UTRAN_AttachTypeCheck (UTRAN_GERAN_ATTACH_Type p_AttachType) return boolean
+  {
+    var boolean v_IsCombined := false;
+    
+    select (p_AttachType) { // @sic R5s110176 sic@
+      case (Combined) {
+        v_IsCombined := true;
+      }
+      case (PS_Only) {
+        v_IsCombined := false;
+      }
+      case (NotSpecified) {
+        if( pc_Combined_Attach) {
+          if (pc_Attach) { // So both set to true
+            if (px_AttachTypeTested == COMBINED_ATTACH) { // only now check the PIXIT value
+              v_IsCombined := true;
+            }
+          } else { // only combined set to true
+              v_IsCombined := true;
+          }
+        } else if (not pc_Attach) { // so neither set to true
+              f_UTRAN_SetVerdictInconc(__FILE__, __LINE__, "Neither pc_Attach nor pc_Combined_Attach set to true");
+        }
+      }
+    }
+    return v_IsCombined;
+  }
+
+  function f_UTRAN_GMM_RAU_MappedContext(UTRAN_CellId_Type p_CellId,
+                                         boolean           p_NoSecurityAfterHO := false) runs on UTRAN_PTC
+  {
+    f_UTRAN_GMM_RAU ( p_CellId, false, p_NoSecurityAfterHO );
+  };
+
+  function f_UTRAN_GMM_RAU_Without_RAUReq ( UTRAN_CellId_Type p_CellId,
+                                            START_Value       p_START_Value,
+                                            B3_Type           p_UpdateType,
+                                            boolean           p_DoAuth := true,
+                                            boolean           p_NoSecurityAfterHO := false) runs on UTRAN_PTC
+  {
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(p_CellId));
+    var octetstring v_LAC := f_UTRAN_CellInfo_GetLAC(p_CellId);
+    var octetstring v_RAC := f_UTRAN_CellInfo_GetRAC(p_CellId);
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    
+    if (not p_NoSecurityAfterHO) { // @sic R5s110216 sic@
+      f_UTRAN_SS_SecurityDownloadStart(ps_domain, p_START_Value);
+    }
+    
+    // Store flag to be sent to LTE later; @sic R5-110746 sic@
+    if (p_UpdateType == tsc_I_UpdateTypeCombinedWithIMSI or p_UpdateType == tsc_I_UpdateTypeCombined) {
+      v_SecurityInfo.authKeys.CSinOtherRAT := true;
+      f_UTRAN_Security_Set (v_SecurityInfo);
+    }
+    
+    if ( p_DoAuth ) {
+      f_UTRAN_GMM_Authentication();
+    }
+
+    if (not p_NoSecurityAfterHO and not p_DoAuth) { // @sic R5s110216 sic@
+      f_UTRAN_RRC_Security(p_CellId,                        // SECURITY MODE COMMAND, SECURITY MODE COMPLETE
+                         p_DoAuth,
+                         ps_domain);
+    }
+    
+    U_Dc.send (cas_DataReq_PS(utran_CellDedicated,
+                              tsc_RB3,
+                              cs_U_RA_UpdAcc3 (cs_GMM_UpdateResult (p_UpdateType),
+                                               cs_RAI (omit,
+                                                       cs_LAI(omit, v_PLMN, v_LAC),
+                                                       v_RAC ),
+                                               cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                               cs_MobileIdTMSIorPTMSI ('18'O, px_PTMSI_Def))));
+    
+    U_Dc.receive(car_PS_UplinkDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_RAUpdComplete ));
+  };
+
+  function f_UTRAN_GMM_RAU(UTRAN_CellId_Type p_CellId,
+                           boolean           p_DoAuth := true,
+                           boolean           p_NoSecurityAfterHO := false) runs on UTRAN_PTC
+  {
+    var START_Value v_START_Value := '00000000000000000000'B;
+    var B3_Type v_UpdateType := '000'B;
+    var RRC_DATA_IND v_RRC_DataInd;
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var template RRCDataIndType v_RAU := cr_U_RA_UpdReqAny (cr_GMM_UpdateType(?, (tsc_I_UpdateTypeRAOnly, tsc_I_UpdateTypeCombined)),
+                                                                   cr_RAI (omit),
+                                                                   cr_PTMSI_SignatureAny ifpresent,
+                                                                   ? );
+    
+    alt {
+      [] U_Dc.receive(car_PS_InitDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                v_RAU)) // @sic R5s110216 sic@
+        -> value v_RRC_DataInd {}
+      [] U_Dc.receive(car_PS_UplinkDirectTransfer(utran_CellDedicated,
+                                                tsc_RB3,
+                                                v_RAU)) // @sic R5s110216 sic@
+        -> value v_RRC_DataInd {}
+    }
+    
+    if (p_DoAuth) { // @sic R5s120141 sic@
+      v_START_Value := '00000000000000000000'B;
+    } else if (ispresent (v_RRC_DataInd.ttcn_start)) {
+      v_START_Value := v_RRC_DataInd.ttcn_start;
+    } else {
+      v_START_Value := v_SecurityInfo.start_PS; // current value.  If not previously set, default value is all zeros
+    }
+    if (not p_NoSecurityAfterHO) { // @sic R5s110216 sic@
+      f_UTRAN_SS_SecurityDownloadStart(ps_domain, v_START_Value);
+    }
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_RRC_DataInd.msg.routingAreaUpdateRequest); /* @sic R5s120019 Additional Changes sic@ */
+    f_UTRAN_GMM_RAU_Without_RAUReq ( p_CellId, v_START_Value, v_UpdateType, p_DoAuth, p_NoSecurityAfterHO );
+  }
+
+  function f_UTRAN_RRC_ConnRel_AfterSwitchOff(UTRAN_CellId_Type p_CellId,
+                                              RRC_Rel_Status    p_RRC_RelStatus) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var integer v_N308 := 1;     // Maximum number of retransmissions of the RRC CONNECTION RELEASE COMPLETE message.
+    var integer i := 0;
+    timer t_WaitForReply := f_UG_SetTimerToleranceMax (1.0);
+    
+    f_Delay(1.0);
+    
+    if (p_RRC_RelStatus == cell_Dch) {
+      U_UM.send(cas_RRC_ConnRelDCCH(utran_CellDedicated,
+                                    tsc_RB1,
+                                    cs_108_RRC_ConnRelDCCH_r4(v_SecurityInfo.dl_IntegrityCheckInfo, tsc_RRC_TI, v_N308)));
+      for (i := 0; i < (v_N308 + 1); i := i + 1) {
+        t_WaitForReply.start;
+        alt {
+          [] t_WaitForReply.timeout {} // UE may not send the Release Complete
+          [] U_UM.receive(car_RRC_ConnRelCmplUM(utran_CellDedicated,
+                                              tsc_RB1,
+                                              cr_108_RRC_ConnRelCmpl(tsc_RRC_TI)))
+            {
+              t_WaitForReply.stop;
+            }
+          }
+        }
+    } else if (p_RRC_RelStatus == cell_Fach_Dcch) {
+      U_UM.send(cas_RRC_ConnRelDCCH(utran_CellDedicated,
+                                    tsc_RB1,
+                                    cs_108_RRC_ConnRelDCCH_r4(v_SecurityInfo.dl_IntegrityCheckInfo, tsc_RRC_TI)));
+      t_WaitForReply.start;
+      alt {
+        [] t_WaitForReply.timeout {} // UE may not send the Release Complete
+        [] U_AM.receive ( car_RLC_Data_Ind ( utran_CellDedicated,
+                                             tsc_RB2,
+                                             cr_108_RRC_ConnRelCmpl(tsc_RRC_TI)))
+          {
+            t_WaitForReply.stop;
+            f_Delay(1.0);
+          }
+      }
+      
+    } else if (p_RRC_RelStatus == cell_Fach_Ccch) {
+      U_UM.send(cas_RRC_ConnRelCCCH(p_CellId,
+                                    tsc_RB0,
+                                    cs_108_RRC_ConnRelCCCH_r5(cs_U_RNTI_Def, tsc_RRC_TI)));
+    } else {
+      FatalError(__FILE__, __LINE__, "invalid configuration");
+    }
+    
+    //  TO DO - Implement DPCH re-configuration
+    f_UTRAN_RestartCRLC_ForNextConnection(p_CellId);
+    f_UTRAN_SS_ResetSecurityKey();
+  }
+
+  function f_UTRAN_LocationUpdate( UTRAN_CellId_Type p_CellId,
+                                   boolean p_DoAuth := false,
+                                   LOCATION_UPDATE_ACCEPT_TYPE p_LocAcceptType := TMSI ) runs on UTRAN_PTC
+  {
+    var START_Value v_START_Value := '00000000000000000000'B;
+    var RRC_DATA_IND v_RRC_DataInd;
+    
+    //Receive Location Updating Request message
+    U_Dc.receive(car_InitDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_LocationUpdatingRequest)) -> value v_RRC_DataInd;
+    v_START_Value := v_RRC_DataInd.ttcn_start;
+    f_UTRAN_LocationUpdate_WithoutLAUReq(p_CellId, v_START_Value, p_DoAuth, p_LocAcceptType);
+  }
+
+  type enumerated LOCATION_UPDATE_ACCEPT_TYPE {TMSI, IMSI, NONE};     /* @status    APPROVED */
+
+  function f_UTRAN_LocationUpdate_WithoutLAUReq( UTRAN_CellId_Type p_CellId,
+                                                 START_Value p_START_Value := '00000000000000000000'B,
+                                                 boolean p_DoAuth := false,
+                                                 LOCATION_UPDATE_ACCEPT_TYPE p_LocAcceptType := TMSI) runs on UTRAN_PTC
+  { /* @sic R5-1100755 sic@ */
+    var octetstring v_PLMN := f_U_Asn2Nas_PlmnId(f_UTRAN_CellInfo_GetPLMNIdentity(p_CellId));
+    var octetstring v_LAC := f_UTRAN_CellInfo_GetLAC(p_CellId);
+    var boolean v_NewKeyFlag := false;//No new key generation
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var template (value) MobileIdentity v_MobileIdIMSI := f_Imsi2MobileIdentity(px_IMSI_Def);
+    v_MobileIdIMSI.iei := '13'O; // Need to include iei in LUAccept, but function returns without iei
+    
+    
+    // Store flag to be sent to LTE later; @sic R5-110746 sic@
+    v_SecurityInfo.authKeys.CSinOtherRAT := true;
+    f_UTRAN_Security_Set (v_SecurityInfo);
+    
+    f_UTRAN_SS_SecurityDownloadStart(cs_domain, p_START_Value);
+    
+    if (p_DoAuth) {
+      f_UTRAN_MM_Authentication ();
+      v_NewKeyFlag := true;
+    }
+
+    //Send SECURITY MODE COMMAND and receive SECURITY MODE COMPLETE
+    f_UTRAN_RRC_Security(p_CellId, v_NewKeyFlag, cs_domain );
+    
+    //Send Location Updating Accept message
+    select (p_LocAcceptType) {  // @sic R5-112706 sic@
+      case (TMSI) {
+        U_Dc.send (cas_DataReq_CS(utran_CellDedicated, tsc_RB3, cs_U_LocUpdAcpTMSI (v_PLMN, v_LAC)));
+        //Receive TMSI Reallocation Complete
+        U_Dc.receive(car_UplinkDirectTransfer(utran_CellDedicated, tsc_RB3, cr_U_TMSI_ReallocCmpl )); // @sic R5s110594 sic@
+      }
+      case (IMSI) {
+        U_Dc.send (cas_DataReq_CS(utran_CellDedicated, tsc_RB3, cs_U_LocUpdAcpIMSI (v_PLMN, v_LAC, v_MobileIdIMSI)));
+      }
+      case (NONE) {
+        U_Dc.send (cas_DataReq_CS(utran_CellDedicated, tsc_RB3, cs_U_LocUpdAcp_NoMobId (v_PLMN, v_LAC)));
+      }
+    }
+
+  }
+
+  function f_UTRAN_CheckNoAttachOnCell ( UTRAN_CellId_Type p_CellId,
+                                         float p_Wait,
+                                         charstring p_StepNo ) runs on UTRAN_PTC
+  {
+    var RLC_TR_DATA_IND v_RLC_TR_DATA_IND;
+    
+    timer t_Wait := f_UG_SetTimerToleranceMin(p_Wait);
+    
+    t_Wait.start;
+    alt {
+      [] U_TM.receive(car_RRC_ConnReq(p_CellId,
+                                      tsc_RB0,
+                                      cr_108_RRC_ConnReq_r8(?)))
+        -> value v_RLC_TR_DATA_IND
+        {
+          f_UTRAN_SetVerdictFailOrInconc (__FILE__, __LINE__, p_StepNo);
+          
+        }
+      []   t_Wait.timeout {}
+    }
+  } // f_UTRAN_CheckNoAttachOnCell
+
+  function f_UTRAN_Page (UTRAN_CellId_Type p_CellId, PagingCause p_PagCause, B32_Type p_P_tmsi) runs on UTRAN_PTC
+  {
+    f_UTRAN_CMAC_Pag1_Cfg(p_CellId);
+    U_TM.send (cas_PagingType1 (p_CellId, tsc_RB_PCCH, cs_RRC_PagingType1_PTMSI (p_PagCause, p_P_tmsi, ps_domain)));
+  }
+
+  function f_UTRAN_ConfigureCipheringBeforeHO (UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var template (value) RB_ActivationTimeInfoList  v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs(0, 0, 0, 0);
+    var RLC_SequenceNumber  v_RLC_SN_RB1, v_RLC_SN_RB2, v_RLC_SN_RB3, v_RLC_SN_RB4, v_RLC_SN_RAB;
+    var CRLC_SequenceNumber_CNF v_CRLC_SequenceNumber_CNF;
+
+    if (v_SecurityInfo.start_PS == '11111111111111111111'B) {
+        FatalError(__FILE__, __LINE__, "invalid PS Start Value");
+    }
+    f_UTRAN_SS_SecurityDownloadStart (ps_domain, v_SecurityInfo.start_PS);
+    
+    v_SecurityInfo.dL_CipherMode := valueof(cs_CipheringModeCmdOn(px_UTRAN_CipheringAlgorithm));
+    v_SecurityInfo.ps_cipheringStarted := true;
+    v_SecurityInfo.recentSecureDomain := ps_domain;
+    
+    f_UTRAN_Security_Set(v_SecurityInfo);
+    f_UTRAN_SS_DownloadSecurityKey(p_CellId, ps_domain);
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB1);
+    v_RLC_SN_RB1  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB2);
+    v_RLC_SN_RB2  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB3);
+    v_RLC_SN_RB3  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+    
+    v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB4);
+    v_RLC_SN_RB4  := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+      
+    if (f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD) {
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB1,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB1,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB2,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB2,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB3,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB3,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB4,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB4,
+                                                                    notInc));
+    }
+    else    {
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB1,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB1,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB2,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB2,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB3,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB3,
+                                                                    notInc));
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_DL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    tsc_RB4,
+                                                                    v_SecurityInfo.dL_CipherMode,
+                                                                    v_RLC_SN_RB4,
+                                                                    notInc));
+    }
+    
+    if (v_SecurityInfo.recentSecureDomain == ps_domain) {
+      select (v_CellConfig) {
+        case (cell_DCH_64kPS_RAB_SRB, cell_Four_DTCH_PS_CS) {
+          v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB20);
+          v_RLC_SN_RAB := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+          v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs_20(0, 0, 0, 0, v_RLC_SN_RAB);
+          f_UTRAN_CRLC_DL_CipherCfgRB ( p_CellId, v_SecurityInfo.recentSecureDomain, v_SecurityInfo.dL_CipherMode, v_CellConfig, false ); //@sic R5s120113 sic@
+        }
+        case (cell_DCH_E_HS, cell_E_HS, cell_DCH_HS_DSCH) { // @sic R5s110788 sic@
+          v_CRLC_SequenceNumber_CNF := f_UTRAN_CRLC_SequenceNumber_Get(tsc_RB25);
+          v_RLC_SN_RAB := v_CRLC_SequenceNumber_CNF.count_C_LSB_DL;
+          v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs_25(0, 0, 0, 0, v_RLC_SN_RAB);
+          f_UTRAN_CRLC_DL_CipherCfgRB ( p_CellId, v_SecurityInfo.recentSecureDomain, v_SecurityInfo.dL_CipherMode, v_CellConfig, false ); //@sic R5s120113 sic@
+        }
+      }
+    }
+    
+    if (f_IRAT_GetUTRAN_FDD_TDD_Mode () == UTRAN_FDD) {
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_UL_CipherActReq_FDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    v_RB_ActivationTimeInfoList,
+                                                                    notInc));
+    }
+    else {
+        f_UTRAN_CRLC_CipheringActivate(cas_CRLC_UL_CipherActReq_TDD(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    v_RB_ActivationTimeInfoList,
+                                                                    notInc));
+    }
+  }
+
+  function f_UTRAN_ConfigureIntegrityAfterHO (UTRAN_CellId_Type p_CellId,
+                                              CN_DomainIdentity p_Domain := ps_domain) runs on UTRAN_PTC
+  { //@sic R5-120637 enhancements for integrity in CS domain sic@
+    var RB_ConfigType v_CellConfig := f_UTRAN_CellInfo_GetConfigType(p_CellId);
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get();
+    var template (value) RB_ActivationTimeInfoList v_RB_ActivationTimeInfoList;
+    var START_Value v_Start_Value;
+    var ActivationTime v_IntActTime := f_UTRAN_CalculateActTime(f_UTRAN_CPHY_GetFrameNumber(p_CellId, tsc_DL_DPCH1));
+
+    if (p_Domain == cs_domain){
+      v_Start_Value := v_SecurityInfo.start_CS;
+    }
+    else{
+      v_Start_Value := v_SecurityInfo.start_PS;
+    }
+    if (v_Start_Value == '11111111111111111111'B) {
+      FatalError(__FILE__, __LINE__, "invalid  Start Value");
+    }
+    
+    f_UTRAN_SS_SecurityDownloadStart (p_Domain, v_Start_Value);
+    
+    v_SecurityInfo.recentSecureDomain := p_Domain;
+    v_SecurityInfo.integrityStarted := true;
+    if (px_UTRAN_CipheringAlgorithm == uea2) {
+      v_SecurityInfo.dL_Integrity := valueof(cs_IntegrityProtectStart(px_FRESH, uia2));
+    } else {
+      v_SecurityInfo.dL_Integrity := valueof(cs_IntegrityProtectStart(px_FRESH, uia1));
+    }
+    v_SecurityInfo.dl_IntegrityCheckInfo := valueof(cs_IntegrityCheckInfo0);
+    
+    // ActivateSecurity_DL_SS:
+    f_UTRAN_SetDL_RRC_MessageSN(utran_CellDedicated);
+    f_UTRAN_CRLC_IntegrityActivate(cas_CRLC_DL_IntegrityActivateReq(utran_CellDedicated,
+                                                                    v_SecurityInfo.recentSecureDomain,
+                                                                    v_SecurityInfo.dL_Integrity));
+    f_UTRAN_CRLC_IntegrityActivate(cas_CRLC_UL_IntegrityActivateReq(utran_CellDedicated,
+                                                                      v_SecurityInfo.recentSecureDomain,
+                                                                      cs_RB2_IntegrityProtActivationInfoList(0)));
+    v_RB_ActivationTimeInfoList := cs_RB_ActTimeInfoListSRBs (0, 0, 0, 0);
+    v_SecurityInfo := fl_UTRAN_StartSecurityUE(p_CellId,
+                                               v_CellConfig,
+                                               v_SecurityInfo,
+                                               v_RB_ActivationTimeInfoList,
+                                               v_SecurityInfo.recentSecureDomain,
+                                               v_IntActTime,
+                                               true); // @sic R5s110382 sic@
+    f_UTRAN_Security_Set(v_SecurityInfo);
+  }
+
+  function f_UTRAN_MobilityInformation(UTRAN_CellId_Type                                      p_CellId,
+                                       template (omit) CN_InformationInfoFull                 p_CNInfo := cs_508_CNInfo, //@sic R5s110519 sic@
+                                       template (omit) UTRANMobilityInformation_v860ext2_Type p_UtranMobilityInformation_v860ext2_Type := omit,
+                                       boolean                                                p_ReceiveConfirmMsg := true) runs on UTRAN_PTC
+  {
+    var UTRAN_SecurityInfo_Type v_SecurityInfo := f_UTRAN_Security_Get ();
+    var U_RNTI v_U_RNTI := f_UTRAN_CellInfo_GetU_RNTI (p_CellId);
+    var C_RNTI v_C_RNTI := f_UTRAN_CellInfo_GetC_RNTI(p_CellId);
+    
+    U_AM.send (cas_RLC_Data_Req_NoCnf (utran_CellDedicated, // @sic R5s110386 sic@
+                                       tsc_RB2,
+                                       cs_RRC_UtranMobilityInfo (v_SecurityInfo.dl_IntegrityCheckInfo,        //IntegrityCheckInfo
+                                                                 tsc_RRC_TI,                                  //RRC_TransactionIdentifier
+                                                                 omit,                                        //IntegrityProtectionModeInfo_r7
+                                                                 omit,                                        //CipheringModeInfo_r7
+                                                                 v_U_RNTI,                                    //U_RNTI
+                                                                 v_C_RNTI,                                    //C_RNTI
+                                                                 omit,                                        //H_RNTI
+                                                                 cs_UEConnTimersConst,                        //UE_ConnTimersAndConstants_r5
+                                                                 p_CNInfo,                                    //CN_InformationInfoFull @sic R5s110519 sic@
+                                                                 omit,                                        //PLMN_Identity
+                                                                 omit,                                        //URA_Identity
+                                                                 omit,                                        //SupportChangeUECapab
+                                                                 omit,                                        //DL_CounterSynchronisationInfo_r5
+                                                                 omit,                                        //UtranMobilityInformation_r7_add_ext
+                                                                 p_UtranMobilityInformation_v860ext2_Type))); //UTRANMobilityInformation_v860ext2_Type
+
+    //Receive UTRAN MOBILITY INFORMATION CONFIRM message
+    if (p_ReceiveConfirmMsg) {
+      U_AM.receive (car_RLC_Data_Ind (utran_CellDedicated, // @sic R5s110386 sic@
+                                      tsc_RB2,
+                                      cr_108_UTRAN_MobilityInfoCnf (tsc_RRC_TI)));
+    }
+  }
+
+  function f_UTRAN_PageCS (UTRAN_CellId_Type p_CellId,
+                           PagingCause p_PagCause,
+                           B32_Type p_Tmsi) runs on UTRAN_PTC
+  {
+    f_UTRAN_CMAC_Pag1_Cfg(p_CellId);
+    U_TM.send (cas_PagingType1 (p_CellId, tsc_RB_PCCH, cs_RRC_PagingType1_TMSI (p_PagCause, p_Tmsi, cs_domain)));
+  }
+
+}

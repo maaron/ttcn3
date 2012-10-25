@@ -1,0 +1,192 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module MTC_Main_LTE {
+
+  import from CDMA2000_Component all;
+  import from CommonDefs all;
+  import from EUTRA_Component all;
+  import from GERAN_Component all;
+  import from IMS_Component all;
+  import from IMS_DefaultHandler all;
+  import from IP_PTC_Component all;
+  import from IP_PTC_Main all;
+  import from MTC_Base all;
+  import from MTC_Component_LTE all;
+  import from MTC_UpperTester all;
+  import from NasEmu all;
+  import from NasEmu_Component all;
+  import from UTRAN_Component all;
+
+  function f_MTC_ConnectPTCs_LTE(EUTRA_PTC p_Eutra,
+                                 UTRAN_PTC p_Utran,
+                                 GERAN_PTC p_Geran,
+                                 CDMA2000_PTC p_Cdma2000,
+                                 IMS_PTC p_ImsPdn1,
+                                 IMS_PTC p_ImsPdn2,
+                                 template (omit) RATComb_Tested_Type p_RatCombination := omit) runs on MTC_LTE
+  { /* @sic R5-104796 change 12: CDMA2000 added sic@ */
+    /* @sic R5-113805, R5-113696, R5-113734: new parameter p_RatCombination sic@ */
+    /* @sic R5-113037: Introduction of positioning test cases sic@ */
+    /* p_RatCombination is used only in cases where a dummy PTC is used for GERAN or UTRAN to get the system info for EUTRA's system information combination 10 and c10a */
+    /* @sic R5-113037: Introduction of positioning test cases sic@ */
+    var IP_PTC v_IP_PTC;
+    var NASEMU_PTC v_NASEMU_PTC;
+    var IMS_PTC v_ImsPdn1;
+    var boolean v_C2KTunnellingFlag := (p_Cdma2000 != null);
+
+    vc_Components.Eutra := p_Eutra;
+    vc_Components.Utran := p_Utran;
+    vc_Components.Geran := p_Geran;
+    vc_Components.Cdma2000 := p_Cdma2000;
+
+    if (p_Eutra == null) {
+      FatalError (__FILE__, __LINE__, "invalid configuration");
+      mtc.stop;
+    }
+
+    // ***** MTC *****
+    f_MTC_BASE_Map();
+
+    // ***** EUTRA PTC *****
+    f_EUTRA_PTC_Map(p_Eutra, v_C2KTunnellingFlag);              // map EUTRA system ports
+    v_NASEMU_PTC := f_NasEmu_CreateConnectAndMap(p_Eutra);      // create NasEmu, map system ports and connect with EUTRA PTC
+    v_NASEMU_PTC.start(f_NASEMU_MainLoop());                    // start NASEMU
+
+    // ***** Create, map, connect and start IP PTC *****
+    v_IP_PTC := f_IP_PTC_CreateAndMap();
+    connect(p_Eutra:IP, v_IP_PTC:EUTRA_CTRL);
+    v_IP_PTC.start(f_IP_PTC_MainLoop());
+
+    // ***** Create, connect and start IMS PTC *****
+    // IMS for PDN1: if PTC is not created yet the default IMS PTC will be used
+    if (p_ImsPdn1 == null) { v_ImsPdn1 := f_IMS_PTC_Create(); }         // => default IMS handling for PDN1
+    else                   { v_ImsPdn1 := p_ImsPdn1; }
+
+    connect(v_ImsPdn1:IMS_CTRL,      v_IP_PTC:IMS_CTRL[tsc_Index_PDN1]);
+    connect(v_ImsPdn1:IMS_Server,    v_IP_PTC:IMS_Server[tsc_Index_PDN1]);
+    connect(v_ImsPdn1:IMS_Client,    v_IP_PTC:IMS_Client[tsc_Index_PDN1]);
+    
+    connect(v_ImsPdn1:IPCAN,         p_Eutra:IMS[tsc_Index_PDN1]);
+    
+    if (p_ImsPdn1 == null) {
+      v_ImsPdn1.start(f_IMS_DefaultHandler());
+    }
+
+    // IMS for PDN (emergency call)
+    if (p_ImsPdn2 != null) {                             // test case specific IMS handling for PDN2
+      connect(p_ImsPdn2:IMS_CTRL,      v_IP_PTC:IMS_CTRL[tsc_Index_PDN2]);
+      connect(p_ImsPdn2:IMS_Server,    v_IP_PTC:IMS_Server[tsc_Index_PDN2]);
+      connect(p_ImsPdn2:IMS_Client,    v_IP_PTC:IMS_Client[tsc_Index_PDN2]);
+      
+      connect(p_ImsPdn2:IPCAN,         p_Eutra:IMS[tsc_Index_PDN2]);
+    }
+
+    // ***** UTRAN PTC *****
+    if ((p_Utran != null) and ((not isvalue(p_RatCombination) or (valueof(p_RatCombination) == EUTRA_UTRA)))) { // if p_RatCombination == EUTRA_GERAN the UTRAN PTC is used as dummy only to get sys info
+      f_UTRAN_PTC_Map(p_Utran);
+    }
+
+    // ***** GERAN PTC *****
+    if ((p_Geran != null) and ((not isvalue(p_RatCombination) or (valueof(p_RatCombination) == EUTRA_GERAN)))) { // if p_RatCombination == EUTRA_GERAN the UTRAN PTC is used as dummy only to get sys info
+      f_GERAN_PTC_Map(p_Geran);
+    }
+
+    // ***** CDMA2000 PTC *****
+    if (p_Cdma2000 != null) {
+      f_CDMA2000_PTC_Map(p_Cdma2000);
+    }
+    
+    // ***** Connect PTCs to MTC *****
+    if (p_Eutra != null)     {connect(mtc:PTC_Ut[tsc_MTC_PortIndex_EUTRA],    p_Eutra:UT);}
+    if (p_Utran != null)     {connect(mtc:PTC_Ut[tsc_MTC_PortIndex_UTRAN],    p_Utran:UT);}
+    if (p_Geran != null)     {connect(mtc:PTC_Ut[tsc_MTC_PortIndex_GERAN],    p_Geran:UT);}
+    if (p_Cdma2000 != null)  {connect(mtc:PTC_Ut[tsc_MTC_PortIndex_CDMA2000], p_Cdma2000:UT);}
+
+    // ***** Connect EUTRA PTC to other PTCs *****
+    if (p_Utran != null)     {connect(p_Eutra:UTRAN,    p_Utran:EUTRA);}
+    if (p_Geran != null)     {connect(p_Eutra:GERAN,    p_Geran:EUTRA);}
+    if (p_Cdma2000 != null)  {connect(p_Eutra:CDMA2000, p_Cdma2000:EUTRA);}
+
+    // ***** Connect UTRAN PTC to GERAN PTC *****
+    if ((p_Geran != null) and (p_Utran != null))     {connect(p_Utran:GERAN, p_Geran:UTRAN);}
+
+    f_UT_InitialPowerOffUE(); /* @sic R5s120520 sic@ */
+  }
+
+  function fl_MTC_StopIfFinished () runs on MTC_LTE
+  { /* NOTE: there is no reference for IMS since no IMS behaviour will happen when all RAT PTC are gone */
+    if ((vc_Components.Eutra == null) and
+        (vc_Components.Utran == null) and
+        (vc_Components.Geran == null) and
+        (vc_Components.Cdma2000 == null))
+      {
+        f_MTC_Stop(pass);                      // 'pass' will overrule 'none' only
+      }
+  }
+
+  altstep a_PTC_Control() runs on MTC_LTE
+  { /* NOTEs:
+       - acc. to ES 201 873-1 Annex F.1.1 an error verdict shall be assignd when "running" is applied on any uninitialised component
+       - it seems that "running" cannot be used in the "[]" */
+
+    [] any component.killed
+      { // at a component something's gone wrong and it killed itself, so have to stop everything else
+        all component.kill;
+        mtc.stop;
+      }
+
+    /* since the NAS emulator is a parallel component which does not terminate on its own we need to check all components
+       @sic R5s100751 change 9 sic@ */
+    [vc_Components.Eutra != null] vc_Components.Eutra.done
+      {
+        vc_Components.Eutra := null;
+        fl_MTC_StopIfFinished();
+      }
+    [vc_Components.Utran != null] vc_Components.Utran.done
+      {
+        vc_Components.Utran := null;
+        fl_MTC_StopIfFinished();
+      }
+    [vc_Components.Geran != null] vc_Components.Geran.done
+      {
+        vc_Components.Geran := null;
+        fl_MTC_StopIfFinished();
+      }
+    [vc_Components.Cdma2000 != null] vc_Components.Cdma2000.done
+      {
+        vc_Components.Cdma2000 := null;
+        fl_MTC_StopIfFinished();
+      }
+  }
+
+  function f_MTC_MainLoop(timer p_GuardTimer) runs on MTC_LTE
+  { /* @sic R5-113037: Introduction of positioning test cases sic@ */
+    /* @sic R5s120520: f_UT_InitialPowerOffUE moved to f_MTC_ConnectPTCs_LTE sic@ */
+
+    f_MTC_BASE_Init();
+
+    while (true) {      /* mtc will be stopped by a_PTC_Control or due to timeout of the guard timer;
+                           => neither a_PTC_Control nor a_UpperTester needs to use 'repeat' */
+      alt {
+        [] a_PTC_Control();             // handle 'done' and 'killed' of PTCs: MTC will be stopped, when all PTCs are terminated or a fatal error occurs
+        [] a_MTC_ReceiveFromPTC_SendToUT(tsc_MTC_PortIndex_EUTRA);    // handle upper tester for PTC 0 (EUTRA)
+        [] a_MTC_ReceiveFromPTC_SendToUT(tsc_MTC_PortIndex_UTRAN);    // handle upper tester for PTC 1 (UTRAN)
+        [] a_MTC_ReceiveFromPTC_SendToUT(tsc_MTC_PortIndex_GERAN);    // handle upper tester for PTC 2 (GERAN)
+        [] a_MTC_ReceiveFromPTC_SendToUT(tsc_MTC_PortIndex_CDMA2000); // handle upper tester for PTC 3 (CDMA2000)
+        [] a_MTC_ReceiveFromUT_SendToPTC();
+        [] p_GuardTimer.timeout {f_MTC_Stop(fail);}    /* acc. to the assumption that preamble and postamble are short compared to the testbody
+                                                          a FAIL verdict is assigned (rather than an INCONC) */
+      }
+    }
+  }
+
+}

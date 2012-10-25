@@ -1,0 +1,779 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+
+module IP_ASP_TypeDefs {
+  /* General Notes:
+   * NOTE 1:
+   * In general the handling of IP data shall be independent from the RAT being used on lower layers.
+   * NOTE 2:
+   * It shall be possible for SS implementation to reuse existing IP stack implementations in the system adaptor;
+   * therefore the well-known concept of socket programming shall be supported
+   * (regardless of whether those are used in the system adaptor implementation or not)
+   * NOTE 3:
+   * Since in general at the network side there are several different IP addresses the SS needs to simulate more than one IP address;
+   * that can be based on a concept of multiple virtual network adaptors
+   * NOTE 4:
+   * There is no easy way to control the routing of IP data for an IP connection from above the IP stack
+   * i.e. there are no parameters at the socket interface to determine e.g. cell id and DRB id
+   * => another independent logical entity (DRB-MUX) is needed below the IP stack which is responsible to control the routing of IP packets from/to DRBs in different cells of different RATs
+   *
+   * Reference:
+   * An introduction to socket programming can be found in
+   * UNIX Network Programming Volume 1, Third Edition: The Sockets Networking API
+   * by W. Richard Stevens, Bill Fenner, Andrew M. Rudoff
+   */
+
+  import from CommonDefs all;
+
+  //----------------------------------------------------------------------------
+
+  group IP_Common {
+
+  type UInt16_Type PortNumber_Type;
+
+  type record IPv4_AddrInfo_Type {                      /* IPv4 specific info of the socket addr  (AF_INET) */
+    charstring          Addr                            /* IP Address as string (IP v4 dot notation) to be converted to 32-bit unsigned integer */
+  };
+
+  type record IPv6_AddrInfo_Type {                      /* IPv6 specific info of the socket addr  (AF_INET6);
+                                                         * NOTE: sin6_flowinfo can be ignored and set to 0 */
+    charstring          Addr,                           /* to be converted to sin6_addr */
+    UInt32_Type         ScopeId     optional            /* sin6_scope_id
+                                                         * in general an IPv6 address is like "fe80::1%eth0" with eth0 being the network adaptor mapped to a scope id (Unix)
+                                                         * assumption:
+                                                         * for UE conformance testing it is not necessary to distiguish different scopes and the scope id in general can be determined by the system adaptor => omit */
+  };
+
+  type union IP_AddrInfo_Type {
+    IPv4_AddrInfo_Type  V4,
+    IPv6_AddrInfo_Type  V6
+  };
+
+  type record IP_Socket_Type {                          /* Socket */
+    IP_AddrInfo_Type    IpAddr      optional,           /* IP address */
+    PortNumber_Type     Port        optional            /* port number */
+  };
+
+  type enumerated InternetProtocol_Type {
+    udp,
+    tcp,
+    icmp,
+    icmpv6
+  };
+
+  type record IP_Connection_Type {
+    /* A connection between peer-to-peer entities is unambiguously defined by the protocol (udp/tcp/icmp/icmpv4), the local socket and the remote socket */
+    InternetProtocol_Type Protocol,
+    IP_Socket_Type        Local     optional,
+    IP_Socket_Type        Remote    optional
+  };
+
+  } // End of group IP_Common
+
+  //****************************************************************************
+  // Configuration of the IP routing table (DRB-MUX)
+  //----------------------------------------------------------------------------
+
+  group IP_Config {
+  /* Configuration of the routing table managed be the system adaptor's DRB-MUX:
+   * foreach IP connection it is specified which
+   * - RAT
+   * - Cell
+   * - DRB
+   * to be used.
+   * The IP connection does not need to be fully specified depending on the role SS plays (e.g. in case of a server role the port number of the remote side is not known in advance).
+   * The configurations of DRBs within the same cell shall be mutual exclusive.
+   *
+   * With the configuration of the IP routing the DRB is configured either in IP or in raw mode:
+   * either there are entries for the DRB in the routing table (IP mode) or not (raw mode)
+   * => It is not necessary to reconfigure this for the respective RAT.
+   *
+   * Behaviour of the DRB-MUX in UL:
+   * - SS gets data packet from the lower layers (e.g. PDCP SDU)
+   * - SS checks whether there is any IP connection configured for this DRB (identified by {RAT, CellId, DrbId})
+   *   if YES => packet is routed to the IP stack (IP mode)
+   *   if NO  => packet is handed over to the DRB port (raw mode)
+   * NOTE 1:
+   * If there is any entry for the DRB in the routing table the DRB is considered as being in IP mode and all UL IP packets are sent to the IP stack regardless of whether their addresses match the DRB's routing entries or not (in general 'unknown' packets are discarded by the IP stack)
+   * => a DRB can be either in IP or in raw mode
+   * NOTE 2:
+   * => In general SS does not need to evaluate the IP packets (i.e. there is no conflict with loopback data)
+   *
+   * Behaviour of the DRB-MUX in DL:
+   * - SS gets IP packets from the IP stack for an IP connection
+   * - SS compares the IP connection (protocol, local/remote IP Addr) against the IP routing table and
+   *   checks whether the corresponding protocol stack is configured at the lower layers  =>
+   *   1. no match:
+   *      no entry in the routing table fits to the address in the IP packet
+   *      or the corresponding RB is not configured
+   *      => SS shall raise an error (DRBMUX_COMMON_IND_CNF.Error)
+   *   2. one match:
+   *      There is exactly one possibility to route the IP packet
+   *      => SS shall send the packet to this RB
+   *   3. several matches:
+   *      There are more than one DRBs, cells or RATs to which the packet may be routed
+   *      => SS shall raise an error if there is more than one DRB in one cell matching;
+   *         if the DRBs belong to different cells or RATS SS shall send the data to all of them
+   *         (whether this may occur in test cases is FFS)
+   *
+   * General notes:
+   * NOTE 1:
+   * SS may use the information of the routing table to determine which network adaptors it needs to simulate (implementation dependent);
+   * in general there will be more than one IP address at the network side.
+   * NOTE 2:
+   * In general the routing table is a simplified DL TFT implementation
+   * NOTE 3:
+   * When the routing table is empty all DRBs are in raw mode; this shall be the initial condition at the DRB-MUX;
+   * => for L2 testing in general (and apart from the preamble) there is no need to use/configure the IP_PTC; the configuration of the RAT specific U-plane stacks is not affected
+   */
+
+  type integer IP_DrbId_Type;           /* DRB identity type common for all RATs:
+                                         * - for EUTRA it corrensponds to the ASN.1 type DRB-Identity
+                                         * - for UTRAN/GERAN it corrensponds the NSAPI value (type record NSAPI)
+                                         * NOTE: this is introduced to simplify the dependencies (i.e. to keep IP_ASP_TypeDefs independent from any RAT specific type definitions) */
+
+  type record IP_EUTRA_DrbInfo_Type {
+    EUTRA_CellId_Type   CellId,         /* data is routed to a specific cell regardless of whether the same DRB is configured in any other cell */
+    IP_DrbId_Type       DrbId
+  };
+  type record IP_UTRAN_GERAN_DrbInfo_Type {
+    integer             CellId,
+    IP_DrbId_Type       DrbId
+  };
+  type union IP_DrbInfo_Type {
+    IP_EUTRA_DrbInfo_Type       Eutra,
+    IP_UTRAN_GERAN_DrbInfo_Type Utran,
+    IP_UTRAN_GERAN_DrbInfo_Type Geran
+  };
+
+  type record IP_RoutingInfo_Type {
+    IP_Connection_Type  IpInfo,         /* IP connection tuple: protocol, local socket, remote socket
+                                         * depending on the role the SS plays the following information may be provided
+                                         * (informative; even less information can be suffcient):
+                                         * 1. TCP/UDP server
+                                         *  - local IP addr   -- provided
+                                         *  - local port      -- provided
+                                         *  - remote IP addr  -- omit
+                                         *  - remote port     -- omit
+                                         * 2. TCP/UDP client
+                                         *  - local IP addr   -- provided
+                                         *    (to inform SS about the local IP addr for this service)
+                                         *  - local port      -- omit;
+                                         *    for UDP a well-defined port may be defined
+                                         *    (protocol dependent, e.g. DHCP)
+                                         *  - remote IP addr  -- provided
+                                         *  - remote port     -- provided
+                                         * 3. ICMP (in general ICMP may be mapped only to a single DRB)
+                                         *  - local IP addr   -- provided
+                                         *    (to inform SS about the local IP addr for this service)
+                                         *  - local port      -- n/a (shall be set to omit)
+                                         *  - remote IP addr  -- omit
+                                         *  - remote port     -- n/a (shall be set to omit)
+                                         *
+                                         * NOTE:
+                                         * In case of broadcasts in UL the broadcast address shall match any local IP address;
+                                         * in DL for broadcast services typically no remote IP address is specified in the routing table
+                                         */
+    IP_DrbInfo_Type     DRB
+  };
+
+  type record of IP_RoutingInfo_Type IP_RoutingTable_Type;  /* NOTE: configurations of DRBs within the same cell shall be mutual exclusive */
+
+
+  }  // End of group IP_Config
+
+
+  //****************************************************************************
+  // Handling of IPsec
+  //----------------------------------------------------------------------------
+
+  group IPsec_Config {
+  const integer tsc_IPsec_SPI_Max := 4294967295;
+  type integer IPsec_SPI_Type (0..tsc_IPsec_SPI_Max); /* security parameter index for IPsec;
+                                                         According to RFC 2406, SPI values from 0 to 255 are reserved */
+
+  type enumerated IPsec_IntegrityAlgorithm_Type {
+    hmac_md5_96,
+    hmac_sha_1_96
+  };
+
+  type enumerated IPsec_CipheringAlgorithm_Type {
+    des_ede3_cbc,
+    aes_cbc,
+    nociph                                      /* no ciphering */
+  };
+
+  type record IPsec_SecurityKeys_Type {         /* to install the security keys */
+    bitstring   MD5_96Key       length (128),
+    bitstring   SHA_1_96Key     length (160),
+    bitstring   DES_EDE3_CBCKey length (192),
+    bitstring   AES_CBCKey      length (128)
+  };
+
+  type record IPsec_SecurityAssociation_Type {  /* single security association (SA);
+                                                   for configuration of an SA at the SS all fields are mandatory;
+                                                   to release an SA the optional information is omitted */
+    IPsec_SPI_Type                      SPI,
+    charstring                          SrcAddress,
+    charstring                          DestAddress,
+    UInt16_Type                         SrcPort,
+    UInt16_Type                         DestPort,
+    IPsec_IntegrityAlgorithm_Type       IntegrityAlgorithm  optional,    /* mandatory to set-up an SA */
+    IPsec_CipheringAlgorithm_Type       CipheringAlgorithm  optional     /* mandatory to set-up an SA */
+  };
+
+  type record of IPsec_SecurityAssociation_Type IPsec_SecurityAssociationList_Type;
+
+  type record IPsec_Configure_Type {    /* add new security associations; existing SAs are not affected */
+    IPsec_SecurityAssociationList_Type  SA_List,
+    IPsec_SecurityKeys_Type             SecurityKeys
+  };
+
+  type record IPsec_Release_Type {      /* release security associations;
+                                         * NOTE:
+                                         * in context with multiple PDNs it cannot be ensured that all SPIs are unique;
+                                         * e.g. the UE may use the same SPI values in different PDNs in which case uniqueness cannot be achieved
+                                         * furthermore it depends on the system implementation how entries in the IPsec SAD and SPD are administrated
+                                         * => to release SAs the SS gets the same information as for configuration but without the security algorithms */
+    IPsec_SecurityAssociationList_Type  SA_List
+  };
+
+  }  // end of group IPsec_Config
+
+  //****************************************************************************
+  // Handling of IP data and IP connections
+  //----------------------------------------------------------------------------
+
+  group IP_SocketHandling {
+  /* Handling of IP data and IP connections
+   * NOTE 1:
+   * In general IP connections are distuished by the tuple {protocol, local socket, remote socket};
+   * this information is used at the interface between TTCN and the system adaptor.
+   * It is up the the system adaptor implementation to associate the IP connection with the internal socket (file descriptor; implementation dependent)
+   * NOTE 2:
+   * In general the association of the IP connections to (internal) sockets and the routing table for the DRB mpping (as configured with IP_RoutingTable_Type) are independent from each other */
+
+  group Socket_Common {
+
+  type union IP_SockOpt_Type {          /* socket options acc. to the setsockopt system call (i.e. for level=SOL_SOCKET in case of Berkeley socket API);
+                                         * NOTE:
+                                         * only options being relevant for a specific applications (upon a socket) are configured by TTCN
+                                         * other options (e.g. SO_REUSEADDR) are out of TTCN and therefore a matter of system adaptor implementation */
+    boolean     SO_BROADCAST            /* set to true when IP broadcast messages shall be allowed for a port;
+                                         * this is required e.g. in case of DHCP */
+  };
+
+  type record of IP_SockOpt_Type IP_SockOptList_Type;
+
+  type union IP_SocketError_Type {      /* used to indicate errors related to sockets;
+                                         * the IP_Connection shall contain as much address information as available at the system adaptor */
+    Null_Type   InvalidAddress,         /* TTCN error: e.g. invalid or incomplete address information */
+    integer     System                  /* system error caused by system call;
+                                         * the integer value may be used for validation but shall not be evaluated by TTCN */
+  };
+
+  } // end of sub-group Socket_Common
+
+  group Socket_Datagram {
+
+  type octetstring Datagram_Content_Type;       /* data as sent/received with sendto()/recvfrom() on UDP or ICMP socket;
+                                                 * NOTE:
+                                                 * For ICMP the data may depend on the socket options (FFS);
+                                                 * in general it does not include the IP header and
+                                                 * the checksum of the ICMP packet needs to be calculated/checked in TTCN */
+
+  type record Datagram_DL_Type {                /* datagram to be sent at a UDP or ICMP socket */
+    Datagram_Content_Type Buffer                /* content of the IP packet */
+  };
+
+  type record Datagram_UL_Type {                /* datagram as received on a UDP or ICMP socket */
+    Datagram_Content_Type Buffer,               /* content of the IP packet */
+    IP_DrbInfo_Type       DrbInfo   optional    /* "interface id" where the data comes from in case of broadcast or multicast packets:
+                                                 * for the LTE test model this is the DRB on which the IP packet has been received;
+                                                 * the information is necessary when the SS cannot resolve an IP address being assigned to that DRB.
+                                                 * => when the SS provides a brodacst or multicast address as local address in the ConnectionId of the ASP, the SS shall provide the DRB information in this field
+                                                 * When the ConnectionId of the ASP is fully specified and unique (unicast address at least for local address) the DrbId is ignored by TTCN */
+  };
+
+  } // end of sub-group Socket_Datagram
+
+  //============================================================================
+
+  group TCP_Socket {            /* TCP primitives used on the IP port */
+
+  type enumerated InternetApplication_Type { ims, http };    /* as TCP is stream oriented SS may need information about which criteria to be applied to get start/end of an application message */
+
+  type record TCP_ConnectRequest_Type {         /* TCP client: -> 'connect' system call */
+    IP_SockOptList_Type         SockOptList,    /* when there are no options to configure the list is empty */
+    InternetApplication_Type    Application     /* to specify start/end criteria for application messages */
+  };
+
+  type record TCP_Listen_Type {                 /* TCP server: -> 'listen' system call */
+    IP_SockOptList_Type         SockOptList,    /* when there are no options to configure the list is empty */
+    InternetApplication_Type    Application     /* to specify start/end criteria for application messages */
+  };
+
+  type octetstring         TCP_Data_Type;       /* data as sent/received with send()/recv() on a TCP socket */
+
+  type union TCP_CtrlRequest_Type {
+    TCP_ConnectRequest_Type     ConnectReq,     /* request a 'connect' to a remote server
+                                                 *
+                                                 * system calls (informative)
+                                                 *  socket       -- get file descriptor
+                                                 *  (setsockopt) -- normally not needed
+                                                 *  bind         -- assign local IP addr (to cope with multiple IP addresses) and dedicated port number (if local port is given)
+                                                 *  connect      -- connect to the client
+                                                 *
+                                                 * IP_Connection:
+                                                 *   protocol       -- tcp
+                                                 *   local IP addr  -- mandatory to distinguish different network adaptors
+                                                 *   local port     -- omit (ephemeral port will be assigned by the system) or specific port to be used for this connection (e.g. to bind a given port number to the IMS client)
+                                                 *   remote IP addr -- mandatory
+                                                 *   remote port    -- mandatory
+                                                 */
+    TCP_Listen_Type             Listen,         /* establish a server at the local (SS) side
+                                                 *
+                                                 * system calls (informative)
+                                                 *  socket       -- get file descriptor
+                                                 *  (setsockopt) -- if needed
+                                                 *  bind         -- assign local IP addr and port
+                                                 *  listen       -- await incoming connection
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol      -- tcp
+                                                 *  local IP addr -- mandatory to distinguish different network adaptors
+                                                 *  local port    -- mandatory
+                                                 *  remote IP add -- omit
+                                                 *  remote port   -- omit
+                                                 */
+    Null_Type                   Close           /* close a connection
+                                                 *
+                                                 * system calls (informative):
+                                                 *  close
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- tcp
+                                                 *  local IP addr  -- mandatory
+                                                 *  local port     -- mandatory
+                                                 *  remote IP addr -- mandatory
+                                                 *  remote port    -- mandatory
+                                                 */
+  };
+
+  type union TCP_DataRequest_Type {
+    TCP_Data_Type               Send            /* send data
+                                                 *
+                                                 * system calls (informative):
+                                                 *  send or write
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- tcp
+                                                 *  local IP addr  -- mandatory
+                                                 *  local port     -- mandatory
+                                                 *  remote IP addr -- mandatory
+                                                 *  remote port    -- mandatory
+                                                 */
+  };
+
+  type union TCP_CtrlIndication_Type {
+    Null_Type                   ConnectCnf,     /* confirm a 'connect' to a remote server
+                                                 *
+                                                 * system calls (informative):
+                                                 *  getsockname    -- get local port (ephemeral port assiged by the system)
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- tcp
+                                                 *  local IP addr  -- mandatory (as in corresponding TCP_ConnectRequest)
+                                                 *  local port     -- mandatory (if there is more than one connection to the same server the local port is necessary to distinguish the connections)
+                                                 *  remote IP addr -- mandatory (as in corresponding TCP_ConnectRequest)
+                                                 *  remote port    -- mandatory (as in corresponding TCP_ConnectRequest)
+                                                 */
+    Null_Type                   Accept,         /* sent by the SS when it 'accepts' an incoming connection
+                                                 *
+                                                 * system calls (informative):
+                                                 *  accept
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- tcp
+                                                 *  local IP addr  -- mandatory (as in corresponding TCP_ListenRequest)
+                                                 *  local port     -- mandatory (as in corresponding TCP_ListenRequest)
+                                                 *  remote IP addr -- mandatory (as gotten from 'accept')
+                                                 *  remote port    -- mandatory (as gotten from 'accept')
+                                                 */
+    Null_Type                   Close,          /* indicate 'close' by the remote side
+                                                 *
+                                                 * system calls (informative):
+                                                 *  indicated by recv or read
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol        -- tcp
+                                                 *  local IP addr   -- mandatory
+                                                 *  local port      -- mandatory
+                                                 *  remote IP addr  -- mandatory
+                                                 *  remote port     -- mandatory
+                                                 */
+    Null_Type                   CloseCnf        /* Confirmation for 'close' request; necessary since for TCP there are IP packets to release the connection
+                                                 *
+                                                 * system calls (informative):
+                                                 *  close
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol        -- tcp
+                                                 *  local IP addr   -- mandatory
+                                                 *  local port      -- mandatory
+                                                 *  remote IP addr  -- mandatory
+                                                 *  remote port     -- mandatory
+                                                 */
+  };
+
+  type union TCP_DataIndication_Type {
+    TCP_Data_Type               Recv            /* receive data
+                                                 *
+                                                 * system calls (informative):
+                                                 *  recv or read
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- tcp
+                                                 *  local IP addr  -- mandatory
+                                                 *  local port     -- mandatory
+                                                 *  remote IP addr -- mandatory
+                                                 *  remote port    -- mandatory
+                                                 */
+  };
+
+  } // end of sub-group TCP_Socket
+
+  //============================================================================
+
+  group UDP_Socket {                            /* UDP primitives used on the IP port
+                                                 * NOTE:
+                                                 * In principle a UDP socket may communicate with different remote entities;
+                                                 * therefore the system adaptor may associate the socket handle with the local socket only
+                                                 * (local IP address and local port)
+                                                 */
+
+  type record UDP_SocketReq_Type {              /* to establish a UDP server or to bind local port number */
+    IP_SockOptList_Type         SockOptList     /* e.g. to allow broadcast messages;
+                                                 * when there are no options to configure the list is empty */
+  };
+
+  type union UDP_CtrlRequest_Type {
+    UDP_SocketReq_Type          SocketReq,      /* request the system adaptor to bind a socket to a local address;
+                                                 * this is needed in general when the system adaptor acts as
+                                                 * 1. UDP server
+                                                 * 2. UDP client when it uses a well-known port rather than an ephemeral port (this is e.g. for DHCP)
+                                                 * 3. UDP client when a local address needs to be bond (e.g. when there are several local addresses)
+                                                 *
+                                                 * system calls (informative):
+                                                 *  socket       -- get file descriptor
+                                                 *  (setsockopt) -- needed e.g. to allow broad cast message
+                                                 *  bind         -- assign local IP address (to cope with multiple IP addresses) and local port (in case of well-known local port)
+                                                 *
+                                                 * IP_Connection:
+                                                 *   protocol        -- udp
+                                                 *   local IP addr   -- mandatory (to distiguish multiple IP addresses)
+                                                 *   local port      -- optional (mandatory in case of a UDP server)
+                                                 *   remote IP addr  -- omit
+                                                 *   remote port     -- omit
+                                                 */
+    Null_Type                   Close           /* release local socket
+                                                 *
+                                                 * system calls (informative):
+                                                 *  close
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- udp
+                                                 *  local IP addr  -- mandatory (to identify local socket)
+                                                 *  local port     -- mandatory (to identify local socket)
+                                                 *  remote IP addr -- omit
+                                                 *  remote port    -- omit
+                                                 */
+  };
+
+  type union UDP_DataRequest_Type {
+   Datagram_DL_Type             SendTo          /* send data to (any) remote socket;
+                                                 * NOTE:
+                                                 * To simplify implementation of the system adaptor the local socket shall be bond in any case (using 'SocketReq') to specify the local IP address before sending data;
+                                                 * (in general the sendto system call can be used without explicitly binding the socket before;
+                                                 * in this case the port gets implicitly bond to an ephemeral port and the default IP address is used)
+                                                 *
+                                                 * system calls (informative):
+                                                 *  sendto
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- udp
+                                                 *  local IP addr  -- mandatory (to identify local socket)
+                                                 *  local port     -- mandatory (to identify local socket)
+                                                 *  remote IP addr -- mandatory (to address remote socket)
+                                                 *  remote port    -- mandatory (to address remote socket)
+                                                 */
+  };
+
+  type union UDP_CtrlIndication_Type {
+    Null_Type                   SocketCnf       /* confirm 'SocketReq' and tell TTCN about assignment of ephemeral port;
+                                                 *
+                                                 * system calls (informative):
+                                                 *  getsockname    -- get local port (ephemeral port assigned by the system; not needed if local port is well-known)
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- udp
+                                                 *  local IP addr  -- mandatory
+                                                 *  local port     -- mandatory (well-known or ephemeral port asssigned by the system)
+                                                 *  remote IP addr -- omit
+                                                 *  remote port    -- omit
+                                                 */
+  };
+
+  type union UDP_DataIndication_Type {
+    Datagram_UL_Type            RecvFrom        /* receive data;
+                                                 *
+                                                 * system calls (informative):
+                                                 *  recvfrom       -- get data and src addr
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- udp
+                                                 *  local IP addr  -- mandatory (see note)
+                                                 *  local port     -- mandatory
+                                                 *  remote IP addr -- mandatory (as gotten from recvfrom)
+                                                 *  remote port    -- mandatory (as gotten from recvfrom)
+                                                 *
+                                                 * NOTE:
+                                                 * The UE may send a UDP packet as broadcast (IP Addr 255.255.255.255 - e.g. in case of DHCP) or multicast (e.g. ICMPv6)
+                                                 * SS shall consider a broadcast address as matching every IP for UL and DL;
+                                                 * the SS shall not replace the broadcast/multicast address by the local unicast address, but shall provide DRB information in RecvFrom;
+                                                 * example:
+                                                 * - SS gets    DHCPDISCOVER with DEST_Addr=255.255.255.255 DEST_Port=67, SRC_Addr=0.0.0.0 SRC_Port=68
+                                                 * - TTCN gets  DHCPDISCOVER with local Addr=(255.255.255.255 Port=67),   remote Addr=(0.0.0.0 Port=68), DrbId=(LTE, cell1, DRB1)
+                                                 * - TTCN sends DHCPOFFER    with local Addr=(local IP Addr Port=67),     remote Addr=(255.255.255.255 Port=68)
+                                                 */
+  };
+
+  } // end of sub-group UDP_Socket
+
+  //============================================================================
+
+  group ICMP_Socket {                           /* ICMP primitives used on the IP port
+                                                 * NOTE:
+                                                 * the local side is identified by the protocol and in general by the local IP address
+                                                 */
+
+  type record ICMP_SocketReq_Type {             /* to establish a raw socket to send/receive ICMP packets */
+    IP_SockOptList_Type         SockOptList     /* e.g. to set the IP_HDRINCL socket option (to include the IP header in the data buffer) -> FFS
+                                                 * when there are no options to configure the list is empty */
+  };
+
+  type union ICMP_CtrlRequest_Type {
+    ICMP_SocketReq_Type         SocketReq,      /* request the system adaptor to open a raw socket (IPv4 or IPv6)
+                                                 *
+                                                 * system calls (informative):
+                                                 *  socket       -- get file descriptor (IPPROTO_ICMP or IPPROTO_IPV6);
+                                                 *  (setsockopt) -- optional; to set socket options
+                                                 *  bind         -- assign local IP address (to cope with multiple IP addresses)
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- icmp or icmpv6
+                                                 *  local IP addr  -- mandatory (to distiguish multiple IP addresses)
+                                                 *  local port     -- omit (not applicable for ICMP)
+                                                 *  remote IP addr -- omit
+                                                 *  remote port    -- omit (not applicable for ICMP)
+                                                 */
+    Null_Type                   Close           /* release local socket
+                                                 *
+                                                 * system calls (informative):
+                                                 *  close
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- icmp or icmpv6
+                                                 *  local IP addr  -- mandatory (to identify local socket)
+                                                 *  local port     -- omit
+                                                 *  remote IP addr -- omit
+                                                 *  remote port    -- omit
+                                                 */
+  };
+
+  type union ICMP_DataRequest_Type {
+    Datagram_DL_Type            SendTo          /* send datagram
+                                                 *
+                                                 * system calls (informative):
+                                                 *  sendto
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- icmp or icmpv6
+                                                 *  local IP addr  -- mandatory (to identify local socket)
+                                                 *  local port     -- omit
+                                                 *  remote IP addr -- mandatory
+                                                 *  remote port    -- omit
+                                                 */
+  };
+
+  type union ICMP_CtrlIndication_Type {
+    Null_Type                   SocketCnf       /* confirm 'SocketReq'
+                                                 *
+                                                 * system calls (informative):
+                                                 *  (SocketCnf is sent when all system calls for SocketReq have been successful)
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- icmp or icmpv6
+                                                 *  local IP addr  -- mandatory
+                                                 *  local port     -- omit
+                                                 *  remote IP addr -- omit
+                                                 *  remote port    -- omit
+                                                 */
+  };
+
+  type union ICMP_DataIndication_Type {
+    Datagram_UL_Type            RecvFrom        /* receive datagram
+                                                 *
+                                                 * system calls (informative):
+                                                 *  recvfrom       -- get data and src addr
+                                                 *
+                                                 * IP_Connection:
+                                                 *  protocol       -- icmp or icmpv6
+                                                 *  local IP addr  -- mandatory (see note)
+                                                 *  local port     -- omit
+                                                 *  remote IP addr -- mandatory (as gotten from recvfrom)
+                                                 *  remote port    -- omit
+                                                 *
+                                                 * NOTE:
+                                                 * As for UDP there may be multicast/broadcast packets.
+                                                 * In this case - as for UDP - the SS shall provide the DRB information in RecvFrom.
+                                                 */
+  };
+
+  } // end of sub-group ICMP_Socket
+
+  //----------------------------------------------------------------------------
+
+  group Socket_Primitives {
+
+  type union IP_CtrlRequest_Type {
+    TCP_CtrlRequest_Type        TCP,
+    UDP_CtrlRequest_Type        UDP,
+    ICMP_CtrlRequest_Type       ICMP
+  };
+
+  type union IP_DataRequest_Type {
+    TCP_DataRequest_Type        TCP,
+    UDP_DataRequest_Type        UDP,
+    ICMP_DataRequest_Type       ICMP
+  };
+
+  type union IP_CtrlIndication_Type {
+    TCP_CtrlIndication_Type     TCP,
+    UDP_CtrlIndication_Type     UDP,
+    ICMP_CtrlIndication_Type    ICMP,
+    IP_SocketError_Type         Error
+  };
+
+  type union IP_DataIndication_Type {
+    TCP_DataIndication_Type     TCP,
+    UDP_DataIndication_Type     UDP,
+    ICMP_DataIndication_Type    ICMP
+  };
+
+  } // end of sub-group Socket_Primitives
+
+  } // end of group IP_SocketHandling
+
+  //----------------------------------------------------------------------------
+
+
+  group System_Interface {
+
+  //****************************************************************************
+  // ASP definitions
+  //****************************************************************************
+
+  type union DRBMUX_CONFIG_REQ {
+    /* NOTE 1:
+     * There is just one primitive to configure the whole routing table.
+     * It is not foreseen to add, remove or manipulate single entries but the table is managed in TTCN and completely configured on any change; (otherwise it might get complicated to identify single entries)
+     * NOTE 2:
+     * the SS's routing table shall be empty at the beginning and can be cleared by an empty record (DRBMUX_CONFIG_REQ.RoutingInfo = {})
+     * NOTE 3:
+     * In general a reconfiguration of the routing table during a test case would be necessary only if an ephemeral port is needed to distinguish different routing
+     * (e.g. when there are several TCP connections of the same service routed to different DRBs) */
+    IP_RoutingTable_Type        RoutingInfo
+  };
+
+
+  type union DRBMUX_COMMON_IND_CNF {
+    Null_Type   Confirm,                /* confirm DRBMUX_CONFIG_REQ */
+    Null_Type   Error                   /* indication of errors at the DRB-MUX:
+                                         * An Error shall be raised by the DRB-MUX e.g. in the following cases:
+                                         * - in DL when there are IP packets which cannot be routed to any DRB
+                                         *   i.e. the IP packet does not match to any entry in the routing table or the corresponding RB is not configured
+                                         * - in DL when there are several DRBs possible for routing in the same cell
+                                         */
+  };
+
+  type union IPSEC_CONFIG_REQ {
+    IPsec_Configure_Type                Configure,
+    IPsec_Release_Type                  Release
+  };
+
+  type union IPSEC_CONFIG_CNF {
+    Null_Type   Confirm,                /* confirm IPSEC_CONFIG_REQ */
+    Null_Type   Error                   /* to indicate invalid configuration of IPsec */
+  };
+
+  type record IP_SOCKET_CTRL_REQ {
+    IP_Connection_Type          ConnectionId,
+    IP_CtrlRequest_Type         Req
+  };
+
+  type record IP_SOCKET_DATA_REQ {
+    IP_Connection_Type          ConnectionId,
+    IP_DataRequest_Type         Req
+  };
+
+  type record IP_SOCKET_CTRL_IND {
+    IP_Connection_Type          ConnectionId,
+    IP_CtrlIndication_Type      Ind
+  };
+
+  type record IP_SOCKET_DATA_IND {
+    IP_Connection_Type          ConnectionId,
+    IP_DataIndication_Type      Ind
+  };
+
+  type union IP_SOCKET_REQ {
+    IP_SOCKET_CTRL_REQ          CTRL,
+    IP_SOCKET_DATA_REQ          DATA
+  };
+
+  type union IP_SOCKET_IND {
+    IP_SOCKET_CTRL_IND          CTRL,
+    IP_SOCKET_DATA_IND          DATA
+  };
+
+  //****************************************************************************
+  // Port definitions
+  //****************************************************************************
+
+  type port IP_CONTROL_PORT message {
+    out DRBMUX_CONFIG_REQ;
+    in  DRBMUX_COMMON_IND_CNF;
+  };
+
+  type port IPSEC_CONTROL_PORT message {
+    out IPSEC_CONFIG_REQ;
+    in  IPSEC_CONFIG_CNF;
+  };
+
+  type port IP_SOCKET_PORT message {
+    out IP_SOCKET_REQ;
+    in  IP_SOCKET_IND;
+  };
+
+  } // End group System_Interface
+
+}

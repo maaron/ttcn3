@@ -1,0 +1,154 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2010-10-21 13:02:56 +0200 (Thu, 21 Oct 2010) $
+// $Rev: 4092 $
+/******************************************************************************/
+
+module NasEmu_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_NasCtrl all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_CommonDefs all;
+  import from NAS_CommonTypeDefs all;
+  import from NasEmu_AspTypes all;
+
+  template SRB_COMMON_REQ car_SignallingAspFromTC :=
+  { /* @status    APPROVED */
+    Common := ?,
+    Signalling := {
+      Rrc := *,
+      Nas := *
+    }
+  };
+
+  template (value) SRB_COMMON_IND cas_SignallingAspToTC_Init(template (value) IndAspCommonPart_Type p_Common) :=
+  { /* @status    APPROVED */
+    Common := p_Common,
+    Signalling := {
+      Rrc := omit,
+      Nas := omit
+    }
+  };
+
+  template RRC_PDU_IND car_PduFromSYS  :=
+  { /* @status    APPROVED */
+    Common := ?,
+    RrcPdu := ?
+  };
+
+  template (value) RRC_PDU_REQ cas_PduToSYS(template (value) ReqAspCommonPart_Type p_Common,
+                                            template (value) RRC_MSG_Request_Type  p_RRC_MSG_Request) :=
+  { /* @status    APPROVED */
+    Common := p_Common,
+    RrcPdu := p_RRC_MSG_Request
+  };
+
+  template (value) RRC_MSG_Request_Type cs_RRC_MSG_RequestDCCH(template (value) DL_DCCH_Message p_DcchRrcPdu) :=
+  { /* @status    APPROVED */
+    Dcch := p_DcchRrcPdu
+  };
+
+  template NAS_CTRL_REQ cr_NAS_CTRL_Security_REQ :=
+  { /* @status    APPROVED */
+    Common := ?,
+    Request := {
+      Security := ?
+    }
+  };
+
+  template NAS_CTRL_REQ cr_NAS_CTRL_NasCount_REQ :=
+  { /* @status    APPROVED */
+    Common := ?,
+    Request := {
+      NasCount := ?
+    }
+  };
+
+  template (value) CnfAspCommonPart_Type cs_CnfAspCommonPart_NasCtrl :=
+  { /* @status    APPROVED */
+    CellId := eutra_Cell_NonSpecific,
+    RoutingInfo := { None := true },
+    TimingInfo  := { None := true },
+    Result      := { Success := true }
+  };
+
+  template (value) NAS_CTRL_CNF cs_NAS_CTRL_Security_CNF :=
+  { /* @status    APPROVED */
+    Common := cs_CnfAspCommonPart_NasCtrl,
+    Confirm := {Security := true }
+  };
+
+  template (value) NAS_CTRL_CNF cs_NAS_CTRL_NasCountSet_CNF :=
+  { /* @status    APPROVED */
+    Common := cs_CnfAspCommonPart_NasCtrl,
+      Confirm := {
+      NasCount := {
+        Set := true
+      }
+    }
+  };
+
+  template (value) NAS_CTRL_CNF cs_NAS_CTRL_NasCountGet_CNF(template (value) NasCountInfo_Type p_NasCountInfo) :=
+  { /* @status    APPROVED */
+    Common := cs_CnfAspCommonPart_NasCtrl,
+    Confirm := {
+      NasCount := {
+        Get := p_NasCountInfo
+      }
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_SecurityProtectedNasMsg(SecurityHeaderType p_SecurityHeaderType,
+                                                                  MessageAuthenticationCode p_MessageAuthenticationCode,
+                                                                  NAS_SequenceNumber p_NAS_SequenceNumber,
+                                                                  template (value) NAS_Message p_NAS_Message) :=
+  { /* @status    APPROVED */
+    sECURITY_PROTECTED_NAS_MESSAGE := {
+      securityHeaderType                 := p_SecurityHeaderType,
+      protocolDiscriminator              := tsc_PD_EMM,
+      messageAuthenticationCode          := p_MessageAuthenticationCode,
+      sequenceNumber                     := p_NAS_SequenceNumber,
+      nasMessage                         := p_NAS_Message
+    }
+  };
+
+  template (value) ESM_MessageContainer cs_ESM_MessageContainer(template (omit) IEI8_Type p_IEI,
+                                                                octetstring p_EncodedEsmMsg) :=
+  { /* @status    APPROVED */
+    iei := p_IEI,
+    iel := int2oct(lengthof(p_EncodedEsmMsg), 2),
+    esmPdu := p_EncodedEsmMsg
+  };
+
+  template (value) DL_DCCH_Message cs_DLInformationTransfer(RRC_TransactionIdentifier p_RRC_TI,
+                                                            template (value) DedicatedInfoNAS  p_NAS_DedicatedInformation)  :=
+  { /* @status    APPROVED */
+    message_ := {
+      c1 := {
+        dlInformationTransfer := {
+          rrc_TransactionIdentifier := p_RRC_TI,
+          criticalExtensions := {
+            c1 := {
+              dlInformationTransfer_r8 := {
+                dedicatedInfoType := {
+                  dedicatedInfoNAS := p_NAS_DedicatedInformation
+                },
+                nonCriticalExtension := omit
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+}

@@ -1,0 +1,1586 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+
+module UTRAN_CellInfo {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_AuthenticationCommon all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from TestcaseProperties all;
+  import from UTRANGERAN_CommonFunctions all;
+  import from UTRAN_ASN1_ASP_Templates all;
+  import from UTRAN_CapabilityFunctions all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_Component all;
+  import from UTRAN_Parameters all;
+  import from UTRAN_RRC_SysInfo_Templates all;
+  import from UTRAN_RRC_Templates all;
+  import from UTRAN_TypeDefs all;
+
+  type enumerated COMMON_TestConfig_Enum   {utran_only, utran_geran}; /* @status    APPROVED */
+
+  template (value) CN_InformationInfoFull cs_508_CNInfo :=
+  { /* @status    APPROVED */
+    /* @sic R5s110519 change 5 sic@ */
+    plmn_Identity := omit,
+    cn_CommonGSM_MAP_NAS_SysInfo := hex2oct('0001'H),
+    cn_DomainInformationListFull := {
+      {
+        cn_DomainIdentity := ps_domain,
+        cn_DomainSpecificNAS_Info := hex2oct('0100'H),
+        cn_DRX_CycleLengthCoeff := 7
+      },
+      {
+        cn_DomainIdentity := cs_domain,
+        cn_DomainSpecificNAS_Info := hex2oct('1E01'H),
+        cn_DRX_CycleLengthCoeff := 7
+      }
+    }
+  };
+
+  template (value) CN_InformationInfoFull cs_CNInfo_PSCS ( PLMN_Identity            p_PLMN_Identity,
+                                                           octetstring              p_LAC,
+                                                           DRX_CycleLengthStructure p_DRX_CycleLengthStructure,
+                                                           octetstring              p_PS_SpecificNAS_Info,
+                                                           octetstring              p_CS_SpecificNAS_Info) :=
+  { /* @status    APPROVED */
+    plmn_Identity := p_PLMN_Identity,
+    cn_CommonGSM_MAP_NAS_SysInfo := p_LAC,
+    cn_DomainInformationListFull := {
+      {
+        cn_DomainIdentity := ps_domain,
+        cn_DomainSpecificNAS_Info := p_PS_SpecificNAS_Info,
+        cn_DRX_CycleLengthCoeff := p_DRX_CycleLengthStructure.cN_PS_DRX_CycleLength
+      },
+      {
+        cn_DomainIdentity := cs_domain,
+        cn_DomainSpecificNAS_Info := p_CS_SpecificNAS_Info,
+        cn_DRX_CycleLengthCoeff := p_DRX_CycleLengthStructure.cN_CS_DRX_CycleLength
+      }
+    }
+  };
+
+  function fl_UTRAN_InitializeSIB5_SIB5Bis(integer p_Band,
+                                           PICH_PowerOffset p_PowerPICH,
+                                           AICH_PowerOffset p_PowerAICH) return SysInfoType5
+  {
+    var template (value) SysInfoType5 v_SIB5;
+    
+    select  (p_Band) {
+      case (1, 2, 3){
+        v_SIB5 := cs_SIB5_Def(p_PowerPICH, p_PowerAICH);
+      } case (4) {
+        v_SIB5 := cs_SIB5bis_Band4(p_PowerPICH, p_PowerAICH);
+      } case (5) {
+        v_SIB5 := cs_SIB5_Band5(p_PowerPICH, p_PowerAICH);
+      } case (6) {
+        v_SIB5 := cs_SIB5_Band6(p_PowerPICH, p_PowerAICH);
+      } case (7) {
+        v_SIB5 := cs_SIB5_Band7(p_PowerPICH, p_PowerAICH);
+      } case (8) {
+        v_SIB5 := cs_SIB5_Band8(p_PowerPICH, p_PowerAICH);
+      } case (9) {
+        v_SIB5 := cs_SIB5bis_Band9(p_PowerPICH, p_PowerAICH);
+      } case (10) {
+        v_SIB5 := cs_SIB5bis_Band10(p_PowerPICH, p_PowerAICH);
+      } case (11) {
+        v_SIB5 := cs_SIB5_Band11(p_PowerPICH, p_PowerAICH);
+      } case (12) {
+        v_SIB5 := cs_SIB5_Band12(p_PowerPICH, p_PowerAICH);
+      } case (13) {
+        v_SIB5 := cs_SIB5_Band13(p_PowerPICH, p_PowerAICH);
+      } case (14) {
+        v_SIB5 := cs_SIB5_Band14(p_PowerPICH, p_PowerAICH);
+      } case (15) {
+        v_SIB5 := cs_SIB5_Band15(p_PowerPICH, p_PowerAICH);
+      } case (16) {
+        v_SIB5 := cs_SIB5_Band16(p_PowerPICH, p_PowerAICH);
+      } case (17) {
+        v_SIB5 := cs_SIB5_Band17(p_PowerPICH, p_PowerAICH);
+      } case (18) {
+        v_SIB5 := cs_SIB5_Band18(p_PowerPICH, p_PowerAICH);
+      } case (19) {
+        v_SIB5 := cs_SIB5_Band19(p_PowerPICH, p_PowerAICH);
+      } case (20) {
+        v_SIB5 := cs_SIB5_Band20(p_PowerPICH, p_PowerAICH);
+      } case (21) {
+        v_SIB5 := cs_SIB5_Band21(p_PowerPICH, p_PowerAICH);
+      } case (22) {
+        v_SIB5 := cs_SIB5_Band22(p_PowerPICH, p_PowerAICH);
+      } case (25) {
+        v_SIB5 := cs_SIB5_Band25(p_PowerPICH, p_PowerAICH);
+      }
+      case else  {
+        FatalError(__FILE__, __LINE__, "invalid frequency band");
+      }
+    }
+    return valueof(v_SIB5);
+  }
+
+  function fl_UTRAN_InitializeSIB11(UTRAN_CellInfoList_Type p_CellList) return UTRAN_CellInfoList_Type
+  {
+    var template (value) SysInfoType11 v_SysInfoType11;
+    var template (value) UTRAN_CellInfoList_Type v_CellList := p_CellList;
+    var integer v_Index_Cell5 := f_UTRAN_CellInfo_GetIndex (utran_Cell5);
+    var integer v_Index_Cell7 := f_UTRAN_CellInfo_GetIndex (utran_Cell7);
+    var integer v_Index_Cell8 := f_UTRAN_CellInfo_GetIndex (utran_Cell8);
+    var integer v_Index_Cell9 := f_UTRAN_CellInfo_GetIndex (utran_Cell9);
+    
+    v_SysInfoType11 := cs_SIB11_Def_FDD(5,
+                                        p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                        7,
+                                        p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                        8,
+                                        p_CellList[v_Index_Cell8].frequencyInfo,
+                                        p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                        9,
+                                        p_CellList[v_Index_Cell9].frequencyInfo,
+                                        p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode);
+    v_CellList[v_Index_Cell5].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Def_FDD(7,
+                                        p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                        5,
+                                        p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                        8,
+                                        p_CellList[v_Index_Cell8].frequencyInfo,
+                                        p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                        9,
+                                        p_CellList[v_Index_Cell9].frequencyInfo,
+                                        p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode);
+    v_CellList[v_Index_Cell7].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_FDD(8,
+                                          p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                          5,
+                                          p_CellList[v_Index_Cell5].frequencyInfo,
+                                          p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                          7,
+                                          p_CellList[v_Index_Cell7].frequencyInfo,
+                                          p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                          9,
+                                          p_CellList[v_Index_Cell9].frequencyInfo,
+                                          p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode);
+    v_CellList[v_Index_Cell8].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_FDD(9,
+                                          p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode,
+                                          5,
+                                          p_CellList[v_Index_Cell5].frequencyInfo,
+                                          p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                          7,
+                                          p_CellList[v_Index_Cell7].frequencyInfo,
+                                          p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                          8,
+                                          p_CellList[v_Index_Cell8].frequencyInfo,
+                                          p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode);
+    v_CellList[v_Index_Cell9].sysInfo.SIB11 := v_SysInfoType11;
+    
+    return valueof(v_CellList);
+  }
+
+  function fl_UTRAN_InitializeSIB11_TDD(UTRAN_CellInfoList_Type p_CellList) return UTRAN_CellInfoList_Type
+  {
+    var template (value) SysInfoType11 v_SysInfoType11;
+    var template (value) UTRAN_CellInfoList_Type v_CellList := p_CellList;
+    var integer v_Index_Cell5 := f_UTRAN_CellInfo_GetIndex (utran_Cell5);
+    var integer v_Index_Cell7 := f_UTRAN_CellInfo_GetIndex (utran_Cell7);
+    var integer v_Index_Cell8 := f_UTRAN_CellInfo_GetIndex (utran_Cell8);
+    var integer v_Index_Cell9 := f_UTRAN_CellInfo_GetIndex (utran_Cell9);
+    
+    v_SysInfoType11 := cs_SIB11_Def_TDD(5,
+                                        p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                        7,
+                                        p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                        8,
+                                        p_CellList[v_Index_Cell8].frequencyInfo,
+                                        p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                        9,
+                                        p_CellList[v_Index_Cell9].frequencyInfo,
+                                        p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID);
+    v_CellList[v_Index_Cell5].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Def_TDD(7,
+                                        p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                        5,
+                                        p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                        8,
+                                        p_CellList[v_Index_Cell8].frequencyInfo,
+                                        p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                        9,
+                                        p_CellList[v_Index_Cell9].frequencyInfo,
+                                        p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID);
+    v_CellList[v_Index_Cell7].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_TDD(8,
+                                          p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                          5,
+                                          p_CellList[v_Index_Cell5].frequencyInfo,
+                                          p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                          7,
+                                          p_CellList[v_Index_Cell7].frequencyInfo,
+                                          p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                          9,
+                                          p_CellList[v_Index_Cell9].frequencyInfo,
+                                          p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID);
+    v_CellList[v_Index_Cell8].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_TDD(9,
+                                          p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID,
+                                          5,
+                                          p_CellList[v_Index_Cell5].frequencyInfo,
+                                          p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                          7,
+                                          p_CellList[v_Index_Cell7].frequencyInfo,
+                                          p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                          8,
+                                          p_CellList[v_Index_Cell8].frequencyInfo,
+                                          p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID);
+    v_CellList[v_Index_Cell9].sysInfo.SIB11 := v_SysInfoType11;
+
+    return valueof(v_CellList);
+  }
+
+  function fl_UTRAN_InitializeSIB11_ForGERAN (UTRAN_CellInfoList_Type p_CellList,
+                                              CoOrd_GERANSysInfo_List_Type p_GERANSysInfo) return UTRAN_CellInfoList_Type
+  {
+    var UTRAN_CellInfoList_Type v_CellList := p_CellList;
+    // if the first cell is FDD, then they all are
+    if (v_CellList[0].fdd_tdd == UTRAN_FDD)
+      {
+        v_CellList := fl_UTRAN_InitializeSIB11_UG_FDD (v_CellList, p_GERANSysInfo);
+      } else {
+      v_CellList := fl_UTRAN_InitializeSIB11_UG_TDD (v_CellList, p_GERANSysInfo);
+    }
+    return(v_CellList);
+  }
+
+  function fl_UTRAN_GetGeranBandIndicator(B1_Type p_BandInd) return Frequency_Band
+  {
+    var Frequency_Band v_ASN1Band:= dcs1800BandUsed;
+    
+    if (p_BandInd == '1'B) {
+      v_ASN1Band := pcs1900BandUsed;
+    }
+    return (v_ASN1Band);
+  }
+
+  function fl_UTRAN_InitializeSIB11_UG_FDD(UTRAN_CellInfoList_Type p_CellList,
+                                           CoOrd_GERANSysInfo_List_Type p_GERANSysInfo) return UTRAN_CellInfoList_Type
+  {
+    var template (value) SysInfoType11 v_SysInfoType11;
+    var template (value) UTRAN_CellInfoList_Type v_CellList := p_CellList;
+    var integer v_Index_Cell5 := f_UTRAN_CellInfo_GetIndex (utran_Cell5);
+    var integer v_Index_Cell7 := f_UTRAN_CellInfo_GetIndex (utran_Cell7);
+    var integer v_Index_Cell8 := f_UTRAN_CellInfo_GetIndex (utran_Cell8);
+    var integer v_Index_Cell9 := f_UTRAN_CellInfo_GetIndex (utran_Cell9);
+    
+    v_SysInfoType11 := cs_SIB11_Def_UG_FDD(5,
+                                           p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                           7,
+                                           p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                           8,
+                                           p_CellList[v_Index_Cell8].frequencyInfo,
+                                           p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                           9,
+                                           p_CellList[v_Index_Cell9].frequencyInfo,
+                                           p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode,
+                                           oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[0].Ncc),
+                                           bit2int(p_GERANSysInfo[0].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                           p_GERANSysInfo[0].Arfcn,
+                                           oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[1].Ncc),
+                                           bit2int(p_GERANSysInfo[1].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                           p_GERANSysInfo[1].Arfcn,
+                                           oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[2].Ncc),
+                                           bit2int(p_GERANSysInfo[2].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                           p_GERANSysInfo[2].Arfcn);
+    
+    v_CellList[v_Index_Cell5].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Def_UG_FDD(7,
+                                           p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                           5,
+                                           p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                           8,
+                                           p_CellList[v_Index_Cell8].frequencyInfo,
+                                           p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                           9,
+                                           p_CellList[v_Index_Cell9].frequencyInfo,
+                                           p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode,
+                                           oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[0].Ncc),
+                                           bit2int(p_GERANSysInfo[0].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                           p_GERANSysInfo[0].Arfcn,
+                                           oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[1].Ncc),
+                                           bit2int(p_GERANSysInfo[1].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                           p_GERANSysInfo[1].Arfcn,
+                                           oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[2].Ncc),
+                                           bit2int(p_GERANSysInfo[2].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                           p_GERANSysInfo[2].Arfcn);
+    v_CellList[v_Index_Cell7].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_UG_FDD(8,
+                                             p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                             5,
+                                             p_CellList[v_Index_Cell5].frequencyInfo,
+                                             p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                             7,
+                                             p_CellList[v_Index_Cell7].frequencyInfo,
+                                             p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                             9,
+                                             p_CellList[v_Index_Cell9].frequencyInfo,
+                                             p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode,
+                                             oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[0].Ncc),
+                                             bit2int(p_GERANSysInfo[0].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                             p_GERANSysInfo[0].Arfcn,
+                                             oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[1].Ncc),
+                                             bit2int(p_GERANSysInfo[1].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                             p_GERANSysInfo[1].Arfcn,
+                                             oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[2].Ncc),
+                                             bit2int(p_GERANSysInfo[2].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                             p_GERANSysInfo[2].Arfcn);
+    v_CellList[v_Index_Cell8].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_UG_FDD(9,
+                                             p_CellList[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode,
+                                             5,
+                                             p_CellList[v_Index_Cell5].frequencyInfo,
+                                             p_CellList[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                             7,
+                                             p_CellList[v_Index_Cell7].frequencyInfo,
+                                             p_CellList[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                             8,
+                                             p_CellList[v_Index_Cell8].frequencyInfo,
+                                             p_CellList[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                             oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[0].Ncc),
+                                             bit2int(p_GERANSysInfo[0].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                             p_GERANSysInfo[0].Arfcn,
+                                             oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[1].Ncc),
+                                             bit2int(p_GERANSysInfo[1].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                             p_GERANSysInfo[1].Arfcn,
+                                             oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[2].Ncc),
+                                             bit2int(p_GERANSysInfo[2].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                             p_GERANSysInfo[2].Arfcn);
+    v_CellList[v_Index_Cell9].sysInfo.SIB11 := v_SysInfoType11;
+    
+    return valueof(v_CellList);
+  }
+
+  function fl_UTRAN_InitializeSIB11_UG_TDD(UTRAN_CellInfoList_Type p_CellList,
+                                           CoOrd_GERANSysInfo_List_Type p_GERANSysInfo) return UTRAN_CellInfoList_Type
+  {
+    var template (value) SysInfoType11 v_SysInfoType11;
+    var template (value) UTRAN_CellInfoList_Type v_CellList := p_CellList;
+    var integer v_Index_Cell5 := f_UTRAN_CellInfo_GetIndex (utran_Cell5);
+    var integer v_Index_Cell7 := f_UTRAN_CellInfo_GetIndex (utran_Cell7);
+    var integer v_Index_Cell8 := f_UTRAN_CellInfo_GetIndex (utran_Cell8);
+    var integer v_Index_Cell9 := f_UTRAN_CellInfo_GetIndex (utran_Cell9);
+    
+    v_SysInfoType11 := cs_SIB11_Def_UG_TDD(5,
+                                           p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                           7,
+                                           p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                           8,
+                                           p_CellList[v_Index_Cell8].frequencyInfo,
+                                           p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                           9,
+                                           p_CellList[v_Index_Cell9].frequencyInfo,
+                                           p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID,
+                                           oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[0].Ncc),
+                                           bit2int(p_GERANSysInfo[0].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                           p_GERANSysInfo[0].Arfcn,
+                                           oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[1].Ncc),
+                                           bit2int(p_GERANSysInfo[1].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                           p_GERANSysInfo[1].Arfcn,
+                                           oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[2].Ncc),
+                                           bit2int(p_GERANSysInfo[2].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                           p_GERANSysInfo[2].Arfcn);
+    v_CellList[v_Index_Cell5].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Def_UG_TDD(7,
+                                           p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                           5,
+                                           p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                           8,
+                                           p_CellList[v_Index_Cell8].frequencyInfo,
+                                           p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                           9,
+                                           p_CellList[v_Index_Cell9].frequencyInfo,
+                                           p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID,
+                                           oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[0].Ncc),
+                                           bit2int(p_GERANSysInfo[0].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                           p_GERANSysInfo[0].Arfcn,
+                                           oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[1].Ncc),
+                                           bit2int(p_GERANSysInfo[1].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                           p_GERANSysInfo[1].Arfcn,
+                                           oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                           bit2int(p_GERANSysInfo[2].Ncc),
+                                           bit2int(p_GERANSysInfo[2].Bcc),
+                                           fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                           p_GERANSysInfo[2].Arfcn);
+    v_CellList[v_Index_Cell7].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_UG_TDD(8,
+                                             p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                             5,
+                                             p_CellList[v_Index_Cell5].frequencyInfo,
+                                             p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                             7,
+                                             p_CellList[v_Index_Cell7].frequencyInfo,
+                                             p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                             9,
+                                             p_CellList[v_Index_Cell9].frequencyInfo,
+                                             p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID,
+                                             oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[0].Ncc),
+                                             bit2int(p_GERANSysInfo[0].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                             p_GERANSysInfo[0].Arfcn,
+                                             oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[1].Ncc),
+                                             bit2int(p_GERANSysInfo[1].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                             p_GERANSysInfo[1].Arfcn,
+                                             oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[2].Ncc),
+                                             bit2int(p_GERANSysInfo[2].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                             p_GERANSysInfo[2].Arfcn);
+    v_CellList[v_Index_Cell8].sysInfo.SIB11 := v_SysInfoType11;
+    
+    v_SysInfoType11 := cs_SIB11_Freq2_UG_TDD(9,
+                                             p_CellList[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID,
+                                             5,
+                                             p_CellList[v_Index_Cell5].frequencyInfo,
+                                             p_CellList[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                             7,
+                                             p_CellList[v_Index_Cell7].frequencyInfo,
+                                             p_CellList[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                             8,
+                                             p_CellList[v_Index_Cell8].frequencyInfo,
+                                             p_CellList[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                             oct2int(p_GERANSysInfo[0].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[0].Ncc),
+                                             bit2int(p_GERANSysInfo[0].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[0].BandIndicator),
+                                             p_GERANSysInfo[0].Arfcn,
+                                             oct2int(p_GERANSysInfo[1].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[1].Ncc),
+                                             bit2int(p_GERANSysInfo[1].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[1].BandIndicator),
+                                             p_GERANSysInfo[1].Arfcn,
+                                             oct2int(p_GERANSysInfo[2].Cell_Identity),
+                                             bit2int(p_GERANSysInfo[2].Ncc),
+                                             bit2int(p_GERANSysInfo[2].Bcc),
+                                             fl_UTRAN_GetGeranBandIndicator(p_GERANSysInfo[2].BandIndicator),
+                                             p_GERANSysInfo[2].Arfcn);
+    v_CellList[v_Index_Cell9].sysInfo.SIB11 := v_SysInfoType11;
+    return valueof(v_CellList);
+  }
+
+  function fl_UTRAN_SystemInformation_Init(UTRAN_CellId_Type p_CellId,
+                                           integer p_Band,
+                                           PLMN_Identity p_PLMNId,
+                                           PICH_PowerOffset p_PowerPICH,
+                                           AICH_PowerOffset p_PowerAICH,
+                                           octetstring p_Lac,
+                                           octetstring p_Rac,
+                                           octetstring p_NMO,
+                                           octetstring p_T3212,
+                                           integer p_AttFlag,
+                                           bitstring p_URAId,
+                                           DRX_CycleLengthStructure p_DRX,
+                                           COMMON_TestConfig_Enum p_TestConfig) return UTRAN_CellSysInfo_Type
+  {
+    var B28_Type v_CellIdentity := f_UTRAN_GetCellIndentity(p_CellId);
+    var template (value) UTRAN_CellSysInfo_Type v_CellSysInfo;
+    var boolean v_QbasedTestCase := f_GetTestcaseAttrib_Qbased_Rsrq(testcasename());  // Set to TRUE if QBASED test case  @sic R5-121384 sic@
+
+    
+    v_CellSysInfo.MIB_ValueTagChanged := false;
+    v_CellSysInfo.SB1_ValueTagChanged := false;
+    
+    v_CellSysInfo.MIB  := cs_MIB_Def(p_PLMNId);                         // MIB: default scheduling (will be modified when sending out the SIBs)
+    v_CellSysInfo.SB1  := cs_SB1_Def;                                   // SB1: default scheduling (will be modified when sending out the SIBs)
+    
+    v_CellSysInfo.SIB1 := cs_SIB1_Def(p_Lac, p_Rac, p_NMO, p_T3212, p_AttFlag, p_DRX.cN_PS_DRX_CycleLength,p_DRX.cN_CS_DRX_CycleLength); // SIB1
+    v_CellSysInfo.SIB2 := cs_SIB2_Def(p_URAId);                          // SIB2
+    if (p_TestConfig == utran_only) {
+      v_CellSysInfo.SIB3 := cs_SIB3_DefUTRAN(v_CellIdentity);                  // SIB3
+      v_CellSysInfo.SIB4 := cs_SIB4_DefUTRAN(v_CellIdentity);                  // SIB4
+    } else {
+      v_CellSysInfo.SIB3 := cs_SIB3_DefUTRAN_GERAN(v_CellIdentity);            // SIB3
+      v_CellSysInfo.SIB4 := cs_SIB4_DefUTRAN_GERAN(v_CellIdentity);            // SIB4
+    }
+    
+    v_CellSysInfo.SIB5 := fl_UTRAN_InitializeSIB5_SIB5Bis(p_Band, p_PowerPICH, p_PowerAICH);  // SIB5
+    v_CellSysInfo.SIB6 := cs_SIB6_Def(p_PowerPICH, p_PowerAICH);                        // SIB6
+    v_CellSysInfo.SIB7 := cs_SIB7_Def;                                                  // SIB7
+    
+    v_CellSysInfo.SIB11 := omit;                                                        // SIB11 is initialized later
+    v_CellSysInfo.SIB12 := cs_SIB12_Def;                                                // SIB12
+    v_CellSysInfo.SIB16 := cs_SIB16_Def(tsc_DL_DPCH1_SFP_SRB);                          // SIB16
+    v_CellSysInfo.SIB18 := cs_SIB18_Def;     // only one default PLMN, so don't need an intialization function
+    if (v_QbasedTestCase) {  // QBASED test case
+        v_CellSysInfo.SIB19 := cds_SIB19_Qbased(omit); // to be replaced later with proper data from co-ord msg
+    } else {
+        v_CellSysInfo.SIB19 := cs_SIB19_Def(omit); // to be replaced later with proper data from co-ord msg; @sic R5s100871 sic@
+    }
+    // SIB5 or SIB5bis
+    if ((p_Band == 4) or (p_Band == 9) or (p_Band == 10)) {
+      v_CellSysInfo.MIB.sibSb_ReferenceList[5].sibSb_Type := {sysInfoType5bis := 1};
+      v_CellSysInfo.SIB5_Type := systemInformationBlockType5bis;
+    } else {
+      v_CellSysInfo.SIB5_Type := systemInformationBlockType5;
+    }
+    return valueof(v_CellSysInfo);
+  }
+
+  function fl_UTRAN_SystemInformation_Init_TDD(UTRAN_CellId_Type p_CellId,
+                                               PLMN_Identity p_PLMNId,
+                                               PICH_PowerOffset p_PowerPICH,
+                                               octetstring p_Lac,
+                                               octetstring p_Rac,
+                                               octetstring p_NMO,
+                                               octetstring p_T3212,
+                                               integer p_AttFlag,
+                                               bitstring p_URAId,
+                                               DRX_CycleLengthStructure p_DRX,
+                                               CellParametersID p_CellParametersID,
+                                               COMMON_TestConfig_Enum p_TestConfig) return UTRAN_CellSysInfo_Type
+  {
+    var B28_Type v_CellIdentity := f_UTRAN_GetCellIndentity(p_CellId);
+    var template (value) UTRAN_CellSysInfo_Type v_CellSysInfo;
+    var boolean v_QbasedTestCase := f_GetTestcaseAttrib_Qbased_Rsrq(testcasename());  // Set to TRUE if QBASED test case  @sic R5-121384 sic@
+
+    v_CellSysInfo.MIB_ValueTagChanged := false;
+    v_CellSysInfo.SB1_ValueTagChanged := false;
+    v_CellSysInfo.MIB  := cs_MIB_Def(p_PLMNId);                         // MIB: default scheduling (will be modified when sending out the SIBs)
+    v_CellSysInfo.SB1  := cs_SB1_Def;                                   // SB1: default scheduling (will be modified when sending out the SIBs)
+    v_CellSysInfo.SIB1 := cs_SIB1_Def(p_Lac, p_Rac, p_NMO, p_T3212, p_AttFlag, p_DRX.cN_PS_DRX_CycleLength,p_DRX.cN_CS_DRX_CycleLength);    // SIB1
+    v_CellSysInfo.SIB2 := cs_SIB2_Def(p_URAId);                         // SIB2
+    if (p_TestConfig == utran_only)
+      {
+        v_CellSysInfo.SIB3 := cs_SIB3_DefUTRAN_TDD(v_CellIdentity);     // SIB3
+        v_CellSysInfo.SIB4 := cs_SIB4_DefUTRAN_TDD(v_CellIdentity);     // SIB4
+      } else {
+      v_CellSysInfo.SIB3 := cs_SIB3_DefUTRAN_GERAN_TDD(v_CellIdentity); // SIB3
+      v_CellSysInfo.SIB4 := cs_SIB4_DefUTRAN_GERAN_TDD(v_CellIdentity); // SIB4
+    }
+    v_CellSysInfo.SIB5 := cs_SIB5_Def_TDD(p_PowerPICH, p_CellParametersID);     // SIB5
+    v_CellSysInfo.SIB5_Type := systemInformationBlockType5;    // @sic R5s120615 sic@
+    v_CellSysInfo.SIB6 := cs_SIB6_Def_TDD(p_PowerPICH);                         // SIB6
+    v_CellSysInfo.SIB7 := cs_SIB7_Def_TDD;                                      // SIB7
+    v_CellSysInfo.SIB11 := omit;                                                // SIB11 is initialized later
+    v_CellSysInfo.SIB16 := omit;                             // @sic R5s120615 sic@
+    v_CellSysInfo.SIB12 := cs_SIB12_Def;                                        // SIB12
+    v_CellSysInfo.SIB18 := cs_SIB18_Def;     // only one default PLMN, so don't need an intialization function
+    if (v_QbasedTestCase) {
+        v_CellSysInfo.SIB19 := cds_SIB19_Qbased(omit); // to be replaced later with proper data from co-ord msg
+    } else {
+        v_CellSysInfo.SIB19 := cs_SIB19_Def(omit); // to be replaced later with proper data from co-ord msg; @sic R5s100871 sic@
+    }
+    return valueof(v_CellSysInfo);
+  }
+
+  function f_UTRAN_CellInfo_GetIndex(UTRAN_CellId_Type p_CellId) return integer
+  {
+    select (p_CellId) {
+      case (utran_Cell5) {
+        return 0;
+      }
+      case (utran_Cell7) {
+        return 1;
+      }
+      case (utran_Cell8) {
+        return 2;
+      }
+      case (utran_Cell9) {
+        return 3;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "Invalid CellId");
+        return 0;
+      }
+    }
+  }
+
+  function f_UTRAN_CellArray_Init () return UTRAN_CellInfoList_Type
+  {
+    var UTRAN_CellInfoList_Type v_UTRAN_Cells;
+    var integer v_Index;
+    
+    if (px_UTRAN_ModeUnderTest == UTRAN_FDD)   {            // @sic R5-115770 sic@
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell5);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_FDD(utran_Cell5);
+      
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell7);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_FDD(utran_Cell7);
+      
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell8);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_FDD(utran_Cell8);
+      
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell9);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_FDD(utran_Cell9);
+      
+      v_UTRAN_Cells := fl_UTRAN_InitializeSIB11(v_UTRAN_Cells); // Have to pass the whole array to intialize SIB11 as it uses info from all other cells
+    } else {                                 // @sic R5-115770 sic@
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell5);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_TDD(utran_Cell5);
+      
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell7);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_TDD(utran_Cell7);
+      
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell8);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_TDD(utran_Cell8);
+      
+      v_Index := f_UTRAN_CellInfo_GetIndex (utran_Cell9);
+      v_UTRAN_Cells[v_Index] := f_UTRAN_CellInfo_Init_TDD(utran_Cell9);
+      
+      v_UTRAN_Cells := fl_UTRAN_InitializeSIB11_TDD(v_UTRAN_Cells); // Have to pass the whole array to intialize SIB11 as it uses info from all other cells
+    }
+    return (v_UTRAN_Cells);
+  };
+
+  function f_UTRAN_GetCellIndentity(UTRAN_CellId_Type p_CellId) return B28_Type
+  {
+    select (p_CellId) {
+      case (utran_Cell5) {
+        return tsc_CellIdCell5;
+      }
+      case (utran_Cell7) {
+        return tsc_CellIdCell7;
+      }
+      case (utran_Cell8) {
+        return tsc_CellIdCell8;
+      }
+      case (utran_Cell9) {
+        return tsc_CellIdCell9;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid cellId");
+        return int2bit(0, 28);
+      }
+    }
+  }
+
+  function f_UTRAN_IR_SysInfoInit (UTRAN_CellInfoList_Type p_CellInfo)
+    return template (value) IRAT_CoOrd_SysInfo_Type
+  {
+    var template (value) CoOrd_UTRANSysInfo_Type v_Cell5;
+    var template (value) CoOrd_UTRANSysInfo_Type v_Cell7;
+    var template (value) CoOrd_UTRANSysInfo_Type v_Cell8;
+    var template (value) CoOrd_UTRANSysInfo_Type v_Cell9;
+    var B1_Type v_Diversity := '0'B;
+    var B1_Type v_Tstd := '0'B;
+    var integer v_Index_Cell5 := f_UTRAN_CellInfo_GetIndex(utran_Cell5);
+    var integer v_Index_Cell7 := f_UTRAN_CellInfo_GetIndex(utran_Cell7);
+    var integer v_Index_Cell8 := f_UTRAN_CellInfo_GetIndex(utran_Cell8);
+    var integer v_Index_Cell9 := f_UTRAN_CellInfo_GetIndex(utran_Cell9);
+    
+    // if the first cell is FDD, then they all are
+    if (p_CellInfo[v_Index_Cell5].fdd_tdd == UTRAN_FDD)
+      {
+        v_Cell5 := {FDD := cs_CoOrdUTRANSysInfo_FDD (p_CellInfo[v_Index_Cell5].frequencyInfo.modeSpecificInfo.fdd.uarfcn_DL,
+                                                     p_CellInfo[v_Index_Cell5].cellInfo_Specific_FDD.priScrmCode,
+                                                     p_CellInfo[v_Index_Cell5].cellInfo_Specific_FDD.uL_ScramblingCode,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell5].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell5),
+                                                     oct2bit(p_CellInfo[v_Index_Cell5].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell5].rac))};
+        v_Cell7 := {FDD := cs_CoOrdUTRANSysInfo_FDD (p_CellInfo[v_Index_Cell7].frequencyInfo.modeSpecificInfo.fdd.uarfcn_DL,
+                                                     p_CellInfo[v_Index_Cell7].cellInfo_Specific_FDD.priScrmCode,
+                                                     p_CellInfo[v_Index_Cell7].cellInfo_Specific_FDD.uL_ScramblingCode,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell7].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell7),
+                                                     oct2bit(p_CellInfo[v_Index_Cell7].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell7].rac))};
+        v_Cell8 := {FDD := cs_CoOrdUTRANSysInfo_FDD (p_CellInfo[v_Index_Cell8].frequencyInfo.modeSpecificInfo.fdd.uarfcn_DL,
+                                                     p_CellInfo[v_Index_Cell8].cellInfo_Specific_FDD.priScrmCode,
+                                                     p_CellInfo[v_Index_Cell8].cellInfo_Specific_FDD.uL_ScramblingCode,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell8].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell8),
+                                                     oct2bit(p_CellInfo[v_Index_Cell8].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell8].rac))};
+        v_Cell9 := {FDD := cs_CoOrdUTRANSysInfo_FDD (p_CellInfo[v_Index_Cell9].frequencyInfo.modeSpecificInfo.fdd.uarfcn_DL,
+                                                     p_CellInfo[v_Index_Cell9].cellInfo_Specific_FDD.priScrmCode,
+                                                     p_CellInfo[v_Index_Cell9].cellInfo_Specific_FDD.uL_ScramblingCode,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell9].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell9),
+                                                     oct2bit(p_CellInfo[v_Index_Cell9].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell9].rac))};
+      }
+    else // TDD
+      {
+        if (p_CellInfo[v_Index_Cell5].cellInfo_Specific_TDD.transmissionDiversityApplied == applied)
+          {
+            v_Diversity := '1'B;
+          }
+        if (p_CellInfo[v_Index_Cell5].cellInfo_Specific_TDD.dwPCHInfo.tstd_Indicator == applied)
+          {
+            v_Tstd := '1'B;
+          }
+        v_Cell5 := {TDD := cs_CoOrdUTRANSysInfo_TDD (p_CellInfo[v_Index_Cell5].frequencyInfo.modeSpecificInfo.tdd.uarfcn_Nt,
+                                                     p_CellInfo[v_Index_Cell5].cellInfo_Specific_TDD.cellParametersID,
+                                                     v_Diversity,
+                                                     v_Tstd,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell5].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell5),
+                                                     oct2bit(p_CellInfo[v_Index_Cell5].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell5].rac))};
+        if (p_CellInfo[v_Index_Cell7].cellInfo_Specific_TDD.transmissionDiversityApplied == applied)
+          {
+            v_Diversity := '1'B;
+          }
+        if (p_CellInfo[v_Index_Cell7].cellInfo_Specific_TDD.dwPCHInfo.tstd_Indicator == applied)
+          {
+            v_Tstd := '1'B;
+          }
+        v_Cell7 := {TDD := cs_CoOrdUTRANSysInfo_TDD (p_CellInfo[v_Index_Cell7].frequencyInfo.modeSpecificInfo.tdd.uarfcn_Nt,
+                                                     p_CellInfo[v_Index_Cell7].cellInfo_Specific_TDD.cellParametersID,
+                                                     v_Diversity,
+                                                     v_Tstd,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell7].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell7),
+                                                     oct2bit(p_CellInfo[v_Index_Cell7].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell7].rac))};
+        if (p_CellInfo[v_Index_Cell8].cellInfo_Specific_TDD.transmissionDiversityApplied == applied)
+          {
+            v_Diversity := '1'B;
+          }
+        if (p_CellInfo[v_Index_Cell8].cellInfo_Specific_TDD.dwPCHInfo.tstd_Indicator == applied)
+          {
+            v_Tstd := '1'B;
+          }
+        v_Cell8 := {TDD := cs_CoOrdUTRANSysInfo_TDD (p_CellInfo[v_Index_Cell8].frequencyInfo.modeSpecificInfo.tdd.uarfcn_Nt,
+                                                     p_CellInfo[v_Index_Cell8].cellInfo_Specific_TDD.cellParametersID,
+                                                     v_Diversity,
+                                                     v_Tstd,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell8].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell8),
+                                                     oct2bit(p_CellInfo[v_Index_Cell8].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell8].rac))};
+        if (p_CellInfo[v_Index_Cell9].cellInfo_Specific_TDD.transmissionDiversityApplied == applied)
+          {
+            v_Diversity := '1'B;
+          }
+        if (p_CellInfo[v_Index_Cell9].cellInfo_Specific_TDD.dwPCHInfo.tstd_Indicator == applied)
+          {
+            v_Tstd := '1'B;
+          }
+        v_Cell9 := {TDD := cs_CoOrdUTRANSysInfo_TDD (p_CellInfo[v_Index_Cell9].frequencyInfo.modeSpecificInfo.tdd.uarfcn_Nt,
+                                                     p_CellInfo[v_Index_Cell9].cellInfo_Specific_TDD.cellParametersID,
+                                                     v_Diversity,
+                                                     v_Tstd,
+                                                     f_U_Asn2Nas_PlmnId(p_CellInfo[v_Index_Cell9].plmnId),
+                                                     f_UTRAN_GetCellIndentity(utran_Cell9),
+                                                     oct2bit(p_CellInfo[v_Index_Cell9].lac),
+                                                     oct2bit(p_CellInfo[v_Index_Cell9].rac))};
+      }
+    
+    return cs_CoOrdUTRAN_SysInfo(v_Cell5, v_Cell7, v_Cell8, v_Cell9);
+  }
+
+  function f_UTRAN_IR_SIB19_Init (UTRAN_CellInfoList_Type p_CellInfoList,
+                                  IRAT_CoOrd_SysInfo_Type p_EUTRAInfo)
+    return UTRAN_CellInfoList_Type
+  { /* @sic R5s100871 sic@ */
+    var integer i;
+    var template (value) EUTRA_FrequencyAndPriorityInfoList v_EUTRA_FrequencyAndPriorityInfoList;
+    
+    for (i := 0; i < lengthof(p_EUTRAInfo.Eutra); i := i + 1)//build the EUTRA_FrequencyAndPriorityInfoList
+      {
+        v_EUTRA_FrequencyAndPriorityInfoList[i] := cs_EUTRA_FrequencyAndPriorityInfo(p_EUTRAInfo.Eutra[i].Arfcn,
+                                                                                     f_UTRAN_ConvertIntegerToEUTRA_MeasurementBandwidth(p_EUTRAInfo.Eutra[i].DL_Bandwidth));
+      }
+    
+    for (i := 0; i < tsc_UTRAN_NumberOfCells; i := i + 1)
+      {
+        p_CellInfoList[i].sysInfo.SIB19 := valueof(cs_SIB19_Def(v_EUTRA_FrequencyAndPriorityInfoList));
+      }
+    return (p_CellInfoList);
+  }
+
+  function f_UTRAN_IR_SIB11And19_Init (UTRAN_CellInfoList_Type p_CellInfoList,
+                                       IRAT_CoOrd_SysInfo_List_Type p_SysInfoList)
+    return UTRAN_CellInfoList_Type
+  {
+    var IRAT_CoOrd_SysInfo_Type v_EUTRA_SysInfo;
+    var IRAT_CoOrd_SysInfo_Type v_GERAN_SysInfo;
+    var integer v_NoOfPTCs := lengthof( p_SysInfoList);
+    
+    select (v_NoOfPTCs) {
+      case (1) {
+        v_EUTRA_SysInfo := p_SysInfoList[0];
+      }
+      case (2) {
+        if(ischosen(p_SysInfoList[0].Eutra)) {
+          v_EUTRA_SysInfo := p_SysInfoList[0];
+          v_GERAN_SysInfo := p_SysInfoList[1];
+        } else {
+          v_GERAN_SysInfo := p_SysInfoList[0];
+          v_EUTRA_SysInfo := p_SysInfoList[1];
+        }
+        p_CellInfoList := fl_UTRAN_InitializeSIB11_ForGERAN (p_CellInfoList, v_GERAN_SysInfo.Geran);
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "wrong PTC configuration specified in test case");
+      }
+    }
+    p_CellInfoList:= f_UTRAN_IR_SIB19_Init (p_CellInfoList, v_EUTRA_SysInfo);
+    
+    return (p_CellInfoList);
+  }
+
+  function f_UTRAN_CellInfo_Init_FDD(UTRAN_CellId_Type p_CellId) return UTRAN_CellInfo_Type
+  {
+    var UTRAN_CellInfo_Type v_CellInfo; // Hellen>> changed this from template (value) to avoid doing valueof on a not completely initialized template
+    
+    var PrimaryScramblingCode v_PriScrmCode;
+    var bitstring             v_URA_IdCell;
+    var template (value) FrequencyInfo         v_FreqInfo;
+    var UL_ScramblingCode     v_UL_ScramblingCode;
+    
+    var template (value) FrequencyInfo v_FreqInfoLow  := cs_FreqInfo_FDD(px_UARFCN_D_Low);
+    var template (value) FrequencyInfo v_FreqInfoMid  := cs_FreqInfo_FDD(px_UARFCN_D_Mid);
+    var template (value) FrequencyInfo v_FreqInfoHigh := cs_FreqInfo_FDD(px_UARFCN_D_High);
+    
+    if (px_FDD_OperationBand == 6) {
+      // For Band 6, the frequency difference  between tcv_FreqInfoLow, Mid and High is very short. Then tcv_FreqInfoMid  is assigned to the px_UARFCN_D_Low value.
+      v_FreqInfoMid := cs_FreqInfo_FDD(px_UARFCN_D_Low);
+    }
+    
+    select (p_CellId) {
+      case (utran_Cell5) {
+        v_PriScrmCode       := 100;
+        v_URA_IdCell        := tsc_URA_IdCell5;
+        v_FreqInfo          := v_FreqInfoHigh;//According to 36.508 cl. 4.4.2 Table 4.4.2-1 @sic R5s100751, R5-110xxx sic@
+        v_UL_ScramblingCode := 0;
+      }
+      case (utran_Cell7) {
+        v_PriScrmCode       := (100 + 50) mod 512;
+        v_URA_IdCell        := tsc_URA_IdCell7;
+        v_FreqInfo          := v_FreqInfoHigh;//According to 36.508 cl. 4.4.2 Table 4.4.2-1 @sic R5s100751, R5-110xxx sic@
+        v_UL_ScramblingCode := 1000 mod 16777216;
+      }
+      case (utran_Cell8) {
+        v_PriScrmCode       := (100 + 100) mod 512;
+        v_URA_IdCell        := tsc_URA_IdCell8;
+        v_FreqInfo          := v_FreqInfoMid;//According to 36.508 cl. 4.4.2 Table 4.4.2-1 @sic R5s100751, R5-110xxx sic@
+        v_UL_ScramblingCode := 2000 mod 16777216;
+      }
+      case (utran_Cell9) {
+        v_PriScrmCode       := (100 + 150) mod 512;
+        v_URA_IdCell        := tsc_URA_IdCell9;
+        v_FreqInfo          := v_FreqInfoLow;//According to 36.508 cl. 4.4.2 Table 4.4.2-1
+        v_UL_ScramblingCode := 3000 mod 16777216;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "Invalid CellId");
+      }
+    }
+    // initialisation of v_CellInfo
+    v_CellInfo.cellId          := p_CellId;
+    v_CellInfo.fdd_tdd          := UTRAN_FDD;
+    v_CellInfo.frequencyInfo   := valueof(v_FreqInfo);
+    v_CellInfo.attenuationLevel := tsc_AttenuationCellOFF;
+    v_CellInfo.cellInfo_Specific_TDD := omit;
+    v_CellInfo.cellInfo_Specific_FDD.priScrmCode     := v_PriScrmCode;
+    v_CellInfo.cellInfo_Specific_FDD.powerpCPICH     := tsc_PowerpCPICH;
+    v_CellInfo.cellInfo_Specific_FDD.powerpSCH       := tsc_PowerpSCH;
+    v_CellInfo.cellInfo_Specific_FDD.powersSCH       := tsc_PowersSCH;
+    v_CellInfo.cellInfo_Specific_FDD.powerpCCPCH     := tsc_PowerpCCPCH_FDD;
+    v_CellInfo.powersCCPCH     := tsc_PowersCCPCH1;
+    v_CellInfo.powersCCPCH1    := tsc_PowersCCPCH1;
+    v_CellInfo.cellInfo_Specific_FDD.timingsCCPCH1   := tsc_TimingsCCPCH1;
+    v_CellInfo.cellInfo_Specific_FDD.powerAICH       := tsc_PowerAICH;
+    v_CellInfo.powerPICH       := tsc_PowerPICH;
+    v_CellInfo.cellTxPowerLevel := { defaultCellTxPowerLvl := NULL };
+    v_CellInfo.sfnOffset       := tsc_SFN_Offset;
+    v_CellInfo.puncLimit       := tsc_PuncLimit;
+    v_CellInfo.sf_PRACH        := tsc_PRACH1_SF;
+    v_CellInfo.cellInfo_Specific_FDD.slotFormatsCCPCH1 := tsc_SlotFormatsCCPCH1;
+    v_CellInfo.plmnId          := valueof(cs_UTRAN_HPLMN_Def);
+    v_CellInfo.lac             := tsc_LAC_Def;
+    v_CellInfo.rac             := tsc_RAC_Def;
+    v_CellInfo.attFlag         := tsc_AttOn;
+    v_CellInfo.nmo             := bit2oct(tsc_NMO_I);
+    v_CellInfo.ura_Identity    := v_URA_IdCell;
+    v_CellInfo.t3212           := tsc_T3212_Def;
+    v_CellInfo.cRNTI           := tsc_CRNTI;
+    v_CellInfo.uRNTI           := valueof(cs_U_RNTI_Def);
+    v_CellInfo.cellConfig      := cell_NotConfigured;
+    // v_CellInfo.dRX_CycleLength := valueof(c_DRX_CycleLengthStrucDef);
+    v_CellInfo.dRX_CycleLength.cN_CS_DRX_CycleLength := 7;  // TTCN-2: c_DRX_CycleLengthStrucDef
+    v_CellInfo.dRX_CycleLength.cN_PS_DRX_CycleLength := 7;  // TTCN-2: c_DRX_CycleLengthStrucDef
+    v_CellInfo.dRX_CycleLength.uTRAN_DRX_CycleLength := 9;  // TTCN-2: c_DRX_CycleLengthStrucDef
+    v_CellInfo.cellInfo_Specific_FDD.uL_ScramblingCode := v_UL_ScramblingCode;
+    v_CellInfo.rlcParams.timerPoll := tp400;
+    v_CellInfo.rlcParams.timerPollProhibit := tpp200;
+    v_CellInfo.rlcParams.pollSDU := sdu1;
+    v_CellInfo.rlcParams.pollWindow := pw99;
+    v_CellInfo.cellInfo_Specific_FDD.operationBand   := fl_UTRAN_FrequencyBandFDD(px_FDD_OperationBand);
+    v_CellInfo.nodeB_Id        := 1;
+    //   v_CellInfo.cellInfo_Specific_FDD.isServingCell   := true;
+    v_CellInfo.cellInfo_Specific_FDD.band            := px_FDD_OperationBand;
+    
+    if (px_FDD_OperationBand == 6) {
+      // ts_InitJapanMCC_Band6: For each Band 6 cell, set the MCC to the Japan MCC value.
+      v_CellInfo.plmnId.mcc := f_UTRAN_ConvertMCC_Nas2Asn(px_eJapanMCC_Band6);
+    }
+    
+    v_CellInfo.sysInfo := fl_UTRAN_SystemInformation_Init (v_CellInfo.cellId,
+                                                           v_CellInfo.cellInfo_Specific_FDD.band,
+                                                           v_CellInfo.plmnId,
+                                                           v_CellInfo.powerPICH,
+                                                           v_CellInfo.cellInfo_Specific_FDD.powerAICH,
+                                                           v_CellInfo.lac,
+                                                           v_CellInfo.rac,
+                                                           v_CellInfo.nmo,
+                                                           v_CellInfo.t3212,
+                                                           v_CellInfo.attFlag,
+                                                           v_CellInfo.ura_Identity,
+                                                           v_CellInfo.dRX_CycleLength,
+                                                           utran_only);
+    return (v_CellInfo);
+  }
+
+  function f_UTRAN_CellInfo_Init_TDD(UTRAN_CellId_Type p_CellId) return UTRAN_CellInfo_Type
+  {
+    var UTRAN_CellInfo_Type v_CellInfo;  // Hellen>> changed this from template (value) to avoid doing valueof on a not completely initialized template
+    
+    var CellParametersID v_CellParametersID;
+    var bitstring             v_URA_IdCell;
+    var template (value) FrequencyInfo         v_FreqInfo;
+    
+    var template (value) FrequencyInfo v_FreqInfoLow  := cs_FreqInfo_TDD(px_UARFCN_TDD_D_Low); // @sic R5-110803, R5-113xxx sic@
+    var template (value) FrequencyInfo v_FreqInfoMid  := cs_FreqInfo_TDD(px_UARFCN_TDD_D_Mid); // @sic R5-110803, R5-113xxx sic@
+    var template (value) FrequencyInfo v_FreqInfoHigh := cs_FreqInfo_TDD(px_UARFCN_TDD_D_High); // @sic R5-110803, R5-113xxx sic@
+    
+    
+    select (p_CellId) {
+      case (utran_Cell5) {
+        v_CellParametersID  := tsc_CellParametersID_Cell5;
+        v_URA_IdCell        := tsc_URA_IdCell5;
+        v_FreqInfo          := v_FreqInfoMid;
+      }
+      case (utran_Cell7) {
+        v_CellParametersID  := tsc_CellParametersID_Cell7;
+        v_URA_IdCell        := tsc_URA_IdCell7;
+        v_FreqInfo          := v_FreqInfoMid;
+      }
+      case (utran_Cell8) {
+        v_CellParametersID  := tsc_CellParametersID_Cell8;
+        v_URA_IdCell        := tsc_URA_IdCell8;
+        v_FreqInfo          := v_FreqInfoHigh;
+      }
+      case (utran_Cell9) {
+        v_CellParametersID  := tsc_CellParametersID_Cell9;
+        v_URA_IdCell        := tsc_URA_IdCell9;
+        v_FreqInfo          := v_FreqInfoLow;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "Invalid CellId");
+      }
+    }
+    // initialisation of v_CellInfo
+    v_CellInfo.cellId          := p_CellId;
+    v_CellInfo.fdd_tdd         := UTRAN_TDD;
+    v_CellInfo.frequencyInfo   := valueof(v_FreqInfoMid);
+    v_CellInfo.cellInfo_Specific_TDD.upPCHposition   := 22;
+    v_CellInfo.attenuationLevel := tsc_AttenuationCellOFF;
+    v_CellInfo.cellInfo_Specific_FDD := omit;
+    v_CellInfo.cellInfo_Specific_TDD.attenuationLevel_S1 := tsc_AttenuationCellOFF;
+    v_CellInfo.cellInfo_Specific_TDD.attenuationLevel_S2 := tsc_AttenuationCellOFF;
+    v_CellInfo.cellInfo_Specific_TDD.cellParametersID     := v_CellParametersID;
+    v_CellInfo.cellInfo_Specific_TDD.powerpCCPCH     := tsc_PowerpCCPCH_TDD;
+    v_CellInfo.powersCCPCH     := tsc_PowersCCPCH1;
+    v_CellInfo.powersCCPCH1    := tsc_PowersCCPCH1;
+    v_CellInfo.powerPICH       := tsc_PowerPICH;
+    v_CellInfo.cellInfo_Specific_TDD.powerFPACH       := tsc_PowerFPACH;
+    v_CellInfo.cellTxPowerLevel := { defaultCellTxPowerLvl := NULL };
+    v_CellInfo.sfnOffset       := tsc_SFN_Offset;
+    v_CellInfo.puncLimit       := tsc_PuncLimit;
+    v_CellInfo.plmnId          := valueof(cs_UTRAN_HPLMN_Def);
+    v_CellInfo.lac             := tsc_LAC_Def;
+    v_CellInfo.rac             := tsc_RAC_Def;
+    v_CellInfo.attFlag         := tsc_AttOn;
+    v_CellInfo.nmo             := bit2oct(tsc_NMO_I);
+    v_CellInfo.ura_Identity    := v_URA_IdCell;
+    v_CellInfo.t3212           := tsc_T3212_Def;
+    v_CellInfo.cRNTI           := tsc_CRNTI;
+    v_CellInfo.uRNTI           := valueof(cs_U_RNTI_Def);
+    v_CellInfo.cellConfig      := cell_NotConfigured;
+    // v_CellInfo.dRX_CycleLength := c_DRX_CycleLengthStrucDef;
+    v_CellInfo.dRX_CycleLength.cN_CS_DRX_CycleLength := 7;  // TTCN-2: c_DRX_CycleLengthStrucDef
+    v_CellInfo.dRX_CycleLength.cN_PS_DRX_CycleLength := 7;  // TTCN-2: c_DRX_CycleLengthStrucDef
+    v_CellInfo.dRX_CycleLength.uTRAN_DRX_CycleLength := 9;  // TTCN-2: c_DRX_CycleLengthStrucDef
+    
+    v_CellInfo.cellInfo_Specific_TDD.timeSlotConfigurationList_LCR := valueof(cs_Default_TimeSlot_Config_List);
+    v_CellInfo.cellInfo_Specific_TDD.transmissionDiversityApplied   := notApplied;
+    v_CellInfo.cellInfo_Specific_TDD.dwPCHInfo       := {   tstd_Indicator  := notApplied,   dwPCH_Power  :=  tsc_DwPCH_power};
+    v_CellInfo.nodeB_Id        := 1;
+    
+    v_CellInfo.sysInfo := fl_UTRAN_SystemInformation_Init_TDD (v_CellInfo.cellId,
+                                                               v_CellInfo.plmnId,
+                                                               v_CellInfo.powerPICH,
+                                                               v_CellInfo.lac,
+                                                               v_CellInfo.rac,
+                                                               v_CellInfo.nmo,
+                                                               v_CellInfo.t3212,
+                                                               v_CellInfo.attFlag,
+                                                               v_CellInfo.ura_Identity,
+                                                               v_CellInfo.dRX_CycleLength,
+                                                               v_CellInfo.cellInfo_Specific_TDD.cellParametersID,
+                                                               utran_only);
+    return (v_CellInfo);
+  }
+
+  function fl_UTRAN_FrequencyBandFDD(integer p_OperationBand) return FrequencyBandFDD
+  {
+    var template (value) FrequencyBandFDD v_FrequencyBandFDD;
+    
+    // this function is also called if UE doesn't support UTRA
+    if ((p_OperationBand == 1) and (pc_Band1_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_1;
+    } else if ((p_OperationBand == 2) and (pc_Band2_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_2;
+    } else if ((p_OperationBand == 3) and (pc_Band3_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_3;
+    } else if ((p_OperationBand == 4) and (pc_Band4_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_4;
+    } else if ((p_OperationBand == 5) and (pc_Band5_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_5;
+    } else if ((p_OperationBand == 6) and (pc_Band6_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_6;
+    } else if ((p_OperationBand == 7) and (pc_Band7_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_7;
+    } else if ((p_OperationBand == 8) and (pc_Band8_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_8;
+    } else if ((p_OperationBand == 9) and (pc_Band9_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_9;
+    } else if ((p_OperationBand == 10) and (pc_Band10_Supp or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_10;
+    } else if ((p_OperationBand == 11) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_11;
+    } else if ((p_OperationBand == 12) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_12;
+    } else if ((p_OperationBand == 13) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_13;
+    } else if ((p_OperationBand == 14) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_14;
+    } else if ((p_OperationBand == 15) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_15;
+    } else if ((p_OperationBand == 16) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_16;
+    } else if ((p_OperationBand == 17) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_17;
+    } else if ((p_OperationBand == 18) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_18;
+    } else if ((p_OperationBand == 19) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_19;
+    } else if ((p_OperationBand == 20) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_20;
+    } else if ((p_OperationBand == 21) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_21;
+    } else if ((p_OperationBand == 22) and (false or not pc_UTRA)) { // @sic R5s110244 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_22;
+    } else  if ((p_OperationBand == 25) and (false or not pc_UTRA)) { // @sic R5s120178 sic@
+      v_FrequencyBandFDD := cs_RadioFrequencyBandFDD_25;
+    } else {
+      FatalError(__FILE__, __LINE__, "unknown operation band");
+    }
+    return valueof(v_FrequencyBandFDD);
+  }
+
+  function f_UTRAN_ConvertMCC_Nas2Asn(hexstring p_MCC) return MCC
+  { // Note: there is a EUTRA variant of this function too
+    return { hex2int(p_MCC[2]), hex2int(p_MCC[1]), hex2int(p_MCC[0]) };
+  }
+
+  function f_UTRAN_SecurityInfo_Init() runs on UTRAN_PTC return  UTRAN_SecurityInfo_Type
+  {
+    var template (value) UTRAN_SecurityInfo_Type v_SecurityInfo;
+    
+    // Check that for UTRAN TDD, px_UTRAN_CipheringAlgorithm=uea0
+    // @sic R5-123750 sic@
+    if ((px_UTRAN_ModeUnderTest == UTRAN_TDD) and ( px_UTRAN_CipheringAlgorithm != uea0)) {
+       f_UTRAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "px_UTRAN_CipheringAlgorithm not set to uea0 in UTRAN TDD");
+     }
+    v_SecurityInfo.cs_cipheringStarted := false;
+    v_SecurityInfo.ps_cipheringStarted := false;
+    v_SecurityInfo.recentSecureDomain := ps_domain;  // the domain on which security was recently started, and hence the SRB are ciphered and Integrit protected with this domain.
+    v_SecurityInfo.dL_CipherMode   := cs_CipheringModeCmdOn ( uea2 );
+    v_SecurityInfo.uL_CipherMode   := omit;
+    v_SecurityInfo.cipheringAlgorithmCapability := '0000000000000111'B;
+    v_SecurityInfo.integrityStarted := false;
+    v_SecurityInfo.dL_Integrity    := cs_IntegrityProtectStart( px_FRESH, uia2 );
+    v_SecurityInfo.uL_Integrity    := omit;
+    v_SecurityInfo.dl_IntegrityCheckInfo := omit;
+    v_SecurityInfo.integrProtAlgCap := '0000000000000010'B;
+    v_SecurityInfo.start_CS        := '00000000000000000000'B;      // Default new key
+    v_SecurityInfo.start_PS        := '00000000000000000000'B;      // Default new key
+    v_SecurityInfo.authKeys.AuthPS := cs_CommonAuthParams_Init(px_eAuthRAND);
+    v_SecurityInfo.authKeys.HFN := int2bit (0, 20);
+    v_SecurityInfo.authKeys.AuthCS.CKey := tsc_AuthUndefinedB128;
+    v_SecurityInfo.authKeys.AuthCS.IKey := tsc_AuthUndefinedB128;
+    v_SecurityInfo.authKeys.AuthCS.CKeySeq := '111'B;
+    v_SecurityInfo.authKeys.CSinOtherRAT := false; // @sic R5s110168 change 8.6 sic@
+        
+    return (valueof(v_SecurityInfo));
+  }
+
+  function fl_UTRAN_CellInfo_Get(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return UTRAN_CellInfo_Type
+  {
+    var integer v_Index := f_UTRAN_CellInfo_GetIndex(p_CellId);
+    return vc_UTRAN_Global.CellArray[v_Index];
+  }
+
+  function f_UTRAN_CellInfo_Set(UTRAN_CellId_Type p_CellId,
+                                UTRAN_CellInfo_Type p_CellInfo) runs on UTRAN_PTC
+  {
+    var integer v_Index := f_UTRAN_CellInfo_GetIndex(p_CellId);
+    vc_UTRAN_Global.CellArray[v_Index] := p_CellInfo;
+  }
+
+  function f_UTRAN_CellInfo_GetNMO(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return B2_Type
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return substr(oct2bit(v_CellInfo.nmo), 6, 2); // @sic R5s110705 sic@
+  }
+
+  function f_UTRAN_CellInfo_SetNMO(UTRAN_CellId_Type p_CellId,
+                                   B2_Type p_NMO) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.nmo := bit2oct(p_NMO);
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_CellInfo_GetLAC(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return octetstring
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.lac;
+  }
+
+  function f_UTRAN_CellInfo_SetLAC(UTRAN_CellId_Type p_CellId,
+                                   octetstring p_LAC) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.lac := p_LAC;
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_CellInfo_GetRAC(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return octetstring
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.rac;
+  }
+
+  function f_UTRAN_CellInfo_SetRAC(UTRAN_CellId_Type p_CellId,
+                                   octetstring p_RAC) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.rac := p_RAC;
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_CellInfo_GetPLMNIdentity(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return PLMN_Identity
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.plmnId;
+  }
+
+  function f_UTRAN_CellInfo_SetPLMNIdentity(UTRAN_CellId_Type p_CellId,
+                                            PLMN_Identity p_PLMN) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.plmnId := p_PLMN;
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_CellInfo_GetNodeB_Id(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return integer
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.nodeB_Id;
+  }
+
+  function f_UTRAN_CellInfo_GetC_RNTI(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return C_RNTI
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.cRNTI;
+  }
+
+  function f_UTRAN_CellInfo_GetU_RNTI(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return U_RNTI
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.uRNTI;
+  }
+
+  function f_UTRAN_CellInfo_GetPICH_PowerOffset(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return PICH_PowerOffset
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.powerPICH;
+  }
+
+  function f_UTRAN_CellInfo_GetpCCPCH_Power_FDD(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return DL_TxPower
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.cellInfo_Specific_FDD.powerpCCPCH;
+  }
+
+  function f_UTRAN_CellInfo_GetpCCPCH_Power_TDD(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return DL_TxPower
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.cellInfo_Specific_TDD.powerpCCPCH;
+  }
+
+  function f_UTRAN_CellInfo_GetsCCPCH1_Power(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return DL_TxPower
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.powersCCPCH1;
+  }
+
+  function f_UTRAN_CellInfo_GetCellTxPower(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return CellTxPowerLevel
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.cellTxPowerLevel;
+  }
+
+  function f_UTRAN_CellInfo_GetSFNOffset(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return integer
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.sfnOffset;
+  }
+
+  function f_UTRAN_SetReferenceCellPower(UTRAN_CellId_Type p_CellId,
+                                         DL_TxPower_PCPICH p_CPICHPower,
+                                         DL_TxPower_PCCPCH p_PCCPCHPower) runs on UTRAN_PTC
+  {
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD (p_CellId);
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    
+    if (v_FDD_TDD_Mode == UTRAN_FDD) {  // FDD
+      v_CellInfo.cellInfo_Specific_FDD.powerpCPICH := p_CPICHPower;
+      f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+    }
+    else {  //TDD
+      v_CellInfo.cellInfo_Specific_TDD.powerpCCPCH := p_PCCPCHPower;
+      f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+    }
+  }
+
+  function f_UTRAN_CellInfo_GetPuncturingLimit(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return PuncturingLimit
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.puncLimit;
+  }
+
+  function f_UTRAN_CellInfo_GetSF_PRACH(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return SF_PRACH
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.sf_PRACH;
+  }
+
+  function f_UTRAN_CellInfo_GetFrequencyInfo(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return FrequencyInfo
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.frequencyInfo;
+  }
+
+  function f_UTRAN_CellInfo_GetFDD_TDD(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return UTRAN_FDD_TDD_Type
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.fdd_tdd;
+  }
+
+  function f_UTRAN_CellInfo_GetULScrmCode_FDD ( UTRAN_CellId_Type p_CellId ) runs on UTRAN_PTC return UL_ScramblingCode
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get ( p_CellId );
+    return v_CellInfo.cellInfo_Specific_FDD.uL_ScramblingCode;
+  }
+
+  function f_UTRAN_CellInfo_GetFDDSpecific(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return UTRAN_CellInfo_Type_FDD
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.cellInfo_Specific_FDD;
+  }
+
+  function f_UTRAN_CellInfo_GetTDDSpecific(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return UTRAN_CellInfo_Type_TDD
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.cellInfo_Specific_TDD;
+  }
+
+  function f_UTRAN_CellInfo_GetDRX_CycleLength(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return DRX_CycleLengthStructure
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.dRX_CycleLength;
+  }
+
+  function f_UTRAN_CellInfo_GetAttFlag ( UTRAN_CellId_Type p_CellId ) runs on UTRAN_PTC return integer
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.attFlag;
+  }
+
+  function f_UTRAN_CellInfo_GetT3212 ( UTRAN_CellId_Type p_CellId ) runs on UTRAN_PTC return octetstring
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.t3212;
+  }
+
+  function f_UTRAN_CellInfo_GetCellParametersID_TDD ( UTRAN_CellId_Type p_CellId ) runs on UTRAN_PTC return CellParametersID
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get ( p_CellId );
+    return v_CellInfo.cellInfo_Specific_TDD.cellParametersID;
+  }
+
+  function f_UTRAN_CellInfo_GetPriScrmCode_FDD ( UTRAN_CellId_Type p_CellId ) runs on UTRAN_PTC return PrimaryScramblingCode
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get ( p_CellId );
+    return v_CellInfo.cellInfo_Specific_FDD.priScrmCode;
+  }
+
+  function f_UTRAN_CellInfo_GetConfigType(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return RB_ConfigType
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.cellConfig;
+  }
+
+  function f_UTRAN_CellInfo_GetUARFCN(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return UARFCN
+  {
+    var UARFCN v_UARFCN;
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get( p_CellId );
+    var UTRAN_FDD_TDD_Type v_UTRAN_FDD_TDD := f_UTRAN_CellInfo_GetFDD_TDD( p_CellId );
+    
+    if ( v_UTRAN_FDD_TDD == UTRAN_FDD ) {
+      v_UARFCN := v_CellInfo.frequencyInfo.modeSpecificInfo.fdd.uarfcn_DL;
+    } else {
+      v_UARFCN := v_CellInfo.frequencyInfo.modeSpecificInfo.tdd.uarfcn_Nt;
+    }
+    return v_UARFCN;
+  }
+
+  function f_UTRAN_CellInfo_SetConfigType(UTRAN_CellId_Type p_CellId, RB_ConfigType p_CellConfig) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.cellConfig := p_CellConfig;
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_Security_Get() runs on UTRAN_PTC return UTRAN_SecurityInfo_Type
+  {
+    return vc_UTRAN_Global.Security;
+  }
+
+  function f_UTRAN_Security_Set(UTRAN_SecurityInfo_Type p_Auth_Params) runs on UTRAN_PTC
+  {
+    vc_UTRAN_Global.Security := p_Auth_Params;
+  }
+
+  function f_UTRAN_MsgInDefault_GetRAU() runs on UTRAN_PTC return RRC_DATA_IND
+  {
+    var RRC_DATA_IND v_RRC_DATA_IND := vc_UTRAN_Global.MsgInDefault.routingAreaUpdateRequest;
+    vc_UTRAN_Global.MsgInDefault.routingAreaUpdateRequest := omit; // Set it back to omit now
+    return v_RRC_DATA_IND;
+  }
+
+  function f_UTRAN_MsgInDefault_SetRAU(RRC_DATA_IND p_RoutingAreaUpdateRequest) runs on UTRAN_PTC
+  {
+    vc_UTRAN_Global.MsgInDefault.routingAreaUpdateRequest := p_RoutingAreaUpdateRequest;
+  }
+
+  function f_UTRAN_MsgInDefault_CheckRAU() runs on UTRAN_PTC return boolean
+  {
+    return isvalue(vc_UTRAN_Global.MsgInDefault.routingAreaUpdateRequest);
+  }
+
+  function f_UTRAN_SysInfo_Get(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return UTRAN_CellSysInfo_Type
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.sysInfo;
+  }
+
+  function f_UTRAN_SysInfo_Set(UTRAN_CellId_Type p_CellId,
+                               UTRAN_CellSysInfo_Type p_SysInfo) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.sysInfo := p_SysInfo;
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_SysInfo_GetSIB19(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return SysInfoType19
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.sysInfo.SIB19;
+  }
+
+  function f_UTRAN_SysInfo_SetSIB19(UTRAN_CellId_Type p_CellId, template (value) SysInfoType19 p_SIB19) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.sysInfo.SIB19 := valueof(p_SIB19);
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_SysInfo_GetSIB1(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return SysInfoType1
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    return v_CellInfo.sysInfo.SIB1;
+  }
+
+  function f_UTRAN_SysInfo_SetSIB1(UTRAN_CellId_Type p_CellId,
+                                   template (value) SysInfoType1 p_SIB1) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.sysInfo.SIB1 := valueof(p_SIB1);
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_SysInfo_SetSIB3(UTRAN_CellId_Type p_CellId,
+                                   template (value) SysInfoType3 p_SIB3) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.sysInfo.SIB3 := valueof(p_SIB3);
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_SysInfo_SetMIB(UTRAN_CellId_Type p_CellId,
+                                  template (value) MasterInformationBlock p_MIB) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.sysInfo.MIB := valueof(p_MIB);
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_SysInfo_SetSB1(UTRAN_CellId_Type p_CellId,
+                                  template (value) SysInfoTypeSB1 p_SB1) runs on UTRAN_PTC
+  {
+    var UTRAN_CellInfo_Type v_CellInfo := fl_UTRAN_CellInfo_Get(p_CellId);
+    v_CellInfo.sysInfo.SB1 := valueof(p_SB1);
+    f_UTRAN_CellInfo_Set(p_CellId, v_CellInfo);
+  }
+
+  function f_UTRAN_MobileInfo_EUTRACapability_Get() runs on UTRAN_PTC return  octetstring
+  {
+    return vc_UTRAN_Global.MobileInfo.ue_EUTRA_Capability;
+  }
+
+  function f_UTRAN_MobileInfo_EUTRACapability_Set(octetstring p_EUTRACapability) runs on UTRAN_PTC
+  {
+    vc_UTRAN_Global.MobileInfo.ue_EUTRA_Capability := p_EUTRACapability;
+  }
+
+  function f_FddTddMessageClass(UTRAN_CellId_Type p_CellId) runs on UTRAN_PTC return UTRAN_FddTddMessageClass_Type
+  {
+    var UTRAN_FDD_TDD_Type v_FDD_TDD_Mode := f_UTRAN_CellInfo_GetFDD_TDD(p_CellId);
+    var charstring v_TestcaseName := testcasename();
+    var UTRAN_FddTddMessageClass_Type v_UTRAN_FddTddMessageClass;
+    // @sic R5-123750 sic@
+    
+    select (v_FDD_TDD_Mode) {
+      case (UTRAN_FDD) {
+        select (f_GetTestcaseAttrib_UtraFDD_Release(v_TestcaseName)) {
+          case ("FDDr9") {
+            v_UTRAN_FddTddMessageClass := FDDr9;
+          }
+          case else {
+            // By default FDD is release 8
+            v_UTRAN_FddTddMessageClass := FDDr8;
+          }
+        }
+      }
+      case (UTRAN_TDD) {
+        // Only TDDr9 is currently handled
+        // select (f_GetTestcaseAttrib_UtraTDD_Release(v_TestcaseName)) {
+        //  case else {
+        // By default TDD is release 9
+        v_UTRAN_FddTddMessageClass := TDDr9;
+        //  }
+        // }
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "Cell is neither FDDr8 nor FDDr9 nor TDDr9");
+      }
+    }
+    return v_UTRAN_FddTddMessageClass;
+  }
+
+  function f_UTRAN_Init(IRAT_ConfiguredPTCs_Type p_ConfiguredPTCs := EUTRA_UTRAN) runs on UTRAN_PTC
+  { /* @sic R5-113805, R5-113696, R5-113734 sic@ */
+    /* f_UTRAN_Init is used as dummy function (without parameters)  for the UTRAN PTC when the UTRAN PTC is needed just to get the UTRAN system information */
+    var integer i;
+
+    vc_UTRAN_Global.Ctrl.Default := null;
+    vc_UTRAN_Global.Ctrl.TestBody := false;
+    vc_UTRAN_Global.CellArray := f_UTRAN_CellArray_Init();
+
+    // Now update sys info with inter RAT parameters for all cells
+    select (p_ConfiguredPTCs)
+    {
+      case (EUTRA_UTRAN) {
+        vc_UTRAN_Global.CellArray := f_UTRAN_IR_SIB19_Init(vc_UTRAN_Global.CellArray, f_IRAT_InitialCoOrd(EUTRA, f_UTRAN_IR_SysInfoInit (vc_UTRAN_Global.CellArray)));
+      }
+      case (EUTRA_UTRAN_GERAN) {
+        vc_UTRAN_Global.CellArray := f_UTRAN_IR_SIB11And19_Init(vc_UTRAN_Global.CellArray, f_IRAT_InitialCoOrd_2Ports(EUTRA, GERAN, f_UTRAN_IR_SysInfoInit (vc_UTRAN_Global.CellArray)));
+        for (i := 0; i < tsc_UTRAN_NumberOfCells; i := i + 1)
+          {
+            f_UTRAN_SysInfo_SetMIB ( vc_UTRAN_Global.CellArray[i].cellId, cs_MIB_UTRAN_GERAN_Def (vc_UTRAN_Global.CellArray[i].plmnId));
+            f_UTRAN_SysInfo_SetSB1 ( vc_UTRAN_Global.CellArray[i].cellId, cs_SB1_UTRAN_GERAN_Def );
+          }
+      }
+    }
+    vc_UTRAN_Global.Security := f_UTRAN_SecurityInfo_Init();
+    
+    vc_UTRAN_Global.MsgInDefault := f_UTRAN_MsgInDefault_Init();
+    
+    f_UTRAN_ActivateDefault(StandardDefault);
+  }
+
+}

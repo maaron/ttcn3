@@ -1,0 +1,92 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-01 09:36:48 +0200 (Fri, 01 Jun 2012) $
+// $Rev: 6694 $
+/******************************************************************************/
+
+module ICMPv6_Functions {
+
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from ICMPv6_TypeDefs all;
+
+  template (value) ICMPv6Message cs_RouterAdvertisement(charstring p_ClientIpAddress) :=
+  { /* @status    APPROVED */
+    routerAdvMsg := {
+      icmpType := tsc_ICMPv6_RtAdvMsg,  // RFC 4861
+      icmpCode := 0,
+      checksum := '0000'O,              // to be replaced before sending
+      curHopLimit := 64,
+      managedConfigFlag := '0'B,        // Not managed, i.e. stateless autoconfiguration
+      otherConfigFlag := '0'B,          // FFS DHCPv6 not available
+      reserved := '000000'B,
+      routerLifetime := oct2int('FFFF'O), // largest posible value
+      reachableTime := 0,               // unspecified
+      retransTimer := 0,                // unspecified
+      rtAdvOptions := {
+        srcLinkLayerAddr := omit,
+        mtuOption := omit,
+        prefixInfoList := {
+          {
+            icmpType := tsc_ICMPv6_PrefixInfo,
+            optionLength := 4,          // 32 = 4 * 8 octets is the length  for the complete option //@sic R5s110773 sic@
+            prefixLength := 64,         // 64 bits prefix
+            linkFlag := '0'B,           // on-link flag set to 0 acc.  to 3GPP 29.061 clause 11.2.1.3.2 @sic R5s120076 sic@
+            autoConfigFlag := '1'B,     // autonmous address-autconfiguration set
+            reserved1 := '000000'B,
+            validLifetime := oct2int ('FFFFFFFF'O),     // infinity
+            preferredLifetime := oct2int('FFFFFFFF'O),  // infinity
+            reserved2 := 0,
+            // And here the 64 bits prefix followed by 64 bits padding
+            prefix := substr (f_Convert_IPv6Addr2OctString(p_ClientIpAddress), 0, 8) & '0000000000000000'O
+
+          }
+        }, // prefixInfoList
+        advertisementInterval := omit,
+        homeAgentInfo := omit,
+        otherOption := omit
+      } // options
+    }
+  };
+
+  function f_ICMPv6_GetRouterAdvertisement(charstring p_ClientIpAddress) return octetstring
+  {
+    return bit2oct(encvalue(cs_RouterAdvertisement(p_ClientIpAddress)));
+  }
+
+  function f_ICMPv6_GetEncodedResponse(octetstring p_ReqData,
+                                       charstring p_ClientIpAddress) return octetstring
+  {
+    var bitstring v_DataBitstring := oct2bit(p_ReqData);
+    var ICMPv6Message v_Request;
+    var template (omit) ICMPv6Message v_Response := omit;
+    
+    // Decode incoming DHCP message
+    if (decvalue(v_DataBitstring, v_Request) != 0) {
+      f_ErrorLog(__FILE__, __LINE__, "ICMP message cannot be decoded (skipped)");
+      return ''O; // Error case
+    }
+    
+    if (ischosen(v_Request.routerSolMsg)) {                         // Handle Router Solicitation message
+      v_Response := cs_RouterAdvertisement(p_ClientIpAddress);      // Return  Router Advertisement
+    }
+    else if (ischosen(v_Request.nbrSolMsg)) {                       // Handle Neighbor Solicitation (for Duplicate Address Detection)
+      return ''O;                                                   // FFS Message is ignored
+    }
+    
+    if (isvalue(v_Response)) {
+      v_DataBitstring := encvalue(v_Response);
+      return bit2oct(v_DataBitstring);
+    }
+    
+    // Other cases are not yet handled
+    f_ErrorLog(__FILE__, __LINE__, "unsupported ICMPv6 request (skipped)");
+    return ''O; // Error
+  }
+
+}

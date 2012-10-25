@@ -1,0 +1,50 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-11 11:50:04 +0200 (Mon, 11 Jun 2012) $
+// $Rev: 6815 $
+/******************************************************************************/
+
+module UTRAN_ASP_VirtualNoiseDefs {
+  /* ASP definitions for virtual noise generation in UTRAN cells.
+     The noise is configurated for an already existing UTRAN cell.
+     NOTE: For the time being VNG is applicable for UTRAN FDD only as acc. to TS 36.304 clause 5.2.4.5 there is no quality based measurement for UTRAN TDD, GERAN or CDMA2000 */
+
+  import from CommonDefs all;
+
+  type record UTRAN_VngConfigInfo_Type {
+    integer                     IocLevel        /* Ioc level; calculati-on is FFS */
+  };
+
+  type union UTRAN_VngConfigRequest_Type {     /* configure/activate noise for a given cell;
+                                                 * NOTE: it is assumed the the associated UTRAN cell has been created beforehand */
+    UTRAN_VngConfigInfo_Type    Configure,      /* configuration of the virtual noise generator;
+                                                 * regardless of the power level the noise generator is off before it gets activated for this cell;
+                                                 * whether the configuration can be changed during a test is FFS but if so the noise generator shall be deactivated for this cell */
+    Null_Type                   Activate,       /* noise is activated (switched on) for the given cell acc. to the previous configuration;
+                                                 * while being active the configuration shall not be modified */
+    Null_Type                   Deactivate      /* deactivate noise for given cell */
+  };
+
+  type Null_Type UTRAN_VngConfigConfirm_Type;
+
+  type record UTRAN_VNG_CTRL_REQ {
+    integer                     CellId,         /* id of associated UTRAN cell */
+    UTRAN_VngConfigRequest_Type Request
+  };
+
+
+  type record UTRAN_VNG_CTRL_CNF {
+    integer                     CellId,         /* id of associated UTRAN cell */
+    UTRAN_VngConfigConfirm_Type Confirm
+  };
+
+  type port UTRAN_VNG_PORT message {            /* UTRAN PTC: Port for virtual noise generator */
+    out UTRAN_VNG_CTRL_REQ;
+    in  UTRAN_VNG_CTRL_CNF;
+  };
+}

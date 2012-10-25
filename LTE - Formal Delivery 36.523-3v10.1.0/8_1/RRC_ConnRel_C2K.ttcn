@@ -1,0 +1,128 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-15 21:59:45 +0200 (Sun, 15 Apr 2012) $
+// $Rev: 6493 $
+/******************************************************************************/
+module RRC_ConnRel_C2K {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonIratDefs all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+
+  function f_TC_8_1_3_9_EUTRA ( ) runs on EUTRA_PTC
+  { /* RRC connection release / Redirection from E-UTRAN to CDMA2000-HRPD */
+    
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var IRAT_CoOrd_SysInfo_Type v_CDMA2000SysInfo;
+    var EUTRA_FDD_TDD_Mode_Type v_FDD_TDD_Cell1;
+
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6 );//TAC is set to 1 // @sic R5s110429 sic@
+
+    //Get FDD or TDD mode
+    v_FDD_TDD_Cell1 := f_EUTRA_CellInfo_GetFDD_TDD ( eutra_Cell1 );
+
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -75 );
+
+    //Coordinate with UTRAN component to receive UTRAN frequencies
+    // Get Cell Parameters for CDMA2000 cell
+    
+    v_CDMA2000SysInfo := f_IRAT_WaitForCoOrd_SysInfo ( CDMA2000 );
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    
+    //Set cell power level according to T0
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, -75 );
+    
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease_Common(eutra_Cell1,
+                                         cs_RRCConnectionRelease(v_RRC_TI,
+                                                                 v_ReleaseCause,
+                                                                 cs_RedirectionInfo_HRPD(cs_CarrierFreqCDMA2000(f_EUTRA_ConvertBandClassInteger_ToCDMA2000(v_CDMA2000SysInfo.Cdma2000[0].BandClass),
+                                                                                                                v_CDMA2000SysInfo.Cdma2000[0].Arfcn)),
+                                                                 omit));
+
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger ( CDMA2000 ); //@sic R5s110492 sic@
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Remove the non-camping cell
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+  function f_TC_8_1_3_10_EUTRA ( ) runs on EUTRA_PTC
+  { /* RRC connection release / Redirection from E-UTRAN to CDMA2000-1xRTT */
+    
+    var ReleaseCause v_ReleaseCause := other;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var IRAT_CoOrd_SysInfo_Type v_CDMA2000SysInfo;
+    var EUTRA_FDD_TDD_Mode_Type v_FDD_TDD_Cell1;
+    
+    //Initialise all cells, security and mobile parameters
+    f_EUTRA_Init( c6 );//TAC is set to 1
+    
+    //Get FDD or TDD mode
+    v_FDD_TDD_Cell1 := f_EUTRA_CellInfo_GetFDD_TDD ( eutra_Cell1 );
+    
+    //Set maximum cell powel level for Cell 1
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell1, -75 );
+    
+    //Coordinate with UTRAN component to receive UTRAN frequencies
+    // Get Cell Parameters for CDMA2000 cell
+    
+    v_CDMA2000SysInfo := f_IRAT_WaitForCoOrd_SysInfo ( CDMA2000 );
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    
+    //Set cell power level according to T0
+    f_IRAT_SendCoOrd ( CDMA2000, cms_IRAT_Trigger );
+    f_EUTRA_SetCellPower ( eutra_Cell1, -75 );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //Transmit RRC Connection Release message
+    f_EUTRA_RRC_ConnectionRelease_Common(eutra_Cell1,
+                                         cs_RRCConnectionRelease(v_RRC_TI,
+                                                                 v_ReleaseCause,
+                                                                 cs_RedirectionInfo_RTT1X(cs_CarrierFreqCDMA2000(f_EUTRA_ConvertBandClassInteger_ToCDMA2000(v_CDMA2000SysInfo.Cdma2000[0].BandClass),
+                                                                                                                 v_CDMA2000SysInfo.Cdma2000[0].Arfcn)),
+                                                                 omit ));
+    //Wait for end of test case
+    f_IRAT_WaitForCoOrd_Trigger ( CDMA2000 );//@sic R5s110492 sic@
+    
+    f_EUTRA_TestBody_Set ( false );
+
+    //Remove the non-camping cell
+    f_EUTRA_ReleaseAllCells( );
+  }
+
+}

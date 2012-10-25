@@ -1,0 +1,194 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-05 17:12:52 +0200 (Tue, 05 Jun 2012) $
+// $Rev: 6727 $
+/******************************************************************************/
+
+module EUTRA_BandDependentParam {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_CommonDefs all;
+
+  type record ChannelBandwidthDependency_Type { /* @status    APPROVED */
+    /* type defined to hold the bandwidth dependant parameters
+       for the implementation of:
+       - table 4.4.3.4-1 in 36.508
+       - table 4.3.4.1-1 and 4.3.4.1-2 in 36.508 cl 4.3.4  and
+       - table 4.6.8-1 in 36.508 cl 4.6.8 */
+    SiPeriodicity_Type              SIB3_periodicity,
+    SiPeriodicity_Type              SIB4_periodicity,
+    SiPeriodicity_Type              SIB5_periodicity,
+    SiPeriodicity_Type              SIB6_periodicity,
+    SiPeriodicity_Type              SIB7_periodicity,
+    SiPeriodicity_Type              SIB8_periodicity,
+    SiPeriodicity_Type              SIB9_periodicity,   // @sic R5-110472 sic@
+    SiPeriodicity_Type              SIB10_periodicity,  // @sic R5-100112 sic@
+    SiPeriodicity_Type              SIB11_periodicity,  // @sic R5-100112 sic@
+    SiPeriodicity_Type              SIB12_periodicity,  // @sic R5-121854 sic@
+    AllowedMeasBandwidth            AllowedMeasBandwidth,
+    Prach_FrequencyOffset_Type      Prach_FrequencyOffset,
+    N_RB_CQI_Type                   N_RB_CQI,
+    PUSCH_HoppingOffset_Type        Pusch_HoppingOffset,
+    SR_PUCCH_ResourceIndex_Type     sr_PUCCH_ResourceIndex,         // @sic R5s090312  sic@
+    SrsBandwidthConfiguration_Type  SrsBandwidthConfiguration,      //inline type ENUMERATED {bw0, bw1, bw2, bw3, bw4, bw5, bw6, bw7}srsBandwidth
+    CfiValue_Type                   Cfi                             // @sic R5s090180: CFI value dependant on the bandwidth sic@
+  };
+
+  function f_EUTRA_BandDependentParam(Dl_Bandwidth_Type p_DL_ChBandwidth,
+                                      Ul_Bandwidth_Type p_UL_ChBandwidth)
+    return ChannelBandwidthDependency_Type
+  {
+    var ChannelBandwidthDependency_Type v_ChBandDependency;
+    
+    // Initialise parameters related to DL Bandwidth
+    select (p_DL_ChBandwidth )
+    {
+      case (n6){                                         //1.4MHz
+        v_ChBandDependency.SIB3_periodicity := rf64;
+        v_ChBandDependency.SIB4_periodicity := rf128;
+        v_ChBandDependency.SIB5_periodicity := rf128;
+        v_ChBandDependency.SIB6_periodicity := rf128;
+        v_ChBandDependency.SIB7_periodicity := rf128;
+        v_ChBandDependency.SIB8_periodicity := rf128;
+        v_ChBandDependency.SIB9_periodicity := rf128;
+        v_ChBandDependency.SIB10_periodicity := rf64;
+        v_ChBandDependency.SIB11_periodicity := rf64;
+        v_ChBandDependency.SIB12_periodicity := rf64;
+        v_ChBandDependency.AllowedMeasBandwidth := mbw6;        //AllowedMeasBandwidth
+        v_ChBandDependency.Cfi := 3;                            // @sic R5s090180 sic@
+      }
+      case (n15){                                         //3MHz
+        v_ChBandDependency.SIB3_periodicity := rf64;
+        v_ChBandDependency.SIB4_periodicity := rf128;
+        v_ChBandDependency.SIB5_periodicity := rf128;
+        v_ChBandDependency.SIB6_periodicity := rf128;
+        v_ChBandDependency.SIB7_periodicity := rf128;
+        v_ChBandDependency.SIB8_periodicity := rf128;
+        v_ChBandDependency.SIB9_periodicity := rf128;
+        v_ChBandDependency.SIB10_periodicity := rf64;
+        v_ChBandDependency.SIB11_periodicity := rf64;
+        v_ChBandDependency.SIB12_periodicity := rf64;
+        v_ChBandDependency.AllowedMeasBandwidth := mbw15;       //AllowedMeasBandwidth
+        v_ChBandDependency.Cfi := 3;                            // @sic R5s090180 sic@
+      }
+      case (n25){                                         //5MHz
+        v_ChBandDependency.SIB3_periodicity := rf32;
+        v_ChBandDependency.SIB4_periodicity := rf64;
+        v_ChBandDependency.SIB5_periodicity := rf64;
+        v_ChBandDependency.SIB6_periodicity := rf64;
+        v_ChBandDependency.SIB7_periodicity := rf64;
+        v_ChBandDependency.SIB8_periodicity := rf64;
+        v_ChBandDependency.SIB9_periodicity := rf64;
+        v_ChBandDependency.SIB10_periodicity := rf32;
+        v_ChBandDependency.SIB11_periodicity := rf32;
+        v_ChBandDependency.SIB12_periodicity := rf32;
+        v_ChBandDependency.AllowedMeasBandwidth := mbw25;
+        v_ChBandDependency.Cfi := 3;                            // @sic R5s090180 sic@
+      }
+      case (n50){                                         //10MHz
+        v_ChBandDependency.SIB3_periodicity := rf32;
+        v_ChBandDependency.SIB4_periodicity := rf64;
+        v_ChBandDependency.SIB5_periodicity := rf64;
+        v_ChBandDependency.SIB6_periodicity := rf64;
+        v_ChBandDependency.SIB7_periodicity := rf64;
+        v_ChBandDependency.SIB8_periodicity := rf64;
+        v_ChBandDependency.SIB9_periodicity := rf64;
+        v_ChBandDependency.SIB10_periodicity := rf32;
+        v_ChBandDependency.SIB11_periodicity := rf32;
+        v_ChBandDependency.SIB12_periodicity := rf32;
+        v_ChBandDependency.AllowedMeasBandwidth := mbw50;       //AllowedMeasBandwidth
+        v_ChBandDependency.Cfi := 2;                            // @sic R5s090180 sic@
+      }
+      case (n75){                                         //15MHz
+        v_ChBandDependency.SIB3_periodicity := rf32;
+        v_ChBandDependency.SIB4_periodicity := rf64;
+        v_ChBandDependency.SIB5_periodicity := rf64;
+        v_ChBandDependency.SIB6_periodicity := rf64;
+        v_ChBandDependency.SIB7_periodicity := rf64;
+        v_ChBandDependency.SIB8_periodicity := rf64;
+        v_ChBandDependency.SIB9_periodicity := rf64;
+        v_ChBandDependency.SIB10_periodicity := rf32;
+        v_ChBandDependency.SIB11_periodicity := rf32;
+        v_ChBandDependency.SIB12_periodicity := rf32;
+        v_ChBandDependency.AllowedMeasBandwidth := mbw75;       //AllowedMeasBandwidth
+        v_ChBandDependency.Cfi := 2;                            // @sic R5s090180 sic@
+      }
+      case (n100){                                         //20MHz
+        v_ChBandDependency.SIB3_periodicity := rf32;
+        v_ChBandDependency.SIB4_periodicity := rf64;
+        v_ChBandDependency.SIB5_periodicity := rf64;
+        v_ChBandDependency.SIB6_periodicity := rf64;
+        v_ChBandDependency.SIB7_periodicity := rf64;
+        v_ChBandDependency.SIB8_periodicity := rf64;
+        v_ChBandDependency.SIB9_periodicity := rf64;
+        v_ChBandDependency.SIB10_periodicity := rf32;
+        v_ChBandDependency.SIB11_periodicity := rf32;
+        v_ChBandDependency.SIB12_periodicity := rf32;
+        v_ChBandDependency.AllowedMeasBandwidth := mbw100;       //AllowedMeasBandwidth
+        v_ChBandDependency.Cfi := 2;                            // @sic R5s090180 sic@
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value for ChannelBandwidth");
+      }
+    }
+    
+    // Initialise parameters related to UL Bandwidth
+    // @sic R5s100029 sic@
+    select (p_UL_ChBandwidth)    {
+      case (n6){     //1.4MHz
+        //v_ChBandDependency.Prach_FrequencyOffset := valueFFS;          //integer
+        //v_ChBandDependency.N_RB_CQI   := valueFFS;
+        //v_ChBandDependency.Pusch_HoppingOffset := valueFFS ;           //PUCCH_ConfigCommon
+        //v_ChBandDependency.sr_PUCCH_ResourceIndex :=  valueFFS;
+        //v_ChBandDependency.SrsBandwidthConfiguration := valueFFS;      //SoundingRS_UL_ConfigCommon.srs_BandwidthConfig
+      }
+      case (n15){    //3MHz
+        //v_ChBandDependency.Prach_FrequencyOffset := valueFFS;           //integer
+        //v_ChBandDependency.N_RB_CQI   := valueFFS;                      //PUCCH_ConfigCommon.nRB_CQI inline type - FFS in 36.331 ENUMERATED {ffs}
+        //v_ChBandDependency.Pusch_HoppingOffset    valueFFS ;
+        //v_ChBandDependency.sr_PUCCH_ResourceIndex :=  valueFFS;
+        //v_ChBandDependency.SrsBandwidthConfiguration := valueFFS;       //SoundingRS_UL_ConfigCommon.srs_BandwidthConfig
+      }
+      case (n25){    //5MHz
+        v_ChBandDependency.Prach_FrequencyOffset := 2;
+        v_ChBandDependency.N_RB_CQI   := 2;                     //type PUCCH_ConfigCommon.nRB_CQI inline type
+        v_ChBandDependency.Pusch_HoppingOffset := 4 ;
+        v_ChBandDependency.sr_PUCCH_ResourceIndex :=  20;
+        v_ChBandDependency.SrsBandwidthConfiguration := bw3;     //SoundingRS_UL_ConfigCommon.srs_BandwidthConfig
+      }
+      case (n50){     //10MHz
+        v_ChBandDependency.Prach_FrequencyOffset := 4;           //integer
+        v_ChBandDependency.N_RB_CQI   := 4;                      //PUCCH_ConfigCommon.nRB_CQI inline type
+        v_ChBandDependency.Pusch_HoppingOffset := 8 ;
+        v_ChBandDependency.sr_PUCCH_ResourceIndex :=  41;
+        v_ChBandDependency.SrsBandwidthConfiguration := bw2;     //SoundingRS_UL_ConfigCommon.srs_BandwidthConfig
+      }
+      case (n75){   //15MHz
+        v_ChBandDependency.Prach_FrequencyOffset := 6;           //integer
+        v_ChBandDependency.N_RB_CQI   := 6;                      //PUCCH_ConfigCommon.nRB_CQI inline type
+        v_ChBandDependency.Pusch_HoppingOffset := 12 ;
+        v_ChBandDependency.sr_PUCCH_ResourceIndex :=  62;
+        v_ChBandDependency.SrsBandwidthConfiguration := bw2;     //SoundingRS_UL_ConfigCommon.srs_BandwidthConfig
+      }
+      case (n100){    //20MHz
+        v_ChBandDependency.Prach_FrequencyOffset := 8;        //integer
+        v_ChBandDependency.N_RB_CQI   := 8;                   //PUCCH_ConfigCommon.nRB_CQI inline type
+        v_ChBandDependency.Pusch_HoppingOffset := 16 ;
+        v_ChBandDependency.sr_PUCCH_ResourceIndex :=  84;
+        v_ChBandDependency.SrsBandwidthConfiguration := bw2;  //SoundingRS_UL_ConfigCommon.srs_BandwidthConfig
+      }
+      case else {
+        FatalError (__FILE__, __LINE__, "invalid value for ChannelBandwidth");
+      }
+    }
+    return v_ChBandDependency;
+  };
+
+}

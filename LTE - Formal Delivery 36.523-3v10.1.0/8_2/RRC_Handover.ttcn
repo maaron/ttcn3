@@ -1,0 +1,2308 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:06:15 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7298 $
+/******************************************************************************/
+module RRC_Handover {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_BandDependentParam all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_Measurement_Templates all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_SysInfo_Templates all;
+  import from EUTRA_Timing all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+
+  template (value) RadioResourceConfigCommon cs_RadioResourceConfigCommon_AllParams ( template (value) RadioResourceConfigCommonSIB p_RadioResourceConfigCommonSIB,
+                                                                                      template (value) PRACH_Config p_PRACH_Configuration,
+                                                                                      template (omit)  TDD_Config p_Tdd_Configuration ) :=
+  { /* Values according to broadcast SIB2 */
+    /* @status    APPROVED */
+    rach_ConfigCommon   := p_RadioResourceConfigCommonSIB.rach_ConfigCommon,
+    prach_Config        := p_PRACH_Configuration,
+    pdsch_ConfigCommon  := p_RadioResourceConfigCommonSIB.pdsch_ConfigCommon,
+    pusch_ConfigCommon  := p_RadioResourceConfigCommonSIB.pusch_ConfigCommon,
+    phich_Config        := cs_508_PHICH_Config_Default,
+    pucch_ConfigCommon  := p_RadioResourceConfigCommonSIB.pucch_ConfigCommon,
+    soundingRS_UL_ConfigCommon := p_RadioResourceConfigCommonSIB.soundingRS_UL_ConfigCommon,
+    uplinkPowerControlCommon   := p_RadioResourceConfigCommonSIB.uplinkPowerControlCommon,
+    antennaInfoCommon := cs_AntennaInfoCommon_1Port,
+    p_Max := omit,
+    tdd_Config := p_Tdd_Configuration,
+    ul_CyclicPrefixLength := p_RadioResourceConfigCommonSIB.ul_CyclicPrefixLength,
+    uplinkPowerControlCommon_v1020 := p_RadioResourceConfigCommonSIB.uplinkPowerControlCommon_v1020  /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+  };
+
+  template (value) MeasConfig cs_Measurement_Config_A3_InterFreq_8_2_4_1x( ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq1,
+                                                                           AllowedMeasBandwidth p_MeasurementBandwidth1,
+                                                                           ARFCN_ValueEUTRA p_EUTRA_DL_CarrierFreq2,
+                                                                           AllowedMeasBandwidth p_MeasurementBandwidth2,
+                                                                           template (omit) MeasGapConfig p_MeasGapConfig := omit) :=
+    /* @status    APPROVED */
+    cs_MeasConfig(omit,
+                  cs_MeasObjectToAddModList_2Entries(tsc_IdMeasObject_f1,
+                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq1,
+                                                                                          p_MeasurementBandwidth1,
+                                                                                          omit, omit, omit),
+                                                     tsc_IdMeasObject_f5,
+                                                     cs_MeasObject_measObjectEUTRA_Common(p_EUTRA_DL_CarrierFreq2,
+                                                                                          p_MeasurementBandwidth2,
+                                                                                          omit, omit, omit)),
+                  omit,
+                  cs_ReportConfigToAddModList_1Entry(tsc_IdReportConfig_A3, cs_508_ReportConfigEUTRA_A3),
+                  omit,
+                  cs_MeasIdToAddModList_1Entry( 1, tsc_IdMeasObject_f5, tsc_IdReportConfig_A3 ),
+                  -,
+                  p_MeasGapConfig);
+
+  function f_Generate_cs_RadioResourceConfigCommon_2TX (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return template (value) RadioResourceConfigCommon
+  {
+    return cs_RadioResourceConfigCommon_Def ( f_EUTRA_CellInfo_GetRach_ConfigCommon(p_CellId),
+                                              cs_PRACH_Config_Def(f_EUTRA_CellInfo_GetPrach_Config(p_CellId)),
+                                              f_EUTRA_CellInfo_GetPusch_ConfigCommon(p_CellId),
+                                              f_EUTRA_CellInfo_GetSounding_ConfigCommon(p_CellId),
+                                              f_EUTRA_CellInfo_GetTDD_Config(p_CellId),
+                                              cs_AntennaInfoCommon_2Port )
+  }
+
+  function f_Generate_cs_RadioResourceConfigCommon_1TX (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC return template (value) RadioResourceConfigCommon
+  {
+    return cs_RadioResourceConfigCommon_Def ( f_EUTRA_CellInfo_GetRach_ConfigCommon(p_CellId),
+                                              cs_PRACH_Config_Def(f_EUTRA_CellInfo_GetPrach_Config(p_CellId)),
+                                              f_EUTRA_CellInfo_GetPusch_ConfigCommon(p_CellId),
+                                              f_EUTRA_CellInfo_GetSounding_ConfigCommon(p_CellId),
+                                              f_EUTRA_CellInfo_GetTDD_Config(p_CellId),
+                                              cs_AntennaInfoCommon_1Port )
+  }
+
+  function f_EUTRA_ConnectedMode_TAU (EUTRA_CellId_Type p_CellId) runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    var TrackingAreaCode v_Tac := f_EUTRA_CellInfo_GetTAC (p_CellId);
+    var template (value) TrackingAreaIdList v_TaiList := cds_TAIListNonConsecutive_tlv(v_PLMN, {bit2oct(v_Tac)});
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var EPS_UpdateTypeValue v_TAUtype := f_GetEPSTAUType(NORMAL); // @sic R5s110176 sic@
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+
+    //Receive ULInformationTransfer containing a TRACKING AREA UPDATE REQUEST message
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                      cr_508_TAU_Request(v_TAUtype, // @sic R5s110125 sic@
+                                                                         f_EUTRA_SecurityKSIasme_Get(),
+                                                                         cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                         v_AdditionalUpdateType))))-> value v_ReceivedAsp;
+
+    //Transmit DLInformationTransfer containing a TRACKING AREA UPDATE ACCEPT message
+    SRB.send (cas_SRB2_NasPdu_REQ (p_CellId,
+                                   cs_TimingInfo_Now,
+                                   cs_NAS_Request (tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_TAU_Accept (v_TAUtype, // @sic R5s110125 sic@
+                                                                      f_GutiParameters2MobileIdentity (tsc_IEI_Guti, v_GutiParams),
+                                                                      v_TaiList,
+                                                                      v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus,
+                                                                      f_EUTRA_GetCellLAI(p_CellId, NORMAL), // @sic R5s110176 sic@
+                                                                      f_GetMSId (NORMAL), // @sic R5s110176 sic@
+                                                                      f_GetAdditionalUpdateResult(v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType)))));
+
+    //Receive ULInformationTransfer containing a TRACKING AREA UPDATE COMPLETE message
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_TAU_Complete)));
+  }
+
+  function fl_Generate_cs_MobilityControlInfo_HO_AllParams_Def(EUTRA_CellId_Type p_TargetCellId) runs on EUTRA_PTC return template (value) MobilityControlInfo
+  {
+    var Frequency_IE_Type v_Frequency_IE := f_EUTRA_CellInfo_GetFrequencyIEs ( p_TargetCellId );
+    var CarrierFreqEUTRA  v_EUTRA_CarrierFreq := v_Frequency_IE.UL_DL_Earfcn;
+    var template (value) CarrierBandwidthEUTRA v_EUTRA_CarrierBandwidth := cs_CarrierBandwidthEUTRA ( v_Frequency_IE.DL_ChBandwidth, v_Frequency_IE.UL_ChBandwidth );
+    var AdditionalSpectrumEmission_Type v_AdditionalSpectrumEmission := f_EUTRA_CellInfo_GetAddSpectrumEmission ( p_TargetCellId );
+    var EUTRA_CellSysInfo_Type v_EUTRA_CellSysInfo_Type := f_EUTRA_CellInfo_GetSYSINFO(p_TargetCellId);
+
+    var RadioResourceConfigCommonSIB v_RadioResourceConfigCommonSIB :=
+      v_EUTRA_CellSysInfo_Type.BCCH_Info.SIs[0].message_.c1.systemInformation.criticalExtensions.systemInformation_r8.sib_TypeAndInfo[0].sib2.radioResourceConfigCommon;
+
+    var template (omit) TDD_Config v_Tdd_Configuration :=
+      v_EUTRA_CellSysInfo_Type.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.tdd_Config;
+    var template (value) RadioResourceConfigCommon v_RadioResourceConfigCommon :=
+      cs_RadioResourceConfigCommon_AllParams ( v_RadioResourceConfigCommonSIB,
+                                               cs_PRACH_Config_Def ( v_RadioResourceConfigCommonSIB.prach_Config ),
+                                               v_Tdd_Configuration );
+
+    return f_Generate_cs_MobilityControlInfo_HO ( p_TargetCellId,
+                                                  v_EUTRA_CarrierFreq,
+                                                  v_RadioResourceConfigCommon,
+                                                  v_EUTRA_CarrierBandwidth,
+                                                  v_AdditionalSpectrumEmission );
+  }
+
+  function f_TC_8_2_4_1_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var PhysCellId v_PhysicalCellIdentity_Cell4;
+    var PhysCellId v_PhysicalCellIdentity_Cell11;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1;
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Cell1;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Cell4;
+    var EUTRA_FDD_TDD_Mode_Type v_EUTRA_FDD_TDD_Cell11;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT2;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT3;
+    var NextHopChainingCount v_NextHopChainingCount := 0;
+    var Ra_PreambleIndex_Type v_Ra_PreambleIndex := 63;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var template (omit) SRB_COMMON_IND v_SrbIndByRef := omit;    //not used (needed when other information of the RRC message needs to be access)
+    var template (omit) SYSTEM_IND v_SysIndByRef := omit;        //to store SYSTEM_IND if it takes over the RRC message
+    var default v_DefaultRef;
+
+    v_CellPowerList_AtT0 := {
+      cs_CellPower (eutra_Cell4, -91),
+      cs_CellPower (eutra_Cell11, tsc_NonSuitableOffCellRS_EPRE)
+    };
+    v_CellPowerList_AtT1 := {
+      cs_CellPower (eutra_Cell4, -79)
+    };
+    v_CellPowerList_AtT2 := {
+      cs_CellPower (eutra_Cell4, -91)
+    };
+    v_CellPowerList_AtT3 := {
+      cs_CellPower (eutra_Cell4, tsc_NonSuitableOffCellRS_EPRE),//@sic R5s100496 Change 1/1a sic@
+      cs_CellPower (eutra_Cell11, -79)
+    };
+
+    f_EUTRA_Init (c1);
+
+    //Get FDD or TDD mode for Cell 1, 4 and 11
+    v_EUTRA_FDD_TDD_Cell1 := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell1);
+    v_EUTRA_FDD_TDD_Cell4 := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell4); //@sic R5s100496 Change 1/1b sic@
+    v_EUTRA_FDD_TDD_Cell11 := f_EUTRA_CellInfo_GetFDD_TDD (eutra_Cell11); //@sic R5s100496 Change 1/1b sic@
+
+    //Get cell specific parameters for Cell 1, 4 and 11
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell1);
+    v_PhysicalCellIdentity_Cell4 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell4);
+    v_PhysicalCellIdentity_Cell11 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell11);
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1);
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell1.DL_ChBandwidth,
+                                                            v_Frequency_IE_Cell1.UL_ChBandwidth);
+
+    //Set maximum cell powel level for cell 1, 4 and 11 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell4, -79);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell11, -79);
+
+    //Set new C-RNTI to be used by UE in cell 4 and 11 at creation
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell4, tsc_C_RNTI_Def2);
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell11, tsc_C_RNTI_Def4);
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell4);
+    f_EUTRA_CellConfig_Def (eutra_Cell11);
+
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+
+    //Set RS EPRE and parameters according to T0
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+
+    v_Auth_Params := f_EUTRA_Security_Get();
+
+    f_EUTRA_TestBody_Set (true);
+
+    //@siclog "Step 1-2" siclog@
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,
+                                                    cs_508_RRCConnectionReconfiguration_ConditionMEAS (tsc_RRC_TI_Def,
+                                                                                                       cs_Measurement_Config_A3 (v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                                                 v_ChBandDependency_Cell1.AllowedMeasBandwidth)));
+
+    //@siclog "Step 3" siclog@
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+
+    //@siclog "Step 4" siclog@
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_MeasurementReport (1,//Measurement ID
+                                                                         ?,//RSRP result
+                                                                         ?,//RSRQ result
+                                                                         cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell4,
+                                                                                                                             omit,//CGI Info
+                                                                                                                             ?,//RSRP result
+                                                                                                                             ?))));//RSRQ result
+
+    //Activate the default to receive further measurement reports for cell 4 on cell 1
+    v_DefaultRef := activate (a_EUTRA_AddDefault_PeriodicalMeasurmentReport (eutra_Cell1,
+                                                                             cr_MeasurementReport ( 1, ?, ?,
+                                                                             cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell4,
+                                                                                                                                 omit, ?, ?))));
+
+    //Inform the SS target cell (cell 4) about the HO and about the source cell id
+    //@sic R5s100524 sic@
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell4, cas_PdcpHandoverInit_REQ(eutra_Cell1, eutra_Cell4)); // @sic R5s100556 sic@
+
+    //Configure dedicated PRACH in target cell for HO in step 5-6
+    //@sic R5s100538 Change 4.1 : Moved this from beginning of test case to follow the HO sequence sic@
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell4,
+                                    tsc_C_RNTI_Def2,
+                                    cs_RachProcedureConfig_CRNTI_Dedicated (f_EUTRA_CellInfo_GetRAR_TA (eutra_Cell4),
+                                                                            f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell4),
+                                                                            cs_RACH_ConfigDedicated (v_Ra_PreambleIndex))); //@sic R5s100496 cl. 4.3 sic@
+
+    //Configure RACH indication 1n Cell 4
+    //@sic R5s100538 Change 4.1 : Moved this from beginning of test case to follow the HO sequence sic@
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell4, tsc_L1Mac_IndicationMode_Enable);
+
+    //Activate RRC security at SS target cell (Cell4) for SRB 1, 2 and 1 AM DRB
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest (eutra_Cell4, v_Auth_Params, v_NextHopChainingCount);
+    f_EUTRA_Security_Set (v_Auth_Params);
+    
+    //Stop periodic sending of TA command on source cell
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None)); //@sic R5s100879 : Additional comments sic@
+
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell (cell 4)
+    //@sic R5s100515 sic@
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell4, cas_ULGrantAllocation_Def_REQ(eutra_Cell4, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+
+    //@siclog "Step 5" siclog@
+    //Send RRC Connection Reconfiguration to order the UE to perform intra frequency handover to Cell 4
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                  eutra_Cell4,
+                                                  f_Generate_cs_MobilityControlInfo_HO_RACH (eutra_Cell4,
+                                                                                             omit,
+                                                                                             cs_RACH_ConfigDedicated (v_Ra_PreambleIndex)));
+
+    //@siclog "Step 6" siclog@
+    //Receive RRCConnectionReconfigurationComplete on cell 4 with the configured dedicated preamble
+    f_EUTRA_RacingCond_AwaitSysIndBeforeSrbMsg (car_PRACH_Preamble_IND (eutra_Cell4,
+                                                                        ?,
+                                                                        cr_RachPreamble(v_Ra_PreambleIndex)), //@sic R5s100496 Change 1/3 sic@
+                                                v_SrbIndByRef,
+                                                v_SysIndByRef);
+
+    //Random Access Response automatically taken care of due to prach config
+    f_EUTRA_RacingCond_MatchRrcMsg (v_SrbIndByRef,
+                                    car_SRB1_RrcPdu_IND (eutra_Cell4,
+                                                         cr_508_RRCConnectionReconfigurationComplete (v_RRC_TI)));
+
+    //SS automatically checks that UE transmit an RRCConnectionReconfigurationComplete using the security key derived from the currently active KeNB
+    //* @verdict pass RRC Connection Reconfiguration Complete received on Cell 4
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.1 Step 6");
+
+    //Deactivate the default to stop receiving measurement reports for Cell4 on Cell 1
+    deactivate(v_DefaultRef);
+    
+    //Start periodic sending of TA command in target cell (cell 4)
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell4, cas_PUCCH_Synch_Config_REQ(eutra_Cell4, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+    
+    //Inform the SS about completion of the HO (e.g. to trigger PDCP STATUS PDU)
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell4, cas_PdcpHandoverComplete_REQ(eutra_Cell4)); // @sic R5s100556 sic@
+
+    //Reset SRBs and DRBs of source cell (cell 1)
+    f_EUTRA_SS_SRBs_DRBs_Reset (eutra_Cell1);
+
+    //Disable report of PRACH preamble reception on cell 4
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell4, tsc_L1Mac_IndicationMode_Disable);
+
+    //@siclog "Step 7" siclog@
+    //Set RS EPRE for T2
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT2 );
+
+    //@siclog "Step 8" siclog@
+    //Receive Measurement Report
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell4, cr_MeasurementReport ( 1,//Meas id
+                                                                            ?,//RSRP result
+                                                                            ?,//RSRQ result
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell1,
+                                                                                                                                 omit,//CGI info
+                                                                                                                                 ?,//RSRP result
+                                                                                                                                 ? ) ) ) );//RSRQ result
+
+    //Activate the default to receive further measurment reports for cell 1 on cell 4
+    v_DefaultRef := activate ( a_EUTRA_AddDefault_PeriodicalMeasurmentReport ( eutra_Cell4,
+                                                                               cr_MeasurementReport ( 1, ?, ?,
+                                                                                cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell1,
+                                                                                                                                     omit, ?, ? ) ) ) );
+
+    //Inform the SS target cell (cell 1) about the HO and about the source cell id
+    //@sic R5s100524 sic@
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell1, cas_PdcpHandoverInit_REQ(eutra_Cell4, eutra_Cell1)); // @sic R5s100556 sic@
+
+    //Configfure the new C-RNTI at the SS target cell
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_SS_ConfigActiveCellInfo (eutra_Cell1,
+                               cs_TimingInfo_Now,
+                               cs_NewC_RNTI_ConfigReq (tsc_C_RNTI_Def3));
+
+    //Configure dedicated PRACH in cell 1 (target cell for HO in step 9-10)
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1,
+                                    tsc_C_RNTI_Def3,
+                                    cs_RachProcedureConfig_CRNTI_Dedicated (f_EUTRA_CellInfo_GetRAR_TA (eutra_Cell4),
+                                                                            f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell4),
+                                                                            cs_RACH_ConfigDedicated (v_Ra_PreambleIndex))); //@sic R5s100496 cl. 4.3 sic@
+
+    //Configure RACH indication in cell 1
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Enable);
+
+    //Save new C-RNTI in cell configuration for cell 1
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell1, tsc_C_RNTI_Def3);
+
+    //Activate RRC security (SRB 1, 2 and 1 AM DRB) at SS target cell (cell 1)
+    v_NextHopChainingCount := 2; //@sic R5s110356 & R5-113104 sic@
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest (eutra_Cell1, v_Auth_Params, v_NextHopChainingCount);
+    f_EUTRA_Security_Set (v_Auth_Params);
+    
+    //Stop periodic sending of TA command in source cell (cell 4)
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell4, cas_PUCCH_Synch_Config_REQ(eutra_Cell4, cs_TimingInfo_Now, cs_PUCCH_Synch_None)); //@sic R5s100879 : Additional comments sic@
+
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell (cell 1)
+    //@sic R5s100515 sic@
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_ULGrantAllocation_Def_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+
+    //@siclog "Step 9" siclog@
+    //Send RRCConnectionReconfiguration message to order the UE to perform intra frequency handover to Cell 1
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_MobilitySecurity (eutra_Cell4,//Source cell
+                                                          eutra_Cell1,//Target cell
+                                                          f_Generate_cs_MobilityControlInfo_HO_CRNTI_RACH (eutra_Cell1,
+                                                                                                           omit,
+                                                                                                           tsc_C_RNTI_Def3,
+                                                                                                           cs_RACH_ConfigDedicated (v_Ra_PreambleIndex)),
+                                                           cs_SecurityConfigHO_IntraLTE (false, v_NextHopChainingCount));
+
+    //@siclog "Step 10" siclog@
+    //Receive RRCConnectionReconfigurationComplete on cell 1 with the configured dedicated preamble
+    f_EUTRA_RacingCond_AwaitSysIndBeforeSrbMsg (car_PRACH_Preamble_IND (eutra_Cell1,
+                                                                        ?,
+                                                                        cr_RachPreamble(v_Ra_PreambleIndex)), //@sic R5s100496 Change 1/3 sic@
+                                                v_SrbIndByRef,
+                                                v_SysIndByRef);
+
+    //Random Access Response automatically taken care of due to prach config
+    f_EUTRA_RacingCond_MatchRrcMsg (v_SrbIndByRef,
+                                    car_SRB1_RrcPdu_IND (eutra_Cell1,
+                                                         cr_508_RRCConnectionReconfigurationComplete (v_RRC_TI)));
+
+    //SS automatically checks that UE transmit an RRCConnectionReconfigurationComplete using the security key derived from the currently active KeNB
+    //* @verdict pass RRC Connection Reconfiguration Complete received on Cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.1 Step 10");
+
+    //Deactivate the default to stop receiving measurement reports for Cell1 on Cell4.
+    deactivate (v_DefaultRef);
+
+    //Start periodic sending of TA command in target cell (cell 1)
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+    
+    //Inform the SS about completion of the HO (e.g. to trigger PDCP STATUS PDU)
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell1, cas_PdcpHandoverComplete_REQ(eutra_Cell1)); // @sic R5s100556 sic@
+
+    //Reset SRBs and DRBs in source cell (cell 4)
+    f_EUTRA_SS_SRBs_DRBs_Reset (eutra_Cell4);
+
+    //Configure SS to disable report of PRACH preamble reception on cell 1
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell1, tsc_L1Mac_IndicationMode_Disable);
+
+    //@siclog "Step 11" siclog@
+    //Set RS EPRE for T3
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT3);
+
+    //@siclog "Step 12" siclog@
+    //Receive Measurement Report
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_MeasurementReport (1,//Meas id
+                                                                         ?,//RSRP result
+                                                                         ?,//RSRQ result
+                                                                         cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell11,
+                                                                                                                              omit,//CGI info
+                                                                                                                              ?,//RSRP result
+                                                                                                                              ?))));//RSRQ result
+
+    //Activate the default to receive further measurement reports for Cell11 on Cell1
+    v_DefaultRef := activate(a_EUTRA_AddDefault_PeriodicalMeasurmentReport(eutra_Cell1,
+                                                                           cr_MeasurementReport (1, ?, ?,
+                                                                             cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell11,
+                                                                                                                                 omit, ?, ?))));
+                                                                                                                                 
+    //Inform the SS target cell (cell 11) about the HO and about the source cell id
+    //@sic R5s100524 sic@
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell11, cas_PdcpHandoverInit_REQ(eutra_Cell1, eutra_Cell11)); // @sic R5s100556 sic@
+                                                                                                                                 
+    //Configure dedicated PRACH in target cell (cell 11) for HO in steps 13-14
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell11,
+                                    tsc_C_RNTI_Def4,
+                                    cs_RachProcedureConfig_CRNTI_Dedicated (f_EUTRA_CellInfo_GetRAR_TA (eutra_Cell4),
+                                                                            f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell4),
+                                                                            cs_RACH_ConfigDedicated (v_Ra_PreambleIndex))); //@sic R5s100496 cl. 4.3 sic@
+
+    //Configure RACH indication 1n Cell 11
+    //@sic R5s100538 Change 4.1 : Moved this to follow the HO sequence sic@
+    f_EUTRA_SS_ConfigRachPreambleIndMode (eutra_Cell11, tsc_L1Mac_IndicationMode_Enable);
+
+    //Activate RRC security (SRB 1, 2 and 1 AM DRB) at SS target cell (cell 11)
+    v_NextHopChainingCount := 3;
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest (eutra_Cell11, v_Auth_Params, v_NextHopChainingCount);
+    f_EUTRA_Security_Set (v_Auth_Params);
+    
+    //Stop periodic sending of TA command in source cell
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None)); //@sic R5s100879 : Additional comments sic@
+    
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell (cell 11)
+    //@sic R5s100515 sic@
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell11, cas_ULGrantAllocation_Def_REQ(eutra_Cell11, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+
+    //@siclog "Step 13" siclog@
+    //Send RRCConnectionReconfiguration message to order the UE to perform intra frequency handover to Cell 11
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_MobilitySecurity (eutra_Cell1,
+                                                          eutra_Cell11,
+                                                          f_Generate_cs_MobilityControlInfo_HO_CRNTI_RACH (eutra_Cell11, //@sic R5s100496 Change 1/4 sic@
+                                                                                                           omit,
+                                                                                                           tsc_C_RNTI_Def4,
+                                                                                                           cs_RACH_ConfigDedicated (v_Ra_PreambleIndex)),
+                                                          cs_SecurityConfigHO_IntraLTE (false, v_NextHopChainingCount));
+
+    //@siclog "Step 14" siclog@
+    //Receive RRCConnectionReconfigurationComplete on cell 11 with the configured dedicated preamble
+    f_EUTRA_RacingCond_AwaitSysIndBeforeSrbMsg (car_PRACH_Preamble_IND (eutra_Cell11,
+                                                                        ?,
+                                                                        cr_RachPreamble(v_Ra_PreambleIndex)), //@sic R5s100496 Change 1/3 sic@
+                                                 v_SrbIndByRef,
+                                                 v_SysIndByRef);
+
+    //Random Access Response automatically taken care of due to prach config
+    f_EUTRA_RacingCond_MatchRrcMsg (v_SrbIndByRef,
+                                    car_SRB1_RrcPdu_IND (eutra_Cell11,
+                                                         cr_508_RRCConnectionReconfigurationComplete (v_RRC_TI)));
+
+    //SS automatically checks that UE transmit an RRCConnectionReconfigurationComplete using the security key derived from the currently active KeNB
+    //* @verdict pass RRC Connection Reconfiguration Complete received on Cell 4
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.1 Step 14");
+
+    //Deactivate the default to stop receiving measurement reports for Cell11 on Cell1
+    deactivate (v_DefaultRef);
+    
+    //Start periodic sending of TA command in target cell (cell 11)
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell11, cas_PUCCH_Synch_Config_REQ(eutra_Cell11, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+
+    //Inform the SS about completion of the HO (e.g. to trigger PDCP STATUS PDU)
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell11, cas_PdcpHandoverComplete_REQ(eutra_Cell11)); // @sic R5s100556 sic@
+
+    //@siclog "Step 14A-14C" siclog@ //@sic R5-104713 & R5s100496 Change 1/5 sic@
+    //Receive TRACKING AREA UPDATE REQUEST message, send a TRACKING AREA UPDATE ACCEPT message and receive a TRACKING AREA UPDATE COMPLETE message
+    f_EUTRA_ConnectedMode_TAU (eutra_Cell11);
+  
+    //Reset SRBs and DRBs of source cell (cell 1)
+    f_EUTRA_SS_SRBs_DRBs_Reset (eutra_Cell1); //@sic R5s100496 Change 1/5 sic@
+
+    //@siclog "Step 15" siclog@
+    //Check RRC Connected
+    f_EUTRA_508Check_ConnectedState (eutra_Cell11);
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Switch/Power off UE
+    f_EUTRA_Postamble (eutra_Cell11, E2_CONNECTED);
+  };
+
+  function f_TC_8_2_4_2_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1;
+    var PhysCellId v_PhysicalCellIdentity_Cell2;
+    var default v_DefaultRef;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0 := { cs_CellPower ( eutra_Cell2, -91 ) };
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1 := { cs_CellPower ( eutra_Cell2, -79 ) };
+    
+    f_EUTRA_Init ( c1 );
+    
+    // Get cell specific parameters
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs ( eutra_Cell1 );
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam ( v_Frequency_IE_Cell1.DL_ChBandwidth,
+                                                             v_Frequency_IE_Cell1.UL_ChBandwidth );
+    v_PhysicalCellIdentity_Cell2 := f_EUTRA_CellInfo_GetPhyCellId ( eutra_Cell2 );
+
+    // Set maximum cell powel level for cell 1 & 2 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower ( eutra_Cell2, -79 );
+
+    // Set new C-RNTI to be used by UE in cell 2 at creation
+    f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell2, tsc_C_RNTI_Def2 );
+
+    // Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell2 );
+
+    // Bring UE to inital state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+
+    // Set initial cell power level according to T0
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT0 );
+
+    f_EUTRA_TestBody_Set(true);
+
+    //@siclog "Step 1-2" siclog@
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,
+                                                    cs_508_RRCConnectionReconfiguration_ConditionMEAS (tsc_RRC_TI_Def,
+                                                                                                       cs_Measurement_Config_A3 (v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                       v_ChBandDependency_Cell1.AllowedMeasBandwidth)));
+
+    //@siclog "Step 3" siclog@
+    //Set cell settings according to T1
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+
+    //@siclog "Step 4" siclog@
+    //Receive MasurementReport
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_MeasurementReport ( 1,//Meas id
+                                                                            ?,//RSRP result
+                                                                            ?,//RSRQ result
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell2,
+                                                                                                                                 omit,//CGI info
+                                                                                                                                 ?,//RSRP result
+                                                                                                                                 ? ) ) ) );//RSRQ result
+
+    // Activate the default to receive further measurement reports for cell 2 on cell 1
+    v_DefaultRef := activate (a_EUTRA_AddDefault_PeriodicalMeasurmentReport(eutra_Cell1,
+                                                                            cr_MeasurementReport (1, ?, ?,
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell2,
+                                                                                                                                omit, ?, ?))));
+
+    //@siclog "Step 5 - 6" siclog@
+    //Reconfigure SS and send RRCConnectionReconfiguration for HO to cell 2
+    //Receive RRCConnectionReconfigurationComplete
+    f_EUTRA_508RRC_IntraLTE_HO_InterCell (eutra_Cell1, eutra_Cell2);  // @sic R5s100430 change 2, R5s100524 Change 2 sic@
+    
+    //SS automatically checks that UE transmit an RRCConnectionReconfigurationComplete using the security key derived from the currently active KeNB
+    //* @verdict pass RRCConnectionReconfigurationComplete received on Cell 2
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.2 Step 6");
+
+    //Deactivate the default to stop receiving measurement reports for cell 2 on cell 1
+    deactivate(v_DefaultRef);
+
+    //@siclog "Step 7" siclog@
+    //Check RRC Connected
+    f_EUTRA_508Check_ConnectedState (eutra_Cell2);
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell2, E2_CONNECTED); // @sic R5-103847 sic@
+  }
+
+  function f_TC_8_2_4_3_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var GutiParameters_Type v_GutiParameters;
+    var PLMN_Identity v_PLMN_Asn;
+    var O3_Type v_PLMN_Nas;
+    var NasCount_Type v_NasCountUL;
+    var SubFrameTiming_Type v_Timing;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NextHopChainingCount v_NextHopChainingCount := 0;
+
+    f_EUTRA_Init (c1);
+
+    //Get cell specific parameters
+    v_GutiParameters := f_EUTRA_CellInfo_GetGuti (eutra_Cell1);
+    v_PLMN_Asn := v_GutiParameters.PLMN_Identity;
+    v_PLMN_Nas := f_Asn2Nas_PlmnId (v_PLMN_Asn);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    
+    //Bring UE to inital state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    v_Auth_Params := f_EUTRA_Security_Get ();
+
+    f_EUTRA_TestBody_Set (true);
+
+    //@siclog "Step 1 - 2" siclog@
+    //Authentication Procedure according to 24.301 cl. 5.4.2
+    v_Auth_Params := f_EUTRA_NAS_Authentication (eutra_Cell1,
+                                                 tsc_SRB2,
+                                                 v_Auth_Params,
+                                                 tsc_SHT_IntegrityProtected_Ciphered,//Security Header to use in Authentication Request,
+                                                 tsc_SHT_IntegrityProtected_Ciphered,//Security Header to use in Authentication Response
+                                                 v_PLMN_Nas);
+
+    //@siclog "Step 3 - 4" siclog@
+    //Security Mode Control Procedure according to 24.301 cl. 5.4.3
+    v_NasCountUL := f_EUTRA_NAS_ActivateSecurity (eutra_Cell1, v_Auth_Params, tsc_SRB2);
+    
+    //@siclog "Step 5" siclog@
+    //Send RRCConnectionReconfiguration
+    v_Timing := f_EUTRA_GetNextSendOccasion (eutra_Cell1, tsc_EUTRA_DelayBeforeIntraCellHO); //@sic R5s100573 & R5-106675 sic@
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Security (eutra_Cell1,
+                                                  eutra_Cell1,
+                                                  cs_SecurityConfigHO_IntraLTE (true, v_NextHopChainingCount ),
+                                                  cs_TimingInfo (v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 5);   // add 5ms
+    
+    //Release SRBs and DRBs
+    f_EUTRA_SS_SRBs_DRBs_Release(eutra_Cell1, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    
+    //Configure C-RNTI based contention resolution in target cell 1 and assign new C-RNTI to the cell
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell1,
+                                    tsc_C_RNTI_Def2,
+                                    cs_RachProcedureConfig_CRNTI (f_EUTRA_CellInfo_GetRAR_TA (eutra_Cell1),
+                                                                  f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)),// @sic R5-103846 sic@
+                                     cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    //Save new C-RNTI in cell configuration for cell 1
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell1, tsc_C_RNTI_Def2);
+
+    //Setup SRBs and DRBs again
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 5);   // add 5ms
+    f_EUTRA_SS_SRBs_DRBs_Config(eutra_Cell1, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+
+    //Reestablish security
+    v_Auth_Params := f_EUTRA_AS_ActivateSecurity_NewAKA (eutra_Cell1,
+                                                         v_Auth_Params,
+                                                         v_NasCountUL,
+                                                         cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    f_EUTRA_Security_Set (v_Auth_Params);
+
+    //@siclog "Step 6" siclog@
+    //Receive RRCConnectionReconfigurationComplete
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete (v_RRC_TI)));
+    /* SS automatically checks that UE transmit an RRCConnectionReconfigurationComplete using the indicated
+       security key and the indicated security algortihms */
+    //* @verdict pass RRCConnectionReconfigurationComplete received on Cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.3 Step 6");
+
+    //@siclog "Step 7" siclog@
+    //Check RRC_Connected
+    f_EUTRA_508Check_ConnectedState (eutra_Cell1);
+    
+    f_EUTRA_TestBody_Set (false);
+
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell1, E2_CONNECTED); // @sic R5-103847 sic@
+  }
+
+  function f_TC_8_2_4_4_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var SubFrameTiming_Type v_Timing;
+    var SubFrameTiming_Type v_Timing_Release;
+    var SubFrameTiming_Type v_Timing_Setup;
+    var SubFrameTiming_Type v_Timing_T304;
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var ShortMAC_I v_ShortMAC_I;
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var UInt_Type v_T304_IntegerType;
+    var float v_T311 := 10.0; //T311 is 10 seconds according to 36.508 cl. 4.4.3.3 Table 4.4.3.3-1;
+    var float v_T304 := 1.0;  //1 second = 1000ms, according to 36.508 cl. 4.6.5 Table 4.6.5-1
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NextHopChainingCount v_NextHopChainingCount := 2; //@sic R5s110356 & R5-113104 sic@
+    timer t_WaitRRCConnRestbReq;
+
+    f_EUTRA_Init ( c1 );
+    
+    v_T304 := f_EUTRA_SetTimerToleranceMax( eutra_Cell1, rrcTimer, v_T304 );
+    v_T304_IntegerType := float2int(v_T304 * 1000.0); //@sic R5s110776 change 2.1 sic@
+    v_T311 := f_EUTRA_SetTimerToleranceMax( eutra_Cell1, rrcTimer, v_T311 );
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId ( eutra_Cell1 );
+
+    //Create and configure cell 1
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    
+    v_Auth_Params := f_EUTRA_Security_Get ( );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //Configure SS to not send response on RACH preamble reception on Cell 1
+    //This configuration represents Table 8.2.4.4.3.2-2: Parallel behaviour
+    f_EUTRA_SS_ConfigRachProcedure ( eutra_Cell1,
+                                     omit,
+                                     cs_RachProcedureConfig_NoResponse (f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1)));
+
+    //@siclog "Step 1" siclog@
+    //Send RRCConnectionReconfiguration to UE for security reconfiguration on Cell 1
+    v_Timing := f_EUTRA_GetNextSendOccasion ( eutra_Cell1, tsc_EUTRA_DelayBeforeIntraCellHO); //@sic R5-106675 & R5s100714 sic@
+    //@sic R5s120036 sic@
+    f_EUTRA_RRC_ConnReconfigHO_Common ( eutra_Cell1,
+                                        omit,
+                                        f_Generate_cs_MobilityControlInfo_HO(eutra_Cell1),
+                                        f_Generate_cs_508_RadioResourceConfigDedicated_HO(eutra_Cell1),
+                                        cs_SecurityConfigHO_IntraLTE(false, v_NextHopChainingCount),
+                                        cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+
+    v_Timing_Release := f_EUTRA_TimingInfoAdd(v_Timing, 5);   // add 5ms
+
+    //Release SRBs and DRBs
+    f_EUTRA_SS_SRBs_DRBs_Release(eutra_Cell1, cs_TimingInfo(v_Timing_Release.SFN.Number, v_Timing_Release.Subframe.Number));
+    
+    //Setup SRBs and DRBs again
+    v_Timing_Setup := f_EUTRA_TimingInfoAdd(v_Timing_Release, 5);   // add 5ms
+    f_EUTRA_SS_SRBs_DRBs_Config(eutra_Cell1, cs_TimingInfo(v_Timing_Setup.SFN.Number, v_Timing_Setup.Subframe.Number));
+     
+    // Activate RRC security at SS target cell (Cell1) for SRB 1, 2 and 1 AM DRB
+    //* Security configuration is not changed here because UE will have to revert back to the configuration
+    //* used in the source cell upon T304 expiry (36.331 cl. 5.3.5.6).
+    //v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest ( eutra_Cell1, v_Auth_Params, v_NextHopChainingCount );
+    //f_EUTRA_Security_Set ( v_Auth_Params );
+    
+    //@siclog "Step 2" siclog@
+    //SS does not respond to UE during MAC Random Access Preamble procedure till T304 expires
+    //No response is taken care of by earlier RACH configuration
+    //Normal response when T304 expires is taken care of by below configuration.
+    
+    //Configure Cell 1 for normal PRACH operation
+    v_Timing_T304 := f_EUTRA_TimingInfoAdd(v_Timing, v_T304_IntegerType);   // add T304 in milliseconds
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1, tsc_C_RNTI_Def, -, -, -, cs_TimingInfo(v_Timing_T304.SFN.Number, v_Timing_T304.Subframe.Number));  /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    //Calculate ShortMAC-I to be received in RRCConnectionReestablishment Request from UE
+    //* shortMAC-I is calculated with the KRRCint key and integrity protection algorithm that was used in the source cell
+    //* since no security configuration was done after sending RRCConnectionReconfiguration, the shortMAC-I can be
+    //* calculated here.
+    v_ShortMAC_I := f_Calculate_ShortMAC ( eutra_Cell1, eutra_Cell1 );
+    
+    //Start Watchdog timer
+    t_WaitRRCConnRestbReq.start(v_T311);
+    
+    //@siclog "Step 3" siclog@
+    //Receive RRCConnectionReestablishment Request
+    /* 36.331 cl. 5.3.7.4
+     * The UE shall set the contents of RRCConnectionReestablishmentRequest message as follows:
+     *  1>  set the ue-Identity as follows:
+     *   2> set the c-RNTI to the C-RNTI used in the source cell (handover and mobility from E-UTRA failure)
+     *      or used in the cell in which the trigger for the re-establishment occurred (other cases)
+    */
+    SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1,
+                                        cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                     v_PhysicalCellIdentity_Cell1,
+                                                                                     cr_ReestablishmentCause_HandoverFailure,
+                                                                                     v_ShortMAC_I ) ) );
+    t_WaitRRCConnRestbReq.stop;
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.4 Step 3");
+
+    //Activate RRC security at SS target cell (Cell1) for SRB 1, 2 and 1 AM DRB based on current Kenb and NH parameter
+    //@sic R5s100714 : Reactivate AS security before sending RRCConnectionReestablishment sic@
+    v_NextHopChainingCount := 0;    // Default configuration value according to TS 36.508 Table 4.6.1-10
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest ( eutra_Cell1, v_Auth_Params, v_NextHopChainingCount );
+    f_EUTRA_Security_Set ( v_Auth_Params );
+    
+    //@siclog "Step 4" siclog@
+    //Transmit RRCConnectionReestablishment to resume SRB1 operation and re-activate security
+    f_EUTRA_RRC_RRCConnectionReestablishment_Def ( eutra_Cell1, v_RRC_TI, v_NextHopChainingCount );
+    
+    //@siclog "Step 5" siclog@
+    //Receive RRCConnectionReestablishmentComplete
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,  cr_508_RRCConnectionReestablishmentComplete( v_RRC_TI ) ) );
+    
+    //@siclog "Step 6 - 7" siclog@
+    //RRCConnectionReconfiguration to resume SRB2 and existing DRBs
+    f_EUTRA_RRC_RRCConnectionReconfiguration_Resume_SRB2_DRBs ( eutra_Cell1, v_RRC_TI );
+
+    //@siclog "Step 8" siclog@
+    //Check if UE is in state RRC_Connected
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+
+    f_EUTRA_TestBody_Set ( false );
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED );
+  }
+
+  function f_TC_8_2_4_5_EUTRA ( ) runs on EUTRA_PTC {
+
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var Frequency_IE_Type v_Frequency_IE_Cell2;
+    var PhysCellId v_PhysicalCellIdentity_Cell2;
+    var ChannelBandwidthDependency_Type v_ChBandDependency;
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var default v_DefaultRef;
+    var NextHopChainingCount v_NextHopChainingCount := 0;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0 := {cs_CellPower (eutra_Cell2, -91)};
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1 := {cs_CellPower (eutra_Cell2, -79)};
+
+    f_EUTRA_Init (c1);
+
+    //Get cell dependant parameters
+    v_PhysicalCellIdentity_Cell2 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell2);
+    v_Frequency_IE_Cell2 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell2);
+    v_ChBandDependency := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell2.DL_ChBandwidth,
+                                                      v_Frequency_IE_Cell2.UL_ChBandwidth);
+
+    //Set maximim cell powel level for cell 1 & 2 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell2, -79);
+
+    //Set C-RNTI to be used in cell 2 in cell configuration
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell2, tsc_C_RNTI_Def2);
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell2);
+
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+
+    v_Auth_Params := f_EUTRA_Security_Get();
+
+    //Set initial cell power level according to T0
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+
+    f_EUTRA_TestBody_Set (true);
+
+    //@siclog "Step 1-2" siclog@
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,
+                                                    cs_508_RRCConnectionReconfiguration_ConditionMEAS (tsc_RRC_TI_Def,
+                                                                                                       cs_Measurement_Config_A3 (v_Frequency_IE_Cell2.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                                                 v_ChBandDependency.AllowedMeasBandwidth)));
+
+    //@siclog "Step 3" siclog@
+    //Set cell settings according to T1
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+
+    //@siclog "Step 4" siclog@
+    //Receive MeasurementReport
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_MeasurementReport (1,//Meas id
+                                                                         ?,//RSRP result
+                                                                         ?,//RSRQ result
+                                                                         cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell2,
+                                                                                                                             omit,//CGI info
+                                                                                                                             ?,//RSRP result
+                                                                                                                             ?))));//RSRQ result
+
+    //Activate the default to receive further measurement reports for cell 2 on cell 1
+    v_DefaultRef := activate(a_EUTRA_AddDefault_PeriodicalMeasurmentReport(eutra_Cell1,
+                                                                           cr_MeasurementReport ( 1, ?, ?,
+                                                                           cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell2,
+                                                                                                                               omit, ?, ?))));
+
+    //Inform the SS target cell (cell 2) about the HO and about the source cell id
+    //@sic R5s100524 sic@
+    //@sic R5s100561 : Function moved here to follow HO sequence sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverInit_REQ(eutra_Cell1, eutra_Cell2)); // @sic R5s100561 sic@
+
+    //Configure C-RNTI based contention resolution in target cell (cell 2)
+    f_EUTRA_SS_ConfigRachProcedure_HO (eutra_Cell2, cs_TimingInfo_Now, tsc_C_RNTI_Def2);  //@sic R5s100524 Change 4sic@
+    
+    //Save new C-RNTI in cell configuration for Target Cell
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell2, tsc_C_RNTI_Def2); //@sic R5s100524 sic@
+
+    //Activate RRC security (SRB 1, 2 and 1 AM DRB) at SS target cell (cell 2)
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest (eutra_Cell2, v_Auth_Params, v_NextHopChainingCount);
+    f_EUTRA_Security_Set (v_Auth_Params);
+    
+    //Stop periodic sending of TA command in source cell (cell 1)
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None)); //@sic R5s100879 : Additional comments sic@
+
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell (cell 2)
+    //@sic R5s100515 sic@
+    //@sic R5s100538 Change 4.1 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_ULGrantAllocation_Def_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+
+    //@siclog "Step 5" siclog@
+    //Send RRCConnectionReconfiguration
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                  eutra_Cell2,
+                                                  fl_Generate_cs_MobilityControlInfo_HO_AllParams_Def (eutra_Cell2));
+
+    //@siclog "Step 6" siclog@
+    //Receive RRCConnectionReconfigurationComplete
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell2, cr_508_RRCConnectionReconfigurationComplete (v_RRC_TI)));
+    //* @verdict pass RRCConnectionReconfigurationComplete received on Cell 2
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.5 Step 6");
+
+    //Deactivate the default to stop receiving measurement reports for cell 2 on cell 1
+    deactivate (v_DefaultRef);
+    
+    //Configure default UL grant transmission and maintenance of PUCCH synchronized in target cell @sic R5s100515 sic@
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_PUCCH_Synch_Config_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+    
+    //Inform the SS about completion of the HO (e.g. to trigger PDCP STATUS PDU)
+    //@sic R5s100524 sic@
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverComplete_REQ(eutra_Cell2)); // @sic R5s100561 sic@
+
+    //Reset SRBs and DRBs of source cell (cell 1)
+    f_EUTRA_SS_SRBs_DRBs_Reset (eutra_Cell1);
+
+    //@siclog "Step 7" siclog@
+    //Check if UE is in state RRC_Connected
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell2 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch/power off UE
+    f_EUTRA_Postamble ( eutra_Cell2, E2_CONNECTED );
+  }
+
+  function f_TC_8_2_4_6_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var PhysCellId v_PhysicalCellIdentity_Cell3;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var Frequency_IE_Type v_Frequency_IE_Cell1, v_Frequency_IE_Cell3; //@sic R5s100524 Change 1 sic@
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1, v_ChBandDependency_Cell3; //@sic R5s100524 Change 1 sic@
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell3; //@sic R5s110279 change 1 sic@
+    var default v_DefaultRef;
+    
+    v_CellPowerList_AtT0 := {
+      cs_CellPower (eutra_Cell3, -97)
+    };
+    v_CellPowerList_AtT1 := {
+      cs_CellPower (eutra_Cell3, -73)
+    };
+
+    f_EUTRA_Init (c3); //@sic R5s100477 Change 1 sic@
+
+    //Get cell dependant parameters
+    v_PhysicalCellIdentity_Cell3 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell3); //@sic R5s100477 Change 1 sic@
+    v_Frequency_IE_Cell3 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell3);
+    v_ChBandDependency_Cell3 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell3.DL_ChBandwidth,
+                                                            v_Frequency_IE_Cell3.UL_ChBandwidth);
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1); //@sic R5s100524 Change 1, R5s100548 sic@
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell1.DL_ChBandwidth, //@sic R5s100524 Change 1 sic@
+                                                            v_Frequency_IE_Cell1.UL_ChBandwidth);
+    v_CarrierFreq_Cell3 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell3); //@sic R5s110279 change 1 sic@
+
+    //Set maximim cell powel level for cell 1 & 3 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell3, -73);
+    
+    //Set C-RNTI to be used for cell 3 in cell creation
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell3, tsc_C_RNTI_Def2);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell3);
+    
+    // ring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Set initial cell power level according to T0
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1-2" siclog@
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,
+                                                    cs_508_RRCConnectionReconfiguration_ConditionMEAS (v_RRC_TI,
+                                                                                                       cs_Measurement_Config_A3_InterFreq(//@sic R5s100524 Change 1, R5-106333 sic@
+                                                                                                       v_Frequency_IE_Cell3.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                       v_ChBandDependency_Cell3.AllowedMeasBandwidth,
+                                                                                                       v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                       v_ChBandDependency_Cell1.AllowedMeasBandwidth,
+                                                                                                       cs_508_MeasGapConfig_GP1)));
+
+    //@siclog "Step 3" siclog@
+    //Set cell power level according to T1
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT1 );
+    
+    //@siclog "Step 4" siclog@
+    //Receive MeasurementReport
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_MeasurementReport ( 1,//Meas id
+                                                                            ?,//RSRP result
+                                                                            ?,//RSRQ result
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell3,
+                                                                                                                                 omit,//CGI info
+                                                                                                                                 ?,//RSRP result
+                                                                                                                                 ? ) ) ) );//RSRQ result
+    
+    //Activate the default to receive further measurement reports for cell 3 on cell 1
+    v_DefaultRef := activate( a_EUTRA_AddDefault_PeriodicalMeasurmentReport( eutra_Cell1,
+                                                                             cr_MeasurementReport ( 1, ?, ?,
+                                                                                                    cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell3,
+                                                                                                                                                         omit, ?, ? ) ) ) );
+
+    //@siclog "Step 5 - 6" siclog@
+    //Transmit RRCConnectionReconfiguration
+    //Receive RRCConnectionReconfigurationComplete
+    f_EUTRA_508RRC_IntraLTE_HO_InterCell (eutra_Cell1,
+                                          eutra_Cell3,
+                                          -, //p_DrbConfigList
+                                          -, //p_C_RNTI
+                                          -, //p_MeasConfig
+                                          -, //p_DciUlInfo_TargetCell
+                                          -, //p_UL_GrantConfig_SourceCell
+                                          -, //p_UL_GrantConfig_TargetCell
+                                          -, //p_Dsr_TransMax
+                                          cs_CarrierFreqEUTRA(v_CarrierFreq_Cell3.dl_CarrierFreq, omit));  //@sic R5s100430 change 2, R5s100524 Change 3, R5s110279 change 1 sic@
+
+    //* @verdict RRCConnectionReconfigurationComplete received on Cell 3
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.6 Step 6");
+
+    //Deactivate the default to stop receiving measurement reports for cell 3 on cell 1
+    deactivate (v_DefaultRef);
+
+    //@siclog "Step 7" siclog@
+    //Check if UE is in state RRC_Connected
+    f_EUTRA_508Check_ConnectedState (eutra_Cell3);
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell3, E2_CONNECTED);
+  }
+
+  function f_TC_8_2_4_7_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1;
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var ShortMAC_I v_ShortMAC_I;
+    var PhysCellId v_PhysicalCellIdentity_Cell4;
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var PhysCellId v_PhysicalCellIdentity_Cell11;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT2;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT3;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT4;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT5;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT6;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_CellInfo_Cell1;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_CellInfo_Cell4;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_CellInfo_Cell11;
+    var float v_T304Max;  //@sic R5s110441 sic@
+    var default v_DefaultRef;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NextHopChainingCount v_Ncc0 := 0;
+    var NextHopChainingCount v_Ncc2 := 2; //@sic R5s110356 & R5-113104 sic@
+    var NextHopChainingCount v_Ncc3 := 3;
+    var Ra_PreambleIndex_Type v_Ra_PreambleIndex := 63;
+    timer t_T304Max; //@sic R5s110441 sic@
+
+    v_CellPowerList_AtT0 := {
+      cs_CellPower (eutra_Cell4, -91),
+      cs_CellPower (eutra_Cell11, -91)
+    };
+    v_CellPowerList_AtT1 := {
+      cs_CellPower (eutra_Cell4, -79)
+    };
+    v_CellPowerList_AtT2 := {
+      cs_CellPower (eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE),
+      cs_CellPower (eutra_Cell11, tsc_NonSuitableOffCellRS_EPRE)
+    };
+    v_CellPowerList_AtT3 := {
+      cs_CellPower (eutra_Cell1, -73)
+    };
+    v_CellPowerList_AtT4 := {
+      cs_CellPower (eutra_Cell4, tsc_NonSuitableOffCellRS_EPRE)
+    };
+    v_CellPowerList_AtT5 := {
+      cs_CellPower (eutra_Cell11, -67)
+    };
+    v_CellPowerList_AtT6 := {
+      cs_CellPower (eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE)
+    };
+
+    f_EUTRA_Init (c1);
+    
+    //T304 is 1 second according to 36.508 cl. 4.6.5 Table 4.6.5-1.
+    //Max tolerance is applied to rellay make sure that the timer expires in UE.
+    v_T304Max := f_EUTRA_SetTimerToleranceMax (eutra_Cell4, rrcTimer, 1.0); //@sic R5s110098, R5s110196 & R5s110441 sic@
+
+    //Get FDD or TDD mode for Cell 1
+    v_EUTRA_FDD_TDD_CellInfo_Cell1 := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+    v_EUTRA_FDD_TDD_CellInfo_Cell4 := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell4);
+    v_EUTRA_FDD_TDD_CellInfo_Cell11 := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell11);
+
+    //Get cell dependant parameters
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1);
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell1.DL_ChBandwidth,
+                                                            v_Frequency_IE_Cell1.UL_ChBandwidth);
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell1);
+    v_PhysicalCellIdentity_Cell4 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell4);
+    v_PhysicalCellIdentity_Cell11 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell11); //@sic R5s100498 sic@
+
+    //Set maximum cell powel level for cell 1, 4 & 11 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -73);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell4, -79);
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell11, -67);
+    
+    //Set PreambleTransMax to n50 in all cells
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell1, n50); //@sic R5s110196 & R5-113108 sic@
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell4, n50); //@sic R5s110196 & R5-113108 sic@
+    f_EUTRA_CellInfo_SetPreambleTransMax(eutra_Cell11, n50); //@sic R5s110196 & R5-113108 sic@
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell4);
+    f_EUTRA_CellConfig_Def (eutra_Cell11);
+
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+
+    //Configure SS to not send response on RACH preamble reception on Cell 4 and 11
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell4,
+                                    omit,
+                                    cs_RachProcedureConfig_NoResponse (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell4)));
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell11,
+                                    omit,
+                                    cs_RachProcedureConfig_NoResponse (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell11)));
+
+    //Set initial cell power level according to T0
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1-2" siclog@
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,
+                                                    cs_508_RRCConnectionReconfiguration_ConditionMEAS (tsc_RRC_TI_Def,
+                                                                                                       cs_Measurement_Config_A3 (v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                                                 v_ChBandDependency_Cell1.AllowedMeasBandwidth)));
+
+    //@siclog "Step 3" siclog@
+    //Set cell power level according to T1
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+
+    //@siclog "Step 4" siclog@
+    //Receive MeasurementReport
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_MeasurementReport ( 1,//Measurement ID
+                                                                            ?,//RSRP result
+                                                                            ?,//RSRQ result
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell4,
+                                                                                                                                 omit,//CGI Info
+                                                                                                                                 ?,//RSRP result
+                                                                                                                                 ? ) ) ) );//RSRQ result
+
+    //Activate the default to receive further measurement reports for cell 4 on cell 1
+    v_DefaultRef := activate( a_EUTRA_AddDefault_PeriodicalMeasurmentReport( eutra_Cell1, cr_MeasurementReport ( 1, ?, ?,
+                                                                             cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell4,
+                                                                                                                                  omit, ?, ? ) ) ) );
+
+    //@siclog "Step 5" siclog@
+    //Send RRCConnectionReconfiguration to order UE to perform intra freq. HO to Cell 4
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility ( eutra_Cell1,
+                                                   eutra_Cell4,
+                                                   f_Generate_cs_MobilityControlInfo_HO_RACH ( eutra_Cell4,
+                                                                                               omit,
+                                                                                               cs_RACH_ConfigDedicated (v_Ra_PreambleIndex)));
+
+    t_T304Max.start(v_T304Max); // @sic R5s110125, R5s110196 & R5s110441 sic@
+
+    //Reset SRBs and DRBs of source cell (cell 1)
+    f_EUTRA_SS_SRBs_DRBs_Reset_StopULGrant_noPUCCHSync ( eutra_Cell1, 100 ); /* stop default UL grant transmission,
+                                                                                stop transmission of TA commands &
+                                                                                reset SRBs and DRB1 after 100ms.
+                                                                                @sic R5s110125 sic@
+                                                                                @sic R5s110444 sic@
+                                                        note: it does not matter when exactly the SRBs are reset as long as it is not less than 100ms */
+    
+    //@siclog "Step 6" siclog@
+    //Set cell power level according to T2
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT2 ); //@sic R5s110098 sic@
+    
+    //Calculate ShortMAC-I to be received in RRCConnectionReestablishment Request from UE in Step 7
+    v_ShortMAC_I := f_Calculate_ShortMAC ( eutra_Cell1, eutra_Cell4 );
+    
+    //Wait T304 + tolerance to fail "Criterion for successful completion of handover"
+    t_T304Max.timeout; //@sic R5w100302 R5s110098 R5s110125 R5s110196 sic@
+
+    //Configure Cell 4 for normal PRACH operation
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell4, tsc_C_RNTI_Def);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    //@siclog "Step 7" siclog@
+    //Receive RRCConnectionReestablishmentRequest on Cell 4
+    SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell4,
+                                        cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                     v_PhysicalCellIdentity_Cell1,
+                                                                                     cr_ReestablishmentCause_HandoverFailure,
+                                                                                     v_ShortMAC_I ) ) );
+    //@verdict RRCConnectionReestablishmentRequest received on Cell 4
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.7 Step 7");
+
+    //Deactivate the default to stop receiving measurement reports for cell 4 on cell 1
+    deactivate ( v_DefaultRef );
+
+    //Activate RRC security at SS[SRB 1,2 and DRB 1]
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest ( eutra_Cell4, f_EUTRA_Security_Get ( ), v_Ncc0 );
+    f_EUTRA_Security_Set ( v_Auth_Params );
+
+    //@siclog "Step 8" siclog@
+    //Transmit RRConnectionReestablishment to resume SRB1 and re-activate security
+    f_EUTRA_RRC_RRCConnectionReestablishment_Def ( eutra_Cell4, v_RRC_TI, v_Ncc0 );
+
+    //@siclog "Step 9" siclog@
+    //Receive RRCConnectionReestablishmentComplete
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell4,  cr_508_RRCConnectionReestablishmentComplete( v_RRC_TI ) ) );
+    //SS automatically checks that UE transmit the RRCConnectionReestablishmentComplete using the security key derived from the currently active KeNB
+    //* @verdict RRCConnectionReestablishmentComplete received on Cell 4
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.7 Step 9");
+
+    //@siclog "Step 10 - 11" siclog@
+    //RRCConnectionReconfiguration to resume SRB2 and existing DRBs
+    f_EUTRA_RRC_RRCConnectionReconfiguration_Resume_SRB2_DRBs ( eutra_Cell4, v_RRC_TI );
+
+    //@siclog "Step 12" siclog@
+    //Set cell power level according to T3
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT3 );
+
+    //@siclog "Step 13" siclog@
+    //Receive MeasurementReport
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell4, cr_MeasurementReport ( 1,//Measurement ID
+                                                                            ?,//RSRP result
+                                                                            ?,//RSRQ result
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell1,
+                                                                                                                                 omit,//CGI Info
+                                                                                                                                 ?,//RSRP result
+                                                                                                                                 ? ) ) ) );//RSRQ result
+
+    //Activate the default to receive further measurement reports for cell 1 on cell 4.
+    v_DefaultRef := activate( a_EUTRA_AddDefault_PeriodicalMeasurmentReport( eutra_Cell1,
+                                                                             cr_MeasurementReport ( 1, ?, ?,
+                                                                             cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell1,
+                                                                                                                                  omit, ?, ? ) ) ) );
+
+    //Configure SS to not send response on RACH preamble reception on Cell 1
+    f_EUTRA_SS_ConfigRachProcedure ( eutra_Cell1,
+                                     omit,
+                                     cs_RachProcedureConfig_NoResponse ( f_EUTRA_CellInfo_GetDL_ChBandwidth ( eutra_Cell4 ) ) );
+
+    //@siclog "Step 14" siclog@
+    //Send RRCConnectionReconfigurationon to order UE to perform intra freq. HO to Cell 1
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility ( eutra_Cell4,
+                                                   eutra_Cell1,
+                                                   f_Generate_cs_MobilityControlInfo_HO_RACH ( eutra_Cell1,
+                                                                                               omit,
+                                                                                               cs_RACH_ConfigDedicated ( v_Ra_PreambleIndex)));
+
+    t_T304Max.start(v_T304Max); // @sic R5s110125, R5s110196 & R5s110441 sic@
+   
+    //Reset SRBs and DRBs of source cell (cell 4)
+    f_EUTRA_SS_SRBs_DRBs_Reset_StopULGrant_noPUCCHSync ( eutra_Cell4, 100 ); /* stop default UL grant transmission,
+                                                                                stop transmission of TA commands &
+                                                                                reset SRBs and DRB1 after 100ms.
+                                                                                @sic R5s110125 sic@
+                                                                                @sic R5s110444 sic@
+                                                        note: it does not matter when exactly the SRBs are reset as long as it is not less than 100ms */
+    
+    //@siclog "Step 15" siclog@
+    //Set cell power level according to T4
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT4 ); //@sic R5s110098 sic@
+
+    //Calculate ShortMAC-I to be received in RRCConnectionReestablishment Request from UE in Step 16
+    v_ShortMAC_I := f_Calculate_ShortMAC ( eutra_Cell4, eutra_Cell1 );
+
+    //Wait T304 + tolerance to fail "Criterion for successful completion of handover"
+    t_T304Max.timeout; //@sic R5w100302 R5s110098 R5s110125 R5s110196 sic@
+
+    //Configure Cell 1 for normal PRACH operation
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1, tsc_C_RNTI_Def);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    //@siclog "Step 16" siclog@
+    //Receive RRCConnectionReestablishmentRequest
+    SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell1,
+                                        cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                     v_PhysicalCellIdentity_Cell4,
+                                                                                     cr_ReestablishmentCause_HandoverFailure,
+                                                                                     v_ShortMAC_I ) ) );
+    //@verdict RRCConnectionReestablishmentRequest received on Cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.7 Step 16");
+    
+    //Deactivate the default to stop receiving measurement report for cell 1 on cell 4.
+    deactivate (v_DefaultRef);
+
+    //Activate RRC security at SS[SRB 1,2 and DRB 1]
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest (eutra_Cell1, f_EUTRA_Security_Get ( ), v_Ncc2); //@sic R5s110356 sic@
+    f_EUTRA_Security_Set (v_Auth_Params);
+
+    //@siclog "Step 17" siclog@
+    //Transmit RRCConnectionReestablishment to resume SRB1 operation and re-activate security
+    f_EUTRA_RRC_RRCConnectionReestablishment_Def (eutra_Cell1, v_RRC_TI, v_Ncc2); //@sic R5s110356 sic@
+
+    //@siclog "Step 18" siclog@
+    //Receive RRCConnectionReestablishmentComplete
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1,  cr_508_RRCConnectionReestablishmentComplete( v_RRC_TI ) ) );
+    //SS automatically checks that UE transmit the RRCConnectionReestablishmentComplete using the security key derived from the currently active KeNB
+    //@verdict RRCConnectionReestablishmentComplete received on Cell 1
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.7 Step 18");
+
+    //@siclog "Step 19 - 20" siclog@
+    //RRCConnectionReconfiguration to resume SRB2 and existing DRBs
+    f_EUTRA_RRC_RRCConnectionReconfiguration_Resume_SRB2_DRBs (eutra_Cell1, v_RRC_TI);
+
+    //@siclog "Step 21" siclog@
+    //Set cell power level according to T5
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT5);
+
+    //@siclog "Step 22" siclog@
+    //Receive MeasurementReport
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_MeasurementReport (1,//Measurement ID
+                                                                         ?,//RSRP result
+                                                                         ?,//RSRQ result
+                                                                         cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell11,
+                                                                                                                             omit,//CGI Info
+                                                                                                                             ?,//RSRP result
+                                                                                                                             ?))));//RSRQ result
+    //Activate the default to receive further measurement reports for cell 11 on cell 1
+    v_DefaultRef := activate( a_EUTRA_AddDefault_PeriodicalMeasurmentReport(eutra_Cell1,
+                                                                            cr_MeasurementReport ( 1, ?, ?,
+                                                                              cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell11,
+                                                                                                                                  omit, ?, ?))));
+    //@siclog "Step 23" siclog@
+    //Transmit RRCConnectionReconfiguration to order UE to perform intra freq. HO to Cell 11
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                  eutra_Cell11,
+                                                  f_Generate_cs_MobilityControlInfo_HO_RACH (eutra_Cell11,
+                                                                                             omit,
+                                                                                             cs_RACH_ConfigDedicated (v_Ra_PreambleIndex)));
+    t_T304Max.start(v_T304Max); // @sic R5s110125, R5s110196 & R5s110441 sic@
+
+    //Reset SRBs and DRBs of source cell (cell 1)
+    f_EUTRA_SS_SRBs_DRBs_Reset_StopULGrant_noPUCCHSync ( eutra_Cell1, 100 ); /* stop default UL grant transmission,
+                                                                                stop transmission of TA commands &
+                                                                                reset SRBs and DRB1 after 100ms.
+                                                                                @sic R5s110125 sic@
+                                                                                @sic R5s110444 sic@
+                                                        note: it does not matter when exactly the SRBs are reset as long as it is not less than 100ms */
+ 
+    //@siclog "Step 24" siclog@
+    //Set cell power level according to T6
+    f_EUTRA_SetCellPowerList ( v_CellPowerList_AtT6 ); //@sic R5s110098 sic@
+
+    //Calculate ShortMAC-I to be received in RRCConnectionReestablishment Request from UE in Step 16
+    v_ShortMAC_I := f_Calculate_ShortMAC ( eutra_Cell1, eutra_Cell11 );
+
+    //Wait T304 + tolerance to fail "Criterion for successful completion of handover"
+    t_T304Max.timeout; //@sic R5w100302 R5s110098 R5s110125 R5s110196 sic@
+    
+    //Configure Cell 11 for normal PRACH operation
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell11, tsc_C_RNTI_Def);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    //@siclog "Step 25" siclog@
+    //Receive RRCConnectionReestablishmentRequest
+    SRB.receive ( car_SRB0_RrcPdu_IND ( eutra_Cell11,
+                                        cr_508_RRCConnectionReestablishmentRequest ( tsc_C_RNTI_Def,
+                                                                                     v_PhysicalCellIdentity_Cell1,
+                                                                                     cr_ReestablishmentCause_HandoverFailure,
+                                                                                     v_ShortMAC_I ) ) );
+    //@verdict RRCConnectionReestablishmentRequest received on Cell 11
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.7 Step 25");
+
+    //Deactivate the default to stop receiving measurement reports for cell 11 on cell 1
+    deactivate ( v_DefaultRef );
+
+    //Activate RRC security at SS[SRB 1,2 and DRB 1]
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest ( eutra_Cell11, f_EUTRA_Security_Get ( ), v_Ncc3 );
+    f_EUTRA_Security_Set ( v_Auth_Params );
+
+    //@siclog "Step 26" siclog@
+    //Transmit RRCConnectionReestablishment to resume SRB1 operation and re-activate security
+    f_EUTRA_RRC_RRCConnectionReestablishment_Def ( eutra_Cell11, v_RRC_TI, v_Ncc3 );
+
+    //@siclog "Step 27" siclog@
+    //Receive RRCConnectionReestablishmentComplete
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell11,  cr_508_RRCConnectionReestablishmentComplete(v_RRC_TI)));
+    //SS automatically checks that UE transmit the RRCConnectionReestablishmentComplete using the security key derived from the currently active KeNB
+    //@verdict RRCConnectionReestablishmentComplete received on Cell 11
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.7 Step 27");
+
+    //@siclog "Step 28 - 29" siclog@
+    //RRCConnectionReconfiguration to resume SRB2 and existing DRBs
+    f_EUTRA_RRC_RRCConnectionReconfiguration_Resume_SRB2_DRBs ( eutra_Cell11, v_RRC_TI );
+    
+    //@siclog "Step 29A - 29C" siclog@ //@sic R5s100498 & R5-104765 sic@
+    //Receive TRACKING AREA UPDATE REQUEST message, send a TRACKING AREA UPDATE ACCEPT message and receive a TRACKING AREA UPDATE COMPLETE message
+    f_EUTRA_ConnectedMode_TAU (eutra_Cell11);
+
+    //@siclog "Step 30" siclog@
+    //Check if UE is in state RRC_Connected
+    f_EUTRA_508Check_ConnectedState (eutra_Cell11);
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell11, E2_CONNECTED);
+  }
+
+  function f_TC_8_2_4_8_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var default v_DefaultRef;
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1;
+    var PhysCellId v_PhysicalCellIdentity_Cell2, v_PhysicalCellIdentity_Cell1;
+    var ShortMAC_I v_ShortMAC_I;
+    var integer v_Duration; //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    var SubFrameTiming_Type v_TimingFirstMsg; //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    var SubFrameTiming_Type v_TimingT301Min ; //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    var SubFrameTiming_Type v_TimingT301Max ; //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    var SubFrameTiming_Type v_TimingFurtherMsg; //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    var SRB_COMMON_IND v_ReceivedRrcMsg; //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    
+    var float v_T301 := 1.0; //According to 36.508 cl. 4.4.3.3 Table 4.4.3.3-1 //@sic R5s110273 Change 1.1 & R5-115662 sic@
+    var float v_T301Min, v_T301Max; //@sic R5s110707 sic@
+    var integer v_T301Min_InMillisec, v_T301Max_InMillisec; //@sic R5s110707 sic@
+
+    f_EUTRA_Init ( c1 );
+
+    v_T301Min := f_EUTRA_SetTimerToleranceMin (eutra_Cell1, rrcTimer, v_T301); //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    v_T301Max := f_EUTRA_SetTimerToleranceMax (eutra_Cell1, rrcTimer, v_T301); //@sic R5s110273 MCC STF160 Additional Change 2 & R5s110707 sic@
+    v_T301Min_InMillisec := float2int(v_T301Min*1000.0); //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    v_T301Max_InMillisec := float2int(v_T301Max*1000.0); //@sic R5s110273 MCC STF160 Additional Change 2 sic@
+    
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs ( eutra_Cell1 );
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam ( v_Frequency_IE_Cell1.DL_ChBandwidth,
+                                                             v_Frequency_IE_Cell1.UL_ChBandwidth);
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId ( eutra_Cell1 );
+    v_PhysicalCellIdentity_Cell2 := f_EUTRA_CellInfo_GetPhyCellId ( eutra_Cell2 );
+    
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell2, -79); //@sic R5s110171 change 4.1 sic@
+
+    //Set new C-RNTI to be used by UE in cell 2 at creation
+    f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell2, tsc_C_RNTI_Def2 );
+
+    // Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell2 );
+
+    // Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    
+    //Configure SS to not send response on RACH preamble reception on Cell 2
+    //This configuration represents Table 8.2.4.8.3.2-3: Parallel behaviour
+    //@sic R5s110273 Change 1.2 sic@
+    f_EUTRA_SS_ConfigRachProcedure ( eutra_Cell2,
+                                     omit,
+                                     cs_RachProcedureConfig_NoResponse (f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell2)));
+    
+    //Set cell power level according to T0
+    f_EUTRA_SetCellPower(eutra_Cell2, -91);
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1-2" @siclog
+    //@sic R5s110743 sic@
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig(eutra_Cell1,
+                                                    cs_508_RRCConnectionReconfiguration_ConditionMEAS (tsc_RRC_TI_Def,
+                                                                                                       cs_Measurement_Config_A3 (v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq,
+                                                                                                                                 v_ChBandDependency_Cell1.AllowedMeasBandwidth)));
+
+    //@siclog "Step 3" @siclog
+    f_EUTRA_SetCellPower(eutra_Cell2, -79);
+    
+    //@siclog "Step 4" @siclog
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell1, cr_MeasurementReport ( 1,//Measurement ID
+                                                                            ?,//RSRP result
+                                                                            ?,//RSRQ result
+                                                                            cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell2,
+                                                                                                                                 omit,//CGI Info
+                                                                                                                                 ?,//RSRP result
+                                                                                                                                 ? ) ) ) );//RSRQ result
+
+    //Activate the default to receive further measurement reports for cell 2 on cell 1
+    v_DefaultRef := activate ( a_EUTRA_AddDefault_PeriodicalMeasurmentReport ( eutra_Cell1,
+                                                                               cr_MeasurementReport ( 1, ?, ?,
+                                                                               cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell2,
+                                                                                                                                    omit, ?, ? ) ) ) );
+                                                                                                                                    
+    //Stop periodic sending of TA command in source cell (cell 1)
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None)); //@sic R5s110171 Change 4 'MCC160 After' sic@
+    
+    //@siclog "Step 5" @siclog
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                  eutra_Cell2,
+                                                  f_Generate_cs_MobilityControlInfo_HO_CRNTI (eutra_Cell2, //@sic R5s110171 change 4.2 sic@
+                                                                                              tsc_C_RNTI_Def));
+    
+    //Parallel behaviour taken care of by pre-configuration of cell 2
+    
+    //Reset SRBs and DRB1 of cell 1
+    //f_EUTRA_SS_SRBs_DRBs_Reset ( eutra_Cell1 ); //@sic R5s110171 Change 4.3 sic@
+    
+    //Calculate ShortMAC-I to be received in RRCConnectionReestablishment Request from UE in Step 7
+    v_ShortMAC_I := f_Calculate_ShortMAC ( eutra_Cell1, eutra_Cell1 );
+    
+    //@siclog "Step 6" @siclog
+    f_EUTRA_SetCellPower(eutra_Cell2, tsc_NonSuitableOffCellRS_EPRE);
+    
+    //@siclog "Step 7" @siclog
+    SRB.receive (car_SRB0_RrcPdu_IND (eutra_Cell1,
+                                      cr_508_RRCConnectionReestablishmentRequest (tsc_C_RNTI_Def,
+                                                                                  v_PhysicalCellIdentity_Cell1,
+                                                                                  cr_ReestablishmentCause_HandoverFailure,
+                                                                                  v_ShortMAC_I)))
+    -> value v_ReceivedRrcMsg; //@sic R5s110273 MCC STF160 Additional Change 2 sic@;
+    v_TimingFirstMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+    v_TimingT301Min  := f_EUTRA_TimingInfoAdd(v_TimingFirstMsg, v_T301Min_InMillisec); //@sic R5s110273 MCC STF160 Additional Change 2 sic@;
+    v_TimingT301Max  := f_EUTRA_TimingInfoAdd(v_TimingFirstMsg, v_T301Max_InMillisec); //@sic R5s110273 MCC STF160 Additional Change 2 sic@;
+    
+    //Deactivate the default to stop receiving measurement reports for Cell2 on Cell 1
+    deactivate(v_DefaultRef);
+
+    //The local SS release is scheduled and done at the expiry of the timer t_T301Min
+    f_EUTRA_RRC_ConnectionRelease_Local (eutra_Cell1,
+                                         v_TimingT301Min); //@sic R5s110171 change 4.4 & R5s110273 MCC STF160 Additional Change 2 sic@
+    
+    alt {
+      //@siclog "Step 8" @siclog
+      [] SRB.receive (car_SRB0_RrcPdu_IND (?, cr_RRCConnectionReestablishmentRequest_AnyUE (?))) -> value v_ReceivedRrcMsg //@sic R5s110273 MCC STF160 Additional change sic@
+        {
+          v_TimingFurtherMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+          v_Duration := f_EUTRA_SubFrameTimingDuration(v_TimingFirstMsg, v_TimingFurtherMsg);
+          if (v_Duration > v_T301Max_InMillisec) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 8-9 - Unexpected RRCConnectionReestablishmentRequest after expiry of T301");
+          }
+          repeat;
+        }
+      
+      [] SRB.check (receive(car_SRB0_RrcPdu_IND (eutra_Cell1, cr_508_RRCConnectionRequest)) -> value v_ReceivedRrcMsg) //@sic R5s110273 MCC STF160 Additional change sic@
+        {
+          v_TimingFurtherMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+          v_Duration := f_EUTRA_SubFrameTimingDuration(v_TimingFirstMsg, v_TimingFurtherMsg);
+          if (v_Duration < v_T301Min_InMillisec) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 8 - Unexpected RRCConnectionRequest before expiry of T301");
+          }
+        }
+    }
+
+    //@siclog "Steps 9-13" @siclog
+    f_EUTRA_TrackingAreaUpdate_WithoutRelease (eutra_Cell1);
+
+    //@siclog "Step 14" @siclog
+    f_EUTRA_508Check_ConnectedState (eutra_Cell1);
+
+    f_EUTRA_TestBody_Set (false);
+
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell1, E2_T3440); //@sic R5s110171 Change 4 'MCC160 After' sic@
+  }
+
+  function f_TC_8_2_4_9_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var CarrierFreqEUTRA v_CarrierFreq_Cell10; //@sic R5s110279 change 1 sic@
+    
+    f_EUTRA_Init (c3);//SIB2, SIB3 and SIB5 are transmitted
+    
+    //Since f5 (interband frequency) is not initialised by default in SIB5...
+    //...we need to re-init SIB5 this time including f5
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell1);
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell10);
+    
+    // Set new C-RNTI to be used by UE in cell 10 at creation
+    f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell10, tsc_C_RNTI_Def2 );
+    
+    // Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+    f_EUTRA_CellConfig_Def ( eutra_Cell10 );
+    
+    // Bring UE to initial state
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    
+    // Switch on cell 10 with suitable cell power
+    f_EUTRA_SetCellPower(eutra_Cell10, tsc_SuitableCellRS_EPRE);
+    
+    // Bring UE to state 3
+    f_EUTRA_RbEst_Def ( eutra_Cell1 );
+    
+    f_EUTRA_TestBody_Set ( true );
+    
+    //@siclog "Step 1" siclog@
+    //SS transmits RRCConnectionReconfiguration on cell 1 to order UE to perform interband HO to cell 10.
+    //Receive RRCConnectionReconfigurationComplete from UE on cell 10
+    v_CarrierFreq_Cell10 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell10); //@sic R5s110279 change 1 sic@
+    f_EUTRA_508RRC_IntraLTE_HO_InterCell (eutra_Cell1,
+                                          eutra_Cell10,
+                                          -, //p_DrbConfigList
+                                          -, //p_C_RNTI
+                                          -, //p_MeasConfig
+                                          -, //p_DciUlInfo_TargetCell
+                                          -, //p_UL_GrantConfig_SourceCell
+                                          -, //p_UL_GrantConfig_TargetCell
+                                          -, //p_Dsr_TransMax
+                                          cs_CarrierFreqEUTRA(v_CarrierFreq_Cell10.dl_CarrierFreq, omit));  //@sic R5s110279 change 1 sic@
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.9 Step 2");
+
+    //@siclog "Step 3" siclog@
+    //Check if UE is in state RRC_Connected on cell 10
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell10 );
+
+    f_EUTRA_TestBody_Set ( false );
+
+    //Switch/power off UE
+    f_EUTRA_Postamble ( eutra_Cell10, E2_CONNECTED );
+  }
+
+  function f_TC_8_2_4_12_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0; //@sic R5-113691 sic@
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1; //@sic R5-113691 sic@
+    var NextHopChainingCount v_NextHopChainingCount := 0;
+    v_CellPowerList_AtT0 := {
+      cs_CellPower (eutra_Cell1, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE),
+      cs_CellPower (eutra_Cell2, tsc_ServingCellRS_EPRE)
+    }; //@sic R5-113691 sic@
+    v_CellPowerList_AtT1 := {
+      cs_CellPower (eutra_Cell1, tsc_ServingCellRS_EPRE),
+      cs_CellPower (eutra_Cell2, tsc_Suitable_NeighbourIntraFreq_CellRS_EPRE)
+    }; //@sic R5-113691 sic@
+    
+    //Initialise all cells
+    f_EUTRA_Init (c1);
+    
+    //Configure 2 antenna ports in cell 2
+    f_EUTRA_CellInfo_SetMIMO_2TX(eutra_Cell2);
+    
+    //Set C-RNTI to be used in cell 2 in cell configuration
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell2, tsc_C_RNTI_Def2);
+    
+    // Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell2);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Set RS EPRE and parameters according to T0
+    //@sic R5-113691 sic@
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+    
+    //Get security parameters
+    v_Auth_Params := f_EUTRA_Security_Get ();
+    
+    //Inform the SS about the HO and about the source cell id
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverInit_REQ(eutra_Cell1, eutra_Cell2));
+    
+    //Configure C-RNTI based contention resolution in cell 2
+    f_EUTRA_SS_ConfigRachProcedure_HO (eutra_Cell2, cs_TimingInfo_Now, tsc_C_RNTI_Def2);
+
+    //Activate RRC security at SS Cell 2 (SRB 1, 2 and 1 AM DRB)
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest (eutra_Cell2, v_Auth_Params, v_NextHopChainingCount);
+    f_EUTRA_Security_Set (v_Auth_Params);
+    
+    //Stop periodic sending of TA command on source cell
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell (cell 2)
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_ULGrantAllocation_Def_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //Step 1: Transmit an RRCConnectionReconfiguration message to order the UE to perform intra frequency handover to Cell 2
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                  eutra_Cell2,
+                                                  f_Generate_cs_MobilityControlInfo_HO (eutra_Cell2,
+                                                                                        omit,
+                                                                                        f_Generate_cs_RadioResourceConfigCommon_2TX (eutra_Cell2)));
+
+    //Step 2: Receive an RRCConnectionReconfigurationComplete message in Cell 2
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell2, cr_508_RRCConnectionReconfigurationComplete (tsc_RRC_TI_Def)));
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.12 Step 2");
+    
+    //Start periodic sending of TA command in target cell
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_PUCCH_Synch_Config_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+    
+    //Inform the SS about completion of the HO (e.g. to trigger PDCP STATUS PDU)
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell2, cas_PdcpHandoverComplete_REQ(eutra_Cell2));
+    
+    //Reset SRBs and DRBs of source cell (cell 1)
+    f_EUTRA_SS_SRBs_DRBs_Reset (eutra_Cell1);
+
+    //@siclog "Step 3" siclog@
+    //Check if UE is in state RRC_Connected on cell 1
+    f_EUTRA_508Check_ConnectedState (eutra_Cell2);
+
+    //@siclog "Step 3A" siclog@
+    //Set RS EPRE and parameters according to T1
+    //@sic R5-113691 sic@
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+
+    //@siclog "Step 4" siclog@
+    //@sic R5-113691 - Change of step 4 to use non default message contents sic@
+    //Get security parameters
+    v_Auth_Params := f_EUTRA_Security_Get ();
+    
+    //Inform the SS about the HO and about the source cell id
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell1, cas_PdcpHandoverInit_REQ(eutra_Cell2, eutra_Cell1));
+    
+    //Configure C-RNTI based contention resolution in target cell
+    f_EUTRA_SS_ConfigRachProcedure_HO (eutra_Cell1, cs_TimingInfo_Now, tsc_C_RNTI_Def2);
+    
+    //Save new C-RNTI in cell configuration for Target Cell
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell1, tsc_C_RNTI_Def2);
+    
+    //Activate RRC security at target cell (SRB 1, 2 and 1 AM DRB)
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest (eutra_Cell1, v_Auth_Params, v_NextHopChainingCount);
+    f_EUTRA_Security_Set (v_Auth_Params);
+    
+    //Stop periodic sending of TA command on source cell
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell2, cas_PUCCH_Synch_Config_REQ(eutra_Cell2, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_ULGrantAllocation_Def_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    
+    //Transmit the RRCConnectionReconfiguration message to order the UE to perform intra frequency handover to Cell 1
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell2,
+                                                  eutra_Cell1,
+                                                  f_Generate_cs_MobilityControlInfo_HO (eutra_Cell1,
+                                                                                        omit,
+                                                                                        f_Generate_cs_RadioResourceConfigCommon_1TX (eutra_Cell1)));
+
+    //Step 5: Receive an RRCConnectionReconfigurationComplete message in Cell 1
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete (tsc_RRC_TI_Def)));
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.12 Step 5");
+    
+    //Start periodic sending of TA command in target cell
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+    
+    //Inform the SS about completion of the HO (e.g. to trigger PDCP STATUS PDU)
+    f_EUTRA_SS_PdcpHandoverCtrl(eutra_Cell1, cas_PdcpHandoverComplete_REQ(eutra_Cell2));
+    
+    //Reset SRBs and DRBs of source cell
+    f_EUTRA_SS_SRBs_DRBs_Reset (eutra_Cell2);
+
+    //@siclog "Step 6" siclog@
+    //Check if UE is in state RRC_Connected on cell 1
+    f_EUTRA_508Check_ConnectedState (eutra_Cell1);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Power/Switch off UE
+    f_EUTRA_Postamble (eutra_Cell1, E2_CONNECTED); //@sic R5s110505 change 4 sic@
+  }
+
+  function f_TC_8_2_4_13_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var PhysCellId v_PhysicalCellIdentity_Cell10;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var Frequency_IE_Type v_Frequency_IE_Cell10;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell10;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT0;
+    var template (value) CellPowerList_Type v_CellPowerList_AtT1;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell10;
+    var default v_DefaultRef;
+    
+    v_CellPowerList_AtT0 := {
+      cs_CellPower (eutra_Cell10, -97)
+    };
+    v_CellPowerList_AtT1 := {
+      cs_CellPower (eutra_Cell10, -73)
+    };
+
+    f_EUTRA_Init (c3);
+
+    //Since f5 (interband frequency) is not initialised by default in SIB5...
+    //...we need to re-init SIB5 this time including f5
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell1);
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell10);
+
+    //Get cell dependant parameters for Cell 1
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1);
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell1.DL_ChBandwidth,
+                                                            v_Frequency_IE_Cell1.UL_ChBandwidth);
+
+    //Get cell dependant parameters for Cell 10
+    v_Frequency_IE_Cell10 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell10);
+    v_ChBandDependency_Cell10 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell10.DL_ChBandwidth,
+                                                             v_Frequency_IE_Cell10.UL_ChBandwidth);
+    v_CarrierFreq_Cell10 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell10);
+    v_PhysicalCellIdentity_Cell10 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell10);
+
+    //Set maximum cell powel level for Cell 10 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell10, -73);
+    
+    //Set C-RNTI for Cell 10 to be used in creation
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell10, tsc_C_RNTI_Def2);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell10);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Set initial cell power level according to T0
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT0);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message on Cell 1 to setup inter-band measurement.
+    //@siclog "Step 2" siclog@
+    //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig (eutra_Cell1,
+                                                     cs_508_RRCConnectionReconfiguration_ConditionMEAS (v_RRC_TI,
+                                                                                                        cs_Measurement_Config_A3_InterFreq_8_2_4_1x(
+                                                                                                        v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq, // @sic R5s120431, R5s120448 sic@
+                                                                                                        v_ChBandDependency_Cell1.AllowedMeasBandwidth, // @sic R5s120431, R5s120448 sic@
+                                                                                                        v_Frequency_IE_Cell10.UL_DL_Earfcn.dl_CarrierFreq, // @sic R5s120431, R5s120448 sic@
+                                                                                                        v_ChBandDependency_Cell10.AllowedMeasBandwidth, // @sic R5s120431, R5s120448 sic@
+                                                                                                        cs_508_MeasGapConfig_GP1)));
+
+    //@siclog "Step 3" siclog@
+    //The SS changes Cell 1 and Cell 10 parameters according to the row T1 in table 8.2.4.13.3.2-1.
+    f_EUTRA_SetCellPowerList (v_CellPowerList_AtT1);
+    
+    //@siclog "Step 4" siclog@
+    //The UE transmits a MeasurementReport message on Cell 1 to report event A3 with the measured RSRP, RSRQ value for Cell 10.
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_MeasurementReport (1,//Meas id
+                                                                         ?,//RSRP result
+                                                                         ?,//RSRQ result
+                                                                         cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell10,
+                                                                                                                             omit,//CGI info
+                                                                                                                             ?,//RSRP result
+                                                                                                                             ?))));//RSRQ result
+    
+    //Activate the default to receive further measurement reports for cell 10 on cell 1
+    v_DefaultRef := activate( a_EUTRA_AddDefault_PeriodicalMeasurmentReport( eutra_Cell1,
+                                                                             cr_MeasurementReport(1,
+                                                                                                  ?,
+                                                                                                  ?,
+                                                                                                  cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell10,
+                                                                                                                                                      omit,
+                                                                                                                                                      ?,
+                                                                                                                                                      ?))));
+
+    //@siclog "Step 5" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message on Cell 1 to order the UE to perform inter-band handover to Cell 10.
+    //@siclog "Step 6" siclog@
+    //Check: Does the UE transmit an RRCConnectionReconfigurationComplete message on Cell 10 to confirm the successful completion of the inter-band handover?
+    f_EUTRA_508RRC_IntraLTE_HO_InterCell (eutra_Cell1,
+                                          eutra_Cell10,
+                                          -, //p_DrbConfigList
+                                          -, //p_C_RNTI
+                                          -, //p_MeasConfig
+                                          -, //p_DciUlInfo_TargetCell
+                                          -, //p_UL_GrantConfig_SourceCell
+                                          -, //p_UL_GrantConfig_TargetCell
+                                          -, //p_Dsr_TransMax
+                                          cs_CarrierFreqEUTRA (v_CarrierFreq_Cell10.dl_CarrierFreq, omit));
+    
+    //* @verdict RRCConnectionReconfigurationComplete received on Cell 10
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.13 Step 6");
+    
+    //Deactivate the default to stop receiving measurement reports for cell 10 on cell 1
+    deactivate (v_DefaultRef);
+
+    //@siclog "Step 7" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicates that the UE is in E-UTRA RRC_CONNECTED state on Cell 10?
+    f_EUTRA_508Check_ConnectedState (eutra_Cell10);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell10, E2_CONNECTED);
+  }
+
+  function f_TC_8_2_4_14_EUTRA() runs on EUTRA_PTC
+  {
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var Frequency_IE_Type v_Frequency_IE_Cell10;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell10;
+    var EUTRA_SecurityParams_Type v_Auth_Params;
+    var ShortMAC_I v_ShortMAC_I;
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var PhysCellId v_PhysicalCellIdentity_Cell10;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_CellInfo_Cell1;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_CellInfo_Cell10;
+    var float v_T304Max;
+    var default v_DefaultRef;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var NextHopChainingCount v_Ncc0 := 0;
+    var Ra_PreambleIndex_Type v_Ra_PreambleIndex := 63;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell10;
+    timer t_T304Max;
+
+    f_EUTRA_Init (c3);
+    
+    //Since f5 (interband frequency) is not initialised by default in SIB5...
+    //...we need to re-init SIB5 this time including f5
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell1);
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell10);
+    
+    //T304 is 1 second according to 36.508 cl. 4.6.5 Table 4.6.5-1.
+    //Max tolerance is applied to rellay make sure that the timer expires in UE.
+    v_T304Max := f_EUTRA_SetTimerToleranceMax (eutra_Cell10, rrcTimer, 1.0);
+    
+    //Get FDD or TDD mode for Cell 1 and Cell 10
+    v_EUTRA_FDD_TDD_CellInfo_Cell1 := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell1);
+    v_EUTRA_FDD_TDD_CellInfo_Cell10 := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_Cell10);
+    
+    //Get cell dependant parameters for Cell 1
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1);
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell1.DL_ChBandwidth,
+                                                            v_Frequency_IE_Cell1.UL_ChBandwidth);
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell1);
+    
+    //Get cell dependant parameters for Cell 10
+    v_Frequency_IE_Cell10 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell10);
+    v_ChBandDependency_Cell10 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell10.DL_ChBandwidth,
+                                                             v_Frequency_IE_Cell10.UL_ChBandwidth);
+    v_CarrierFreq_Cell10 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell10);
+    v_PhysicalCellIdentity_Cell10 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell10);
+    
+    //Set maximum cell powel level for Cell 10 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell10, -79);
+    
+    //Set PreambleTransMax to n50 for Cell 10
+    f_EUTRA_CellInfo_SetPreambleTransMax (eutra_Cell10, n50);
+    
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell10);
+    
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Configure SS to not send response on RACH preamble reception on Cell 10
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell10,
+                                    omit,
+                                    cs_RachProcedureConfig_NoResponse (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell10)));
+    
+    //Set cell power level according to T0
+    f_EUTRA_SetCellPower (eutra_Cell10, -91);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message to setup inter-band measurement on Cell 1.
+    //@siclog "Step 2" siclog@
+    //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig (eutra_Cell1,
+                                                     cs_508_RRCConnectionReconfiguration_ConditionMEAS (v_RRC_TI,
+                                                                                                        cs_Measurement_Config_A3_InterFreq_8_2_4_1x(v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq, // @sic R5s120473, R5s120492 sic@
+                                                                                                                                                    v_ChBandDependency_Cell1.AllowedMeasBandwidth, // @sic R5s120473, R5s120492 sic@
+                                                                                                                                                    v_Frequency_IE_Cell10.UL_DL_Earfcn.dl_CarrierFreq, // @sic R5s120473, R5s120492 sic@
+                                                                                                                                                    v_ChBandDependency_Cell10.AllowedMeasBandwidth, // @sic R5s120473,R5s120492 sic@
+                                                                                                                                                    cs_508_MeasGapConfig_GP1)));
+    
+    //@siclog "Step 3" siclog@
+    //The SS changes Cell 1 and Cell 10 parameters according to the row T1 in table 8.2.4.14.3.2-1.
+    f_EUTRA_SetCellPower (eutra_Cell10, -79);
+    
+    //@siclog "Step 4" siclog@
+    //The UE transmits a MeasurementReport message on Cell 1 to report event A3 with the measured RSRP, RSRQ value for Cell 10.
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_MeasurementReport (1,//Measurement ID
+                                                                         ?,//RSRP result
+                                                                         ?,//RSRQ result
+                                                                         cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell10,
+                                                                                                                             omit,//CGI Info
+                                                                                                                             ?,//RSRP result
+                                                                                                                             ?))));//RSRQ result
+    
+    //Activate the default to receive further measurement reports for cell 10 on cell 1
+    v_DefaultRef := activate( a_EUTRA_AddDefault_PeriodicalMeasurmentReport (eutra_Cell1, cr_MeasurementReport (1,
+                                                                                                                ?,
+                                                                                                                ?,
+                                                                                                                cr_MeasResultNeighCells_measResultListEUTRA_1Entry ( v_PhysicalCellIdentity_Cell10,
+                                                                                                                                                                     omit,
+                                                                                                                                                                     ?,
+                                                                                                                                                                     ?))));
+    
+    //@siclog "Step 5" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message on Cell 1 to order the UE to perform inter-band handover to Cell 10.
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                  eutra_Cell10,
+                                                  f_Generate_cs_MobilityControlInfo_HO_RACH (eutra_Cell10,
+                                                                                             cs_CarrierFreqEUTRA (v_CarrierFreq_Cell10.dl_CarrierFreq, omit),
+                                                                                             cs_RACH_ConfigDedicated (v_Ra_PreambleIndex)));
+    
+    t_T304Max.start(v_T304Max);
+    
+    //Reset SRBs and DRBs of source cell (cell 1)
+    f_EUTRA_SS_SRBs_DRBs_Reset_StopULGrant_noPUCCHSync (eutra_Cell1, 100); /* stop default UL grant transmission,
+                                                                              stop transmission of TA commands &
+                                                                              reset SRBs and DRB1 after 100ms.
+                                                                              @sic R5s110125 sic@
+                                                                              @sic R5s110444 sic@
+                                                                              note: it does not matter when exactly the SRBs are reset as long as it is not less than 100ms */
+    
+    //@siclog "Step 6" siclog@
+    //The SS changes Cell 1 and Cell 10 parameters according to the row T2 in table 8.2.4.14.3.2-1.
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_NonSuitableOffCellRS_EPRE);
+    
+    //Calculate ShortMAC-I to be received in RRCConnectionReestablishment Request from UE in Step 7
+    v_ShortMAC_I := f_Calculate_ShortMAC ( eutra_Cell1, eutra_Cell10 );
+    
+    //Wait T304 + tolerance to fail "Criterion for successful completion of handover"
+    t_T304Max.timeout;
+    
+    //Configure Cell 10 for normal PRACH operation
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell10, tsc_C_RNTI_Def);
+    
+    //@siclog "Step 7" siclog@
+    //Check: Does the UE transmit an RRCConnectionReestablishmentRequest message on Cell 10?
+    SRB.receive (car_SRB0_RrcPdu_IND (eutra_Cell10,
+                                      cr_508_RRCConnectionReestablishmentRequest (tsc_C_RNTI_Def,
+                                                                                  v_PhysicalCellIdentity_Cell1,
+                                                                                  cr_ReestablishmentCause_HandoverFailure,
+                                                                                  v_ShortMAC_I)));
+    //@verdict RRCConnectionReestablishmentRequest received on Cell 10
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.2.4.14 Step 7");
+    
+    //Deactivate the default to stop receiving measurement reports for cell 10 on cell 1
+    deactivate ( v_DefaultRef );
+    
+    //Activate RRC security at SS[SRB 1,2 and DRB 1]
+    v_Auth_Params := f_EUTRA_SS_AS_ActivateSecurity_HO_Reest ( eutra_Cell10, f_EUTRA_Security_Get ( ), v_Ncc0 );
+    f_EUTRA_Security_Set ( v_Auth_Params );
+    
+    //@siclog "Step 8" siclog@
+    //The SS transmits an RRCConnectionReestablishment message to resume SRB1 operation and re-activate security on Cell 10.
+    f_EUTRA_RRC_RRCConnectionReestablishment_Def ( eutra_Cell10, v_RRC_TI, v_Ncc0 );
+    
+    //@siclog "Step 9" siclog@
+    //The UE transmits an RRCConnectionReestablishmentComplete message on Cell 10.
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_Cell10,  cr_508_RRCConnectionReestablishmentComplete( v_RRC_TI ) ) );
+    //SS automatically checks that UE transmit the RRCConnectionReestablishmentComplete using the security key derived from the currently active KeNB
+    
+    //@siclog "Step 10" siclog@
+    //The SS transmits an RRCConnectionReconfiguration message to resume existing radio bearer on Cell 10.
+    //@siclog "Step 11" siclog@
+    //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 10.
+    f_EUTRA_RRC_RRCConnectionReconfiguration_Resume_SRB2_DRBs (eutra_Cell10, v_RRC_TI);
+    
+    //@siclog "Step 12" siclog@
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 10?
+    f_EUTRA_508Check_ConnectedState (eutra_Cell10);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell10, E2_CONNECTED);
+  }
+
+  function f_TC_8_2_4_15_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var default v_DefaultRef;
+    var Frequency_IE_Type v_Frequency_IE_Cell1;
+    var Frequency_IE_Type v_Frequency_IE_Cell10;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell1;
+    var ChannelBandwidthDependency_Type v_ChBandDependency_Cell10;
+    var PhysCellId v_PhysicalCellIdentity_Cell1;
+    var PhysCellId v_PhysicalCellIdentity_Cell10;
+    var ShortMAC_I v_ShortMAC_I;
+    var integer v_Duration;
+    var SubFrameTiming_Type v_TimingFirstMsg;
+    var SubFrameTiming_Type v_TimingT301Min;
+    var SubFrameTiming_Type v_TimingT301Max;
+    var SubFrameTiming_Type v_TimingFurtherMsg;
+    var SRB_COMMON_IND v_ReceivedRrcMsg;
+    var CarrierFreqEUTRA v_CarrierFreq_Cell10;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    
+    var float v_T301 := 1.0;
+    var float v_T301Min;
+    var float v_T301Max;
+    var integer v_T301Min_InMillisec;
+    var integer v_T301Max_InMillisec;
+    
+    f_EUTRA_Init (c3);
+
+    //Since f5 (interband frequency) is not initialised by default in SIB5...
+    //...we need to re-init SIB5 this time including f5
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell1);
+    f_EUTRA_SetDefaultSIB5_MultiBand (eutra_Cell10);
+
+    //Set timer tolerances
+    v_T301Min := f_EUTRA_SetTimerToleranceMin (eutra_Cell1, rrcTimer, v_T301);
+    v_T301Max := f_EUTRA_SetTimerToleranceMax (eutra_Cell1, rrcTimer, v_T301);
+    v_T301Min_InMillisec := float2int(v_T301Min*1000.0);
+    v_T301Max_InMillisec := float2int(v_T301Max*1000.0);
+    
+    //Get cell dependant parameters for Cell 1
+    v_Frequency_IE_Cell1 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell1);
+    v_ChBandDependency_Cell1 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell1.DL_ChBandwidth,
+                                                            v_Frequency_IE_Cell1.UL_ChBandwidth);
+    v_PhysicalCellIdentity_Cell1 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell1);
+
+    //Get cell dependant parameters for Cell 10
+    v_Frequency_IE_Cell10 := f_EUTRA_CellInfo_GetFrequencyIEs (eutra_Cell10);
+    v_ChBandDependency_Cell10 := f_EUTRA_BandDependentParam (v_Frequency_IE_Cell10.DL_ChBandwidth,
+                                                             v_Frequency_IE_Cell10.UL_ChBandwidth);
+    v_CarrierFreq_Cell10 := f_EUTRA_CellInfo_GetEARFCN (eutra_Cell10);
+    v_PhysicalCellIdentity_Cell10 := f_EUTRA_CellInfo_GetPhyCellId (eutra_Cell10);
+
+    //Set maximum cell powel level for Cell 10 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell10, -73);
+
+    //Set C-RNTI for Cell 10 to be used in creation
+    f_EUTRA_CellInfo_SetC_RNTI (eutra_Cell10, tsc_C_RNTI_Def2);
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell10);
+
+    //Bring UE to initial state
+    f_EUTRA_Preamble (eutra_Cell1, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_Def (eutra_Cell1);
+    
+    //Configure SS to not send response on RACH preamble reception on Cell 10
+    //This configuration represents Table 8.2.4.15.3.2-3: Parallel behaviour
+    f_EUTRA_SS_ConfigRachProcedure (eutra_Cell10,
+                                    omit,
+                                    cs_RachProcedureConfig_NoResponse (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell10)));
+    
+    //Set cell power level according to T0
+    f_EUTRA_SetCellPower (eutra_Cell10, -97);
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 1" @siclog
+    //The SS transmits an RRCConnectionReconfiguration message to setup inter-band measurement on Cell 1.
+    //@siclog "Step 2" @siclog
+    //The UE transmits an RRCConnectionReconfigurationComplete message on Cell 1.
+    f_EUTRA_RRCConnectionReconfiguration_MeasConfig (eutra_Cell1,
+                                                     cs_508_RRCConnectionReconfiguration_ConditionMEAS (v_RRC_TI,
+                                                                                                        cs_Measurement_Config_A3_InterFreq_8_2_4_1x(v_Frequency_IE_Cell1.UL_DL_Earfcn.dl_CarrierFreq, // @sic R5s120456 sic@
+                                                                                                                                                    v_ChBandDependency_Cell1.AllowedMeasBandwidth, // @sic R5s120456 sic@
+                                                                                                                                                    v_Frequency_IE_Cell10.UL_DL_Earfcn.dl_CarrierFreq, // @sic R5s120456 sic@
+                                                                                                                                                    v_ChBandDependency_Cell10.AllowedMeasBandwidth, // @sic R5s120456 sic@
+                                                                                                                                                    cs_508_MeasGapConfig_GP1)));
+
+    //@siclog "Step 3" @siclog
+    //The SS changes Cell 1 and Cell 10 parameters according to the row T1 in table 8.2.4.15.3.2-1.
+    f_EUTRA_SetCellPower (eutra_Cell10, -73);
+    
+    //@siclog "Step 4" @siclog
+    //The UE transmits a MeasurementReport message on Cell 1 to report event A3 with the measured RSRP and RSRQ value for Cell 10.
+    SRB.receive (car_SRB1_RrcPdu_IND (eutra_Cell1, cr_MeasurementReport (1,//Measurement ID
+                                                                         ?,//RSRP result
+                                                                         ?,//RSRQ result
+                                                                         cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell10,
+                                                                                                                             omit,//CGI Info
+                                                                                                                             ?,//RSRP result
+                                                                                                                             ?))));//RSRQ result
+
+    //Activate the default to receive further measurement reports for cell 10 on cell 1
+    v_DefaultRef := activate ( a_EUTRA_AddDefault_PeriodicalMeasurmentReport (eutra_Cell1,
+                                                                              cr_MeasurementReport (1,
+                                                                                                    ?,
+                                                                                                    ?,
+                                                                                                    cr_MeasResultNeighCells_measResultListEUTRA_1Entry (v_PhysicalCellIdentity_Cell10,
+                                                                                                                                                        omit,
+                                                                                                                                                        ?,
+                                                                                                                                                        ?))));
+    
+    //Stop periodic sending of TA command in source cell (cell 1)
+    f_EUTRA_SS_CommonCellConfig (eutra_Cell1, cas_PUCCH_Synch_Config_REQ (eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    
+    //@siclog "Step 5" @siclog
+    //The SS transmits an RRCConnectionReconfiguration message on Cell 1 to order the UE to perform inter-band handover to Cell 10.
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_Mobility (eutra_Cell1,
+                                                  eutra_Cell10,
+                                                  f_Generate_cs_MobilityControlInfo_HO_CRNTI (eutra_Cell10,
+                                                                                              tsc_C_RNTI_Def,
+                                                                                              cs_CarrierFreqEUTRA (v_CarrierFreq_Cell10.dl_CarrierFreq, omit)));
+    
+    //Parallel behaviour taken care of by pre-configuration of cell 10
+    
+    //Calculate ShortMAC-I to be received in RRCConnectionReestablishment Request from UE in Step 7
+    v_ShortMAC_I := f_Calculate_ShortMAC (eutra_Cell1, eutra_Cell1);
+    
+    //@siclog "Step 6" @siclog
+    //The SS changes Cell 1 and Cell 10 parameters according to the row T2 in table 8.2.4.15.3.2-1.
+    f_EUTRA_SetCellPower (eutra_Cell10, tsc_NonSuitableOffCellRS_EPRE);
+    
+    //@siclog "Step 7" @siclog
+    //The UE transmits an RRCConnectionReestablishmentRequest message on Cell 1.
+    SRB.receive (car_SRB0_RrcPdu_IND (eutra_Cell1,
+                                      cr_508_RRCConnectionReestablishmentRequest (tsc_C_RNTI_Def,
+                                                                                  v_PhysicalCellIdentity_Cell1,
+                                                                                  cr_ReestablishmentCause_HandoverFailure,
+                                                                                  v_ShortMAC_I)))
+      -> value v_ReceivedRrcMsg;
+    v_TimingFirstMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+    v_TimingT301Min  := f_EUTRA_TimingInfoAdd(v_TimingFirstMsg, v_T301Min_InMillisec);
+    v_TimingT301Max  := f_EUTRA_TimingInfoAdd(v_TimingFirstMsg, v_T301Max_InMillisec);
+    
+    //Deactivate the default to stop receiving measurement reports for Cell10 on Cell 1
+    deactivate (v_DefaultRef);
+
+    //The local SS release is scheduled and done at the expiry of the timer t_T301Min
+    f_EUTRA_RRC_ConnectionRelease_Local (eutra_Cell1, v_TimingT301Min);
+    
+    alt {
+      //@siclog "Step 8" @siclog
+      //The SS does not respond to any RRCConnectionReestablishmentRequest message and waits for 1s to ensure that T301 expires and the UE goes to RRC_IDLE state on Cell 1.
+      [] SRB.receive (car_SRB0_RrcPdu_IND (?, cr_RRCConnectionReestablishmentRequest_AnyUE (?))) -> value v_ReceivedRrcMsg
+        {
+          v_TimingFurtherMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+          v_Duration := f_EUTRA_SubFrameTimingDuration(v_TimingFirstMsg, v_TimingFurtherMsg);
+          if (v_Duration > v_T301Max_InMillisec) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 8-9 - Unexpected RRCConnectionReestablishmentRequest after expiry of T301");
+          }
+          repeat;
+        }
+      
+      [] SRB.check (receive(car_SRB0_RrcPdu_IND (eutra_Cell1, cr_508_RRCConnectionRequest)) -> value v_ReceivedRrcMsg)
+        {
+          v_TimingFurtherMsg := v_ReceivedRrcMsg.Common.TimingInfo.SubFrame;
+          v_Duration := f_EUTRA_SubFrameTimingDuration(v_TimingFirstMsg, v_TimingFurtherMsg);
+          if (v_Duration < v_T301Min_InMillisec) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 8 - Unexpected RRCConnectionRequest before expiry of T301");
+          }
+        }
+    }
+
+    //@siclog "Steps 9-13" @siclog
+    //The UE will perform TAU procedure based on steps 1 to 5 of subclause 6.4.2.7 in TS 36.508 on Cell 1. NOTE: The UE performs a TAU procedure due to NAS signalling connection recovery.
+    f_EUTRA_TrackingAreaUpdate_WithoutRelease (eutra_Cell1);
+
+    //@siclog "Step 14" @siclog
+    //Check: Does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell 1?
+    f_EUTRA_508Check_ConnectedState (eutra_Cell1);
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell1, E2_T3440);
+  }
+
+}

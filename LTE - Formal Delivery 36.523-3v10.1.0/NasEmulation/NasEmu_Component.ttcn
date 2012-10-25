@@ -1,0 +1,59 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+
+module NasEmu_Component {
+
+  import from CommonDefs all;
+  import from EUTRA_ASP_NasCtrl all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_Component all;
+  import from NasEmu_AspTypes all;
+
+  type record NasSecurity_Type { /* @status    APPROVED */
+    NAS_SecurityInfo_Type       Integrity,
+    NAS_SecurityInfo_Type       Ciphering,
+    NasCountInfo_Type           NasCount,
+    B5_Type                     BearerId,       /* @sic R5-101050: BearerId changed to 5 bits sic@ */
+    boolean                     SecurityStarted /* can be set to true after the download of security keys since
+                                                   ciphering is assumed for all security protected NAS PDUs in UL */
+  };
+
+  type component NASEMU_PTC { /* @status    APPROVED */
+    var NasSecurity_Type        vc_NasSecurity;
+    port NASEMU_SYSTEM_PORT     SYS_SRB;
+    port NASEMU_SRB_PORT        TC_SRB;
+    port NASEMU_CTRL_PORT       CTRL;
+  };
+
+  type component NASEMU_SYSTEM {                                /* @status    APPROVED */
+    port NASEMU_SYSTEM_PORT  E_SRB;
+  };
+
+  function f_NasEmu_CreateConnectAndMap(EUTRA_PTC p_Eutra) return NASEMU_PTC
+  {
+    var NASEMU_PTC v_NASEMU_PTC := null;
+
+    if (p_Eutra != null) {
+
+      // create NAS emulation:
+      v_NASEMU_PTC := NASEMU_PTC.create alive;
+      
+      // connect NAS emulation:
+      connect(p_Eutra:NASCTRL,  v_NASEMU_PTC:CTRL);
+      connect(p_Eutra:SRB,      v_NASEMU_PTC:TC_SRB);
+      
+      // map NASEMU system ports:
+      map(v_NASEMU_PTC:SYS_SRB, system:E_SRB);
+    }
+    return v_NASEMU_PTC;
+  }
+
+}

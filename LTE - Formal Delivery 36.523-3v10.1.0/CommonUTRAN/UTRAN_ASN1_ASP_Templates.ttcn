@@ -1,0 +1,3669 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:16:58 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7304 $
+/******************************************************************************/
+
+module UTRAN_ASN1_ASP_Templates {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from UTRAN_ASP_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_RRC_CommonTemplates all;
+
+  const DL_TxPower      tsc_DL_TxPower_DPCH := -5;              /* down link transmit power level of DPCH used for CS RABS.
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_PowerpCCPCH_FDD := -2;              /* transmission power level of primary CCPCH
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_PowerpSCH := -5;                    /* transmission power level of primary SCH relative to CPICH
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_PowersCCPCH1 := -2;                 /* transmission power level of secondary CCPCH1 relative to CPICH
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_PowersSCH := -5;                    /* transmission power level of secondary SCH relative to CPICH.
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_PowerFPACH := -2;                   /* relative transmission power level of  FPACH.// Default is -5 dBm
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_DL_TxPower_DPCH_64k := -2;          /* down link transmit power level of DPCH used 64 KBPS PS RAB's
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_DL_hs_SCCH_TxPower := 3;            /* Channel power for HS-SCCH relative to CPICH.
+                                                                   Default value is +3dB
+                                                                   @status    APPROVED */
+
+  const DL_TxPower      tsc_DL_hs_PDSCH_TxPower := 7;           /* Channel power for HS-PDSCH relative to CPICH.
+                                                                   Default value is +7dB
+                                                                   @status    APPROVED */
+
+  const DL_TxPower_PCCPCH tsc_PowerpCCPCH_TDD := -60;           /* transmission power level of primary CCPCH relative to CPICH
+                                                                   @status    APPROVED */
+
+  const DL_TxPower_PCPICH tsc_PowerpCPICH := -60;               /* transmission power level of primary CPICH. The power level is specified in terms of CPICH_Ec.
+                                                                   @status    APPROVED */
+
+  const DwPCH_Power         tsc_DwPCH_power := 180;             /* @status    APPROVED */
+
+  const SCCPCHSlotFormat tsc_SlotFormatsCCPCH1 := 8;            /* channelization code for secondary CCPCH1 when spreading factor = 64, default value is 8
+                                                                   @status    APPROVED */
+
+  const AvailableSubChannelNumbers tsc_SubChNum := '111111111111'B;   /* Available subchannel numbers for PRACH, this initial value is for ts_SS_CreateCellFACH (from 34.108  cl. 6.1 (SIB5))
+                                                                         @status    APPROVED */
+
+  template (value) SS_ActivationTime cs_ActivateNow :=
+  { /* @status    APPROVED */
+    activateNow := NULL
+  };
+
+  template (value) SS_ActivationTime cs_ActivateCFN(template (value) ActivationTime p_ActTime) :=
+  { /* @status    APPROVED */
+    activationCFN := p_ActTime
+  };
+
+  template (value) RL_Information_FDD cs_RL_InfoDef_FDD(DL_TxPower p_DL_TxPower := tsc_DL_TxPower_DPCH) :=
+  { /* @status    APPROVED */
+    powerOffsetOfTFCI_PO1 := tsc_DPCH_PowerOffsetTFCI,
+    powerOffsetOfTPC_PO2 := tsc_DPCH_PowerOffsetTPC,
+    powerOffsetOfPILOT_PO3 := tsc_DPCH_PowerOffsetPILOT,
+    dl_TxPower := p_DL_TxPower,
+    dl_TxPowerMax := 15,
+    dl_TxPowerMin := -35,
+    cfnTgtSfnFrameOffset := omit,
+    dl_FDPCH_ShoConfig := omit
+  };
+
+    template (value) RL_Information_TDD cs_RL_InfoDef_TDD(DL_TxPower p_DL_TxPower := tsc_DL_TxPower_DPCH) :=
+  { /* @status    APPROVED */
+    powerOffsetOfTFCI_PO1 := tsc_DPCH_PowerOffsetTFCI,
+    powerOffsetOfTPC_PO2 := tsc_DPCH_PowerOffsetTPC,
+    powerOffsetOfPILOT_PO3 := tsc_DPCH_PowerOffsetPILOT,
+    dl_TxPower := p_DL_TxPower,
+    dl_TxPowerMax := 15,
+    dl_TxPowerMin := -35,
+    cfnTgtSfnFrameOffset := omit,
+    dL_TimeslotISCPInfoLCR := omit
+  };
+
+  template (value) DL_DPCHInfo_r8_FDD cs_DL_DPCH_SRB_StandAloneDPCH_FDD(template (omit) SecondaryScramblingCode p_SecondaryScramblingCode) :=
+  { /* @status    APPROVED */
+    dl_CommonInformation := cs_DL_CommonInfoDCH_SRB_FDD(tsc_DL_DPCH1_SFP_SRB, fixed, false),
+    dl_Dpch_InfoPerRL := {
+      dl_DPCH_InfoPerRL := cs_DL_DPCH_InfoPerRL_SRB_FDD( tsc_DL_DPCH1_ChC_SRB, p_SecondaryScramblingCode )
+    },
+    rl_Information := cs_RL_InfoDef_FDD
+  };
+
+  template (value) DL_DPCHInfo_r8_TDD cs_DL_DPCH_SRB_StandAlone_TDD :=
+  { /* @status    APPROVED */
+    dl_CommonInformation := cs_DL_CommonInfo_TDD,
+    dl_Dpch_InfoPerRL := {
+      dl_DPCH_InfoPerRL := cs_DL_DPCH_InfoPerRL_SRB_TDD
+    },
+    rl_Information := cs_RL_InfoDef_TDD
+  };
+
+  template (value) TimeSlotConfiguration_LCR cs_TimeSlotConfig_LCR_Active(TimeslotNumber_LCR_r4 p_TimeslotNumber,
+                                                                          TimeSlotConfiguration_LCR.timeSlotDirection p_Dirction) :=
+  { /* @status    APPROVED */
+    timeSlotLCR := p_TimeslotNumber,
+    timeSlotStatus := active,
+    timeSlotDirection := p_Dirction
+  };
+
+  template (value) TimeSlotConfigurationList_LCR cs_Default_TimeSlot_Config_List :=
+  { /* Default_TimeSlot_Config_List; TDD only */
+    /* @status    APPROVED */
+    cs_TimeSlotConfig_LCR_Active(1, uplink),
+    cs_TimeSlotConfig_LCR_Active(2, uplink),
+    cs_TimeSlotConfig_LCR_Active(3, uplink),
+    cs_TimeSlotConfig_LCR_Active(4, downlink),
+    cs_TimeSlotConfig_LCR_Active(5, downlink),
+    cs_TimeSlotConfig_LCR_Active(6, downlink)
+  };
+
+  template (value) TrChConfigType cs_TrChConfigTypeDCH_NoSHO := { dch := normal };   /* @status    APPROVED */
+
+  template (value) TrChConfigType cs_TrChConfigTypeNonDCH    := { nonDch := NULL };  /* @status    APPROVED */
+
+  template (value) TrCHInfo cs_TrChInfoBCH1_FDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    ulTFCS := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_BCH1,
+        transportChannelInfo := {
+          tti := {
+            tti20 := {
+              {
+                tb_Size := 246,
+                numberOfTbSizeList := {
+                  { one := NULL }
+                },
+                logicalChannelList := {
+                  configured := NULL
+                }
+              }
+            }
+          },
+          semistaticTF_Information := {
+            channelCodingType := {
+              convolutional := half
+            },
+            rateMatchingAttribute := 1,
+            crc_Size := crc16
+          }
+        }
+      }
+    },
+    dlTFCS := cs_TFCS_Cmpl0(cs_PowerOffsetInfoBelow64k),
+    hsDSCHMacdFlows := omit,
+    ehs_DSCH_Flows := omit,
+    ehs_DSCH_CommonFlows := omit,
+    ehs_DSCH_Flows_r9 := omit
+  };
+
+  template (value) TrCHInfo cs_TrChInfoRACH1_FDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      {
+        trchid := tsc_RACH1,
+        transportChannelInfo := cs_RACH_TFS_FDD
+      }
+    },
+    ulTFCS := cs_TFCS_Cmpl0_1_2_Rx,     // sent to SS
+    dlconnectedTrCHList := omit,
+    dlTFCS := omit,
+    hsDSCHMacdFlows := omit,
+    ehs_DSCH_Flows := omit,
+    ehs_DSCH_CommonFlows := omit,
+    ehs_DSCH_Flows_r9 := omit
+  };
+
+  template (value) TrCHInfo cs_TrChInfoPCH_FACH_PS_FDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    ulTFCS := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_PCH1,
+        transportChannelInfo := cs_PCH_TFS_FDD
+      },
+      {
+        trchid := tsc_FACH1,
+        transportChannelInfo := cs_FACH_TFS_FDD
+      },
+      {
+        trchid := tsc_FACH2,
+        transportChannelInfo := cs_FACH_TFS_PS_FDD
+      }
+    },
+    dlTFCS := cs_TFCS_CmplFACH_Tx(cs_PowerOffsetInfoBelow64k),     // sent to SS
+    hsDSCHMacdFlows := omit,
+    ehs_DSCH_Flows := omit,
+    ehs_DSCH_CommonFlows := omit,
+    ehs_DSCH_Flows_r9 := omit
+   };
+
+  template (value) TrCHInfo cs_TrChInfoDL_13_6_StandAlone_FDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    ulTFCS := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_DL_DCH5,
+        transportChannelInfo := cs_DCH_148_TTI_10_TFS_FDD
+      }
+    },
+    dlTFCS := cs_TFCS_Cmpl0_1_Tx_FDD(cs_PowerOffsetInfoBelow64k),
+    hsDSCHMacdFlows := omit,
+    ehs_DSCH_Flows := omit,
+    ehs_DSCH_CommonFlows := omit,
+    ehs_DSCH_Flows_r9 := omit
+  };
+
+  template (value) TrCHInfo cs_TrChInfoUL_13_6_StandAlone_FDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      {
+        trchid := tsc_UL_DCH5,
+        transportChannelInfo := cs_DCH_148_TTI_10_TFS_FDD
+      }
+    },
+    ulTFCS := cs_TFCS_Cmpl0_1_Rx,     // sent to SS
+    dlconnectedTrCHList := omit,
+    dlTFCS := omit,
+    hsDSCHMacdFlows := omit,
+    ehs_DSCH_Flows := omit,
+    ehs_DSCH_CommonFlows := omit,
+    ehs_DSCH_Flows_r9 := omit
+  };
+
+  template (value) TrCHInfo_TDD cs_TrChInfoBCH1_TDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    ulTFCS := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_BCH1,
+        transportChannelInfo := {
+          tfsMode := {
+            commonTransChTFS := {
+              tti := {
+                tti20 := {
+                  {
+                    rlc_Size := {
+                      tdd := {
+                        commonTDD_Choice := {
+                          bitModeRLC_SizeInfo := {
+                            sizeType2 := {
+                              part1 := 14,
+                              part2 := 6
+                            }
+                          }
+                        }
+                      }
+                    },
+                    numberOfTbSizeList := {
+                      {
+                        one := NULL
+                      }
+                    },
+                    logicalChannelList := {
+                      configured := NULL
+                    }
+                  }
+                }
+              },
+              semistaticTF_Information := {
+                channelCodingType := {
+                  convolutional := half
+                },
+                rateMatchingAttribute := 1,
+                crc_Size := crc16
+              }
+            }
+          }
+        }
+      }
+    },
+    dlTFCS := cs_TFCS_Cmpl0_TDD,
+    hsDSCHMacdFlows := omit
+  };
+
+  template (value) TrCHInfo_TDD cs_TrChInfoRACH1_TDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      {
+        trchid := tsc_RACH1,
+        transportChannelInfo := cs_RACH_TFS_TDD
+      }
+    },
+    ulTFCS := cs_TFCS_Cmpl0_1_2_Rx,     // sent to SS
+    dlconnectedTrCHList := omit,
+    dlTFCS := omit,
+    hsDSCHMacdFlows := omit
+  };
+
+  template (value) TrCHInfo_TDD cs_TrChInfoPCH_FACH_PS_TDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    ulTFCS := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_PCH1,
+        transportChannelInfo := cs_PCH_TFS_TDD
+      },
+      {
+        trchid := tsc_FACH1,
+        transportChannelInfo := cs_FACH_TFS_TDD
+      }
+    },
+    dlTFCS := cs_TFCS_SCCPCH_LCR,     // sent to SS
+    hsDSCHMacdFlows := omit
+  };
+
+  template (value) TrCHInfo_TDD cs_TrChInfoDL_13_6_StandAlone_TDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    ulTFCS := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_DL_DCH5,
+        transportChannelInfo := cs_DCH_148_TTI_10_TFS_TDD
+      }
+    },
+    dlTFCS := cs_TFCS_Cmpl0_1_Tx_TDD,
+    hsDSCHMacdFlows := omit
+  };
+
+  template (value) TrCHInfo_TDD cs_TrChInfoUL_13_6_StandAlone_TDD :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      {
+        trchid := tsc_UL_DCH5,
+        transportChannelInfo := cs_DCH_148_TTI_10_TFS_TDD
+      }
+    },
+    ulTFCS := cs_TFCS_Cmpl0_1_Rx,     // sent to SS
+    dlconnectedTrCHList := omit,
+    dlTFCS := omit,
+    hsDSCHMacdFlows := omit
+  };
+
+  template (value) TrCH_LogicalChannelMapping cs_TrCH_LogicalChannelMapping_DL(SS_DL_TransportChannelType p_TransportChannelType,
+                                                                               LogicalChannelIdentity     p_LogicalChannelIdentity,
+                                                                               LogicalChannelType         p_LogicalChannelType,
+                                                                               MAC_LogicalChannelPriority p_LogicalChannelPriority,
+                                                                               integer p_RB_Identity) :=
+  { /* @status    APPROVED */
+    logicalChannel_Mapping := {
+      dl_LogicalChannelMapping := {
+        macHeaderManipulation := normalMacHeader,
+        dl_TransportChannelType := p_TransportChannelType,
+        logicalChannelIdentity := p_LogicalChannelIdentity,
+        logicalChannelType := p_LogicalChannelType,
+        rlc_SizeList := {
+          configured := NULL
+        },
+        mac_LogicalChannelPriority := p_LogicalChannelPriority
+      }
+    },
+    rB_Identity := p_RB_Identity,
+    cn_DomainIdentity := omit
+  };
+
+  template (value) TrCH_LogicalChannelMapping cs_TrCH_LogicalChannelMapping_DL_RB25 :=
+  { /* @status    APPROVED */
+    logicalChannel_Mapping := {
+      dl_LogicalChannelMapping := {
+        macHeaderManipulation := normalMacHeader,
+        dl_TransportChannelType := hsdsch,
+        logicalChannelIdentity := tsc_DL_DTCH1,
+        logicalChannelType := dTCH,
+        rlc_SizeList := {
+          explicitList := {
+            {
+              rlc_SizeIndex := 1
+            }
+          }
+        },
+        mac_LogicalChannelPriority := 8
+      }
+    },
+    rB_Identity := tsc_RB25,
+    cn_DomainIdentity := ps_domain
+  };
+
+  template (value) TrCH_LogicalChannelMapping cs_TrCH_LogicalChannelMapping_UL(SS_UL_TransportChannelType p_TransportChannelType,
+                                                                               LogicalChannelIdentity     p_LogicalChannelIdentity,
+                                                                               LogicalChannelType         p_LogicalChannelType,
+                                                                               integer p_RB_Identity) :=
+  { /* @status    APPROVED */
+    logicalChannel_Mapping := {
+      ul_LogicalChannelMapping := {
+        macHeaderManipulation := normalMacHeader,
+        ul_TransportChannelType := p_TransportChannelType,
+        logicalChannelIdentity := p_LogicalChannelIdentity,
+        logicalChannelType := p_LogicalChannelType
+      }
+    },
+    rB_Identity := p_RB_Identity,
+    cn_DomainIdentity := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingPCH_FACH_CellDCH :=
+  { /* For FDD mode only. map PCCH to PCH and CCCH and BCCH(for BCCH_FACH)
+       To be used for the Cell DCH configuration
+       @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_PCH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(pch, tsc_PCCH1, pCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB_PCCH)
+        }
+      },
+      {
+        trchid := tsc_FACH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_CCCH5, cCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB0)
+        }
+      }
+    },
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingPCH_FACH_PS_FDD :=
+  { /* For FDD mode only (PS). map PCCH to PCH and DCCH1, DCCH2, DCCH3, DCCH4, CCCH, BCCH(for BCCH_FACH) to FACH1, and DTCH to FACH2
+       @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_PCH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(pch, tsc_PCCH1, pCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB_PCCH)
+        }
+      },
+      {
+        trchid := tsc_FACH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_BCCH6, bCCH, tsc_MAC_LogicalChannelPrio6, tsc_RB_BCCH_FACH),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_CCCH5, cCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB0),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH1, dCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB1),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH2, dCCH, tsc_MAC_LogicalChannelPrio2, tsc_RB2),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH3, dCCH, tsc_MAC_LogicalChannelPrio3, tsc_RB3),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH4, dCCH, tsc_MAC_LogicalChannelPrio4, tsc_RB4)
+        }
+      },
+      {
+        trchid := tsc_FACH2,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DTCH1, dTCH, tsc_MAC_LogicalChannelPrio8, tsc_RB20)
+        }
+      }
+    },
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingPCH_FACH_PS_TDD :=
+  { /* For LCR TDD mode only (PS). map PCCH to PCH and DCCH1, DCCH2, DCCH3, DCCH4, CCCH, BCCH(for BCCH_FACH) and DTCH to FACH1
+       @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_PCH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(pch, tsc_PCCH1, pCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB_PCCH)
+        }
+      },
+      {
+        trchid := tsc_FACH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_BCCH6, bCCH, tsc_MAC_LogicalChannelPrio6, tsc_RB_BCCH_FACH),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_CCCH5, cCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB0),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH1, dCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB1),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH2, dCCH, tsc_MAC_LogicalChannelPrio2, tsc_RB2),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH3, dCCH, tsc_MAC_LogicalChannelPrio3, tsc_RB3),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DCCH4, dCCH, tsc_MAC_LogicalChannelPrio4, tsc_RB4),
+          cs_TrCH_LogicalChannelMapping_DL(fach, tsc_DL_DTCH1, dCCH, tsc_MAC_LogicalChannelPrio8, tsc_RB20)
+        }
+      }
+    },
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingRACH2 :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      {
+        trchid := tsc_RACH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_UL(rach, tsc_UL_CCCH5, cCCH, tsc_RB0)
+        }
+      }
+    },
+    dlconnectedTrCHList := omit,
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingBCH1 :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_BCH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(bch, tsc_BCCH1, bCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB_BCCH)
+        }
+      }
+    },
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingDL_4DCCH :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := omit,
+    dlconnectedTrCHList := {
+      {
+        trchid := tsc_DL_DCH5,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_DL(dch, tsc_DL_DCCH1, dCCH, tsc_MAC_LogicalChannelPrio1, tsc_RB1),
+          cs_TrCH_LogicalChannelMapping_DL(dch, tsc_DL_DCCH2, dCCH, tsc_MAC_LogicalChannelPrio2, tsc_RB2),
+          cs_TrCH_LogicalChannelMapping_DL(dch, tsc_DL_DCCH3, dCCH, tsc_MAC_LogicalChannelPrio3, tsc_RB3),
+          cs_TrCH_LogicalChannelMapping_DL(dch, tsc_DL_DCCH4, dCCH, tsc_MAC_LogicalChannelPrio4, tsc_RB4)
+        }
+      }
+    },
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingUL_4DCCH :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      {
+        trchid := tsc_UL_DCH5,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_UL(dch, tsc_UL_DCCH1, dCCH, tsc_RB1),
+          cs_TrCH_LogicalChannelMapping_UL(dch, tsc_UL_DCCH2, dCCH, tsc_RB2),
+          cs_TrCH_LogicalChannelMapping_UL(dch, tsc_UL_DCCH3, dCCH, tsc_RB3),
+          cs_TrCH_LogicalChannelMapping_UL(dch, tsc_UL_DCCH4, dCCH, tsc_RB4)
+        }
+      }
+    },
+    dlconnectedTrCHList := omit,
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cds_TrLogMappingUL_4DCCH_RRC_RB3 modifies cs_TrLogMappingUL_4DCCH :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      [0] := {
+        trCH_LogCHMappingList := {
+          [2] := {
+            rB_Identity := tsc_RB3_DCCH_RRC
+          }
+        }
+      }
+    }
+  };
+
+  template (value) TrCH_LogCHMappingList1 cs_TrLogMappingRACH_DTCH :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      {
+        trchid := tsc_RACH1,
+        trCH_LogCHMappingList := {
+          cs_TrCH_LogicalChannelMapping_UL(rach, tsc_UL_CCCH5, cCCH, tsc_RB0),
+          cs_TrCH_LogicalChannelMapping_UL(rach, tsc_UL_DCCH1, dCCH, tsc_RB1),
+          cs_TrCH_LogicalChannelMapping_UL(rach, tsc_UL_DCCH2, dCCH, tsc_RB2),
+          cs_TrCH_LogicalChannelMapping_UL(rach, tsc_UL_DCCH3, dCCH, tsc_RB3),
+          cs_TrCH_LogicalChannelMapping_UL(rach, tsc_UL_DCCH4, dCCH, tsc_RB4),
+          cs_TrCH_LogicalChannelMapping_UL(rach, tsc_UL_DTCH1, dTCH, tsc_RB20)
+        }
+      }
+    },
+    dlconnectedTrCHList := omit,
+    dlconnectedMACdFlows := omit,
+    dlconnectedMAC_ehsFlows := omit,
+    dlconnectedMAC_ehsCommonFlows := omit,
+    dlconnectedMAC_ehsFlowsDC := omit
+  };
+
+  template (value) TrCH_LogCHMappingList1 cds_TrLogMappingRACH_DTCH_RRC_RB3 modifies cs_TrLogMappingRACH_DTCH :=
+  { /* @status    APPROVED */
+    ulconnectedTrCHList := {
+      [0] := {
+        trCH_LogCHMappingList := {
+          [3] := {
+            rB_Identity := tsc_RB3_DCCH_RRC
+          }
+        }
+      }
+    }
+  };
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD(RadioFrequencyBandFDD p_RadioFrequencyBandFDD) :=
+  { /* @status    APPROVED */
+    frequencyBandIndicator := p_RadioFrequencyBandFDD
+  };
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD2(RadioFrequencyBandFDD2 p_RadioFrequencyBandFDD2) :=
+  { /* @status    APPROVED */
+    frequencyBandIndicator2 := p_RadioFrequencyBandFDD2
+  };
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD3(RadioFrequencyBandFDD3 p_RadioFrequencyBandFDD3) :=
+  { /* @status    APPROVED */
+    frequencyBandIndicator3 := p_RadioFrequencyBandFDD3
+  };
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_1 := cs_RadioFrequencyBandFDD(fdd2100);    /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_2 := cs_RadioFrequencyBandFDD(fdd1900);    /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_3 := cs_RadioFrequencyBandFDD(fdd1800);    /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_4 := cs_RadioFrequencyBandFDD(bandIV);     /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_5 := cs_RadioFrequencyBandFDD(bandV);      /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_6 := cs_RadioFrequencyBandFDD(bandVI);     /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_7 := cs_RadioFrequencyBandFDD(bandVII);    /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_8 := cs_RadioFrequencyBandFDD2(bandVIII);  /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_9 := cs_RadioFrequencyBandFDD2(bandIX);    /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_10 := cs_RadioFrequencyBandFDD2(bandX);    /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_11 := cs_RadioFrequencyBandFDD2(bandXI);   /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_12 := cs_RadioFrequencyBandFDD2(bandXII);  /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_13 := cs_RadioFrequencyBandFDD2(bandXIII); /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_14 := cs_RadioFrequencyBandFDD2(bandXIV);  /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_15 := cs_RadioFrequencyBandFDD2(bandXV);   /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_16 := cs_RadioFrequencyBandFDD2(bandXVI);  /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_17 := cs_RadioFrequencyBandFDD2(bandXVII); /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_18 := cs_RadioFrequencyBandFDD2(bandXVIII);/* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_19 := cs_RadioFrequencyBandFDD2(bandXIX);  /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_20 := cs_RadioFrequencyBandFDD2(bandXX);   /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_21 := cs_RadioFrequencyBandFDD2(bandXXI);  /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_22 := cs_RadioFrequencyBandFDD2(bandXXII); /* @status    APPROVED */
+
+  template (value) FrequencyBandFDD cs_RadioFrequencyBandFDD_25 := cs_RadioFrequencyBandFDD3(bandXXV);  /* @status    APPROVED */
+
+  template (value) CommonOrDedicatedTFS cs_DCH_148_TTI_10_TFS_FDD :=
+  { /* @status    APPROVED */
+    tti := {
+      tti10 := {
+        {
+          tb_Size := 148,
+          numberOfTbSizeList := {
+            { zero := NULL },
+            { one := NULL }
+          },
+          logicalChannelList := {
+            allSizes := NULL
+          }
+        }
+      }
+    },
+    semistaticTF_Information := {
+      channelCodingType := {
+        convolutional := third
+      },
+      rateMatchingAttribute := 160,     // dummy value, value is not needed for 13.6 kbps
+      crc_Size := crc16
+    }
+  };
+
+  template (value) CommonOrDedicatedTFS cs_FACH_TFS_FDD :=
+  { /* @status    APPROVED */
+    tti := {
+      tti10 := {
+        {
+          tb_Size := 168,
+          numberOfTbSizeList := { {zero := NULL},
+                                  {one := NULL},
+                                  {small := 2} },
+          logicalChannelList := {allSizes := NULL}
+        }
+      }
+    },
+    semistaticTF_Information :=
+    {
+      channelCodingType := {convolutional := half},
+      rateMatchingAttribute := 220,
+      crc_Size := crc16
+    }
+  };
+
+  template (value) CommonOrDedicatedTFS cs_FACH_TFS_PS_FDD :=
+  { /* @status    APPROVED */
+    tti := {
+      tti10 := {
+        {
+          tb_Size := 360,
+          numberOfTbSizeList := { {zero := NULL},
+                                  {one := NULL} },
+          logicalChannelList := {allSizes := NULL}
+        }
+      }
+    },
+    semistaticTF_Information :=
+    {
+      channelCodingType := {turbo := NULL},
+      rateMatchingAttribute := 130,
+      crc_Size := crc16
+    }
+  };
+
+  template (value) CommonOrDedicatedTFS cs_PCH_TFS_FDD :=
+  { /* @status    APPROVED */
+    tti := {
+      tti10 := {
+        {
+          tb_Size := 240,
+          numberOfTbSizeList := { {zero := NULL},
+                                  {one := NULL} },
+          logicalChannelList := {allSizes := NULL}
+        }
+      }
+    },
+    semistaticTF_Information :=
+    {
+      channelCodingType := {convolutional := half},
+      rateMatchingAttribute := 230,
+      crc_Size := crc16
+    }
+  };
+
+  template (value) CommonOrDedicatedTFS cs_RACH_TFS_FDD :=
+  { /* @status    APPROVED */
+    tti := {
+      tti20 := {
+        {
+          tb_Size := 168,
+          numberOfTbSizeList := {
+            { one := NULL }
+          },
+          logicalChannelList := {
+            configured := NULL   // @sic R5s110278 sic@
+          }
+        },
+        {
+          tb_Size := 360,
+          numberOfTbSizeList := {
+            { one := NULL }
+          },
+          logicalChannelList := {
+            configured := NULL
+          }
+        },
+        {
+          tb_Size := 240,
+          numberOfTbSizeList := {
+            { one := NULL }
+          },
+          logicalChannelList := {
+            explicitList := {
+              { rb_Identity := tsc_RB0,
+                logChOfRb := omit }
+            }
+          }
+        }
+      }
+    },
+    semistaticTF_Information := {
+      channelCodingType := {
+        convolutional := half
+      },
+      rateMatchingAttribute := 150,
+      crc_Size := crc16
+    }
+  };
+
+  template (value) CommonOrDedicatedTFS_TDD cs_DCH_148_TTI_10_TFS_TDD :=
+  { /* @status    APPROVED */
+    tfsMode := {dedicatedTransChTFS := cs_DCH_148_TTI_10_TFS_UE}
+  };
+
+  template (value) CommonOrDedicatedTFS_TDD cs_FACH_TFS_TDD :=
+  { /* @status    APPROVED */
+    tfsMode := { commonTransChTFS := cs_FACH_TFS_UE_TDD}
+  };
+
+  template (value) CommonOrDedicatedTFS_TDD cs_PCH_TFS_TDD :=
+  { /* @status    APPROVED */
+    tfsMode := { commonTransChTFS := cs_PCH_TFS_UE_TDD}
+  };
+
+  template (value) CommonOrDedicatedTFS_TDD cs_RACH_TFS_TDD :=
+  { /* @status    APPROVED */
+    tfsMode := {
+      commonTransChTFS_LCR := cs_RACH_TFS_LCR
+    }
+  };
+
+  template (value) IntegrityProtActivationInfoList cs_RestRB_IntegrityProtActivationInfoList(RRC_MessageSequenceNumber p_SN0,
+                                                                                             RRC_MessageSequenceNumber p_SN1,
+                                                                                             RRC_MessageSequenceNumber p_SN3,
+                                                                                             RRC_MessageSequenceNumber p_SN4) :=
+  { /* @status    APPROVED */
+    {
+      rb_Identity := tsc_RB0,
+      rrc_MessageSequenceNumber := p_SN0
+    },
+    {
+      rb_Identity := tsc_RB1,
+      rrc_MessageSequenceNumber := p_SN1
+    },
+    {
+      rb_Identity := tsc_RB3,
+      rrc_MessageSequenceNumber := p_SN3
+    },
+    {
+      rb_Identity := tsc_RB4,
+      rrc_MessageSequenceNumber := p_SN4
+    }
+  };
+
+  template (value) IntegrityProtActivationInfoList cs_RB2_IntegrityProtActivationInfoList(RRC_MessageSequenceNumber p_RRCSN) :=
+  { /* @status    APPROVED */
+    {
+      rb_Identity := tsc_RB2,
+      rrc_MessageSequenceNumber := p_RRCSN
+    }
+  };
+
+  template (value) IntegrityProtectionModeInfo_r7 cs_IntegrityProtectModify_P(RRC_MessageSequenceNumber p_P1,
+                                                                              RRC_MessageSequenceNumber p_P2,
+                                                                              RRC_MessageSequenceNumber p_P3,
+                                                                              RRC_MessageSequenceNumber p_P4,
+                                                                              RRC_MessageSequenceNumber p_P5,
+                                                                              IntegrityProtectionAlgorithm_r7 p_IntegrityAlg) :=
+  { /* @status    APPROVED */
+    integrityProtectionModeCommand := {
+      modify := {
+        dl_IntegrityProtActivationInfo := {
+          rrc_MessageSequenceNumberList := {
+            p_P1,
+            p_P2,
+            p_P3,
+            p_P4,
+            p_P5
+          }     // fixed reasonable value
+        }
+      }
+    },
+    integrityProtectionAlgorithm := p_IntegrityAlg
+  };
+
+  template (value) RB_LogCH_Mapping cs_RB_LogCH_Mapping(template (omit) LogicalChannelIdentity p_LogChUL,
+                                                        template (omit) LogicalChannelIdentity p_LogChDL) :=
+  { /* @status    APPROVED */
+    uLlogicalChannelIdentity := p_LogChUL,
+    dLlogicalChannelIdentity := p_LogChDL,
+    logicalChannelType := omit,
+    cn_DomainIdentity := omit
+  };
+
+  template (value) UE_Info cs_UE_Info(template (omit) U_RNTI    p_U_RNTI := omit,
+                                      template (omit) bitstring p_CRNTI := omit) :=
+  { /* @status    APPROVED */
+    u_RNTI := p_U_RNTI,
+    c_RNTI := p_CRNTI
+  };
+
+  template (value) IndividualTimeslotInfo_LCR_r4 cs_IndividualTimeslotInfo_LCR_r4_SCCPCH :=
+  { /* TDD only */
+    /* @status    APPROVED */
+    timeslotNumber := 0,
+    tfci_Existence := true,
+    midambleShiftAndBurstType := {
+      midambleAllocationMode := {defaultMidamble := NULL},
+      midambleConfiguration := 4
+    },
+    modulation := mod_QPSK,
+    ss_TPC_Symbols := zero,
+    additionalSS_TPC_Symbols := omit
+  };
+
+  template (value) CphyUlConnectedTrCH_Type cs_CphyUlConnectedTrCH_FDD_DCH(TransportChannelIdentity p_TransportChannelIdentity,
+                                                                           template (value) CommonOrDedicatedTFS p_CommonOrDedicatedTFS) :=
+  { /* @status    APPROVED */
+    trchid := p_TransportChannelIdentity,
+    ul_TransportChannelType := dch,
+    transportChannelInfo := p_CommonOrDedicatedTFS
+  };
+
+  template (value) CphyDlConnectedTrCH_Type cs_CphyDlConnectedTrCH_FDD_DCH(TransportChannelIdentity p_TransportChannelIdentity,
+                                                                           template (value) CommonOrDedicatedTFS p_CommonOrDedicatedTFS) :=
+  { /* @status    APPROVED */
+    trchid := p_TransportChannelIdentity,
+    dl_TransportChannelType := dch,
+    transportChannelInfo := p_CommonOrDedicatedTFS
+  };
+
+  template (value) CphyUlConnectedTrCH_TDD_Type cs_CphyUlConnectedTrCH_TDD_DCH(TransportChannelIdentity p_TransportChannelIdentity,
+                                                                               template (value) CommonOrDedicatedTFS_TDD p_CommonOrDedicatedTFS) :=
+  { /* @status    APPROVED */
+    trchid := p_TransportChannelIdentity,
+    ul_TransportChannelType := dch,
+    transportChannelInfo := p_CommonOrDedicatedTFS
+  };
+
+  template (value) CphyDlConnectedTrCH_TDD_Type cs_CphyDlConnectedTrCH_TDD_DCH(TransportChannelIdentity p_TransportChannelIdentity,
+                                                                               template (value) CommonOrDedicatedTFS_TDD p_CommonOrDedicatedTFS) :=
+  { /* @status    APPROVED */
+    trchid := p_TransportChannelIdentity,
+    dl_TransportChannelType := dch,
+    transportChannelInfo := p_CommonOrDedicatedTFS
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_CPHY_Cell_Release_REQ (UTRAN_CellId_Type p_CellId,
+                                                                RB_ConfigType p_RBConfig) :=
+  { /* @status    APPROVED */
+    cellRelease := {
+      soft_Reset := false,
+      cell_ID_List := {enum2int(p_CellId)},
+      rb_Config_List := {enum2int(p_RBConfig)}  // @sic R5s110176, R5-112591 sic@
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_CPHY_Cell_Release_CNF(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    cellRelease :={
+      soft_Reset := false,
+      cell_ID_List := {
+        enum2int(p_CellId)
+      }
+    }
+  };
+
+  template (value) AICH_Info cs_AICH_Info :=
+  { /* @status    APPROVED */
+    channelisationCode256 := tsc_AICH1_ChC,
+    sttd_Indicator := false,
+    aich_TransmissionTiming := e0
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_AichInfo(UTRAN_CellId_Type p_CellId,
+                                                  integer p_PhyChId,
+                                                  template (value) AICH_Info p_AICH_Info,
+                                                  AICH_PowerOffset p_TxPower) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          aICHInfo := {
+            aichinfo := p_AICH_Info,
+            dl_TxPower := p_TxPower,
+            e_AI_Info := omit
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PCCPCH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                         DL_TxPower p_TxPower) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := tsc_P_CCPCH
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          primaryCCPCHInfo := {
+            sttd_Indicator := false,
+            dl_TxPower := p_TxPower
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) CommonTimeslotInfo cs_CommonTimeslotInfo_PCCPCH :=
+  { /* @status    APPROVED */
+    secondInterleavingMode := frameRelated,
+    tfci_Coding := omit,
+    puncturingLimit := pl1,
+    repetitionPeriodAndLength := { repetitionPeriod1 := NULL }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PCCPCH_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                         DL_TxPower_PCCPCH p_DL_TxPower_PCCPCH ) :=
+  { /* @status    APPROVED */
+    rlSetup_TDD := {
+      cellId := enum2int(p_CellId),
+      secondaryFrequency := omit,
+      routingInfo := {
+        physicalChannelIdentity := tsc_P_CCPCH
+      },
+      ratType := tdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          primaryCCPCHInfo := {
+            sctd_Indicator := notApplied,
+            tstd_Indicator := notApplied,
+            commonTimeSlotInfo := cs_CommonTimeslotInfo_PCCPCH,
+            dL_TxPower_PCCPCH := p_DL_TxPower_PCCPCH
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_BCH_InfoActNow_FDD(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    trchConfig_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := tsc_P_CCPCH
+      },
+      ratType := fdd,
+      trchConfigType := cs_TrChConfigTypeNonDCH,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := omit,
+        ulTFCS := omit,
+        dlconnectedTrCHList := {
+          {
+            trchid := tsc_BCH1,
+            dl_TransportChannelType := bch,
+            transportChannelInfo := {
+              tti := {
+                tti20 := {
+                  {
+                    tb_Size := 246,
+                    numberOfTbSizeList := {
+                      { one := NULL }
+                    },
+                    logicalChannelList := {
+                      configured := NULL
+                    }
+                  }
+                }
+              },
+              semistaticTF_Information := {
+                channelCodingType := {
+                  convolutional := half
+                },
+                rateMatchingAttribute := 1,
+                crc_Size := crc16
+              }
+            }
+          }
+        },
+        dlTFCS := cs_TFCS_Cmpl0(cs_PowerOffsetInfoBelow64k),
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit,
+        ehs_DSCH_Flows_r9 := omit        // @sic R5s110176 sic@
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_BCH_InfoActNow_TDD(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    trchConfig_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := tsc_P_CCPCH
+      },
+      ratType := tdd,
+      trchConfigType := cs_TrChConfigTypeNonDCH,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := omit,
+        ulTFCS := omit,
+        dlconnectedTrCHList := {
+          {
+            trchid := tsc_BCH1,
+            dl_TransportChannelType := bch,
+            transportChannelInfo := {
+              tfsMode := { commonTransChTFS := cs_BCH_246_TTI_20_TFS_LCR }
+            }
+          }
+        },
+        dlTFCS := cs_TFCS_Cmpl0_TDD,
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_CellCfgReq_FDD(UTRAN_CellId_Type p_CellId,
+                                                        integer p_Tcell,
+                                                        FrequencyInfo p_FreqInfo,
+                                                        integer p_PriScmCode,
+                                                        integer p_DL_TxAttenLevel,
+                                                        integer p_SfnOffset,
+                                                        CellTxPowerLevel p_TotalCellPower,
+                                                        FrequencyBandFDD p_FrequencyBandFDD) :=
+  { /* @status    APPROVED */
+    cellConfig_FDD := {
+      cellId := enum2int(p_CellId),
+      tcell := p_Tcell,
+      sfnOffset := p_SfnOffset,
+      frequencyInfo := p_FreqInfo,
+      primaryScramblingCode_SS := p_PriScmCode,
+      cellTxPowerLevel := p_TotalCellPower,
+      dLTxAttenuationLevel := p_DL_TxAttenLevel,
+      frequencyBandIndicator := p_FrequencyBandFDD
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_CellCfgReq_TDD(UTRAN_CellId_Type p_CellId,
+                                                        FrequencyInfo p_FreqInfo,
+                                                        CellParametersID p_CellParametersID,
+                                                        integer p_DL_TxAttenLevel,
+                                                        integer p_SfnOffset,
+                                                        CellTxPowerLevel p_TotalCellPower,
+                                                        DwPCHInfo p_DwPCHInfo) :=
+  { /* @status    APPROVED */
+    cellConfig_TDD := {
+      cellId := enum2int(p_CellId),
+      sfnOffset := p_SfnOffset,
+      frequencyInfo := p_FreqInfo,
+      cellTxPowerLevel := p_TotalCellPower,
+      dLTxAttenuationLevel := p_DL_TxAttenLevel,
+      cellParametersID := p_CellParametersID,
+      timeSlotConfigurationList_LCR := cs_Default_TimeSlot_Config_List,
+      dwPCHInfo := p_DwPCHInfo,
+      transmissionDiversityApplied := notApplied,
+      secondaryFrequencyInfo := omit,
+      upPCHposition := omit
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_CellCfgCnf(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    cellConfig := { cellId := enum2int(p_CellId) }
+  };
+
+  template U_CPHY_CONFIG_CNF car_CellTxPowerModifyCnf(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    txPower := {
+      cellId := enum2int(p_CellId)
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_CellTxPowerModifyReq(UTRAN_CellId_Type p_CellId,
+                                                              integer p_DL_TxAttenLevel) :=
+  { /* @status    APPROVED */
+    txPower := {
+      cellId := enum2int(p_CellId),
+      dLTxAttenuationLevel := p_DL_TxAttenLevel
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_DL_DPCH_SetupInfo_FDD(UTRAN_CellId_Type p_CellId,
+                                                               integer p_PhyChId,
+                                                               template (value) DL_DPCHInfo_r8_FDD p_DL_DPCHInfo,
+                                                               template (value) SS_ActivationTime p_SS_ActTime) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          dPCHInfo_r5 := {
+            r8 := {
+              ul_DPCHInfo := omit,
+              dl_DPCHInfo := p_DL_DPCHInfo,
+              hs_DPCCHInd := omit,
+              ss_UL_DPCCH_DRX_Info := omit,
+              ss_DRX_Info := omit
+            }
+          }
+        },
+        activationTime := p_SS_ActTime,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_DL_DPCH_SetupInfo_TDD(UTRAN_CellId_Type p_CellId,
+                                                               integer p_PhyChId,
+                                                               template (value) DL_DPCHInfo_r8_TDD p_DL_DPCHInfo,
+                                                               template (value) SS_ActivationTime p_SS_ActTime) :=
+  { /* @status    APPROVED */
+    rlSetup_TDD := {
+      cellId := enum2int(p_CellId),
+      secondaryFrequency := omit,
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          dPCHInfo_r5 := {
+            r8 := {
+              ul_DPCHInfo := omit,
+              dl_DPCHInfo := p_DL_DPCHInfo,
+              hs_DPCCHInd := omit,
+              ss_UL_DPCCH_DRX_Info := omit,
+              ss_DRX_Info := omit
+            }
+          }
+        },
+        activationTime := p_SS_ActTime,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_UL_DPCH_SetupInfo_FDD(UTRAN_CellId_Type p_CellId,
+                                                               integer p_PhyChId,
+                                                               template (value) UL_DPCH_Info_r7 p_UL_DPCHInfo,
+                                                               template (value) SS_ActivationTime p_SS_ActTime) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          dPCHInfo_r5 := {
+            r8 := {
+              ul_DPCHInfo := p_UL_DPCHInfo,
+              dl_DPCHInfo := omit,
+              hs_DPCCHInd := omit,
+              ss_UL_DPCCH_DRX_Info := omit,
+              ss_DRX_Info := omit
+            }
+          }
+        },
+        activationTime := p_SS_ActTime,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_UL_DPCH_SetupInfo_TDD(UTRAN_CellId_Type p_CellId,
+                                                               integer p_PhyChId,
+                                                               template (value) UL_DPCH_Info_r7 p_UL_DPCHInfo,
+                                                               template (value) SS_ActivationTime p_SS_ActTime) :=
+  { /* @status    APPROVED */
+    rlSetup_TDD := {
+      cellId := enum2int(p_CellId),
+      secondaryFrequency := omit,
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          dPCHInfo_r5 := {
+            r8 := {
+              ul_DPCHInfo := p_UL_DPCHInfo,
+              dl_DPCHInfo := omit,
+              hs_DPCCHInd := omit,
+              ss_UL_DPCCH_DRX_Info := omit,
+              ss_DRX_Info := omit
+            }
+          }
+        },
+        activationTime := p_SS_ActTime,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_IniCnf :=
+  { /* @status    APPROVED */
+    ini := {confirmation := NULL }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_InitReqDef :=
+  { /* @status    APPROVED */
+    ini := defaultRadioEnvironment
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_DCH_148_TTI_10_DL_InfoActNow_FDD(UTRAN_CellId_Type p_CellId,
+                                                                          integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      trchConfigType := cs_TrChConfigTypeDCH_NoSHO,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := omit,
+        ulTFCS := omit,
+        dlconnectedTrCHList := {
+          cs_CphyDlConnectedTrCH_FDD_DCH(tsc_DL_DCH5, cs_DCH_148_TTI_10_TFS_FDD)
+        },
+        dlTFCS := cs_TFCS_Cmpl0_1_Tx_FDD(cs_PowerOffsetInfoBelow64k),
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit,
+        ehs_DSCH_Flows_r9 := omit        // @sic R5s110176 sic@
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_DCH_148_TTI_10_DL_InfoActNow_TDD(UTRAN_CellId_Type p_CellId,
+                                                                          integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      trchConfigType := cs_TrChConfigTypeDCH_NoSHO,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := omit,
+        ulTFCS := omit,
+        dlconnectedTrCHList := {
+          cs_CphyDlConnectedTrCH_TDD_DCH(tsc_DL_DCH5, cs_DCH_148_TTI_10_TFS_TDD)
+        },
+        dlTFCS := cs_TFCS_Cmpl0_1_Tx_TDD,
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_DCH_148_TTI_10_UL_InfoActNow_FDD(UTRAN_CellId_Type p_CellId,
+                                                                          integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      trchConfigType := cs_TrChConfigTypeDCH_NoSHO,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := {
+          cs_CphyUlConnectedTrCH_FDD_DCH(tsc_UL_DCH5, cs_DCH_148_TTI_10_TFS_FDD)
+        },
+        ulTFCS := cs_TFCS_Cmpl0_1_Rx,
+        dlconnectedTrCHList := omit,
+        dlTFCS := omit,
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit,
+        ehs_DSCH_Flows_r9 := omit        // @sic R5s110176 sic@
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_DCH_148_TTI_10_UL_InfoActNow_TDD(UTRAN_CellId_Type p_CellId,
+                                                                          integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      trchConfigType := cs_TrChConfigTypeDCH_NoSHO,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := {
+          cs_CphyUlConnectedTrCH_TDD_DCH(tsc_UL_DCH5, cs_DCH_148_TTI_10_TFS_TDD)
+        },
+        ulTFCS := cs_TFCS_Cmpl0_1_Rx,
+        dlconnectedTrCHList := omit,
+        dlTFCS := omit,
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PCH_2_FACH_InfoActNow_FDD(UTRAN_CellId_Type p_CellId,
+                                                                   integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      trchConfigType := cs_TrChConfigTypeNonDCH,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := omit,
+        ulTFCS := omit,
+        dlconnectedTrCHList := {
+          {
+            trchid := tsc_PCH1,
+            dl_TransportChannelType := pch,
+            transportChannelInfo := cs_PCH_TFS_FDD
+          },
+          {
+            trchid := tsc_FACH1,
+            dl_TransportChannelType := fach,
+            transportChannelInfo := cs_FACH_TFS_FDD
+          },
+          {
+            trchid := tsc_FACH2,
+            dl_TransportChannelType := fach,
+            transportChannelInfo := cs_FACH_TFS_PS_FDD
+          }
+        },
+        dlTFCS := cs_TFCS_CmplFACH_Tx(cs_PowerOffsetInfoBelow64k),
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit,
+        ehs_DSCH_Flows_r9 := omit        // @sic R5s110176 sic@
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PCH_1_FACH_InfoActNow_TDD(UTRAN_CellId_Type p_CellId,
+                                                                   integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      trchConfigType := cs_TrChConfigTypeNonDCH,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := omit,
+        ulTFCS := omit,
+        dlconnectedTrCHList := {
+          {
+            trchid := tsc_PCH1,
+            dl_TransportChannelType := pch,
+            transportChannelInfo := cs_PCH_TFS_TDD
+          },
+          {
+            trchid := tsc_FACH1,
+            dl_TransportChannelType := fach,
+            transportChannelInfo := cs_FACH_TFS_TDD
+          }
+        },
+        dlTFCS := cs_TFCS_SCCPCH_LCR,
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PCPICH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                         DL_TxPower_PCPICH p_TxPower) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD :=
+    {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := tsc_P_CPICH
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          primaryCPICHInfo := {
+            dl_TxPower_PCPICH := p_TxPower,
+            txdiversityIndicator := false,
+            mimoAntenna2CPICH := omit,
+            dC_SecondaryServingCell := omit // DEFAULT FALSE
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PICH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                       template (value) PICH_Info p_PICH_Info,
+                                                       PICH_PowerOffset p_TxPower,
+                                                       integer p_SCCPCH_Ass) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := tsc_PICH1
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          pICHInfo := {
+            pichinfo := p_PICH_Info,
+            dl_TxPower := p_TxPower,
+            sccpchId_associated := p_SCCPCH_Ass
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PICH_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                       template (value) PICH_Info_LCR_r4 p_PICH_Info,
+                                                       PICH_PowerOffset p_TxPower,
+                                                       integer p_SCCPCH_Ass) :=
+  { /* @status    APPROVED */
+    rlSetup_TDD := {
+      cellId := enum2int(p_CellId),
+      secondaryFrequency := omit,
+      routingInfo := {
+        physicalChannelIdentity := tsc_PICH1
+      },
+      ratType := tdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          pICHInfo := {
+            pichinfo := p_PICH_Info,
+            dl_TxPower := p_TxPower,
+            sccpchId_associated := p_SCCPCH_Ass
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PRACH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                        integer p_PhyChId,
+                                                        AvailableSignatures p_Signatures,
+                                                        PreambleScramblingCodeWordNumber p_PreScramCodeWord,
+                                                        PuncturingLimit p_PuncLimit,
+                                                        SF_PRACH p_SF_PRACH,
+                                                        AvailableSubChannelNumbers p_SubChNum) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          pRACHInfo := {
+            fdd_tdd := {
+              fdd := {
+                preambleSignature := p_Signatures,
+                spreadingFactorForDataPart := p_SF_PRACH,
+                preambleScramblingCode := p_PreScramCodeWord,
+                puncturingLimit := p_PuncLimit,
+                accessSlot := p_SubChNum
+              }
+            }
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PRACH_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                        integer p_PhyChId,
+                                                        DL_TxPower p_FPACH_Power) :=
+  { /* @status    APPROVED */
+    rlSetup_TDD := {
+      cellId := enum2int(p_CellId),
+      secondaryFrequency := omit,
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          pRACHInfo := {
+                pRACH_RACH_Info_LCR_r4 := cs_PRACH_RACH_Info_LCR_r4(tsc_PRACH1_ChC, tsc_FPACH1_ChC),
+                accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4,
+                fPACH_Power := p_FPACH_Power
+              }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PSCH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                       DL_TxPower p_TxPower) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := tsc_P_SCH
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          primarySCHInfo := {
+            tstdIndicator := false,
+            dl_TxPower := p_TxPower
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_SSCH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                       DL_TxPower p_TxPower) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := tsc_S_SCH
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          secondarySCHInfo := {
+            tstdIndicator := false,
+            dl_TxPower := p_TxPower
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_RACH_InfoActNow_FDD(UTRAN_CellId_Type p_CellId,
+                                                             integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      trchConfigType := cs_TrChConfigTypeNonDCH,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := {
+          {
+            trchid := tsc_RACH1,
+            ul_TransportChannelType := rach,
+            transportChannelInfo := cs_RACH_TFS_FDD
+          }
+        },
+        ulTFCS := cs_TFCS_Cmpl0_1_2_Rx,
+        dlconnectedTrCHList := omit,
+        dlTFCS := omit,
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit,
+        ehs_DSCH_Flows_r9 := omit        // @sic R5s110176 sic@
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_RACH_InfoActNow_TDD(UTRAN_CellId_Type p_CellId,
+                                                             integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    trchConfig_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      trchConfigType := cs_TrChConfigTypeNonDCH,
+      configMessage := {
+        activationTime := cs_ActivateNow,
+        ulconnectedTrCHList := {
+          {
+            trchid := tsc_RACH1,
+            ul_TransportChannelType := rach,
+            transportChannelInfo := cs_RACH_TFS_TDD
+          }
+        },
+        ulTFCS := cs_TFCS_Cmpl0_1_2_Rx,
+        dlconnectedTrCHList := omit,
+        dlTFCS := omit,
+        hsDSCHMacdFlows := omit,
+        e_DCHMacdFlows := omit,
+        ehs_DSCH_Flows := omit,
+        ehs_DSCH_CommonFlows := omit,
+        e_DCHMacd_CommonFlows := omit
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_SCCPCH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                         integer p_PhyChId,
+                                                         integer p_SndScramCode,
+                                                         SF256_AndCodeNumber p_ChannelizationCode,
+                                                         SCCPCHSlotFormat p_SlotFormat,
+                                                         DL_TxPower p_TxPower,
+                                                         integer p_Timing) :=
+  { /* @status    APPROVED */
+    rlSetup_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          secondaryCCPCHInfo := {
+            scramblingCode := p_SndScramCode,
+            dl_ChannelizationCode := p_ChannelizationCode,
+            sCCPCHSlotFormat := p_SlotFormat,
+            timingOffset := p_Timing,
+            positionFixedOrFlexible := flexible,
+            sttd_Indicator := false,
+            dl_TxPower := p_TxPower,
+            powerOffsetOfTFCI_PO1 := tsc_S_CCPCH_PowerOffsetTFCI,
+            powerOffsetOfPILOT_PO3 := tsc_S_CCPCH_PowerOffsetPILOT,
+            mbms_softCombTimingOffset := omit
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_SCCPCH_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                         integer p_PhyChId,
+                                                         DL_TxPower p_TxPower) :=
+  { /* @status    APPROVED */
+    rlSetup_TDD := {
+      cellId := enum2int(p_CellId),
+      secondaryFrequency := omit,
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      setupMessage := {
+        physicalChannelInfo := {
+          secondaryCCPCHInfo := {
+            tstd_Indicator := notApplied,
+            sctd_Indicator := notApplied,
+            dl_TxPower     := p_TxPower,
+            commonTimeSlotInfo := cs_CommonTimeslotInfoSCCPCH,
+            channelisationCode := tsc_S_CCPCH1_1P1F_ChC,
+            individualTimeslotInfo := cs_IndividualTimeslotInfo_LCR_r4_SCCPCH,
+            powerOffsetOfTFCI_PO1 := omit
+          }
+        },
+        activationTime := cs_ActivateNow,
+        trchConfigToFollow := omit    // DEFAULT TRUE
+      }
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_RL_ModifyCnf :=
+  { /* @status    APPROVED */
+    rlModify := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := ?
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_RL_RelReq_FDD(UTRAN_CellId_Type p_CellId,
+                                                       PhysicalChannelIdentity p_PhyCH,
+                                                       template (value) SS_ActivationTime p_SS_ActivationTime := cs_ActivateNow) :=
+  { /* @status    APPROVED */
+    rlRelease_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyCH
+      },
+      activationTime := p_SS_ActivationTime
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_RL_RelReq_TDD(UTRAN_CellId_Type p_CellId,
+                                                       PhysicalChannelIdentity p_PhyCH,
+                                                       template (value) SS_ActivationTime p_SS_ActivationTime := cs_ActivateNow) :=
+  { /* @status    APPROVED */
+    rlRelease_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyCH
+      },
+      activationTime := p_SS_ActivationTime
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_RL_RelCnf :=
+  { /* @status    APPROVED */
+    rlRelease := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := ?
+      }
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_RL_SetupCnf :=
+  { /* @status    APPROVED */
+    rlSetup := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := ?
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PHY_ReleaseDCH_FDD(UTRAN_CellId_Type p_CellId,
+                                                            integer p_PhyChId,
+                                                            template (value) TrChConfigType p_TrChConfigType,
+                                                            template (value) SS_ActivationTime p_SS_ActivationTime := cs_ActivateNow) :=
+  { /* @status    APPROVED */
+    trchRelease_FDD := { // @sic R5-113036 sic@
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      trchConfigType := p_TrChConfigType,
+      activationTime := p_SS_ActivationTime
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_PHY_ReleaseDCH_TDD(UTRAN_CellId_Type p_CellId,
+                                                       integer p_PhyChId,
+                                                       template (value) TrChConfigType p_TrChConfigType,
+                                                       template (value) SS_ActivationTime p_SS_ActivationTime := cs_ActivateNow) :=
+  { /* @status    APPROVED */
+    trchRelease_TDD := { // @sic R5-113036 sic@
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      trchConfigType := p_TrChConfigType,
+      activationTime := p_SS_ActivationTime
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_TrChCfgCnf :=
+  { /* @status    APPROVED */
+    trchConfig := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := ?
+      }
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_PHY_RelCnf :=
+  { /* @status    APPROVED */
+    trchRelease := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := ?
+      }
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_CPHY_Sync_IND (PhysicalChannelIdentity p_PhysicalChannelIdentity) :=
+  { /* @status    APPROVED */
+    sync := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := p_PhysicalChannelIdentity
+      }
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_CPHY_Out_of_Sync_IND (PhysicalChannelIdentity p_PhysicalChannelIdentity) :=
+  { /* @status    APPROVED */
+    outOfSync := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := p_PhysicalChannelIdentity
+      }
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_Integrity_Failure_IND :=
+  { /* @status    APPROVED */
+    integrityFail := {
+      cellId := ?,
+      routingInfo := ?,
+      failureCause := codeNotMatched
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_ReconfigInfo_FDD ( UTRAN_CellId_Type                       p_CellId,
+                                                                 integer                                 p_PhyChId,
+                                                                 template (value) UE_Info                p_UEInfo,
+                                                                 template (value) TrCHInfo               p_TrCHInfo,
+                                                                 template (value) TrCH_LogCHMappingList1 p_TrCH_LogCHMapping,
+                                                                 template (value) SS_ActivationTime      p_ActivationTime ) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      configMessage := {
+        reconfigure := {
+          activationTime := p_ActivationTime,
+          uE_Info := p_UEInfo,
+          trCHInfo := p_TrCHInfo,
+          trCH_LogCHMapping := p_TrCH_LogCHMapping,
+          associatedPhychConfigToFollow := omit,
+          servingAndSecondaryCellActivation := omit,
+          tSN_FieldExtension := omit
+        }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_ReconfigInfo_TDD ( UTRAN_CellId_Type                       p_CellId,
+                                                                 integer                                 p_PhyChId,
+                                                                 template (value) UE_Info                p_UEInfo,
+                                                                 template (value) TrCHInfo_TDD           p_TrCHInfo,
+                                                                 template (value) TrCH_LogCHMappingList1 p_TrCH_LogCHMapping,
+                                                                 template (value) SS_ActivationTime      p_ActivationTime ) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      configMessage := {
+        reconfigure := {
+          activationTime := p_ActivationTime,
+          uE_Info := p_UEInfo,
+          trCHInfo := p_TrCHInfo,
+          trCH_LogCHMapping := p_TrCH_LogCHMapping,
+          associatedPhychConfigToFollow := omit
+        }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_CfgInfo_FDD(UTRAN_CellId_Type         p_CellId,
+                                                          integer                   p_PhyChId,
+                                                          template (value) UE_Info  p_UEInfo,
+                                                          template (value) TrCHInfo p_TrCHInfo,
+                                                          template (value) TrCH_LogCHMappingList1 p_TrCH_LogCHMapping) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          activationTime := cs_ActivateNow,
+          uE_Info := p_UEInfo,
+          trCHInfo := p_TrCHInfo,
+          trCH_LogCHMapping := p_TrCH_LogCHMapping,
+          associatedPhychConfigToFollow := omit,
+          servingAndSecondaryCellActivation := omit,
+          tSN_FieldExtension := omit
+        }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cads_CMAC_CfgInfoAssPhyChFollow_FDD(UTRAN_CellId_Type         p_CellId,
+                                                                         integer                   p_PhyChId,
+                                                                         template (value) UE_Info  p_UEInfo,
+                                                                         template (value) TrCHInfo p_TrCHInfo,
+                                                                         template (value) TrCH_LogCHMappingList1 p_TrCH_LogCHMapping)
+    modifies cas_CMAC_CfgInfo_FDD :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      configMessage := {
+        setup := {
+          associatedPhychConfigToFollow := { tsc_PICH1 }
+        }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_CfgInfo_TDD(UTRAN_CellId_Type p_CellId,
+                                                          integer p_PhyChId,
+                                                          template (value) UE_Info p_UEInfo,
+                                                          template (value) TrCHInfo_TDD p_TrCHInfo,
+                                                          template (value) TrCH_LogCHMappingList1 p_TrCH_LogCHMapping) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          activationTime := cs_ActivateNow,
+          uE_Info := p_UEInfo,
+          trCHInfo := p_TrCHInfo,
+          trCH_LogCHMapping := p_TrCH_LogCHMapping,
+          associatedPhychConfigToFollow := omit
+        }
+      }
+    }
+  };
+
+ template (value) U_CMAC_CONFIG_REQ cas_CMAC_MACes_Setup_REQ (UTRAN_CellId_Type p_CellId,
+                                                                   template (value) SS_ActivationTime p_SS_ActivationTime,
+                                                                   template (omit) DDI_MappingList    p_DDI_MappingList) :=
+  {  /* @status    APPROVED */
+    configMACes := {
+      cellId := enum2int(p_CellId),
+      configMessage := {
+        setup := {
+          activationTime := p_SS_ActivationTime,
+          ddiMappinglist := p_DDI_MappingList,
+          macTestMode := omit
+        }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_MACes_Release_REQ (UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    configMACes := {
+      cellId := enum2int(p_CellId),
+      configMessage := {
+        release := { activateNow := NULL }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_MACe_Release_FDD_REQ(integer p_NodeB_Id) :=
+  { /* @status    APPROVED */
+    configMACe_FDD := {
+      nodeB_Id := p_NodeB_Id,
+      configMessage := {
+        release := { activateNow := NULL }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_MACe_Release_TDD_REQ(integer p_NodeB_Id) :=
+  { /* @status    APPROVED */
+    configMACe_TDD := {
+      nodeB_Id := p_NodeB_Id,
+      configMessage := {
+        release := { activateNow := NULL }
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_MAC_FDD_Release(UTRAN_CellId_Type p_CellId,
+                                                         integer p_PhyChId,
+                                                         template (value) SS_ActivationTime p_SS_ActivationTime := cs_ActivateNow) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      configMessage := {
+        release := p_SS_ActivationTime
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_MAC_TDD_Release(UTRAN_CellId_Type p_CellId,
+                                                         integer p_PhyChId,
+                                                         template (value) SS_ActivationTime p_SS_ActivationTime := cs_ActivateNow) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := tdd,
+      configMessage := {
+        release := p_SS_ActivationTime
+      }
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_MACes_Config_CNF (UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    configMACes := {
+      cellId := enum2int(p_CellId)
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_MACe_Config_CNF(template integer p_NodeB_Id) :=
+  { /* @status    APPROVED */
+    configMACe := {
+      nodeB_Id := p_NodeB_Id
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_MACHe_NodeB_CellMapping_CNF ( integer p_NodeB_Id ) :=
+  { /* @status    APPROVED */
+    nodeB := {
+      nodeB_Id := p_NodeB_Id
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_MACHs_CfgCnf ( UTRAN_CellId_Type p_CellId ) :=
+  { /* @status    APPROVED */
+    tfrc := {
+      cellId := enum2int(p_CellId)
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_CfgCnf :=
+  { /* @status    APPROVED */
+    config := {
+      cellId := ?,
+      routingInfo := {
+        physicalChannelIdentity := ?
+      }
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RLC_SuspendRB(UTRAN_CellId_Type  p_CellId,
+                                                       integer            p_RB_Id,
+                                                       RLC_SequenceNumber p_RLC_SeqNum) :=
+  { /* @status    APPROVED */
+    suspend := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      n := p_RLC_SeqNum
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_ResumeRB(UTRAN_CellId_Type p_CellId,
+                                                  integer           p_RB_Id) :=
+  { /* @status    APPROVED */
+    resume := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      }
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_ResumeRB(UTRAN_CellId_Type p_CellId,
+                                          template integer  p_RB_Id) :=
+  { /* @status    APPROVED */
+    resume := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      }
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_SuspendRB(UTRAN_CellId_Type p_CellId,
+                                           template integer  p_RB_Id) :=
+  { /* @status    APPROVED */
+    suspend := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      vt := ?
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_CfgCnf :=
+  { /* @status    APPROVED */
+    config := {
+      cellId := ?,
+      routingInfo := {
+        rB_Identity := ?
+      }
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_PCCH_Info_FDD(UTRAN_CellId_Type                 p_CellId,
+                                                          integer                           p_RB_Id,
+                                                          template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  {
+  /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+           r8 := {
+             sS_ul_RLC_Mode := omit,
+             sS_dl_RLC_Mode := {
+                dl_PayloadSize := 240,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                    transmissionRLC_Discard := omit,
+                    segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+             rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+             altE_bitInterpretation := omit,   // DEFAULT false
+             useSpecialValueOfHEField := omit, // DEFAULT false
+             uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+           }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_PCCH_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                          integer p_RB_Id,
+                                                          template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  {
+  /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+           r8 := {
+             sS_ul_RLC_Mode := omit,
+             sS_ul_PayloadSize := omit,  // @sic R5-110103 sic@
+             sS_dl_RLC_Mode := {
+                dl_PayloadSize := 240,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                  transmissionRLC_Discard := omit,
+                  segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+             rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+             altE_bitInterpretation := omit,   // DEFAULT false
+             useSpecialValueOfHEField := omit, // DEFAULT false
+             uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+           }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_AM_Info_SRB_Fixed_FDD(UTRAN_CellId_Type p_CellId,
+                                                                  integer p_RB_Id,
+                                                                  template (value) RB_LogCH_Mapping p_LogChMapping,
+                                                                  template (value) OctetModeRLC_SizeInfoType1 p_RLC_Size) :=
+  {
+  /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_AM_RLC_Mode := cds_DL_AM_RLC_SRB_r7
+              },
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := omit,
+                dl_RLCModeInfo := {
+                  ul_AM_RLC_Mode := cds_UL_AM_RLC_SRB
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := { fixedSize := p_RLC_Size}
+              },
+              rlc_OneSidedReEst := omit, // DEFAULT false
+              altE_bitInterpretation := omit, // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_AM_Info_SRB_Fixed_TDD(UTRAN_CellId_Type p_CellId,
+                                                                  integer p_RB_Id,
+                                                                  template (value) RB_LogCH_Mapping p_LogChMapping,
+                                                                  template (value) OctetModeRLC_SizeInfoType1 p_RLC_Size) :=
+  {
+  /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_AM_RLC_Mode := cds_DL_AM_RLC_SRB_r7
+              },
+              sS_ul_PayloadSize := omit,   // @sic R5-110103 sic@
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := omit,
+                dl_RLCModeInfo := {
+                  ul_AM_RLC_Mode := cds_UL_AM_RLC_SRB
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := { fixedSize := p_RLC_Size}
+              },
+              rlc_OneSidedReEst := omit, // DEFAULT false
+              altE_bitInterpretation := omit, // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_RB_RelReq_FDD(UTRAN_CellId_Type p_CellId,
+                                                            integer p_RB_Id) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        release := NULL
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_RB_RelReq_TDD(UTRAN_CellId_Type p_CellId,
+                                                            integer p_RB_Id) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        release := NULL
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_UM_ReconfigInfo_FDD(UTRAN_CellId_Type p_CellId,  // @sic R5s110278 sic@
+                                                                integer p_RB_Id,
+                                                                template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        reconfigure := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_UM_RLC_Mode := {
+                  dl_UM_RLC_LI_size := size7,
+                  dl_Reception_Window_Size := omit
+                }
+              },
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 136,
+                dl_RLCModeInfo := {
+                  ul_UM_RLC_Mode := {
+                    transmissionRLC_Discard := {
+                      timerBasedNoExplicit := dt100
+                    }
+                  }
+                },
+                dl_UM_RLC_LI_size := size7,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT false
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_UM_ReconfigInfo_TDD(UTRAN_CellId_Type p_CellId,  // @sic R5s110278 sic@
+                                                                integer p_RB_Id,
+                                                                template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        reconfigure := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_UM_RLC_Mode := {
+                  dl_UM_RLC_LI_size := size7,
+                  dl_Reception_Window_Size := omit
+                }
+              },
+              sS_ul_PayloadSize := omit,   // @sic R5-110103 sic@
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 136,
+                dl_RLCModeInfo := {
+                  ul_UM_RLC_Mode := {
+                    transmissionRLC_Discard := {
+                      timerBasedNoExplicit := dt100
+                    }
+                  }
+                },
+                dl_UM_RLC_LI_size := size7,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT false
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_UM_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                        integer p_RB_Id,
+                                                        template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_UM_RLC_Mode := {
+                  dl_UM_RLC_LI_size := size7,
+                  dl_Reception_Window_Size := omit
+                }
+              },
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 136,
+                dl_RLCModeInfo := {
+                  ul_UM_RLC_Mode := {
+                    transmissionRLC_Discard := {
+                      timerBasedNoExplicit := dt100
+                    }
+                  }
+                },
+                dl_UM_RLC_LI_size := size7,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT false
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_UM_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                        integer p_RB_Id,
+                                                        template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_UM_RLC_Mode := {
+                  dl_UM_RLC_LI_size := size7,
+                  dl_Reception_Window_Size := omit
+                }
+              },
+              sS_ul_PayloadSize := omit,   // @sic R5-110103 sic@
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 136,
+                dl_RLCModeInfo := {
+                  ul_UM_RLC_Mode := {
+                    transmissionRLC_Discard := {
+                      timerBasedNoExplicit := dt100
+                    }
+                  }
+                },
+                dl_UM_RLC_LI_size := size7,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT false
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_TM_DL_InfoNoSeg_FDD(UTRAN_CellId_Type                 p_CellId,
+                                                                integer                           p_RB_Id,
+                                                                template (omit) integer           p_PayloadSize,
+                                                                template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := omit,
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := p_PayloadSize,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                    transmissionRLC_Discard := omit,
+                    segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_TM_DL_InfoNoSeg_TDD(UTRAN_CellId_Type                 p_CellId,
+                                                                integer                           p_RB_Id,
+                                                                template (omit) integer           p_PayloadSize,
+                                                                template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := omit,
+              sS_ul_PayloadSize := omit,  // @sic R5-110103 sic@
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := p_PayloadSize,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                    transmissionRLC_Discard := omit,
+                    segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_TM_UL_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                           integer p_RB_Id,
+                                                           template (omit) integer p_PayloadSize,
+                                                           template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_TM_RLC_Mode := {
+                  segmentationIndication := false
+                }
+              },
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := p_PayloadSize,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                    transmissionRLC_Discard := omit,
+                    segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_TM_UL_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                           integer p_RB_Id,
+                                                           PayloadSize p_UL_Payload,  // @sic R5-110103 sic@
+                                                           template (omit) integer p_PayloadSize,
+                                                           template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_TM_RLC_Mode := {
+                  segmentationIndication := false
+                }
+              },
+              sS_ul_PayloadSize := p_UL_Payload,
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := p_PayloadSize,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                    transmissionRLC_Discard := omit,
+                    segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_UM_DL_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                           integer p_RB_Id,
+                                                           template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := omit,
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 152,
+                dl_RLCModeInfo := {
+                  ul_UM_RLC_Mode := {
+                    transmissionRLC_Discard := {
+                      timerBasedNoExplicit := dt100
+                    }
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_UM_DL_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                           integer p_RB_Id,
+                                                           template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := omit,
+              sS_ul_PayloadSize := omit,
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 152,
+                dl_RLCModeInfo := {
+                  ul_UM_RLC_Mode := {
+                    transmissionRLC_Discard := {
+                      timerBasedNoExplicit := dt100
+                    }
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_AM_Info_RAB_FDD(UTRAN_CellId_Type p_CellId,
+                                                            integer p_RB_Id,
+                                                            template (value) RB_LogCH_Mapping p_LogChMapping,
+                                                            template (value) OctetModeRLC_SizeInfoType1 p_RLC_Size) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_AM_RLC_Mode := cs_DL_AM_RLC_r7
+              },
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := omit,
+                dl_RLCModeInfo := {
+                  ul_AM_RLC_Mode := cs_UL_AM_RLC
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := { fixedSize := p_RLC_Size}
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_AM_Info_RAB_TDD(UTRAN_CellId_Type p_CellId,
+                                                            integer p_RB_Id,
+                                                            template (value) RB_LogCH_Mapping p_LogChMapping,
+                                                            template (value) OctetModeRLC_SizeInfoType1 p_RLC_Size) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := {
+                dl_AM_RLC_Mode := cs_DL_AM_RLC_r7
+              },
+              sS_ul_PayloadSize := omit,  // @sic R5-110103 sic@
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := omit,
+                dl_RLCModeInfo := {
+                  ul_AM_RLC_Mode := cs_UL_AM_RLC
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := { fixedSize := p_RLC_Size}
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,   // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_AM_ReconfMapping_FDD ( UTRAN_CellId_Type p_CellId,
+                                                               integer           p_RB_Id,
+                                                               template (value) RB_LogCH_Mapping p_LogChMapping ) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        reconfigure := {
+          sS_rlc_Info      := omit,
+          sS_rlc_Info_r8   := omit,
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_AM_ReconfMapping_TDD ( UTRAN_CellId_Type p_CellId,
+                                                                   integer           p_RB_Id,
+                                                                   template (value) RB_LogCH_Mapping p_LogChMapping ) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        reconfigure := {
+          sS_rlc_Info      := omit,
+          sS_rlc_Info_r8   := omit,
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_BCCH_Info_FDD(UTRAN_CellId_Type p_CellId,
+                                                          integer p_RB_Id,
+                                                          template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := fdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := omit,
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 246,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                    transmissionRLC_Discard := omit,
+                    segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,  // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_RB_BCCH_Info_TDD(UTRAN_CellId_Type p_CellId,
+                                                          integer p_RB_Id,
+                                                          template (value) RB_LogCH_Mapping p_LogChMapping) :=
+  { /* @status    APPROVED */
+    config_TDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      ratType := tdd,
+      configMessage := {
+        setup := {
+          sS_rlc_Info := omit,
+          sS_rlc_Info_r8 := {
+            r8 := {
+              sS_ul_RLC_Mode := omit,
+              sS_ul_PayloadSize := omit,   // @sic R5-110103 sic@
+              sS_dl_RLC_Mode := {
+                dl_PayloadSize := 246,
+                dl_RLCModeInfo := {
+                  ul_TM_RLC_Mode := {
+                    transmissionRLC_Discard := omit,
+                    segmentationIndication := false
+                  }
+                },
+                dl_UM_RLC_LI_size := omit,
+                dl_UM_outOfSeqDelivery := omit,
+                dl_RLC_PDU_size := omit
+              },
+              rlc_OneSidedReEst := omit,       // DEFAULT FALSE
+              altE_bitInterpretation := omit,  // DEFAULT false
+              useSpecialValueOfHEField := omit, // DEFAULT false
+              uM_SN_DeliveryMode := omit // DEFAULT nonConfigured
+            }
+          },
+          rB_LogCH_Mapping := p_LogChMapping
+        }
+      },
+      activationTime := omit
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_SysInfo_Schedul(UTRAN_CellId_Type p_CellId,
+                                                         integer           p_REP,
+                                                         integer           p_POS,
+                                                         RatType           p_RatType,
+                                                         template (omit) BCCH_ModificationTime p_Timing := omit) :=
+  { /* @status    APPROVED */
+    sysInfo := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {rB_Identity := tsc_RB_BCCH},
+      ratType := p_RatType,
+      configMessage := {
+        sg_REP := p_REP,
+        sg_POS := p_POS,
+        bcch_ModificationTime := p_Timing
+      }
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_SysInfoCfgCnf(UTRAN_CellId_Type p_CellId,
+                                               integer           p_RB_Identity) :=
+  { /* @status    APPROVED */
+    sysInfo := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {rB_Identity := p_RB_Identity}
+    }
+  };
+
+  template (value) RLC_TR_DATA_REQ cas_BCCH_BCH_DataReq(UTRAN_CellId_Type p_CellId,
+                                                        integer           p_RB,
+                                                        template (value)  BCCH_BCH_Message p_Message) :=
+  { /* @status    APPROVED */
+    cellId := enum2int(p_CellId),
+    routingInfo := {
+      rB_Identity := p_RB
+    },
+    tM_message := {
+      bCCH_BCH_Message := p_Message
+    }
+  };
+
+  template (value) RLC_TR_DATA_REQ cas_PagingType1(UTRAN_CellId_Type p_CellId,
+                                                   integer p_RB_Id,
+                                                   template (value) PCCH_Message p_Pdu) :=
+  { /* @status    APPROVED */
+    cellId := enum2int(p_CellId),
+    routingInfo := {
+      rB_Identity := p_RB_Id
+    },
+    tM_message := {
+      pCCH_Message := p_Pdu
+    }
+  };
+
+  template (value) RLC_TR_DATA_REQ cas_SysInfoChangeInd(UTRAN_CellId_Type p_CellId,
+                                                        integer p_RB_Id,
+                                                        template (value) BCCH_FACH_Message p_Pdu) :=
+  { /* @status    APPROVED */
+    cellId := enum2int(p_CellId),
+    routingInfo := {
+      rB_Identity := p_RB_Id
+    },
+    tM_message := {
+      bCCH_FACH_Message := p_Pdu
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_DL_IntegrityActivateReq(UTRAN_CellId_Type p_CellId,
+                                                                      CN_DomainIdentity p_Domain,
+                                                                      template (value) IntegrityProtectionModeInfo_r7 p_IntegrityProtectionModeInfo) :=
+  { /* @status    APPROVED */
+    integrity := {
+      cellId := enum2int(p_CellId),
+      cn_DomainIdentity := p_Domain,
+      integrityActivationInfo := {
+        integrityProtectionModeInfo_r7 := p_IntegrityProtectionModeInfo
+      }
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_UL_IntegrityActivateReq(UTRAN_CellId_Type p_CellId,
+                                                                      CN_DomainIdentity p_Domain,
+                                                                      template (value) IntegrityProtActivationInfoList p_IntegrityProtActivationInfo) :=
+  { /* @status    APPROVED */
+    integrity := {
+      cellId := enum2int(p_CellId),
+      cn_DomainIdentity := p_Domain,
+      integrityActivationInfo := {
+        ul_IntegProtActivationInfo := p_IntegrityProtActivationInfo
+      }
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_IntegrityActivateCnf(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    integrity := {
+      cellId := enum2int(p_CellId)
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_UL_CipherActReq_FDD(UTRAN_CellId_Type p_CellId,
+                                                              CN_DomainIdentity p_CN_Domain,
+                                                              template (value) RB_ActivationTimeInfoList p_RB_ActivationTimeInfoList,
+                                                              RLC_IncMode p_IncMode) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId),
+      ratType := fdd,
+      cn_DomainIdentity := p_CN_Domain,
+      ciphActivationInfo := {
+        rb_UL_CipheringActivationTimeInfo := p_RB_ActivationTimeInfoList
+      },
+      incHFN := p_IncMode
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_UL_CipherActReq_TDD(UTRAN_CellId_Type p_CellId,
+                                                              CN_DomainIdentity p_CN_Domain,
+                                                              template (value) RB_ActivationTimeInfoList p_RB_ActivationTimeInfoList,
+                                                              RLC_IncMode p_IncMode) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId),
+      ratType := tdd,
+      cn_DomainIdentity := p_CN_Domain,
+      ciphActivationInfo := {
+        rb_UL_CipheringActivationTimeInfo := p_RB_ActivationTimeInfoList
+      },
+      incHFN := p_IncMode
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_DL_CipherActReq_FDD(UTRAN_CellId_Type p_CellId,
+                                                                  CN_DomainIdentity p_CN_Domain,
+                                                                  integer p_RB_Id,
+                                                                  CipheringModeCommand_r7 p_CipherMode,
+                                                                  RLC_SequenceNumber p_N,
+                                                                  RLC_IncMode p_IncMode) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId),
+      ratType := fdd,
+      cn_DomainIdentity := p_CN_Domain,
+      ciphActivationInfo := {
+        cipheringModeInfo_r7 := {
+          cipheringModeCommand := p_CipherMode,
+          activationTimeForDPCH := omit,
+          rb_DL_CiphActivationTimeInfo := {
+            cs_RB_ActTimeInfo(p_RB_Id, p_N)
+          }
+        }
+      },
+      incHFN := p_IncMode
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_DL_CipherActReq_TDD(UTRAN_CellId_Type p_CellId,
+                                                                  CN_DomainIdentity p_CN_Domain,
+                                                                  integer p_RB_Id,
+                                                                  CipheringModeCommand_r7 p_CipherMode,
+                                                                  RLC_SequenceNumber p_N,
+                                                                  RLC_IncMode p_IncMode) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId),
+      ratType := tdd,
+      cn_DomainIdentity := p_CN_Domain,
+      ciphActivationInfo := {
+        cipheringModeInfo_r7 := {
+          cipheringModeCommand := p_CipherMode,
+          activationTimeForDPCH := omit,
+          rb_DL_CiphActivationTimeInfo := {
+            cs_RB_ActTimeInfo(p_RB_Id, p_N)
+          }
+        }
+      },
+      incHFN := p_IncMode
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_CipherActCnf(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId)
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_SecurityModeCfgCnf(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    secMode := {
+      cellId := enum2int(p_CellId)
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_SecurityModeCfgReq( UTRAN_CellId_Type p_CellId,
+                                                                  CN_DomainIdentity p_Domain,
+                                                                  template (omit) HyperFrameNumber p_Hfn,
+                                                                  template (omit) B128_Type p_KC,
+                                                                  template (omit) B128_Type p_IK,
+                                                                  template (omit) B64_Type p_GSM_CK) :=
+  { /* @status    APPROVED */
+    secMode := {
+      cellId := enum2int(p_CellId),
+      macCipheringInfo := {
+        cn_DomainIdentity := p_Domain,
+        startValue := p_Hfn,
+        cipheringKey := p_KC,
+        integrityKey := p_IK,
+        gsmCipheringKey := p_GSM_CK
+      }
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_SecurityModeCfgCnf(UTRAN_CellId_Type p_CellId) :=
+  { /* @status    APPROVED */
+    secMode := {
+      cellId := enum2int(p_CellId)
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_SecurityModeCfgReq(UTRAN_CellId_Type p_CellId,
+                                                                 CN_DomainIdentity p_Domain,
+                                                                 template (omit) HyperFrameNumber p_Hfn,
+                                                                 template (omit) B128_Type p_KC,
+                                                                 template (omit) B128_Type p_IK,
+                                                                 template (omit) B64_Type p_GSM_CK) :=
+  { /* @status    APPROVED */
+    secMode := {
+      cellId := enum2int(p_CellId),
+      rlcSecurityInfo := {
+        cn_DomainIdentity := p_Domain,
+        startValue := p_Hfn,
+        cipheringKey := p_KC,
+        integrityKey := p_IK,
+        gsmCipheringKey := p_GSM_CK
+      }
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_GetRLC_SeqNum(UTRAN_CellId_Type p_CellId,
+                                                       integer p_RB_Id) :=
+  { /* @status    APPROVED */
+    seqNo := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      }
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_GetRLC_SeqNum(UTRAN_CellId_Type p_CellId,
+                                               integer p_RB_Id) :=
+  { /* @status    APPROVED */
+    seqNo := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RB_Id
+      },
+      count_C_MSB_UL := ?,
+      count_C_LSB_UL := ?,
+      count_C_MSB_DL := ?,
+      count_C_LSB_DL := ?
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_ContinueRLC_Ack_REQ(UTRAN_CellId_Type p_CellId,
+                                                                  integer p_RbId) :=
+  { /* @status    APPROVED */
+    prohibit := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RbId
+      },
+      mode := continue_
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_ProhibitRLC_Ack_REQ(UTRAN_CellId_Type p_CellId,
+                                                                  integer p_RbId) :=
+  { /* @status    APPROVED */
+    prohibit := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RbId
+      },
+      mode := prohibit
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_ProhibitRLC_Ack_CNF(UTRAN_CellId_Type p_CellId,
+                                                          integer p_RbId) :=
+  { /* @status    APPROVED */
+    prohibit := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RbId
+      },
+      supportflag := *
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_CRLC_RRC_MessageSN_REQ(UTRAN_CellId_Type p_CellId,
+                                                                integer p_RBId) :=
+  { /* @status    APPROVED */
+    rrcMsgSN := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RBId
+      }
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_RRC_MessageSN_CNF(UTRAN_CellId_Type p_CellId,
+                                                        template integer p_RBId) :=
+  { /* @status    APPROVED */
+    rrcMsgSN := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RBId
+      },
+      count_I_MSB_UL := ?,
+      count_I_LSB_UL := ?,
+      count_I_MSB_DL := ?,
+      count_I_LSB_DL := ?
+    }
+  };
+
+  template (value) U_CRLC_CONFIG_REQ cas_DL_CRLC_SetRRC_MSN_REQ(UTRAN_CellId_Type p_CellId,
+                                                                integer p_RBID,
+                                                                RRC_SequenceNumber p_DL_MSN) :=
+  { /* @status    APPROVED */
+    setRRCmsgSN := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RBID
+      },
+      count_I_LSB_UL := omit,
+      count_I_LSB_DL := p_DL_MSN
+    }
+  };
+
+  template U_CRLC_CONFIG_CNF car_CRLC_SetRRC_MSN_CNF(UTRAN_CellId_Type p_CellId,
+                                                     integer p_RBID) :=
+  { /* @status    APPROVED */
+    setRRCmsgSN := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        rB_Identity := p_RBID
+      }
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_DL_CipherActReq(UTRAN_CellId_Type p_CellId,
+                                                              integer p_PhyChId,
+                                                              CipheringModeCommand_r7 p_CipherMode,
+                                                              integer p_ActTimeDPCH,
+                                                              Increment_Mode p_IncrDcr) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      cn_DomainIdentity := cs_domain, // the domain is hard coded as no TM RAB in PS domain
+      cipheringModeInfo := omit,
+      cipheringModeInfo_r7 := {
+        cipheringModeCommand := p_CipherMode,
+        activationTimeForDPCH := p_ActTimeDPCH,
+        rb_DL_CiphActivationTimeInfo := omit
+      },
+      incHFN := p_IncrDcr
+    }
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_UL_CipherActReq(UTRAN_CellId_Type p_CellId,
+                                                              integer p_PhyChId,
+                                                              CipheringModeCommand_r7 p_CipherMode,
+                                                              integer p_ActTimeDPCH,
+                                                              Increment_Mode p_IncrDcr) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      },
+      ratType := fdd,
+      cn_DomainIdentity := cs_domain, // domain hard coded as no TM RAB in PS Domain
+      cipheringModeInfo := omit,
+      cipheringModeInfo_r7 := {
+        cipheringModeCommand := p_CipherMode,
+        activationTimeForDPCH := p_ActTimeDPCH,
+        rb_DL_CiphActivationTimeInfo := omit
+      },
+      incHFN := p_IncrDcr
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_CipherActCnf(UTRAN_CellId_Type p_CellId,
+                                                   integer p_PhyChId) :=
+  { /* @status    APPROVED */
+    cipher := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhyChId
+      }
+    }
+  };
+
+  template (value) U_CPHY_CONFIG_REQ cas_GetFrameNum(UTRAN_CellId_Type p_CellId,
+                                                     PhysicalChannelIdentity p_PhysicalChannelIdentity) :=
+  { /* @status    APPROVED */
+    frameNo := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhysicalChannelIdentity
+      }
+    }
+  };
+
+  template U_CPHY_CONFIG_CNF car_GetFrameNum(UTRAN_CellId_Type p_CellId,
+                                             PhysicalChannelIdentity p_PhysicalChannelIdentity) :=
+  { /* @status    APPROVED */
+    frameNo := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhysicalChannelIdentity
+      },
+      frameNumber := ?
+    }
+  };
+
+  template RLC_TR_DATA_IND car_RRC_ConnReq(template (present) UTRAN_CellId_Type p_CellId,
+                                           template (present) integer p_RB_Id,
+                                           template (present) UL_CCCH_Message p_Pdu) :=
+  { /* @status    APPROVED */
+    cellId := fl_TemplateCellId2Int(p_CellId),
+    routingInfo := {
+      rB_Identity := p_RB_Id
+    },
+    tM_message := {
+      uL_CCCH_Message := p_Pdu
+    }
+  };
+
+  template (value) RLC_UM_DATA_REQ cas_DL_CCCH_Data_Req(UTRAN_CellId_Type                p_CellId,
+                                                        integer                          p_RB,
+                                                        template (value) DL_CCCH_Message p_DL_CCCH_Message) :=
+  { /* @status    APPROVED */
+    cellId      := enum2int(p_CellId),
+    routingInfo := {rB_Identity := p_RB},
+    uM_message  := {
+      dL_CCCH_Message := p_DL_CCCH_Message
+    },
+    specialLI := true
+  };
+
+  template (value) RLC_UM_DATA_REQ cas_RRC_ConnSetup(UTRAN_CellId_Type p_CellId,
+                                                     integer p_RB_Id,
+                                                     template (value) DL_CCCH_Message p_Pdu) := cas_DL_CCCH_Data_Req(p_CellId, p_RB_Id, p_Pdu);   /* @status    APPROVED */
+
+  template (value) RLC_UM_DATA_REQ cas_RRC_ConnReject(UTRAN_CellId_Type p_CellId,
+                                                      integer p_RB_Id,
+                                                      template (value) DL_CCCH_Message p_Pdu) := cas_DL_CCCH_Data_Req(p_CellId, p_RB_Id, p_Pdu);   /* @status    APPROVED */
+
+  template (value) RLC_UM_DATA_REQ cas_RRC_ConnRelCCCH(UTRAN_CellId_Type p_CellId,
+                                                       integer p_RB_Id,
+                                                       template (value) DL_CCCH_Message p_Pdu) := cas_DL_CCCH_Data_Req(p_CellId, p_RB_Id, p_Pdu);   /* @status    APPROVED */
+
+  template (value) RLC_UM_DATA_REQ cas_RRC_ConnRelDCCH(UTRAN_CellId_Type p_CellId,
+                                                       integer p_RB_Id,
+                                                       template (value) DL_DCCH_Message p_Pdu) :=
+  { /* @status    APPROVED */
+    cellId := enum2int(p_CellId),
+    routingInfo := {
+      rB_Identity := p_RB_Id
+    },
+    uM_message := {
+      dL_DCCH_Message := p_Pdu
+    },
+    specialLI := false
+  };
+
+  template RLC_UM_DATA_IND car_RRC_ConnRelCmplUM(UTRAN_CellId_Type p_CellId,
+                                                 template (present) integer p_RB_Id,
+                                                 template (present) UL_DCCH_Message p_Pdu) :=
+  { /* @status    APPROVED */
+    cellId := enum2int(p_CellId),
+    routingInfo := {
+      rB_Identity := p_RB_Id
+    },
+    integrityResult := ?,
+    uM_message := {
+      uL_DCCH_Message := p_Pdu
+    }
+  };
+
+  template (value) CmacPagingConfigReq cs_MAC_PagingCfg(bitstring p_E18,
+                                                        integer p_DRX,
+                                                        IMSI_GSM_MAP p_IMSI) :=
+  { /* @status    APPROVED */
+    pI_BitMapInfo := {
+      e18 := p_E18
+    },
+    dRX_CycleLength := p_DRX,
+    iMSI := p_IMSI,
+    t_pich_T_sccpch := false
+  };
+
+  template (value) U_CMAC_CONFIG_REQ cas_CMAC_PagingCfgReq(UTRAN_CellId_Type p_CellId,
+                                                           PhysicalChannelIdentity p_PhysicalChannelIdentity,
+                                                           RatType p_RatType,
+                                                           template (value) CmacPagingConfigReq p_Pdu) :=
+  { /* @status    APPROVED */
+    page_FDD := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhysicalChannelIdentity
+      },
+      ratType := p_RatType,
+      configMessage := p_Pdu
+    }
+  };
+
+  template U_CMAC_CONFIG_CNF car_CMAC_PagingCfgCnf(UTRAN_CellId_Type p_CellId,
+                                                   template PhysicalChannelIdentity p_PhysicalChannelIdentity) :=
+  { /* @status    APPROVED */
+    page := {
+      cellId := enum2int(p_CellId),
+      routingInfo := {
+        physicalChannelIdentity := p_PhysicalChannelIdentity
+      }
+    }
+  };
+
+}

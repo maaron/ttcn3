@@ -1,0 +1,1103 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-19 14:09:05 +0200 (Sun, 19 Aug 2012) $
+// $Rev: 7121 $
+/******************************************************************************/
+module DRB_12 {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_Templates all;
+  import from EUTRA_ASP_DrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_LoopBack_TypeDefs all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_Timing all;
+  import from L2_CommonFunctions all;
+  import from L2_CommonTemplates all;
+
+  group LocalFunctions {
+
+  function f_EUTRA_SS_DRB_Release_NoDRB1 (EUTRA_CellId_Type p_CellId,
+                                          integer p_NoOfAddDRBs_AM,
+                                          integer p_NoOfAddDRBs_UM) runs on EUTRA_PTC
+  {
+    var template (value) RadioBearerList_Type v_DrbList;
+    var integer n;
+    if ((p_NoOfAddDRBs_AM+p_NoOfAddDRBs_UM)>1) // release if more than one DRB's exist
+      //@sic R5s100385 sic@
+      {
+        for (n:=1; n<(p_NoOfAddDRBs_AM+p_NoOfAddDRBs_UM); n:= n+1)
+          {
+            v_DrbList[n-1] := cs_DRB_Release(tsc_DRB1+n);
+          };
+        
+        f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_DrbList);
+      }
+    // IF only one DRB was configured do nothing
+  }
+
+  function fl_MinBSRValueSet (integer p_NoOfAddDRBs) return integer
+  {
+    var integer v_MinBSR_Size := 0;
+    
+    select (p_NoOfAddDRBs) {
+      case (1) {
+        // PDCP Size of 40 bytes;
+        v_MinBSR_Size := 10 ; //10   36 < BS <= 42
+      }
+      case (2) {
+        // PDCP Size of 80 bytes;
+        v_MinBSR_Size := 15 ; //15   78 < BS <= 91
+      }
+      case (3) {
+        // PDCP Size of 120 bytes;
+        v_MinBSR_Size := 17 ; //17   107 < BS <= 125
+      }
+      case (4) {
+        // PDCP Size of 160 bytes;
+        v_MinBSR_Size := 19 ; //19   146 < BS <= 171
+      }
+      case (5) {
+        // PDCP Size of 200 bytes;
+        v_MinBSR_Size := 20 ; //20   171 < BS <= 200
+      }
+      case (6) {
+        // PDCP Size of 240 bytes;
+        v_MinBSR_Size := 22 ; //22   234 < BS <= 274
+      }
+      case else { // 7 and 8
+        // PDCP Size of 280/320  bytes;
+        v_MinBSR_Size := 23 ; //23   274 < BS <= 321
+      }
+    }  // end of select
+    return v_MinBSR_Size;
+  };
+
+  function fl_MinBSRValueSet_MIMO (integer p_NoOfAddDRBs) return integer
+  {
+    var integer v_MinBSR_Size := 0;
+    
+    select (p_NoOfAddDRBs) {
+      case (0) {
+        v_MinBSR_Size := 0;  // PDCP Size of 0 bytes;
+      }
+      case (1) {
+        // PDCP Size of 2 * 40 bytes;
+        v_MinBSR_Size := 15 ; //15   78 < BS <= 91
+      }
+      case (2) {
+        // PDCP Size of 2 * 80 bytes;
+        v_MinBSR_Size := 19 ; //19   146 < BS <= 171
+      }
+      case (3) {
+        // PDCP Size of 2 * 120 bytes;
+        v_MinBSR_Size := 22 ; //22   234 < BS <= 274
+      }
+      case (4) {
+        // PDCP Size of 2* 160 bytes;
+        v_MinBSR_Size := 23 ; //23   274 < BS <= 321
+      }
+      case (5) {
+        // PDCP Size of 2* 200 bytes;
+        v_MinBSR_Size := 25 ;//376 < BS <= 440
+      }
+      case (6) {
+        // PDCP Size of 2* 240 bytes;
+        v_MinBSR_Size := 26 ;//440 < BS <= 515
+      }
+      case (7) {
+        // PDCP Size of 2* 280 bytes;
+        v_MinBSR_Size := 27 ;//515 < BS <= 603
+      }
+      case (8) { //  8
+        // PDCP Size of 22*320  bytes;
+        v_MinBSR_Size := 28 ;//603 < BS <= 706
+      }
+      case else {
+        // out of supported range
+        FatalError(__FILE__, __LINE__, "not supported total number of AM or UM bearers");
+      }
+    }  // end of select
+    return v_MinBSR_Size;
+  };
+
+  function f_EUTRA_LoopBackActivation_State4_12_2(EUTRA_CellId_Type p_CellId,
+                                                  template (value) UE_TestLoopModeA_LB_Setup_Type p_UE_TestLoopModeA_LB_Setup,
+                                                  integer p_NoOfAddDRBs_AM,
+                                                  integer p_NoOfAddDRBs_UM,
+                                                  template (omit) EPS_QoSList_Type p_QoS,
+                                                  template (omit) Tft_List_Type p_Tft,
+                                                  template (omit) DRB_ToAddModList p_DRB_ToAddModList := omit) runs on EUTRA_PTC
+  {
+    var template (omit) DRB_ToAddModList v_DRB_ToAddModList := p_DRB_ToAddModList;                // => apply default setiing acc. 36.508 cl. 4.8.2.1.7 */
+    var template (omit) MAC_MainConfig_Type v_MAC_MainConfig := omit;               // => apply default setting acc. 36.508 cl. 4.8.2.1.5 */
+    var template (omit) PhysicalConfigDedicated v_PhysicalConfigDedicated := omit;  // => apply default setting acc. 36.508 cl. 4.8.2.1.6 */
+    f_EUTRA_GenericRbEst_Common(p_CellId, //@sic R5s100293 sic@
+                                          // @sic R5-104796 DRX support mandated at SS sic@
+                                p_NoOfAddDRBs_AM,
+                                p_NoOfAddDRBs_UM,
+                                v_DRB_ToAddModList,
+                                v_MAC_MainConfig,
+                                v_PhysicalConfigDedicated,
+                                p_QoS,
+                                p_Tft);   // bring UE to State 3
+    f_EUTRA_CloseUE_TestLoopModeA(p_CellId, p_UE_TestLoopModeA_LB_Setup);             // Step 1-2
+  };
+
+  function f_EUTRA_SS_DRB_AddConfig_1211 ( EUTRA_CellId_Type  p_CellId,
+                                           integer p_NoOfAddDRBs_AM,
+                                           integer p_NoOfAddDRBs_UM) runs on EUTRA_PTC
+  {
+    var template (value) RadioBearerList_Type v_DRB_ToAddModList;
+    var integer v_DRB_Id;
+    var integer n, m;
+    
+    if (p_NoOfAddDRBs_AM + p_NoOfAddDRBs_UM > 0) {          // @sic R5s100100 sic@
+      v_DRB_Id := tsc_DRB1 ;                             // DRB1 is the default bearer and also reconfigured;
+      //@sic R5s100670 sic@
+      for (n := 0; n < p_NoOfAddDRBs_AM; n := n + 1) {
+        v_DRB_ToAddModList[n] := cs_OneDRB_ConfigAM(v_DRB_Id, -, cs_RLC_Configuration_AM(cds_TX_AM_RLC_t_PollRetransmit(ms250)));//@sic R5s100469 R5s100760 sic@
+        v_DRB_Id := v_DRB_Id + 1;
+      }
+      for (m := 0; m < p_NoOfAddDRBs_UM; m := m + 1) {
+        v_DRB_ToAddModList[n+m] := cs_OneDRB_ConfigUM(v_DRB_Id, cds_DRB_PDCP_Conf_UM_ModifyDiscardTime(ms300));
+        v_DRB_Id := v_DRB_Id + 1;
+      }
+      
+      f_EUTRA_SS_CommonRadioBearerConfig(p_CellId, v_DRB_ToAddModList);
+    }
+  };
+
+  function f_GenericProcedure_12_1_1 (EUTRA_CellId_Type p_CellId,
+                                      integer p_NoOfAddDRBs_AM,
+                                      integer p_NoOfAddDRBs_UM ) runs on EUTRA_PTC
+  { //@sic R5s100100 sic@
+    const integer tsc_UM_PDCP_SDU_Size := 40; // Bytes
+    const integer tsc_AM_PDCP_SDU_Size := 40; // Bytes
+    
+    var SubFrameTiming_Type v_TimingInfo;
+    var SubFrameTimingList_Type v_RcvdSubFrameTimingList;
+    var integer n, m,v_DRB_Id;
+    var PDCP_SDU_Type v_DRB_DataList[8];
+    var boolean v_DRB_Flag[8] := {false, false, false, false, false, false, false, false};
+    var integer v_MinBSR_AM_Size := fl_MinBSRValueSet(p_NoOfAddDRBs_AM); // As per 36.508 Table 4.8.2.1.4-1 all AM DRB's are mapped to LCG =1
+    var integer v_MinBSR_UM_Size := fl_MinBSRValueSet(p_NoOfAddDRBs_UM); // As per 36.508 Table 4.8.2.1.4-1 all UM DRB's are mapped to LCG =2
+    var template (omit) Tft_List_Type v_Tft_List := omit;
+    var template (omit) EPS_QoSList_Type v_QoSList := omit;
+    var boolean v_RcvdInoneTTI := false;
+    var DRB_COMMON_IND v_DRB_COMMON_IND;
+    
+    var template (omit) DRB_ToAddModList v_DRB_ToAddModList  ;
+    timer t_Watchdog := 5.0;
+    
+    // SS configuration for approprite DRB's
+    f_EUTRA_SS_DRB_AddConfig_1211(p_CellId, p_NoOfAddDRBs_AM, p_NoOfAddDRBs_UM); //@sic R5s100670 sic@
+    // Generate TFTFilters and QOS
+    for (n := 0; n < (p_NoOfAddDRBs_AM-1 + p_NoOfAddDRBs_UM); n := n + 1)
+      {
+        v_QoSList[n] := cs_508_EPS_QoS_Dedicated_1;
+        select (n) {
+          case (0) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId);
+          }
+          case (1) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId2);
+          }
+          //@sic R5s100116 sic@
+          case (2) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId3);
+          }
+          case (3) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId4);
+          }
+          case (4) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId5);
+          }
+          case (5) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId6);
+          }
+          case (6) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId7);
+          }
+          case else {
+            FatalError(__FILE__, __LINE__, "not supported total number of bearers");
+            /// dummy statement added for satisfying the compiler
+          }
+        } // end of select
+      }// end of for
+    // Generate DRB List;
+    
+    v_DRB_Id := tsc_DRB1;                             // default bearer
+    for (n := 0; n < (p_NoOfAddDRBs_AM ); n := n + 1) {                // default bearer included in the list (=> p_NoOfAddDRBs_AM + 1)
+      
+      v_DRB_ToAddModList[n] := cs_508_DRB_ToAddMod_Common(v_DRB_Id,
+                                                          cds_PDCP_Config_DRB_AM_NoPDCP_StatusReport, //@sic R5s100469 sic@
+                                                          cs_508_RLC_Config_DRB_AM(cds_TX_AM_RLC_t_PollRetransmit(ms250)), //@sic R5s100469 sic@
+                                                          cs_508_LogicalChannelConfig_DRB_AM);
+      
+      v_DRB_Id := v_DRB_Id + 1;
+    }
+    
+    for (m := 0; m < p_NoOfAddDRBs_UM; m := m + 1) {
+      v_DRB_ToAddModList[p_NoOfAddDRBs_AM + m] := cs_508_DRB_ToAddMod_UM_DiscardTimer_300ms (v_DRB_Id);
+      v_DRB_Id := v_DRB_Id + 1;
+    }
+    
+    // Num AM bearers 1 less as Default bearer is not included which is configured by default.
+    f_EUTRA_LoopBackActivation_State4_12_2(p_CellId, cs_UE_TestLoopModeA_LB_Setup_NoScaling, p_NoOfAddDRBs_AM-1, p_NoOfAddDRBs_UM, v_QoSList, v_Tft_List,v_DRB_ToAddModList);
+    // go to sate 4 with desired number of AM and UM DRB's established
+    // initialise PDCP SDU's to be sent on DRB's
+    for (n := 0; n < (p_NoOfAddDRBs_AM ); n := n + 1) {                // default bearer included in the list
+      v_DRB_DataList[n] := f_GetN_OctetsFromPRBS(n*100, tsc_AM_PDCP_SDU_Size);
+    }
+    for (m := 0; m < p_NoOfAddDRBs_UM; m := m + 1) {
+      v_DRB_DataList[n+m] := f_GetN_OctetsFromPRBS((n+m)*100, tsc_UM_PDCP_SDU_Size);
+    }
+    // step 1
+    //@sic  R5s100293 sic@
+    // start report of BSR
+    f_SS_ConfigBufferStatusReportIndMode(p_CellId, tsc_L1Mac_IndicationMode_Enable);
+    
+    // step 2
+    
+    v_TimingInfo := f_EUTRA_GetNextSendOccasion (p_CellId, 200); // app 200 ms in future
+    
+    for (n := 0; n < (p_NoOfAddDRBs_AM + p_NoOfAddDRBs_UM ); n := n + 1)
+      {
+        DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU(p_CellId,
+                                              {Drb:= n+1},
+                                              cs_TimingInfo(v_TimingInfo.SFN.Number, v_TimingInfo.Subframe.Number ),
+                                              cs_PDCP_SDUList_1 (v_DRB_DataList[n])));
+        v_DRB_Flag[n] := true; // Expect a loop back Data for the DRB
+      };
+    // step 2a
+    // UL Grant of 32 bits Nprb =1, Imcs=Itbs=2
+    //@sic  R5s100293 sic@
+    //@sic R5-104796 DRX support on SS mandated sic@
+    f_EUTRA_StartExplicitULGrantTransmissionOnSR_Reception(p_CellId, cs_TimingInfo_Now, 2, 1);
+    
+    // step 3
+    t_Watchdog.start;
+    // the BSR here is considered to be Regular BSR not Padding  BSR, hence when data on only one LCG is available
+    // i.e. (p_NoOfAddDRBs_UM==0), a short BSR with 2 byte padding is reported.
+    alt {
+      [(p_NoOfAddDRBs_UM==0)] SYSIND.receive(car_BSR_IND(eutra_Cell1, cr_TimingInfo_Any, cr_ShortBSR_Ind(2, (v_MinBSR_AM_Size..63))))
+        {
+          t_Watchdog.stop;
+        }
+      [] SYSIND.receive(car_BSR_IND(eutra_Cell1, cr_TimingInfo_Any, cr_LongBSR_Ind(0, (v_MinBSR_UM_Size..63), (v_MinBSR_AM_Size..63),0)))
+        {
+          t_Watchdog.stop;
+        }
+      [] SYSIND.receive (car_BSR_IND(eutra_Cell1, cr_TimingInfo_Any, ?))
+        {
+          repeat;
+        }
+    };
+    // stop report of BSR
+    f_SS_ConfigBufferStatusReportIndMode(p_CellId, tsc_L1Mac_IndicationMode_Disable);
+    
+    // 4 preconfig SS for UL grant in an
+    v_TimingInfo := f_EUTRA_GetNextSendOccasion (p_CellId, 100); //  100 ms in future
+    // app 100 ms in future
+    v_TimingInfo.Subframe.Number := 4;
+    // selected for default TDD configurations and FDD results in UL data transmission in Sub frame 8
+    // UL Grant 40B PDCP SDU + 2B PDCP H+ 2B RLC Header + 2 B MAC Header = 46 B
+    // MAX 8 Data PDU's => 8 * 46 = 368 B
+    // Any status PDU's 2 B RLC PDU+ 2B MAC H = 4 B
+    // MAX 8 Status PDU's => 8 * 4 = 32 B
+    // Total MAx = 400 B = 3200 b
+    // TBS of 3880 selected to further provide buffer for RLC Status PDU's if Any;
+    // Nprb = 15 ITbs = 13 => Imcs =14
+    f_EUTRA_OneULGrantTransmission(p_CellId, cs_TimingInfo(v_TimingInfo.SFN.Number, v_TimingInfo.Subframe.Number), 14, 15 );
+    
+    //@sic  R5s100293 sic@
+    v_TimingInfo.Subframe.Number := 8;
+    // expected SFN of UL Data
+    // Step 5
+    n:=0;
+    
+    t_Watchdog.start;
+    alt {
+      [v_DRB_Flag[0]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB1,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[0])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[0] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+          
+        };
+      [v_DRB_Flag[1]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB2,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[1])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[1] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[2]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB3,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[2])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[2] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[3]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB4,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[3])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[3] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[4]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB5,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[4])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[4] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[5]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB6,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[5])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[5] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        };
+      [v_DRB_Flag[6]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB7,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[6])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[6] :=false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[7]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB8,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_1(v_DRB_DataList[7])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[7] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        };
+      [] t_Watchdog.timeout
+        {
+            v_RcvdInoneTTI := fl_CheckTimingInfoOneTTI (v_RcvdSubFrameTimingList);
+            if ( v_DRB_Flag[0] or v_DRB_Flag[1] or v_DRB_Flag[2] or v_DRB_Flag[3] or
+               v_DRB_Flag[4] or v_DRB_Flag[5] or v_DRB_Flag[6] or v_DRB_Flag[7] or (not v_RcvdInoneTTI) )
+            {
+              f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE is not looping back data on some or all DRB's in one TTI");
+            }
+          else
+            {
+              f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "UE has looped back data on all DRB's in one TTI");
+            }
+
+        }
+    }
+    // configure SS in normal grant transmission
+    //@sic R5-104796 DRX support on SS mandated sic@
+    //@sic  R5s100293 sic@
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    //@siclog step 5A-5B siclog@
+    //@sic R5-106566 sic@
+    f_EUTRA_OpenUE_TestLoopMode(eutra_Cell1);
+    
+    // step 6
+    f_EUTRA_RRC_ConnectionRelease(p_CellId);
+    // Note the f_EUTRA_RRC_ConnectionRelease reconfig's on SS side DRB1; other additional DRB's needs to be released and will
+    // be configured in new sub test;
+    f_EUTRA_SS_DRB_Release_NoDRB1(p_CellId, p_NoOfAddDRBs_AM, p_NoOfAddDRBs_UM);
+  };
+
+  function fl_ConfigDLExplicitGrant(EUTRA_CellId_Type p_CellId,
+                                    integer p_NoOfAddDRBs_AM,
+                                    integer p_NoOfAddDRBs_UM,
+                                    template (value) TimingInfo_Type p_TimingInfo) runs on EUTRA_PTC
+  {
+    var integer v_I_MCS:=0;     // Modulation and Coding Scehme Index
+    var integer v_N_PRB:=1;     // Number of physical resource Blocks
+    //@sic R5s110623 R5s110659 sic@
+    //Assumptions
+    // No space for any pending RLC Status PDU's as this is the first RLC PDU's on DRB
+    // UM PDU with SN =10 bits need 2 byte standard header;
+    // And when 2 PDCP SDU's are sent in one RLC PDU, the one LI is included, which needs addition 2 bytes [including 4 bits of padding]
+    // After calculating TB size the configured Tb size is atleast 16 bits greater to allow MCE for Timing advance and will result in
+    // 1. TA MCE in TB 1 and padding in TB2 if TA is triggered
+    // 2. Padding in both TB's
+    select (p_NoOfAddDRBs_AM + p_NoOfAddDRBs_UM) {
+      case (1) {
+        //Each TB = 40 B PDCP SDU + 2B PDCP H + 2 B RLC H + 1B MAC H =45 B =360 b
+        //selected   TB  size =424[Suitable for 5/10/20 Mhz BW] Nprb =12 Imcs =1
+        //  result in segmentation of PDCP SDU from one DRB
+        v_N_PRB := 12;
+        v_I_MCS := 1;
+      }
+      case (2) {
+        //Each TB = 2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 1B MAC H =89 B =712 b
+        //Selected  TB  size =840 Nprb =12 Imcs =4 => Itbs =4
+        //  result in segmentation of PDCP SDU from one DRB
+        //@sic R5s110320 sic@
+        v_N_PRB := 12;
+        v_I_MCS := 4;
+      }
+      case (3) {
+        //Each TB = (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //(40 B PDCP SDU + 2B PDCP H + 2 B RLC H + 1B MAC H)=90 B + 45 B = 135 B= 1080 b
+        //Selected  TB  size =1224 Nprb =12 Imcs =6
+        //  result in segmentation of PDCP SDU from one DRB
+        v_N_PRB := 12;
+        v_I_MCS := 6;
+      }
+      case (4) {
+        //Each TB = (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //         (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 1B MAC H)=90 B + 89 B = 179 B= 1432 b
+        //Selected  TB  size =1480 Nprb =12 Imcs =7
+        // If TA is not triggered can result in segmentation of PDCP SDU from one DRB
+        v_N_PRB := 12;
+        v_I_MCS := 7;
+      }
+      case (5) {
+        //Each TB = (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (40 B PDCP SDU + 2B PDCP H + 2 B RLC H + 1B MAC H)=90 B + 90 B+ 45 B = 225 B= 1800 b
+        //Selected  TB  size =1864 Nprb =12 Imcs =10 => Itbs=9
+        //  result in segmentation of PDCP SDU from one DRB
+        v_N_PRB := 12;
+        v_I_MCS := 10;
+      }
+      case (6) {
+        //Each TB = (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 1B MAC H) 90 B + 90 B + 89 B = 269 B= 2152 b
+        //Selected  TB  size =2728 Nprb =12 Imcs =13 => Itbs=12
+        //  result in segmentation of PDCP SDU from one DRB
+        v_N_PRB := 12;
+        v_I_MCS := 13;
+      }
+      case (7) {
+        //Each TB = (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (40 B PDCP SDU + 2B PDCP H + 2 B RLC H + 1B MAC H)=90 B + 90 B+ 90 B+ 45 B = 315 B= 2520 b
+        //Selected  TB  size =2728 Nprb =12 Imcs =13 => Itbs=12
+        //  result in segmentation of PDCP SDU from one DRB
+        v_N_PRB := 12;
+        v_I_MCS := 13;
+      }
+      case (8) {
+        //Each TB = (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 2B MAC H)  +
+        //          (2 * (40 B PDCP SDU + 2B PDCP H ) + 4 B RLC H + 1B MAC H) 90 B + 90 B +90 B+ 89 B = 359 B= 2872 b
+        //Selected  TB  size =3112 Nprb =12 Imcs =14 => Itbs=13
+        //  result in segmentation of PDCP SDU from one DRB
+        v_N_PRB := 12;
+        v_I_MCS := 14;
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "not supported total number of bearers");
+      }
+    }
+    
+    f_EUTRA_SS_CommonCellConfig(p_CellId, cas_CcchDcchDtchDL_Config_REQ(p_CellId,
+                                                                        p_TimingInfo,
+                                                                        cs_DciDLInfo_Explicit(cs_DciDlInfoExplicit_MIMO(cs_Imcs_Value(v_I_MCS),
+                                                                                                                        cs_Imcs_Value(v_I_MCS),
+                                                                                                                        dci_2A,
+                                                                                                                        ra_0,
+                                                                                                                        v_N_PRB, 12)))); //@sic R5s110572 sic@
+  };
+
+  function fl_CheckTimingInfoOneTTI (SubFrameTimingList_Type p_SubFrameTimingList) return boolean
+  {
+    var integer n;
+    var integer v_Check := lengthof (p_SubFrameTimingList);
+    
+    for ( n:= 0; n < (v_Check-1); n:= n+1)  // v_Check - 1 since otherwise when n=v_Check-1 then p_SubFrameTimingList[n+1] is not defined
+      {
+        if (f_EUTRA_SubFrameTimingDuration( p_SubFrameTimingList[n], p_SubFrameTimingList[n+1] ) != 0)
+          {
+            return false;
+          }
+      }
+    return true;
+  }
+
+  function f_GenericProcedure_12_1_2 (EUTRA_CellId_Type p_CellId,
+                                      integer p_NoOfAddDRBs_AM,
+                                      integer p_NoOfAddDRBs_UM ) runs on EUTRA_PTC
+  {
+    const integer tsc_UM_PDCP_SDU_Size := 40; // Bytes
+    const integer tsc_AM_PDCP_SDU_Size := 40; // Bytes
+    
+    var SubFrameTiming_Type v_TimingInfo;
+    var SubFrameTimingList_Type v_RcvdSubFrameTimingList;
+    var integer n, m, v_DRB_Id;
+    var PDCP_SDU_Type v_DRB_DataList1[8], v_DRB_DataList2[8];
+    var boolean v_DRB_Flag[8] := {false, false, false, false, false, false, false, false};
+    var boolean v_RcvdInoneTTI := false;
+    var integer v_MinBSR_AM_Size := fl_MinBSRValueSet_MIMO(p_NoOfAddDRBs_AM); // As per 36.508 Table 4.8.2.1.4-1 all AM DRB's are mapped to LCG =1
+    var integer v_MinBSR_UM_Size := fl_MinBSRValueSet_MIMO(p_NoOfAddDRBs_UM); // As per 36.508 Table 4.8.2.1.4-1 all UM DRB's are mapped to LCG =2
+    var template (omit) Tft_List_Type v_Tft_List := omit;
+    var template (omit) EPS_QoSList_Type v_QoSList := omit;
+    
+    var template (omit) DRB_ToAddModList v_DRB_ToAddModList := omit;
+    var DRB_COMMON_IND v_DRB_COMMON_IND;
+    var Dl_Bandwidth_Type v_Dl_Bandwidth:= f_EUTRA_CellInfo_GetDL_ChBandwidth(p_CellId);  //@sic R5s110320 sic@
+    
+    timer t_Watchdog := 5.0;
+    
+    // SS configuration for approprite DRB's
+    f_EUTRA_SS_DRB_AddConfig_1211(p_CellId, p_NoOfAddDRBs_AM, p_NoOfAddDRBs_UM);
+    // Generate TFTFilters and QOS
+    for (n := 0; n < (p_NoOfAddDRBs_AM-1 + p_NoOfAddDRBs_UM); n := n + 1)
+      {
+        v_QoSList[n] := cs_508_EPS_QoS_Dedicated_1;
+        select (n) {
+          case (0) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId);
+          }
+          case (1) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId2);
+          }
+          case (2) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId3);
+          }
+          case (3) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId4);
+          }
+          case (4) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId5);
+          }
+          case (5) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId6);
+          }
+          case (6) {
+            v_Tft_List[n] := f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId7);
+          }
+          case else {
+            FatalError(__FILE__, __LINE__, "not supported total number of bearers");
+            /// dummy statement added for satisfying the compiler
+          }
+        } // end of select
+      }// end of for
+    // Generate DRB List;
+    
+    v_DRB_Id := tsc_DRB1;                             // default bearer
+    for (n := 0; n < (p_NoOfAddDRBs_AM ); n := n + 1) {                // default bearer included in the list (=> p_NoOfAddDRBs_AM + 1)
+      
+      v_DRB_ToAddModList[n] := cs_508_DRB_ToAddMod_Common(v_DRB_Id,
+                                                          cds_PDCP_Config_DRB_AM_NoPDCP_StatusReport, //@sic R5s100469 sic@
+                                                          cs_508_RLC_Config_DRB_AM(cds_TX_AM_RLC_t_PollRetransmit(ms250)), //@sic R5s100469 sic@
+                                                          cs_508_LogicalChannelConfig_DRB_AM);
+      
+      v_DRB_Id := v_DRB_Id + 1;
+    }
+    
+    for (m := 0; m < p_NoOfAddDRBs_UM; m := m + 1) {
+      v_DRB_ToAddModList[p_NoOfAddDRBs_AM + m] := cs_508_DRB_ToAddMod_UM_DiscardTimer_300ms (v_DRB_Id);
+      v_DRB_Id := v_DRB_Id + 1;
+    }
+    
+    // Num AM bearers 1 less as Default bearer is not included which is configured by default.
+    f_EUTRA_LoopBackActivation_State4_12_2(p_CellId, cs_UE_TestLoopModeA_LB_Setup_NoScaling, p_NoOfAddDRBs_AM-1, p_NoOfAddDRBs_UM, v_QoSList, v_Tft_List,v_DRB_ToAddModList);
+
+    // go to sate 4 with desired number of AM and UM DRB's established
+    // initialise PDCP SDU's to be sent on DRB's
+    for (n := 0; n < (p_NoOfAddDRBs_AM ); n := n + 1) {                // default bearer included in the list
+      v_DRB_DataList1[n] := f_GetN_OctetsFromPRBS(n*100, tsc_AM_PDCP_SDU_Size);
+      v_DRB_DataList2[n] := f_GetN_OctetsFromPRBS((1000+n*100), tsc_AM_PDCP_SDU_Size);
+    }
+    for (m := 0; m < p_NoOfAddDRBs_UM; m := m + 1) {
+      v_DRB_DataList1[n+m] := f_GetN_OctetsFromPRBS((n+m)*100, tsc_UM_PDCP_SDU_Size);
+      v_DRB_DataList2[n+m] := f_GetN_OctetsFromPRBS((1000+(n+m)*100), tsc_UM_PDCP_SDU_Size);
+    }
+    // step 1
+    
+    // start report of BSR
+    f_SS_ConfigBufferStatusReportIndMode(p_CellId, tsc_L1Mac_IndicationMode_Enable);
+    
+    // step 2
+    
+    v_TimingInfo := f_EUTRA_GetNextSendOccasion (p_CellId, 300); // app 300 ms in future
+    fl_ConfigDLExplicitGrant(p_CellId,
+                             p_NoOfAddDRBs_AM,
+                             p_NoOfAddDRBs_UM,
+                             cs_TimingInfo(v_TimingInfo.SFN.Number, v_TimingInfo.Subframe.Number ));
+    v_TimingInfo:= f_EUTRA_GetDrxOnDuration(p_CellId, f_EUTRA_TimingInfoAdd(v_TimingInfo, 10)); // 10 ms; @sic R5s110336 sic@
+    
+    for (n := 0; n < (p_NoOfAddDRBs_AM+ p_NoOfAddDRBs_UM ); n := n + 1) {
+
+      DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU(p_CellId,
+                                            {Drb:= n+1},
+                                            cs_TimingInfo(v_TimingInfo.SFN.Number, v_TimingInfo.Subframe.Number ),
+                                            cs_PDCP_SDUList_2 (v_DRB_DataList1[n],v_DRB_DataList2[n])));
+      v_DRB_Flag[n] := true; // Expect a loop back Data for the DRB
+    }
+    // step 2a
+    // UL Grant of 32 bits Nprb =1, Imcs=Itbs=2
+    
+    f_EUTRA_StartExplicitULGrantTransmissionOnSR_Reception(p_CellId, cs_TimingInfo_Now, 2, 1);
+    
+    // step 3
+    t_Watchdog.start;
+    // the BSR here is considered to be Regular BSR not Padding  BSR, hence when data on only one LCG is available
+    // i.e. (p_NoOfAddDRBs_UM==0), a short BSR with 2 byte padding is reported.
+    alt {
+      [(p_NoOfAddDRBs_UM==0)] SYSIND.receive(car_BSR_IND(eutra_Cell1, cr_TimingInfo_Any, cr_ShortBSR_Ind(2, (v_MinBSR_AM_Size..63))))
+        {
+          t_Watchdog.stop;
+        }
+      [] SYSIND.receive(car_BSR_IND(eutra_Cell1, cr_TimingInfo_Any, cr_LongBSR_Ind(0, (v_MinBSR_UM_Size..63), (v_MinBSR_AM_Size..63),0)))
+        {
+          t_Watchdog.stop;
+        }
+      [] SYSIND.receive (car_BSR_IND(eutra_Cell1, cr_TimingInfo_Any, ?))
+        {
+          repeat;
+        }
+    }
+
+    // stop report of BSR
+    f_SS_ConfigBufferStatusReportIndMode(p_CellId, tsc_L1Mac_IndicationMode_Disable);
+    
+    // 4 preconfig SS for UL grant in an
+    v_TimingInfo := f_EUTRA_GetNextSendOccasion(p_CellId);
+    // app 100 ms in future
+    v_TimingInfo.Subframe.Number := 4;
+    // selected for default TDD configurations and FDD results in UL data transmission in Sub frame 8
+    // UL Grant 2 * (40B PDCP SDU + 2B PDCP H)+ 4B RLC Header + 2 B MAC Header = 90 B
+    // MAX 8 Data PDU's => 8 * 90 = 720 B
+    // Any status PDU's 2 B RLC PDU+ 2B MAC H = 4 B
+    // MAX 8 Status PDU's => 8 * 4 = 32 B
+    // Total MAx = 752 B = 6016 b
+    // TBS of 6200 selected nearest bigger TBS
+    // Nprb = 20 ITbs = 15 => Imcs =16
+    f_EUTRA_OneULGrantTransmission(p_CellId, cs_TimingInfo(v_TimingInfo.SFN.Number, v_TimingInfo.Subframe.Number), 16, 20 );
+    
+    // Step 5
+    t_Watchdog.start;
+    n:=0;
+    
+    alt {
+      [v_DRB_Flag[0]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,
+                                                                   tsc_RbId_DRB1,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[0],v_DRB_DataList2[0])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[0] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[1]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,
+                                                                   tsc_RbId_DRB2,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[1],v_DRB_DataList2[1]))) -> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[1] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[2]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,
+                                                                   tsc_RbId_DRB3,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[2],v_DRB_DataList2[2])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[2] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[3]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,
+                                                                   tsc_RbId_DRB4,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[3],v_DRB_DataList2[3])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[3] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[4]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,
+                                                                   tsc_RbId_DRB5,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[4],v_DRB_DataList2[4])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[4] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[5]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,tsc_RbId_DRB6,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[5],v_DRB_DataList2[5])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[5] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[6]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,
+                                                                   tsc_RbId_DRB7,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[6],v_DRB_DataList2[6])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[6] :=false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [v_DRB_Flag[7]] DRB.receive(car_DRB_COMMON_IND_PDCP_SDUList (p_CellId,
+                                                                   tsc_RbId_DRB8,
+                                                                   cr_TimingInfo_Any,
+                                                                   cr_PDCP_SDUList_2(v_DRB_DataList1[7],v_DRB_DataList2[7])))-> value v_DRB_COMMON_IND
+        {
+          v_DRB_Flag[7] := false;
+          v_RcvdSubFrameTimingList[n] := v_DRB_COMMON_IND.Common.TimingInfo.SubFrame ;
+          n:= n+1;
+          repeat;
+        }
+      [] t_Watchdog.timeout
+        {
+          v_RcvdInoneTTI := fl_CheckTimingInfoOneTTI (v_RcvdSubFrameTimingList);
+          if ( v_DRB_Flag[0] or v_DRB_Flag[1] or v_DRB_Flag[2] or v_DRB_Flag[3] or
+               v_DRB_Flag[4] or v_DRB_Flag[5] or v_DRB_Flag[6] or v_DRB_Flag[7] or (not v_RcvdInoneTTI) )
+            {
+              f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE is not looping back data on some or all DRB's in one TTI");
+            }
+          else
+            {
+              f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "UE has looped back data on all DRB's in one TTI");
+            }
+        }
+    }
+    
+    // configure SS in normal grant transmission
+    f_EUTRA_SS_CommonCellConfig(p_CellId,
+                                cas_CcchDcchDtchDL_Config_REQ(p_CellId,
+                                                              cs_TimingInfo_Now,
+                                                              cs_DciDLInfo_Auto(cs_DciInfo_CcchDcchDtchDL(v_Dl_Bandwidth)))); //@sic R5s110320 sic@
+    
+    f_EUTRA_StartDefULGrantTransmission(eutra_Cell1);
+    //@siclog step 5A-5B siclog@
+    //@sic R5-106566 sic@
+    f_EUTRA_OpenUE_TestLoopMode(eutra_Cell1);
+    
+    // step 6
+    f_EUTRA_RRC_ConnectionRelease(p_CellId);
+    // Note the f_EUTRA_RRC_ConnectionRelease reconfig's on SS side DRB1; other additional DRB's needs to be released and will
+    // be configured in new sub test;
+    f_EUTRA_SS_DRB_Release_NoDRB1(p_CellId, p_NoOfAddDRBs_AM, p_NoOfAddDRBs_UM);
+  };
+
+  } // end of group LocalFunctions
+
+  function f_TC_12_2_1_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.2
+     * 12.2.1 : Data transfer of E-UTRA radio bearer combinations 1, 3, 6 and 9
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+    // Bring UE to state 3
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    // Test body starts
+    // E-UTRA radio bearer combination 1: SRB1 and SRB2 for DCCH + 1xAM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 1, 0);
+    // E-UTRA radio bearer combination 3: SRB1 and SRB2 for DCCH + 2xAM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 2, 0);
+    // E-UTRA radio bearer combination 6: SRB1 and SRB2 for DCCH + 3xAM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 3, 0);
+    // E-UTRA radio bearer combination 9: SRB1 and SRB2 for DCCH + 4xAM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 4, 0);
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE); //@sic R5s100279 sic@
+  };
+
+  function f_TC_12_2_2_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.2
+     * 12.2.2 : Data transfer of E-UTRA radio bearer combinations 2,4,7 and 10
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+    // Bring UE to state 3
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    // Test body starts
+    // E-UTRA radio bearer combination 2: SRB1 and SRB2 for DCCH + 1xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 1, 1);
+    // E-UTRA radio bearer combination 4: SRB1 and SRB2 for DCCH + 2xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 2, 1);
+    // E-UTRA radio bearer combination 7: SRB1 and SRB2 for DCCH + 3xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 3, 1);
+    // E-UTRA radio bearer combination 10: SRB1 and SRB2 for DCCH + 4xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 4, 1);
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_12_2_3_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.2
+     * 12.2.3 : Data transfer of E-UTRA radio bearer combinations 5,8,11 and 12
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);
+    // Bring UE to state 3
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);
+    // Test body starts
+    // E-UTRA radio bearer combination 5: SRB1 and SRB2 for DCCH + 2xAM DRB + 2xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 2, 2);
+    // E-UTRA radio bearer combination 8: SRB1 and SRB2 for DCCH + 3xAM DRB + 2xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 3, 2);
+    // E-UTRA radio bearer combination 11: SRB1 and SRB2 for DCCH + 4xAM DRB + 2xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 4, 2);
+    // E-UTRA radio bearer combination 12: SRB1 and SRB2 for DCCH + 5xAM DRB + 3xUM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 5, 3);
+    f_EUTRA_TestBody_Set(false);
+    //test body ends
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_12_2_4_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.2
+     * 12.2.4 : Data transfer of E-UTRA radio bearer combination 13
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);     // Bring UE to state 3
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+
+    f_EUTRA_TestBody_Set(true);     // Test body starts
+    // E-UTRA radio bearer combination 13: SRB1 and SRB2 for DCCH + 8xAM DRB
+    f_GenericProcedure_12_1_1(eutra_Cell1, 8, 0);
+    f_EUTRA_TestBody_Set(false);    //test body ends
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_12_3_1_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.3
+     * 12.3.1 : Data transfer of E-UTRA radio bearer combinations 1,3,6 and 9 / MIMO
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellInfo_SetMIMO_2TX(eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);  // Bring UE to state 3
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);    // Test body starts
+
+    // E-UTRA radio bearer combination 1: SRB1 and SRB2 for DCCH + 1xAM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 1, 0);
+    // E-UTRA radio bearer combination 3: SRB1 and SRB2 for DCCH + 2xAM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 2, 0);
+    // E-UTRA radio bearer combination 6: SRB1 and SRB2 for DCCH + 3xAM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 3, 0);
+    // E-UTRA radio bearer combination 9: SRB1 and SRB2 for DCCH + 4xAM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 4, 0);
+
+    f_EUTRA_TestBody_Set(false);  // test body ends
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE); //@sic R5s100279 sic@
+  }
+
+  function f_TC_12_3_2_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.3
+     * 12.3.2 : Data transfer of E-UTRA radio bearer combinations 2,4,7 and 10 / MIMO
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellInfo_SetMIMO_2TX(eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA); // Bring UE to state 3
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);      // Test body starts
+
+    // E-UTRA radio bearer combination 2: SRB1 and SRB2 for DCCH + 1xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 1, 1);
+    // E-UTRA radio bearer combination 4: SRB1 and SRB2 for DCCH + 2xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 2, 1);
+    // E-UTRA radio bearer combination 7: SRB1 and SRB2 for DCCH + 3xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 3, 1);
+    // E-UTRA radio bearer combination 10: SRB1 and SRB2 for DCCH + 4xAM DRB + 1xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 4, 1);
+
+    f_EUTRA_TestBody_Set(false);   //test body ends
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_12_3_3_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.3
+     * 12.3.3 : Data transfer of E-UTRA radio bearer combinations 5,8,11 and 12 / MIMO
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellInfo_SetMIMO_2TX(eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);    // Bring UE to state 3
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_TestBody_Set(true);     // Test body starts
+
+    // E-UTRA radio bearer combination 5: SRB1 and SRB2 for DCCH + 2xAM DRB + 2xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 2, 2);
+    // E-UTRA radio bearer combination 8: SRB1 and SRB2 for DCCH + 3xAM DRB + 2xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 3, 2);
+    // E-UTRA radio bearer combination 11: SRB1 and SRB2 for DCCH + 4xAM DRB + 2xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 4, 2);
+    // E-UTRA radio bearer combination 12: SRB1 and SRB2 for DCCH + 5xAM DRB + 3xUM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 5, 3);
+    f_EUTRA_TestBody_Set(false);    //test body ends
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_12_3_4_EUTRA ( ) runs on EUTRA_PTC
+  { /* DRB/12.3
+     * 12.3.4 : Data transfer of E-UTRA radio bearer combination 13 / MIMO
+     */
+    
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      PREAMBLE
+    //////////////////////////////////////////////////////////////////////////////////
+    f_EUTRA_Init (c1);
+    f_EUTRA_CellInfo_SetMIMO_2TX(eutra_Cell1);
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+    f_EUTRA_Preamble (eutra_Cell1, STATE2A_TESTLOOP_ModeA);     // Bring UE to state 3
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Test Body
+    //////////////////////////////////////////////////////////////////////////////////
+
+    f_EUTRA_TestBody_Set(true);     // Test body starts
+
+    // E-UTRA radio bearer combination 13: SRB1 and SRB2 for DCCH + 8xAM DRB
+    f_GenericProcedure_12_1_2(eutra_Cell1, 8, 0);
+
+    f_EUTRA_TestBody_Set(false);    //test body ends
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //      Post Amble
+    //////////////////////////////////////////////////////////////////////////////////
+    
+    //Switch off UE and expect a DETACH REQUEST message
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+}

@@ -1,0 +1,975 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:35:48 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7308 $
+/******************************************************************************/
+
+module UpperTesterFunctions {
+
+  import from CommonDefs all;
+  import from EPS_NAS_TypeDefs all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UpperTesterCommon all;
+  import from UpperTesterDefs all;
+
+  const integer tsc_ManualPLMN_None := -1;                      /* @status    APPROVED */
+
+  template (value) UT_COMMON_CMD cas_UT_Req (template (value) Ut_Common_Req_Type p_Cmd,
+                                             template (value) Ut_CnfReq_Type p_Cnf,
+                                             template (omit)  Ut_ParameterList_Type p_Parameters) :=
+  { /* @status    APPROVED */
+    Cmd := p_Cmd,
+    CnfReq := p_Cnf,
+    ParameterList := p_Parameters
+  };
+
+  template (value) Ut_Parameter_Type cs_Ut_Parameter_Cid ( charstring p_Value ) :=
+    /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Cid", p_Value);
+
+  template (value) Ut_Parameter_Type cs_Ut_Parameter_QoS ( charstring p_Value ) :=
+    /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "QoS", p_Value);
+
+  template (value) Ut_Parameter_Type cs_Ut_Parameter_PLMN ( charstring p_Value ) :=
+    /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "PLMN", p_Value);
+
+  template (value) Ut_ParameterList_Type cs_CEMode ( charstring p_Value ) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "CE MODE", p_Value)
+  };
+
+  template (value) Ut_ParameterList_Type cs_CheckPlmn ( charstring p_Value ) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_PLMN (p_Value)
+  };
+
+  template (value) Ut_ParameterList_Type cs_CheckETWS ( charstring p_Value1, charstring p_Value2 ) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ("WARNING1", p_Value1),
+    cs_Ut_Parameter_Common ("WARNING2", p_Value2)
+  };
+
+  template (value) Ut_ParameterList_Type cs_UplinkData ( charstring p_Data, charstring p_Sapi ) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ("DATA", p_Data),
+    cs_Ut_Parameter_Common ("SAPI", p_Sapi)
+  };
+
+  template (value) Ut_ParameterList_Type cs_ManualPlmn ( charstring p_Value ) :=
+  { /* @status    APPROVED */
+    /* @sic R5-106675 sic@ */
+    cs_Ut_Parameter_PLMN (p_Value)
+  };
+
+  template (value) Ut_ParameterList_Type cs_PlmnCSG ( charstring p_PLMN,
+                                                      charstring p_CSG ) :=
+  { /* @status    APPROVED */
+    /* @sic R5-106675 sic@ */
+    cs_Ut_Parameter_PLMN (p_PLMN),
+    cs_Ut_Parameter_Common ( "CSG", p_CSG)
+  };
+
+  template (value) Ut_ParameterList_Type cs_DialNumber ( charstring p_Value ) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "DIAL", p_Value)
+  };
+
+  template (value) Ut_ParameterList_Type cs_IMSMode :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "VOICE_CALL_MODE", "VOIP_ONLY")
+  };
+
+  template (value) Ut_ParameterList_Type cs_InsertUsim (template (value) charstring p_Value ) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "USIM", p_Value)
+  };
+
+  template (value) Ut_ParameterList_Type cs_SecondaryPDP (charstring p_DedId,
+                                                          charstring p_DefId) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Cid ( p_DedId ),
+    cs_Ut_Parameter_Common ( "DefId", p_DefId)
+  };
+
+  template (value) Ut_ParameterList_Type cs_PDP_Cid (charstring p_Cid) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Cid ( p_Cid )
+  };
+
+  template (value) Ut_ParameterList_Type cs_EPSQoS (charstring p_QoSParams) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_QoS ( p_QoSParams )
+  };
+
+  template (value) Ut_ParameterList_Type cs_TFT (charstring p_TFTParams) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "TFT", p_TFTParams)
+  };
+
+  template (value) Ut_ParameterList_Type cs_RequestPDP (charstring p_PDPParams) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "RequestPDP", p_PDPParams )
+  };
+
+  template (value) Ut_ParameterList_Type cs_DeleteMessage_Withflag (charstring p_Index,
+                                                                    charstring p_Delflag) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Index", p_Index ),
+    cs_Ut_Parameter_Common ( "Delflag", p_Delflag )
+  };
+
+  template (value) Ut_ParameterList_Type cs_MessageService (charstring p_Service) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Service", p_Service)
+  };
+
+  template (value) Ut_ParameterList_Type cs_PreferredStorage (charstring p_Mem1,
+                                                              charstring p_Mem2,
+                                                              charstring p_Mem3) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Mem1", p_Mem1 ),
+    cs_Ut_Parameter_Common ( "Mem2", p_Mem2 ),
+    cs_Ut_Parameter_Common ( "Mem3", p_Mem3 )
+  };
+
+  template (value) Ut_ParameterList_Type cs_MessageFormat (charstring p_Mode) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Mode", p_Mode )
+  };
+
+  template (value) Ut_ParameterList_Type cs_SelectCharacterSet (charstring p_Chset) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Chset", p_Chset )
+  };
+
+  template (value) Ut_ParameterList_Type cs_ServiceCentreAddress (charstring p_Sca, charstring p_Tosca) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Sca", p_Sca ),
+    cs_Ut_Parameter_Common ( "Tosca", p_Tosca )
+  };
+
+  template (value) Ut_ParameterList_Type cs_WriteMessageToMemory_Text (charstring p_Da, charstring p_Toda, charstring p_Text) :=
+  { // @sic R5s110750 sic@
+    /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Da", p_Da ),
+    cs_Ut_Parameter_Common ( "Toda", p_Toda ),
+    cs_Ut_Parameter_Common ( "Text", p_Text )
+  };
+
+  template (value) Ut_ParameterList_Type cs_WriteMessageToMemory_PDU (charstring p_Len,
+                                                                      charstring p_Pdu) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Len", p_Len ),
+    cs_Ut_Parameter_Common ( "Text", p_Pdu )
+  };
+
+  template (value) Ut_ParameterList_Type cs_SendMessageFromStorage (charstring p_Index) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Index", p_Index )
+  };
+
+  template (value) Ut_ParameterList_Type cs_ChkMsgDisplayed (charstring p_Length,
+                                                             charstring p_Msg) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ( "Length", p_Length ),
+    cs_Ut_Parameter_Common ( "Msg", p_Msg )
+  };
+
+  template (value) Ut_ParameterList_Type cs_SetTextModeParameters (charstring p_Fo,
+                                                                   charstring p_Vp,
+                                                                   charstring p_Pid) :=
+  { /* @status    APPROVED */
+    /* @sic R5s100606 sic@ */
+    cs_Ut_Parameter_Common ( "Fo", p_Fo ),
+    cs_Ut_Parameter_Common ( "Vp", p_Vp ),
+    cs_Ut_Parameter_Common ( "Pid", p_Pid )
+  };
+
+  template (value) Ut_ParameterList_Type cs_QoS_Profile (charstring p_Cid,
+                                                         charstring p_QoSParams) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Cid ( p_Cid ),
+    cs_Ut_Parameter_QoS ( p_QoSParams )
+  };
+
+  template (value) Ut_ParameterList_Type cs_OperatorFormat (charstring p_Format) :=
+  { /* @status    APPROVED */
+    cs_Ut_Parameter_Common ("Format", p_Format )
+  };
+
+  function fl_UT_ApplyCommand(UT_PTC_MTC_PORT p_Port,
+                              template (value) UT_COMMON_CMD p_Cmd)
+  {
+    p_Port.send(p_Cmd);
+    if (match(CNF_REQUIRED, p_Cmd.CnfReq) or match(LOCAL_CNF_REQUIRED, p_Cmd.CnfReq)) { // @sic R5s110275 sic@
+      p_Port.receive(car_UT_CnfAny);
+    }
+  }
+
+  function fl_UT_ApplyCommandRetCnfValue(UT_PTC_MTC_PORT p_Port,
+                                         template (value) UT_COMMON_CMD p_Cmd) return UT_COMMON_CNF
+  {
+    var UT_COMMON_CNF v_Cnf;
+    p_Port.send(p_Cmd);
+    p_Port.receive(car_UT_CnfAny) -> value v_Cnf;
+    return v_Cnf;
+  }
+
+  function fl_UT_ApplyCommandRetResultString(UT_PTC_MTC_PORT p_Port,
+                                             template (value) UT_COMMON_CMD p_Cmd) return charstring
+  {
+    var charstring v_ResultString := "";
+    var UT_COMMON_CNF v_Cnf := fl_UT_ApplyCommandRetCnfValue(p_Port, p_Cmd);
+    if (ispresent(v_Cnf.ResultString)) {
+      v_ResultString := v_Cnf.ResultString;
+    }
+    return v_ResultString;
+  }
+
+  function f_UT_ConfigureCombinedAttach(UT_PTC_MTC_PORT p_Port,
+                                        CS_PS_MODE p_UE_CS_PS_UsageSetting_Tested  := px_UE_CS_PS_UsageSetting_Tested)
+  {
+    var integer v_Mode := 1; // PS/CS Mode 1 // @sic R5-106675 sic@  @sic R5s120511 sic@
+    var CS_PS_MODE v_UE_CS_PS_UsageSetting_Tested := p_UE_CS_PS_UsageSetting_Tested;
+
+    if ((v_UE_CS_PS_UsageSetting_Tested == DATA_CENTRIC) and pc_CS_PS_data_centric) {
+      v_UE_CS_PS_UsageSetting_Tested := DATA_CENTRIC;
+    }
+    else if ((v_UE_CS_PS_UsageSetting_Tested == VOICE_CENTRIC) and pc_CS_PS_voice_centric) {
+      v_UE_CS_PS_UsageSetting_Tested := VOICE_CENTRIC;
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "Invalid Usage Settings");
+    }
+    if (pc_Combined_Attach) { // The message is only needed if both options are supported; @sic R5-103815 sic@ @sic R5s120079r1 sic@
+      if (v_UE_CS_PS_UsageSetting_Tested == DATA_CENTRIC) {// @sic R5-106675 sic@
+        v_Mode := 2; // PS/CS Mode 2
+      }
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(CONFIGURE_CEMODE, CNF_REQUIRED, cs_CEMode(int2str(v_Mode)))); // @sic R5-106675 sic@
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "inconsistent parameter setting");
+    }
+  }
+
+  function f_UT_ConfigureEPSAttach(UT_PTC_MTC_PORT p_Port,
+                                   PS_MODE p_UE_PS_UsageSetting_Tested  := px_UE_PS_UsageSetting_Tested)
+  {
+    var integer v_Mode := 0; // PSMode 2 // @sic R5-106675 sic@ @sic R5s120511r1 sic@
+    var PS_MODE v_UE_PS_UsageSetting_Tested := p_UE_PS_UsageSetting_Tested;
+
+    if ((v_UE_PS_UsageSetting_Tested == DATA_CENTRIC) and (pc_PS_data_centric == true)) {
+      v_UE_PS_UsageSetting_Tested := DATA_CENTRIC;
+    }
+    else if ((v_UE_PS_UsageSetting_Tested == VOICE_CENTRIC) and (pc_PS_voice_centric == true)) {
+      v_UE_PS_UsageSetting_Tested := VOICE_CENTRIC;
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "Invalid Usage Settings");
+    }
+    if (pc_Attach) { // The message is only needed if both options are supported;  @sic R5-103815 sic@ @sic R5s120079r1 sic@
+      if (v_UE_PS_UsageSetting_Tested == VOICE_CENTRIC) {// @sic R5-106675 sic@
+        v_Mode := 3; // PS Mode 1
+      }
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(CONFIGURE_CEMODE, CNF_REQUIRED, cs_CEMode(int2str(v_Mode)))); // @sic R5-106675 sic@
+    }
+    else {
+      FatalError(__FILE__, __LINE__, "inconsistent parameter setting");
+    }
+  }
+
+  function f_UT_DisableEPS(UT_PTC_MTC_PORT p_Port)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(DISABLE_EPS, NO_CNF_REQUIRED, omit));
+  }
+
+  function f_UT_USIM_Remove(UT_PTC_MTC_PORT p_Port)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(REMOVE_USIM, CNF_REQUIRED, omit));
+  }
+
+  function f_UT_USIM_Insert(UT_PTC_MTC_PORT p_Port,
+                            template (omit) charstring p_USIM_ID )
+  {
+    if (isvalue(p_USIM_ID)) {
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(INSERT_USIM, CNF_REQUIRED, cs_InsertUsim ( valueof(p_USIM_ID) ) ) );
+    } else {
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(INSERT_USIM, CNF_REQUIRED, omit ) );
+    }
+
+  }
+
+  function f_UT_PowerOffUE(UT_PTC_MTC_PORT p_Port)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(POWER_OFF, CNF_REQUIRED, omit));
+  }
+
+  function f_UT_SwitchOnUE(UT_PTC_MTC_PORT p_Port,
+                           boolean p_USIM_Rmvd,
+                           Ut_CnfReq_Type p_CnfRequired := NO_CNF_REQUIRED)
+  {
+    var Ut_Common_Req_Type v_Request;
+
+    if (p_USIM_Rmvd and pc_USIM_Removal) {  // SIM needs to be inserted
+      v_Request := INSERT_USIM;
+    } else if (pc_SwitchOnOff) {        // switch on the UE
+      v_Request := SWITCH_ON;
+    } else if (pc_USIM_Removal) {       // UE doesn't support switch off, so SIM needs to be inserted;  @sic R5-104083 sic@
+      v_Request := INSERT_USIM;
+    } else {                            // power on the UE
+      v_Request := POWER_ON;
+    }
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(v_Request, p_CnfRequired, omit));
+  }
+
+  function f_UT_SwitchOffUE(UT_PTC_MTC_PORT p_Port,
+                            boolean p_USIM_Rmvd,
+                            Ut_CnfReq_Type p_CnfRequired := NO_CNF_REQUIRED)
+  {
+    if (p_USIM_Rmvd and pc_USIM_Removal) {  // SIM needs to be removed
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(REMOVE_USIM, CNF_REQUIRED, omit));
+    } else if (pc_SwitchOnOff) {        // switch off the UE
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(SWITCH_OFF, p_CnfRequired, omit));  //  @sic R5s110395 sic@
+    } else if (pc_USIM_Removal) {  // UE doesn't support switch off, but does support SIM removal, so remove it;  @sic R5-104083 sic@
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(REMOVE_USIM, CNF_REQUIRED, omit));
+    } else {                            // power off the UE - last resort
+      fl_UT_ApplyCommand(p_Port, cas_UT_Req(POWER_OFF, CNF_REQUIRED, omit));
+    }
+  }
+
+  function f_UT_CheckETWS_CMAS(UT_PTC_MTC_PORT p_Port,
+                          charstring p_WarningMsg1,
+                          charstring p_WarningMsg2,
+                          boolean p_CMAS := false) return boolean
+  {
+    // To make the operator check if the ETWS/CMAS warning indication is displayed
+    var Ut_Common_Req_Type v_Type := CHECK_ETWS_INDICATION;
+    var UT_COMMON_CNF v_Cnf;
+    if (p_CMAS) {
+      v_Type := CHECK_CMAS_INDICATION;
+    }
+    v_Cnf := fl_UT_ApplyCommandRetCnfValue(p_Port, cas_UT_Req(v_Type, CNF_REQUIRED, cs_CheckETWS(p_WarningMsg1, p_WarningMsg2)));
+    return v_Cnf.Result;
+  }
+
+  function f_UT_CheckETWS_CMAS_Alert(UT_PTC_MTC_PORT p_Port, boolean p_CMAS := false) return boolean
+  {
+    // To make the operator check if the alert is used
+    var Ut_Common_Req_Type v_Type := CHECK_ETWS_ALERT;
+    var UT_COMMON_CNF v_Cnf;
+    if (p_CMAS) {
+      v_Type := CHECK_CMAS_ALERT;
+    }
+    v_Cnf := fl_UT_ApplyCommandRetCnfValue(p_Port, cas_UT_Req(v_Type, CNF_REQUIRED, omit));
+    return v_Cnf.Result;
+  }
+
+  function f_UT_CheckETWS_CMAS_NoAlert(UT_PTC_MTC_PORT p_Port, boolean p_CMAS := false) return boolean
+  {
+    var Ut_Common_Req_Type v_Type := CHECK_ETWS_NO_ALERT;
+    var UT_COMMON_CNF v_Cnf;
+    if (p_CMAS) {
+      v_Type := CHECK_CMAS_NO_ALERT;
+    }
+    v_Cnf := fl_UT_ApplyCommandRetCnfValue(p_Port, cas_UT_Req(v_Type, CNF_REQUIRED, omit));
+    return v_Cnf.Result;
+  }
+
+  function fl_GenerateATForTFTPacketFilter (integer p_DedicatedId,
+                                            PacketFilter p_Filter) return charstring
+  {
+    var B8_Type v_Bit;
+    var charstring v_IPAddress := "";
+    var charstring v_ProtIdNextHeader := "";
+    var charstring v_LocalPort := "";
+    var charstring v_RemotePort := "";
+    var charstring v_SecurityIndex := "";
+    var charstring v_ToS := "";
+    var charstring v_FlowLabel := "";
+    var integer v_Direction;
+    var charstring v_Filterstring := "";
+    var PacketFilter v_Filter := p_Filter;
+    var integer v_LengthOfContents := lengthof(v_Filter.contents);
+    var integer i;
+
+
+    v_Bit := oct2bit(v_Filter.iei);
+    v_Filterstring := int2str(p_DedicatedId);
+    v_Filterstring := v_Filterstring & "," & int2str(bit2int(substr(v_Bit, 4, 4))+1); // identifier @sic R5s100557 sic@
+    v_Direction := bit2int(substr(v_Bit, 0, 4));
+    v_Filterstring := v_Filterstring & "," & int2str(bit2int(v_Filter.precedence)); // precedence
+
+    for (i := 0; i < v_LengthOfContents; i := i + 1) {
+      if (ischosen(v_Filter.contents[i].packetFilterComponentValue.ipv4RemoteAddress)) { //IPv4
+        v_IPAddress := fl_TFTIPAdd (v_Filter.contents[i].packetFilterComponentValue.ipv4RemoteAddress);
+      }
+      else if (ischosen (v_Filter.contents[i].packetFilterComponentValue.ipv6RemoteAddress)) { //IPv6
+        v_IPAddress := fl_TFTIPAdd (v_Filter.contents[i].packetFilterComponentValue.ipv6RemoteAddress);
+      }
+      else if (ischosen(v_Filter.contents[i].packetFilterComponentValue.protocolIdNextHeader)) { //Protocol id/next header
+        v_ProtIdNextHeader := fl_TFTProtHeader (v_Filter.contents[i].packetFilterComponentValue.protocolIdNextHeader);
+      }
+      else if (ischosen (v_Filter.contents[i].packetFilterComponentValue.singleLocalPort)) { //single local port
+        v_LocalPort := fl_TFTPort (v_Filter.contents[i].packetFilterComponentValue.singleLocalPort);
+      }
+      else if (ischosen(v_Filter.contents[i].packetFilterComponentValue.localPortRange)) { //local port range
+        v_LocalPort := fl_TFTPort (v_Filter.contents[i].packetFilterComponentValue.localPortRange);
+      }
+      else if (ischosen (v_Filter.contents[i].packetFilterComponentValue.singleRemotePort)) { //Single remote port
+        v_RemotePort := fl_TFTPort (v_Filter.contents[i].packetFilterComponentValue.singleRemotePort);
+      }
+      else if (ischosen (v_Filter.contents[i].packetFilterComponentValue.remotePortRange)) { //remote port range
+        v_RemotePort := fl_TFTPort (v_Filter.contents[i].packetFilterComponentValue.remotePortRange);
+      }
+      else if (ischosen (v_Filter.contents[i].packetFilterComponentValue.securityParameterIndex)) { //Security parameter index
+        v_SecurityIndex := fl_TFTSecurity (v_Filter.contents[i].packetFilterComponentValue.securityParameterIndex);
+      }
+      else if (ischosen (v_Filter.contents[i].packetFilterComponentValue.typeOfServiceTrafficClass)) { //Type of Service
+        v_ToS :=  fl_TFTToS (v_Filter.contents[i].packetFilterComponentValue.typeOfServiceTrafficClass);
+      }
+      else if (ischosen (v_Filter.contents[i].packetFilterComponentValue.flowLabel)) { //Flow Label
+        v_FlowLabel := fl_TFTFlow (v_Filter.contents[i].packetFilterComponentValue.flowLabel);
+      }
+    }
+
+    if (v_IPAddress == "") {
+      v_Filterstring := v_Filterstring & ",";
+    } else {
+      v_Filterstring := v_Filterstring & "," & v_IPAddress;
+    }
+    if (v_ProtIdNextHeader == "") {
+      v_Filterstring := v_Filterstring & ",";
+    } else {
+      v_Filterstring := v_Filterstring & "," & v_ProtIdNextHeader;
+    }
+    if (v_LocalPort == "") {                      // @sic R5s100557 sic@
+      v_Filterstring := v_Filterstring & ",";
+    } else {
+      v_Filterstring := v_Filterstring & "," & v_LocalPort;
+    }
+    if (v_RemotePort == "") {
+      v_Filterstring := v_Filterstring & ",";
+    } else {
+      v_Filterstring := v_Filterstring & "," & v_RemotePort;
+    }
+    if (v_SecurityIndex == "") {
+      v_Filterstring := v_Filterstring & ",";
+    } else {
+      v_Filterstring := v_Filterstring & "," & v_SecurityIndex;
+    }
+    if (v_ToS == "") {
+      v_Filterstring := v_Filterstring & ",";
+    } else {
+      v_Filterstring := v_Filterstring & "," & v_ToS;
+    }
+    if (v_FlowLabel == "") {
+      v_Filterstring := v_Filterstring & ",";
+    } else {
+      v_Filterstring := v_Filterstring & "," & v_FlowLabel;
+    }
+    if (v_Direction == 1) {  // Uplink and downlink are different values in AT cmd
+      v_Direction := 2;
+    } else if (v_Direction == 2) {
+      v_Direction := 1;
+    }
+    v_Filterstring := v_Filterstring & "," & int2str(v_Direction);
+    return (v_Filterstring);
+  }
+
+  function fl_TFTIPAdd (octetstring p_Input) return charstring
+  {
+    var integer v_Length := lengthof (p_Input);
+    var charstring v_Result:= """";
+    var integer i;
+
+    for (i := 0; i < v_Length; i := i + 1) {
+      v_Result := v_Result & int2str(oct2int(p_Input[i]));
+      if (i != (v_Length-1)) {
+        v_Result := v_Result & ".";
+      }
+    }
+    v_Result := v_Result & """";
+    return v_Result;
+  }
+
+  function fl_TFTProtHeader (octetstring p_Input) return charstring
+  {
+    return int2str(oct2int(p_Input));
+  }
+
+  function fl_TFTPort (octetstring p_Input) return charstring
+  {
+    var integer v_Length := lengthof (p_Input);
+    var charstring v_Result := "";
+
+    v_Result := """";
+
+    if (v_Length == 4) {
+      v_Result := v_Result & int2str(oct2int(substr(p_Input, 0, 2)));      // @sic R5s100362 sic@
+      v_Result := v_Result & "." & int2str(oct2int(substr(p_Input, 2, 2)));
+    } else { // @sic R5s100362 sic@
+      v_Result := v_Result & int2str(oct2int(p_Input)) & "." & int2str(oct2int(p_Input)); // only given one value, so put the same in both
+    }
+    
+    v_Result := v_Result & """";
+    return v_Result;
+  }
+
+  function fl_TFTSecurity (octetstring p_Input) return charstring
+  {
+    return oct2str(p_Input);
+  }
+
+  function fl_TFTToS (octetstring p_Input) return charstring
+  {
+    var charstring v_Result := "";
+    v_Result := int2str(oct2int(substr(p_Input, 0, 1)));
+    v_Result := v_Result & "." & int2str(oct2int(substr(p_Input, 1, 1)));
+    return v_Result;
+  }
+
+  function fl_TFTFlow (octetstring p_Input) return charstring
+  {
+    return hex2str(substr(oct2hex(p_Input), 1, 5));
+  }
+
+  function f_UT_RequestCSCall (UT_PTC_MTC_PORT p_Port,
+                               charstring p_NumToDial := "01234567890")
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(REQUEST_CS_CALL, NO_CNF_REQUIRED, cs_DialNumber (p_NumToDial)));
+  }
+
+  function f_UT_RequestIMSCall (UT_PTC_MTC_PORT p_Port,
+                               charstring p_NumToDial := "01234567890")
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(VOICE_CALL_MODE, CNF_REQUIRED, cs_IMSMode));
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(REQUEST_CS_CALL, NO_CNF_REQUIRED, cs_DialNumber (p_NumToDial)));
+  }
+
+  function f_UT_PLMN_Check (UT_PTC_MTC_PORT p_Port,
+                             charstring p_PLMN_ID)
+  {
+    fl_UT_ApplyCommand ( p_Port, cas_UT_Req(CHECK_PLMN, CNF_REQUIRED, cs_CheckPlmn (p_PLMN_ID) ) );
+  }
+
+  function f_UT_ManualPLMN_Select ( UT_PTC_MTC_PORT p_Port,
+                                    NAS_PlmnId p_PLMN_ID,
+                                    integer p_Cell_AccessTechnology := tsc_ManualPLMN_None, // @sic R5-106675 sic@
+                                    Ut_CnfReq_Type p_Ut_CnfReq_Type := NO_CNF_REQUIRED) // @sic R5s110633 sic@
+  { /* Objective: To manually select the specified PLMN
+     *            TTCN waits until operation is confirmed before continuing */
+    /* @sic R5-106675 sic@ */
+    var charstring v_AT := fl_ConvertPLMN (p_PLMN_ID);
+
+    if (p_Cell_AccessTechnology != tsc_ManualPLMN_None) {
+      v_AT := v_AT & "," & int2str (p_Cell_AccessTechnology);
+    }
+    fl_UT_ApplyCommand ( p_Port, cas_UT_Req(PLMN_MANUAL, p_Ut_CnfReq_Type, cs_ManualPlmn (v_AT))); // @sic R5s110633 sic@
+  }
+
+  function fl_ConvertPLMN ( NAS_PlmnId p_PLMN_ID ) return charstring
+  { /* @sic R5-106675 sic@ */
+
+    var hexstring v_PLMN_Hex := oct2hex(p_PLMN_ID); // Now re-order it for the AT command
+    var hexstring v_PLMN_ForAT := v_PLMN_Hex[1] & v_PLMN_Hex[0] & v_PLMN_Hex[3] & v_PLMN_Hex[5] & v_PLMN_Hex[4];
+    
+    if (v_PLMN_Hex[2] != 'F'H) { // @sic R5s576 sic@
+      v_PLMN_ForAT := v_PLMN_ForAT & v_PLMN_Hex[2];
+   }
+    return """" & hex2str(v_PLMN_ForAT) & """";
+  }
+
+  function f_UT_ManualPLMN_CSG(UT_PTC_MTC_PORT p_Port,
+                               NAS_PlmnId p_PLMN_ID,
+                               bitstring p_CSG_ID)
+  { /* Objective: To ask the operator to manually select the specified CSG cell TTCN waits until operation is confirmed before continuing */
+    fl_UT_ApplyCommand ( p_Port, cas_UT_Req(SELECT_CSG, NO_CNF_REQUIRED, cs_PlmnCSG (fl_ConvertPLMN (p_PLMN_ID), int2str(bit2int(p_CSG_ID)))));  // @sic R5s120298 sic@
+  }
+
+  function f_UT_AutomaticPLMN_Select ( UT_PTC_MTC_PORT p_Port )
+  { /* Objective: To change the UE into automatic mode */
+    fl_UT_ApplyCommand ( p_Port, cas_UT_Req(PLMN_AUTOMATIC, NO_CNF_REQUIRED, omit ) ); // @sic R5-106675 sic@
+  }
+
+  function fl_UT_RequestActivateOrModifyDedicatedBearer (UT_PTC_MTC_PORT p_Port,
+                                                         template (value) Ut_Common_Req_Type p_ActivateOrModify,
+                                                         integer p_DedicatedId,
+                                                         integer p_DefaultId,
+                                                         template (value) EPS_QualityOfService p_QoS,
+                                                         template (value) TrafficFlowTemplate p_Tft,
+                                                         Ut_CnfReq_Type p_Ut_CnfReq_Type := NO_CNF_REQUIRED )
+  {
+    // @sic R5s100470 change 3 sic@
+    var EPS_QualityOfService v_QoS := valueof (p_QoS); // need to do this to then manipulate it in the charstring
+    var TrafficFlowTemplate v_Tft := valueof (p_Tft); // need to do this to then manipulate it in the charstring
+    var charstring v_QoSstring := "";
+    var integer v_NoOfPacketFilters := bit2int (v_Tft.noOfPktFilter);
+    var integer i;
+
+    v_QoSstring := int2str(p_DedicatedId);
+    v_QoSstring := v_QoSstring &","& int2str(bit2int(v_QoS.qci));
+    v_QoSstring := v_QoSstring &","& int2str(fl_QoS_MaximumBitRate(v_QoS.guaranteedBitRateDl)); // @sic R5s100557 sic@
+    v_QoSstring := v_QoSstring &","& int2str(fl_QoS_MaximumBitRate(v_QoS.guaranteedBitRateUl)); // @sic R5s100557 sic@
+    v_QoSstring := v_QoSstring &","& int2str(fl_QoS_MaximumBitRate(v_QoS.maxBitRateDl)); // @sic R5s100557 sic@
+    v_QoSstring := v_QoSstring &","& int2str(fl_QoS_MaximumBitRate(v_QoS.maxBitRateUl)); // @sic R5s100557 sic@
+    // Extended rates are not dealt with at the moment (all set to 0 in current 36.508) FFS
+
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(REQUEST_DED_BEARER, CNF_REQUIRED, cs_SecondaryPDP(int2str(p_DedicatedId), int2str(p_DefaultId)))); // @sic R5s110570 sic@
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(DEFINE_EPS_QOS, CNF_REQUIRED, cs_EPSQoS(v_QoSstring))); // @sic R5s110570 sic@
+
+    if (v_NoOfPacketFilters != 0) {
+      for (i := 0; i < v_NoOfPacketFilters; i := i + 1)
+        {
+          fl_UT_ApplyCommand(p_Port, cas_UT_Req(DEFINE_TFT, CNF_REQUIRED, cs_TFT(fl_GenerateATForTFTPacketFilter (p_DedicatedId, v_Tft.packetFilterList[i])))); // @sic R5s110570 sic@
+        }
+    }
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(p_ActivateOrModify, p_Ut_CnfReq_Type, cs_PDP_Cid(int2str(p_DedicatedId))));
+  }
+
+  function fl_QoS_MaximumBitRate(B8_Type p_Val) return integer
+  {
+    var integer v_Val := bit2int(p_Val);
+    if ((v_Val >= bit2int('00000001'B)) and (v_Val <= bit2int('00111111'B))) {
+        return v_Val;
+    }
+    if ((v_Val >= bit2int('01000000'B)) and (v_Val <= bit2int('01111111'B))) {
+        return (64 + ((v_Val - 64)*8));
+    }
+    if ((v_Val >= bit2int('10000000'B)) and (v_Val <= bit2int('11111110'B))) {
+        return (576 + ((v_Val - 128)*64));
+    }
+    if (v_Val == bit2int('11111111'B)) {
+        return 0;
+    }
+    return 0;
+  }
+
+  function fl_QoS_TransferDelay(B6_Type p_Val) return integer
+  {
+    var integer v_Val := bit2int(p_Val);
+    if ((v_Val >= bit2int('000001'B)) and (v_Val <= bit2int('001111'B))) {
+      return (v_Val*10);
+    }
+    if ((v_Val >= bit2int('010000'B)) and (v_Val <= bit2int('011111'B))) {
+      return (200 + ((v_Val - 16)*50));
+    }
+    if ((v_Val >= bit2int('100000'B)) and (v_Val <= bit2int('111110'B))) {
+      return (1000 + ((v_Val - 32)*100));
+    }
+    return 0;
+  }
+
+  function fl_QoS_SDUErrorRatio(B4_Type p_Val) return charstring
+  {
+    select    (p_Val) {
+      case ('0001'B) { return ("1E2"); }
+      case ('0010'B) { return ("7E3"); }
+      case ('0011'B) { return ("1E3"); }
+      case ('0100'B) { return ("1E4"); }
+      case ('0101'B) { return ("1E5"); }
+      case ('0110'B) { return ("1E6"); }
+      case ('0111'B) { return ("1E1"); }
+    }
+    return "";
+  }
+
+  function fl_QoS_ResidualBER(B4_Type p_Val) return charstring
+  {
+    select(p_Val) {
+      case ('0001'B) { return ("5E2"); }
+      case ('0010'B) { return ("1E2"); }
+      case ('0011'B) { return ("5E3"); }
+      case ('0100'B) { return ("4E3"); }
+      case ('0101'B) { return ("1E3"); }
+      case ('0110'B) { return ("1E4"); }
+      case ('0111'B) { return ("1E5"); }
+      case ('1000'B) { return ("1E6"); }
+      case ('1001'B) { return ("6E8"); }
+    }
+    return "";
+  }
+
+  function f_UT_RequestModifyDedicatedBearer (UT_PTC_MTC_PORT p_Port,
+                                              integer p_DedicatedId,
+                                              integer p_DefaultId,
+                                              template (value) EPS_QualityOfService p_QoS,
+                                              template (value) TrafficFlowTemplate p_Tft )
+  {
+    fl_UT_RequestActivateOrModifyDedicatedBearer (p_Port, MODIFY_BEARER, p_DedicatedId, p_DefaultId, p_QoS, p_Tft);
+  }
+
+  function f_UT_RequestActivateDedicatedBearer (UT_PTC_MTC_PORT p_Port,
+                                                integer p_DedicatedId,
+                                                integer p_DefaultId,
+                                                template (value) EPS_QualityOfService p_QoS,
+                                                template (value) TrafficFlowTemplate p_Tft,
+                                                Ut_CnfReq_Type p_Ut_CnfReq_Type := NO_CNF_REQUIRED )
+  {
+    fl_UT_RequestActivateOrModifyDedicatedBearer (p_Port, ACTIVATE_BEARER, p_DedicatedId, p_DefaultId, p_QoS, p_Tft, p_Ut_CnfReq_Type);
+  }
+
+  function f_UT_DeactivateBearer (UT_PTC_MTC_PORT p_Port,
+                                  integer p_DedicatedId)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(DEACTIVATE_BEARER, NO_CNF_REQUIRED, cs_PDP_Cid(int2str(p_DedicatedId))));
+  }
+
+  function f_UT_ActivatePDPContextUG (UT_PTC_MTC_PORT p_Port,
+                                         integer p_CId,
+                                         template (value) QualityOfService p_QoSParams,
+                                         charstring p_APN := "")
+  {
+    var QualityOfService v_QoS := valueof (p_QoSParams);  // need to do this to then manipulate the string
+    var charstring v_QoSstring := "";
+    var charstring v_PDP_CtxtString := "";
+    var integer v_SSDesc := bit2int(v_QoS.sourceStatisticsDescriptor);
+    var integer v_TrafficClass := bit2int(v_QoS.trafficClass);
+    var integer v_DelOrder := bit2int(v_QoS.deliveryOrder);
+    var integer v_DeliveryErrorSDU := bit2int(v_QoS.deliveryErrorSDU);
+    
+    // string produced: "p_PDP_Type","p_AccessPointName","p_PDP_Address" - this field is no longer included
+    if (p_APN != "") {
+      v_PDP_CtxtString := """" & p_APN & """";
+    }
+    
+    if (v_SSDesc > 1) {
+      v_SSDesc := 1;  // Only allowed values are 0 or 1
+    }
+    
+    v_TrafficClass := v_TrafficClass - 1; // in AT command value is one less than in PDP Context
+    if (v_TrafficClass < 0) {
+      v_TrafficClass := 0;
+    }
+    
+    select (v_DelOrder) {
+      case (1)  { v_DelOrder := 1; }
+      case (2)  { v_DelOrder := 0; }
+      case else { v_DelOrder := 2; }
+    }
+    
+    select (v_DeliveryErrorSDU) {
+      case (1)  { v_DeliveryErrorSDU := 2; }
+      case (2)  { v_DeliveryErrorSDU := 1; }
+      case (3)  { v_DeliveryErrorSDU := 0; }
+      case else { v_DeliveryErrorSDU := 3; }
+    }
+    
+    v_QoSstring := v_QoSstring & int2str(v_TrafficClass);
+    v_QoSstring := v_QoSstring & "," & int2str(fl_QoS_MaximumBitRate(v_QoS.maxBitRateUL));
+    v_QoSstring := v_QoSstring & "," & int2str(fl_QoS_MaximumBitRate(v_QoS.maxBitRateDL));
+    v_QoSstring := v_QoSstring & "," & "," & "," & int2str(v_DelOrder);
+    v_QoSstring := v_QoSstring & "," & int2str(bit2int(v_QoS.maxSduSize)*10);
+    v_QoSstring := v_QoSstring & ",""" & fl_QoS_SDUErrorRatio(v_QoS.sduErrorRatio)& """";
+    v_QoSstring := v_QoSstring & ",""" & fl_QoS_ResidualBER(v_QoS.residualBER)& """";
+    v_QoSstring := v_QoSstring & "," & int2str(v_DeliveryErrorSDU);
+    v_QoSstring := v_QoSstring & "," & int2str(fl_QoS_TransferDelay(v_QoS.transferDelay));
+    v_QoSstring := v_QoSstring & "," & int2str(bit2int(v_QoS.trafficHandlingPrio));
+    v_QoSstring := v_QoSstring & "," & int2str(v_SSDesc);
+    v_QoSstring := v_QoSstring & "," & int2str(bit2int(v_QoS.signallingInd));
+
+    fl_RequestPDPContext(p_Port, p_CId, v_PDP_CtxtString);
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(DEFINE_QOS, CNF_REQUIRED, cs_QoS_Profile (int2str(p_CId), v_QoSstring))); // @sic R5s110570 sic@
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(ACTIVATE_BEARER, NO_CNF_REQUIRED, cs_PDP_Cid(int2str(p_CId))));
+  }
+
+  function f_UT_RequestAdditionalPDNConnectivity (UT_PTC_MTC_PORT p_Port,
+                                                  integer p_BearerId,
+                                                  charstring p_APN := "", // @sic R5s100466 sic@
+                                                  boolean p_EmergencyBearer := false) // @sic R5-120403 sic@
+  {
+    var charstring v_Cmd := "";
+    
+    if (p_APN != "") {
+      v_Cmd := """" & p_APN & """"; // @sic R5s100466, R5s100538 sic@
+    }
+    if (p_EmergencyBearer) { // @sic R5-120403 sic@
+      v_Cmd := v_Cmd & ",,,,,1";
+    }
+    fl_RequestPDPContext(p_Port, p_BearerId, v_Cmd);
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(ACTIVATE_BEARER, NO_CNF_REQUIRED, cs_PDP_Cid(int2str(p_BearerId))));
+  }
+
+  function fl_RequestPDPContext (UT_PTC_MTC_PORT p_Port,
+                                 integer p_BearerId,
+                                 charstring p_RestOfCmd)
+  { // @sic R5s100466 change 5 sic@
+    var charstring v_Cmd := "";
+    var charstring v_Type := """IP""";
+
+    if ( pc_IPv6 and (not pc_IPv4)) {
+      v_Type := """IPV6""";
+    }
+    if ( pc_IPv6 and pc_IPv4) {
+      v_Type := """IPV4V6""";
+    }
+    v_Cmd := v_Cmd & int2str(p_BearerId);
+    v_Cmd := v_Cmd & "," & v_Type;
+
+    if (p_RestOfCmd != "") { // @sic R5s120002 sic@
+      v_Cmd := v_Cmd & "," & p_RestOfCmd; // @sic R5s100520 sic@
+    }
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(REQUEST_PDPCONTEXT, CNF_REQUIRED, cs_RequestPDP(v_Cmd))); // @sic R5s110570 sic@
+  }
+
+  function f_UT_TriggerAttach (UT_PTC_MTC_PORT p_Port)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(ATTACH, NO_CNF_REQUIRED, omit));
+  }
+
+  function f_UT_InitiateDetach (UT_PTC_MTC_PORT p_Port)  // @sic R5-113807 sic@
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(DETACH, NO_CNF_REQUIRED, omit));
+  }
+
+  function f_UT_InitiateDetach_NonEPSOnly (UT_PTC_MTC_PORT p_Port)  // @sic R5-113807 sic@
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(DETACH_NON_EPS, NO_CNF_REQUIRED, omit));
+  }
+
+  function f_UT_SelectMessageService (UT_PTC_MTC_PORT p_Port,
+                                      charstring p_Service) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(SELECT_MESSAGE_SERVICE,
+                                                                CNF_REQUIRED,
+                                                                cs_MessageService(p_Service)));
+  }
+
+  function f_UT_SetPreferredMessageStorage (UT_PTC_MTC_PORT p_Port,
+                                            charstring p_Mem1,
+                                            charstring p_Mem2,
+                                            charstring p_Mem3) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(SET_PREFERRED_STORAGE,
+                                                                CNF_REQUIRED,
+                                                                cs_PreferredStorage(p_Mem1, p_Mem2, p_Mem3)));
+  }
+
+  function f_UT_SetMessageFormat (UT_PTC_MTC_PORT p_Port,
+                                  charstring p_Mode) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(MESSAGE_FORMAT,
+                                                                CNF_REQUIRED,
+                                                                cs_MessageFormat(p_Mode)));
+  }
+
+  function f_UT_SelectCharacterSet (UT_PTC_MTC_PORT p_Port,
+                                    charstring p_Chset) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(SELECT_CHARACTER_SET,
+                                                                CNF_REQUIRED,
+                                                                cs_SelectCharacterSet(p_Chset)));
+  }
+
+  function f_UT_DeleteMessageFromStorage_DELFLAG (UT_PTC_MTC_PORT p_Port,
+                                                  integer p_Index,
+                                                  integer p_Delflag) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(DELETE_MESSAGE_WITHFLAG,
+                                                                CNF_REQUIRED,
+                                                                cs_DeleteMessage_Withflag(int2str(p_Index), int2str(p_Delflag))));
+  }
+
+  function f_UT_ServiceCentreAddress (UT_PTC_MTC_PORT p_Port,
+                                      charstring p_Sca,
+                                      integer p_Tosca) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(SERVICE_CENTRE_ADDRESS,
+                                                                CNF_REQUIRED,
+                                                                cs_ServiceCentreAddress(p_Sca, int2str(p_Tosca))));
+  }
+
+  function f_UT_WriteMessageToMemoryText (UT_PTC_MTC_PORT p_Port,
+                                          charstring p_Da,
+                                          charstring p_Toda,
+                                          charstring p_Text) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(WRITE_MESSAGE_TOMEMORY_TEXTMODE,
+                                                                CNF_REQUIRED,
+                                                                cs_WriteMessageToMemory_Text(p_Da, p_Toda, p_Text))); // @sic R5s110750 sic@
+  }
+
+  function f_UT_WriteMessageToMemoryPDU (UT_PTC_MTC_PORT p_Port,
+                                         charstring p_Len,
+                                         charstring p_Pdu) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(WRITE_MESSAGE_TOMEMORY_PDUMODE,
+                                                                CNF_REQUIRED,
+                                                                cs_WriteMessageToMemory_PDU(p_Len, p_Pdu)));
+  }
+
+  function f_UT_SendStoredOneMessage (UT_PTC_MTC_PORT p_Port,
+                                      integer p_Index)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(SEND_STORED_MESSAGE_ONE,
+                                          NO_CNF_REQUIRED, // @sic R5s110091 sic@
+                                          cs_SendMessageFromStorage(int2str(p_Index))));
+  }
+
+  function f_UT_SetTextModeParameters (UT_PTC_MTC_PORT p_Port,
+                                       integer p_Fo,
+                                       integer p_Vp,
+                                       integer p_Pid) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(SET_TEXTMODE_PARAMETERS,
+                                                                CNF_REQUIRED,
+                                                                cs_SetTextModeParameters(int2str(p_Fo), int2str(p_Vp), int2str(p_Pid)))); // @sic R5s100606 sic@
+  }
+
+  function f_UT_ChkMsgDisplayed(UT_PTC_MTC_PORT p_Port,
+                                integer p_Length,
+                                charstring p_Msg) return boolean
+  {
+    // To make the operator check an MT Short Message received
+    var UT_COMMON_CNF v_Cnf := fl_UT_ApplyCommandRetCnfValue(p_Port, cas_UT_Req(CHECK_MESSAGE_DISPLAYED,
+                                                                                CNF_REQUIRED,
+                                                                                cs_ChkMsgDisplayed(int2str(p_Length), p_Msg)));
+    
+    return v_Cnf.Result;
+  }
+
+  function f_UT_ChkTimeZone (UT_PTC_MTC_PORT p_Port) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(CHECK_CLOCK, CNF_REQUIRED, omit));
+  }
+
+  type enumerated UT_OPERATOR_FORMAT { LONG_NAME, SHORT_NAME, NUMERIC_ONLY};      /* @status    APPROVED */
+
+  function f_UT_ChkOperatorName (UT_PTC_MTC_PORT p_Port,
+                                 UT_OPERATOR_FORMAT p_Format) return charstring
+  {
+    return fl_UT_ApplyCommandRetResultString(p_Port, cas_UT_Req(CHECK_OPERATOR_NAME,
+                                                                CNF_REQUIRED,
+                                                                cs_OperatorFormat(int2str(enum2int(p_Format))))); // @sic R5s110439 sic@
+  }
+
+  function f_UT_AnswerCSCall (UT_PTC_MTC_PORT p_Port)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(ANSWER_CS_CALL, NO_CNF_REQUIRED, omit));
+  }
+
+  function f_UT_GeranUplinkData (UT_PTC_MTC_PORT p_Port,
+                                 charstring p_Data,
+                                 charstring p_Sapi)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(GERAN_UPLINK_DATA, NO_CNF_REQUIRED, cs_UplinkData(p_Data, p_Sapi)));
+  }
+
+  function f_UT_Trigger_HRPD_PDN_Connection (UT_PTC_MTC_PORT p_Port)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(HRPD_PDN_CONNECTION, NO_CNF_REQUIRED, omit));
+  }
+
+  function f_UT_TriggerUserReselection (UT_PTC_MTC_PORT p_Port)
+  {
+    fl_UT_ApplyCommand(p_Port, cas_UT_Req(TRIGGER_USER_RESELECTION, NO_CNF_REQUIRED, omit));
+  }
+
+}

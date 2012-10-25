@@ -1,0 +1,202 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-14 13:11:08 +0200 (Thu, 14 Jun 2012) $
+// $Rev: 6916 $
+/******************************************************************************/
+
+module UTRAN_TypeDefs
+{
+  import from UTRAN_ASP_Definitions language "ASN.1:2002" all;
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:2002" all;
+  import from NAS_CommonTypeDefs all;
+  import from UTRAN_CommonDefs all;
+  import from NAS_24008TypeDefs all;
+
+  type enumerated UTRA_POSTAMBLE_STATE_Type {U1_IDLE, U2_CONNECTED, U3_HANDOVER, U4_CSFALLBACK, U5_CSCALL, U6_DEREGISTERED};
+  type enumerated UTRA_POSTAMBLE_CONDITIONS {UTRA_C1, UTRA_C2, UTRA_C3, UTRA_C4}
+  
+  type integer SS_RB_Identity (-31..32);               // RB identity type in TTCN tabular format
+  
+  group Ports {
+    type port UTRAN_AM_PORT message {
+      in U_RLC_AM_IND;
+      out U_RLC_AM_REQ;
+    };
+    type port UTRAN_CMAC_PORT message {
+      in U_CMAC_CONFIG_CNF;
+      out U_CMAC_CONFIG_REQ;
+    };
+    type port UTRAN_CPHY_PORT message {
+      in U_CPHY_CONFIG_CNF;
+      out U_CPHY_CONFIG_REQ;
+    };
+    type port UTRAN_CRLC_PORT message {
+      in U_CRLC_CONFIG_CNF;
+      out U_CRLC_CONFIG_REQ;
+    };
+    type port UTRAN_Dc_PORT message {
+      in  RRC_DATA_IND;
+      out RRC_DATA_REQ;
+    };
+    type port UTRAN_TM_PORT message {
+      in RLC_TR_DATA_IND;
+      out RLC_TR_DATA_REQ;
+    };
+    type port UTRAN_UM_PORT message {
+      in  RLC_UM_DATA_IND;
+      out RLC_UM_DATA_REQ;
+    };
+  }; // end group Ports
+
+  // =============================================================================
+  // ASP Type Definition
+  // -----------------------------------------------------------------------------
+  type union U_RLC_AM_IND {  // @sic R5-103846 sic@
+    RLC_AM_DATA_CNF    cnf,
+    RLC_AM_DATA_IND    data,
+    RLC_AM_TestDataInd testData
+  };
+
+  // =============================================================================
+  // ASP Type Definition
+  // -----------------------------------------------------------------------------
+  type union U_RLC_AM_REQ {  // @sic R5-103846 sic@
+    RLC_AM_DATA_REQ    data,
+    RLC_AM_TestDataReq testData
+  };
+
+  // =============================================================================
+  // ASP Type Definition
+  // To request the transmission of unstructered data using acknowledged mode in the downlink direction
+  // -----------------------------------------------------------------------------
+  type record RLC_AM_TestDataReq {
+    integer  cellId  optional,
+    SS_RB_Identity  rB_Id  optional,                 // RB identity (RB3 or RB4)
+    TrD_PDU         data  optional
+  };
+
+  // =============================================================================
+  // ASP Type Definition
+  // To indicate the reception of unstructered data using acknowledged mode in the uplink direction
+  // -----------------------------------------------------------------------------
+  type record RLC_AM_TestDataInd {
+    integer  cellId  optional,
+    SS_RB_Identity  rB_Id  optional,                 // RB identity (RB3 or RB4)
+    TrD_PDU         data  optional
+  };
+
+  // =============================================================================
+  // ASP Type Definition
+  // The ASP is used to indicate the receipt of the NAS PDU message using acknowledged operation (NAS <- RRC).
+  // -----------------------------------------------------------------------------
+  type record RRC_DATA_IND {
+    integer         cellId,                // Cell Id
+    SS_RB_Identity  rB_Id,                 // RB identity (RB3 or RB4_Type)
+    LogicChGERAN    ch  optional,                    // Logical channel (used for interworking with GERAN)
+    SapId           sapId  optional,                 // RRC SAP identifier (SAP0)
+    SS_CN_DomainIdentity cN_Domain,        // CN domain identity
+    START_Value     ttcn_start optional,            // Mandatory in INITIAL DIRECT TRANSFER
+    RRCDataIndType  msg                    // NAS PDU
+  };
+
+  // =============================================================================
+  // ASP Type Definition
+  // The ASP is used to request the transmission of the NAS PDU message using acknowledged operation (NAS -> RRC).
+  // -----------------------------------------------------------------------------
+  type record RRC_DATA_REQ {
+    integer         cellId,
+    SS_RB_Identity  rB_Id,                 // RB identity (RB3 or RB4_Type)
+    LogicChGERAN    ch  optional,                    // Logical channel (used for interworking with GERAN)
+    SapId           sapId  optional,                 // RRC SAP identifier (SAP0)
+    SS_CN_DomainIdentity cN_Domain,        // CN domain identity
+    RRCDataReqType         msg                    // NAS PDU
+  };
+
+  type union RRCDataIndType {
+    GMM_STATUS gmmStatus,
+    ACTIVATEPDPCONTEXTREQUESTul activatePDPContextRequestul,
+    ACTIVATERBTESTMODECOMPLETE activateRBTestModeComplete,
+    ALERTINGul alertingul,
+    ATTACHCOMPLETE attachComplete,
+    ATTACHREQUEST attachRequest,
+    AUTHENTICATIONANDCIPHERINGRESPONSE authenticationAndCipheringResponse,
+    AUTHENTICATIONFAILURE authenticationFailure,
+    AUTHENTICATIONRESPONSE authenticationResponse,
+    AUTHENTICATION_AND_CIPHERING_FAILURE authenticationAndCipheringFailure,
+    CALLCONFIRMED callConfirmed,
+    CMSERVICEREQUEST cmServiceRequest,
+    CONNECTACKNOWLEDGE connectAcknowledge,
+    CONNECTul connectul,
+    DEACTIVATEPDPCONTEXTACCEPT deactivatePDPContextAccept,
+    DEACTIVATEPDPCONTEXTREQUEST deactivatePDPContextRequest,
+    DEACTIVATERBTESTMODECOMPLETE deactivateRBTestModeComplete,
+    DETACHREQUESTMO detachRequest,
+    ESETUP esetup,
+    IMSIDETACHINDICATION imsiDetachIndication,
+    LOCATIONUPDATINGREQUEST locationUpdatingRequest,
+    MODIFYPDPCONTEXTACCEPT_ul modifyPDPContextAccept,
+    PAGINGRESPONSE pagingResponse,
+    REGISTER register,
+    RELEASECOMPLETE releaseComplete,
+    RELEASEul releaseUL,
+    ROUTINGAREAUPDATEREQUEST routingAreaUpdateRequest,
+    ROUTING_AREA_UPDATE_COMPLETE routingAreaUpdateComplete,
+    SERVICEREQUEST serviceRequest,
+    SETUPul setupul,
+    TMSIREALLOCATIONCOMPLETE tmsiReallocationComplete
+  };
+
+  type union RRCDataReqType {
+    ACTIVATERBTESTMODE activateRBTestMode,
+    ALERTINGdl alertingdl,
+    ATTACHACCEPT attachAccept,
+    ATTACHREJECT attachReject,  // @sic R5s110596 sic@
+    AUTHENTICATIONANDCIPHERINGREQUEST authenticationAndCipheringRequest,
+    AUTHENTICATIONREQUEST authenticationRequest,
+    CALLPROCEEDING callProceeding,
+    CMSERVICEACCEPT cmServiceAccept,
+    CMSERVICEREJECT cmServiceReject,
+    CONNECTACKNOWLEDGE connectAcknowledge,
+    CONNECTdl connectdl,
+    DEACTIVATEPDPCONTEXTACCEPT deactivatePDPContextAccept,
+    DEACTIVATEPDPCONTEXTREQUEST deactivatePDPContextRequest,
+    DEACTIVATERBTESTMODE deactivateRBTestMode,
+    DETACHACCEPTMO detachAcceptMO,
+    DISCONNECTdl disconnectDL,
+    FACILITY facility,
+    LOCATIONUPDATINGACCEPT locationUpdatingAccept,
+    LOCATIONUPDATINGREJECT locationUpdatingReject,
+    ACTIVATEPDPCONTEXTACCEPTdl activatePDPContextAccept,
+    REGISTER register,
+    RELEASECOMPLETE releaseComplete,
+    RESETUEPOSITIONINGSTOREDINFORMATION resetUePositioningStoredInfo,
+    ROUTINGAREAUPDATEACCEPT routingAreaUpdateAccept,
+    ROUTINGAREAUPDATEREJECT routingAreaUpdateReject,
+    MODIFYPDPCONTEXTREQUEST_dl modifyPDPContextRequest,
+    SERVICEACCEPT serviceAccept,
+    SERVICEREJECT serviceReject,
+    SETUPdl setupdl
+  };
+
+  // =============================================================================
+  // Structure Type Definition
+  // This is internally used to contain the SIB segments
+  // -----------------------------------------------------------------------------
+  type record UTRAN_SIB_BCCH_BCH_Messages_Type {
+    BCCH_BCH_Message Seg1,
+    BCCH_BCH_Message Seg2,
+    BCCH_BCH_Message Seg3,
+    BCCH_BCH_Message Seg4,
+    BCCH_BCH_Message Seg5,
+    BCCH_BCH_Message Seg6,
+    BCCH_BCH_Message Seg7,
+    BCCH_BCH_Message Seg8
+  };
+  
+}
+

@@ -1,0 +1,66 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2011-10-16 19:40:43 +0200 (Sun, 16 Oct 2011) $
+// $Rev: 5701 $
+/******************************************************************************/
+
+module UDP_Functions {
+
+  import from IP_ASP_TypeDefs all;
+  import from IP_PTC_Component all;
+  import from IP_PTC_Routing all;
+  import from IP_PTC_Templates all;
+
+  function fl_UDP_Bind(template (value) IP_AddrInfo_Type p_LocalIpAddr,
+                       template (omit) PortNumber_Type p_LocalPort,
+                       boolean p_AllowBroadcast) runs on IP_PTC return PortNumber_Type
+  { /* @sic R5-113734 change 8 sic@ */
+    var IP_SOCKET_IND v_IP_SOCKET_IND;
+
+    IP_SOCK.send(cs_UDP_SOCKET_REQ(cs_IP_Socket(p_LocalIpAddr, p_LocalPort), p_AllowBroadcast));
+    IP_SOCK.receive(cr_UDP_SOCKET_CNF(cr_IP_Socket(p_LocalIpAddr, ?))) -> value v_IP_SOCKET_IND;
+    return v_IP_SOCKET_IND.CTRL.ConnectionId.Local.Port;   /* in case of p_LocalPort=omit we need to get back the ephemeral port */
+  }
+
+  function fl_UDP_Close(template (value) IP_Socket_Type p_LocalSocket) runs on IP_PTC
+  {
+    IP_SOCK.send(cs_UDP_CLOSE_REQ(p_LocalSocket));
+  }
+
+  function f_UdpServer_Start(template (value) IP_AddrInfo_Type p_LocalIpAddr,
+                             template (value) PortNumber_Type p_LocalPort,
+                             IP_DrbInfo_Type p_DrbInfo,
+                             boolean p_AllowBroadcast := true) runs on IP_PTC
+  { /* NOTE: in general the port number of a UDP server can be an ephemeral one; in that case 'bind' returns the valid port number;
+     *       but in our case we assume the port to be well-known and therefore p_LocalPort shall not be omit */
+    /* @sic R5-113734 change 8 sic@ */
+
+    var template (value) IP_Socket_Type v_LocalSocket := cs_IP_Socket(p_LocalIpAddr, p_LocalPort);
+
+    // Bind UDP socket
+    fl_UDP_Bind(p_LocalIpAddr, p_LocalPort, p_AllowBroadcast);    // we don't need to evaluate the returned port number since we expect p_LocalPort to be a valid well-known port
+
+    // Modify routing table
+    vc_IP_PTC_DRB_RoutingTable := f_RoutingTable_AddEntry(vc_IP_PTC_DRB_RoutingTable, cs_UDP_ConnectionId(v_LocalSocket), p_DrbInfo);
+    f_IP_PTC_SendRoutingTable(vc_IP_PTC_DRB_RoutingTable);
+  }
+
+  function f_UdpServer_Stop(template (value) IP_AddrInfo_Type p_LocalIpAddr,
+                            template (value) PortNumber_Type p_LocalPort) runs on IP_PTC
+  { /* @sic R5-113734 change 8 sic@ */
+    var template (value) IP_Socket_Type v_LocalSocket := cs_IP_Socket(p_LocalIpAddr, p_LocalPort);
+
+    // Close UDP socket
+    fl_UDP_Close(v_LocalSocket);
+
+    // Modify routing table
+    vc_IP_PTC_DRB_RoutingTable := f_RoutingTable_RemoveEntry(vc_IP_PTC_DRB_RoutingTable, cs_UDP_ConnectionId(v_LocalSocket));
+    f_IP_PTC_SendRoutingTable(vc_IP_PTC_DRB_RoutingTable);
+  }
+
+}

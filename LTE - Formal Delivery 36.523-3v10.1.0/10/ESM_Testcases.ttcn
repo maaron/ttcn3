@@ -1,0 +1,3402 @@
+// ***************************************************************************
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:06:15 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7298 $
+// ***************************************************************************
+
+module ESM_Testcases {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIP all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_DRB_Templates all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_LoopBack all;
+  import from EUTRA_NASCommonFunctions all;
+  import from EUTRA_NASCommonTemplates all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Paging all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_Timing all;
+  import from IP_PTC_CtrlMsgs all;
+  import from NAS_AuxiliaryDefsAndFunctions all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UpperTesterFunctions all;
+
+  group LocalTemplates {
+
+  template NAS_UL_Message_Type cr_ActDedicatedEPSBearerCxtReject (EPS_BearerIdentity p_Id,
+                                                                  ProcedureTransactionIdentifier p_ProcTi,
+                                                                  template ESM_Cause p_EsmCause) :=
+  { /* @status    APPROVED */
+    aCTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REJECT := {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_ActivateDedicatedEpsBearerContextReject,
+      esmCause                       := p_EsmCause,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent
+    }
+  };
+
+  template NAS_UL_Message_Type cr_DeactivateEPSBearerCxtAccept (EPS_BearerIdentity p_Id,
+                                                                ProcedureTransactionIdentifier p_ProcTi) :=
+  { /* @status    APPROVED */
+    dEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT := {
+      epsBearerId                    := p_Id,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_DeactivateEpsBearerContextAccept,
+      protocolConfigurationOptions   := cr_ProtocolConfigOptionsAny ifpresent
+    }
+  };
+
+  template (value) EPS_BearerContextStatus cs_EPSBearerCtxtStatus(B3_Type p_EBI5_7,
+                                                                  B8_Type p_EBI8_15 := '00000000'B) :=
+  { /* See 24.301 clause 9.9.2.1 (TLV) */
+    /* @status    APPROVED */
+    /* @sic R5s100464 sic@ */
+    iei := '57'O,
+    iel := '02'O,
+    ebi5_7 := p_EBI5_7,
+    spare := '00000'B,
+    ebi8_15 := p_EBI8_15
+  };
+
+  template (value) EPS_BearerContextStatus cs_EPSBearerCtxtStatus_DefaultBearerOnly := cs_EPSBearerCtxtStatus('001'B);  /* @status    APPROVED */
+
+  template (value) EPS_BearerContextStatus cs_EPSBearerCtxtStatus_3Ctxts := cs_EPSBearerCtxtStatus('111'B);             /* @status    APPROVED */
+
+  template NAS_UL_Message_Type cdr_TAU_Request_EPSBearerCtxtStatus(template (present) EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                                   NAS_KsiValue p_KsiValue,
+                                                                   template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                                   template AdditionalUpdateType p_AdditionalUpdateType,
+                                                                   template (value) EPS_BearerContextStatus p_EPSCtxtStatus)
+    modifies cr_508_TAU_Request :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      epsBearerContextStatus     := p_EPSCtxtStatus ifpresent
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_BearerResourceAllocReject(ProcedureTransactionIdentifier p_ProcTi,
+                                                                        template (value) ESM_Cause p_EsmCause) :=
+  { /* @status    APPROVED */
+    bEARER_RESOURCE_ALLOCATION_REJECT := {
+      epsBearerId                    := '0'H,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_BearerResourceAllocationReject,
+      esmCause                       := p_EsmCause,
+      protocolConfigurationOptions   := omit,
+      t3396                          := omit   /* cl. 9.9.3.16B O TLV 3   IEI=0x37 @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_508_BearerResourceModificationReject(ProcedureTransactionIdentifier p_ProcTi,
+                                                                               template (value) ESM_Cause p_EsmCause) :=
+  { /* @status    APPROVED */
+    bEARER_RESOURCE_MODIFICATION_REJECT := {
+      epsBearerId                    := '0'H,
+      protocolDiscriminator          := tsc_PD_ESM,
+      procedureTransactionIdentifier := p_ProcTi,
+      messageType                    := tsc_MT_BearerResourceModificationReject,
+      esmCause                       := p_EsmCause,
+      protocolConfigurationOptions   := omit,
+      t3396                          := omit   /* cl. 9.9.3.16B O TLV 3   IEI=0x37 @sic R5s120178 Baseline Moving sic@*/
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompSingleLocalPort(UInt16_Type p_PortNumber) :=
+  { // 3 octets
+    /* @status    APPROVED */
+    id := '40'O, // Single local port
+    packetFilterComponentValue := {
+      singleLocalPort := int2oct(p_PortNumber, 2)
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompLocalPortRange(UInt16_Type p_PortLow, UInt16_Type p_PortHigh) :=
+  { // 3 octets
+    /* @status    APPROVED */
+    id := '41'O, // Local port range
+    packetFilterComponentValue := {
+      localPortRange := int2oct(p_PortLow, 2) & int2oct(p_PortHigh, 2)
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompSingleRemotePort_1091(UInt16_Type p_PortNumber) :=
+  { // 3 octets
+    /* @status    APPROVED */
+    id := '50'O, // Single remote port
+    packetFilterComponentValue := {
+      singleRemotePort := int2oct(p_PortNumber, 2)
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompRemotePortRange(UInt16_Type p_PortLow,
+                                                                         UInt16_Type p_PortHigh) :=
+  { // 3 octets
+    /* @status    APPROVED */
+    id := '51'O, // Remote port range
+    packetFilterComponentValue := {
+      remotePortRange := int2oct(p_PortLow, 2) & int2oct(p_PortHigh, 2)
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompProtocolIdNextHeaderIPSec :=
+  { // 2 octets
+    /* @status    APPROVED */
+    id := '30'O, // Protocol Identifier / Next header type
+    packetFilterComponentValue := {
+      protocolIdNextHeader := '32'O  // IPSec(ESP)
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompIPSecSPI(O4_Type p_IPSecSPI) :=
+  { // 5 octets
+    /* @status    APPROVED */
+    id := '60'O, // Security parameter index type
+    packetFilterComponentValue := {
+      securityParameterIndex := p_IPSecSPI
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompTOSTrafficClass(O2_Type p_TOSTrafficClass) :=
+  { // 3 octets
+    /* @status    APPROVED */
+    id := '70'O, // Type of service / Traffic class type
+    packetFilterComponentValue := {
+      typeOfServiceTrafficClass := p_TOSTrafficClass
+    }
+  };
+
+  template (value) PacketFilterComponent cs_PktFilterCompFlowLabel(O3_Type p_FlowLabel) :=
+  { // 4 octets
+    /* @status    APPROVED */
+    id := '80'O, // Flow label type
+    packetFilterComponentValue := {
+      flowLabel := p_FlowLabel
+    }
+  };
+
+  } // end of group LocalTemplates
+
+  group LocalFunctions {
+
+  function f_EUTRA_TxActivateDedicatedBearerCtxtOnAdditionalPDN (EUTRA_CellId_Type p_CellId,
+                                                                 RRC_TransactionIdentifier p_RRC_TI,
+                                                                 EPS_BearerIdentity p_DefaultEpsBearerId,
+                                                                 EPS_BearerIdentity p_DedicatedEpsBearerId,
+                                                                 template (value) ProcedureTransactionIdentifier p_EpsTI,
+                                                                 template (value) AccessPointName p_AccessPointName,
+                                                                 template (value) PDN_Address p_PDN_Address,
+                                                                 template (omit) ProtocolConfigOptions p_PCO) runs on EUTRA_PTC
+  {
+    // send RRCConnectionReconfiguration with piggy-backed ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST
+    var ProcedureTransactionIdentifier v_EpsTi2 := tsc_PTI_Unassigned;
+    var template (value) NAS_DL_Message_Type v_ActDefaultEPSBearerCxtReq :=
+      cs_508_ActivateDefEpsBearerContextRequest(p_DefaultEpsBearerId,
+                                                p_EpsTI,
+                                                p_AccessPointName,
+                                                p_PDN_Address,
+                                                -,
+                                                p_PCO);
+    var template (value) NAS_DL_Message_Type v_ActDedicatedEPSBearerCxtReq :=
+      cs_508_ActDedicatedEPSBearerCxtReq(p_DedicatedEpsBearerId,
+                                         v_EpsTi2,
+                                         cs_LinkedId(hex2bit( p_DefaultEpsBearerId)),
+                                         cds_EPS_QoS_Dedi_nonGBR_QCI,  // @sic R5s100360 sic@
+                                         f_EUTRA_Get_508_TrafficFlowTemplate(2, p_DedicatedEpsBearerId));
+    
+    var template (value) NAS_MSG_RequestList_Type v_NAS_MsgList := {
+      cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered, v_ActDefaultEPSBearerCxtReq),
+      cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered, v_ActDedicatedEPSBearerCxtReq)
+    };
+    
+    var DRB_IdentityList_Type v_DrbList := {
+      tsc_DRB2,
+      tsc_DRB3
+    };
+    
+    f_IP_ChangeEutraCell(IP, p_CellId);       /* @sic R5-113734 change 8 sic@ */
+    f_EUTRA_RRCConnectionReconfigurationWithPiggyNAS_DrbReconfig(p_CellId, p_RRC_TI, v_DrbList, v_NAS_MsgList);
+    
+    // @sic R5s100326 sic@
+  }; // f_EUTRA_TxActivateDedicatedBearerCtxtOnAdditionalPDN
+
+  function f_EUTRA_508_ActivateAdditionalPDN(EUTRA_CellId_Type p_CellId,
+                                             EPS_BearerIdentity p_EpsBearerId2,
+                                             EUTRA_RRC_STATE_Type p_RRCState) runs on EUTRA_PTC
+  { // @sic R5-113801 sic@
+       
+    // Step 1.
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(p_EpsBearerId2), tsc_APN1_string); // APN-1(New PDN name), different from default @sic R5s100466 sic@
+    
+    f_EUTRA_ActivateAdditionalPDNOnDef (p_CellId, p_EpsBearerId2, p_RRCState);
+    
+    // 1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+
+    f_EUTRA_RRC_ConnectionRelease(p_CellId);  // @sic R5s100326 sic@
+    
+  } // f_EUTRA_508_ActivateAdditionalPDN
+
+  function fl_Get_TFT_10_9_1(boolean p_IpTypeIsIPv4,
+                             HalfOctet_Type p_ERSBearerID) return template (value) TrafficFlowTemplate
+  {
+    var integer v_LengthCount := 0;
+    var template (value) TrafficFlowTemplate.packetFilterList v_PacketFilterList;
+    var template (value) PacketFilter v_PacketFilterByRef;
+    var integer v_PacketFilterLengthByref;
+
+    select (p_ERSBearerID){
+      case (tsc_EpsDefaultBearerId) {    /* TFT acc. to Table 10.9.1.3.3-3 */
+        fl_Get_PacketFilter_10_9_1(v_PacketFilterByRef, v_PacketFilterLengthByref, p_IpTypeIsIPv4, 5);
+        v_PacketFilterList[0]  := v_PacketFilterByRef;
+        v_LengthCount := v_LengthCount + v_PacketFilterLengthByref;
+      }
+      case (tsc_EpsDedicatedBearerId) {  /* TFT acc. to Table 10.9.1.3.3-1 */
+        fl_Get_PacketFilter_10_9_1(v_PacketFilterByRef, v_PacketFilterLengthByref, p_IpTypeIsIPv4, 1);
+        v_PacketFilterList[0]  := v_PacketFilterByRef;
+        v_LengthCount := v_LengthCount + v_PacketFilterLengthByref;
+      }
+      case (tsc_EpsDedicatedBearerId2) {  /* TFT acc. to Table 10.9.1.3.3-2 */
+        fl_Get_PacketFilter_10_9_1(v_PacketFilterByRef, v_PacketFilterLengthByref, p_IpTypeIsIPv4, 2);
+        v_PacketFilterList[0]  := v_PacketFilterByRef;
+        v_LengthCount := v_LengthCount + v_PacketFilterLengthByref;
+
+        fl_Get_PacketFilter_10_9_1(v_PacketFilterByRef, v_PacketFilterLengthByref, p_IpTypeIsIPv4, 3);
+        v_PacketFilterList[1]  := v_PacketFilterByRef;
+        v_LengthCount := v_LengthCount + v_PacketFilterLengthByref;
+        
+        if (not p_IpTypeIsIPv4) {
+          fl_Get_PacketFilter_10_9_1(v_PacketFilterByRef, v_PacketFilterLengthByref, p_IpTypeIsIPv4, 4);
+          v_PacketFilterList[2]  := v_PacketFilterByRef;
+          v_LengthCount := v_LengthCount + v_PacketFilterLengthByref;
+        }
+      }
+    }
+    v_LengthCount := v_LengthCount + 1;
+
+    return cs_TrafficFlowTemplate(v_LengthCount, v_PacketFilterList);
+  }
+
+  function fl_Get_PacketFilter_10_9_1(out template (value) PacketFilter p_PacketFilterByRef,
+                                      out integer p_PacketFilterLengthByRef,
+                                      boolean p_IpTypeIsIPv4,
+                                      integer p_PacketFilterID)
+  {
+    var charstring v_IPv4RemoteAddress := "172.168.8.0"; // @sic R5s110776 sic@
+    var O4_Type  v_IPv4SubnetMask := 'FFFFFF00'O;
+    var charstring v_IPv6RemoteAddress := "2001:0ba0::";  // @sic R5s110776 sic@
+    var O16_Type  v_IPv6SubnetMask := 'FFFFFFFF000000000000000000000000'O;  // @sic R5s110776 sic@
+
+    var integer v_FilterCount := 0;
+    var template (value) PacketFilter v_Filter;
+        
+    select (p_PacketFilterID) {  // @sic R5-110779 sic@
+      case (1) {
+        v_Filter.iei         := '21'O; // UL only filter, ID=1
+        v_Filter.precedence  := int2bit(6, 8);
+        v_Filter.contents[0] := cs_PktFilterCompProtocolIdNextHeader;
+        v_FilterCount := v_FilterCount + 2;
+        if (p_IpTypeIsIPv4) {
+          v_Filter.contents[1] := cs_PktFilterCompIPv4RemoteAddress(v_IPv4RemoteAddress, v_IPv4SubnetMask);
+          v_FilterCount := v_FilterCount + 9;
+        }
+        else { // IPv6
+          v_Filter.contents[1] := cs_PktFilterCompIPv6RemoteAddress(v_IPv6RemoteAddress, v_IPv6SubnetMask);
+          v_FilterCount := v_FilterCount + 33;
+        }
+        v_Filter.contents[2] := cs_PktFilterCompSingleLocalPort(60001);
+        v_FilterCount := v_FilterCount + 3;
+        v_Filter.contents[3] := cs_PktFilterCompRemotePortRange(60350, 60450);
+        v_FilterCount := v_FilterCount + 5;
+        v_Filter.contents[4] := cs_PktFilterCompTOSTrafficClass('A8FC'O);
+        v_FilterCount := v_FilterCount + 3;
+      }
+      case (2) {
+        v_Filter.iei         :=  '22'O; // UL only filter, ID=2
+        v_Filter.precedence  := int2bit(7, 8);
+        v_Filter.contents[0] := cs_PktFilterCompProtocolIdNextHeader;
+        v_FilterCount := v_FilterCount + 2;
+        if (p_IpTypeIsIPv4) {
+          v_Filter.contents[1] := cs_PktFilterCompIPv4RemoteAddress(v_IPv4RemoteAddress, v_IPv4SubnetMask);
+          v_FilterCount := v_FilterCount + 9;
+        }
+        else { // IPv6
+          v_Filter.contents[1] := cs_PktFilterCompIPv6RemoteAddress(v_IPv6RemoteAddress, v_IPv6SubnetMask);
+          v_FilterCount := v_FilterCount + 33;
+        }
+        v_Filter.contents[2] := cs_PktFilterCompLocalPortRange(60000, 60100);
+        v_FilterCount := v_FilterCount + 5;
+        v_Filter.contents[3] := cs_PktFilterCompSingleRemotePort_1091(60350);
+        v_FilterCount := v_FilterCount + 3;
+        v_Filter.contents[4] := cs_PktFilterCompTOSTrafficClass('A8FC'O);
+        v_FilterCount := v_FilterCount + 3;
+      }
+      case (3) {
+        v_Filter.iei         :=  '23'O; // UL only filter, ID=3
+        v_Filter.precedence  := int2bit(5, 8);
+        v_Filter.contents[0] := cs_PktFilterCompProtocolIdNextHeaderIPSec;
+        v_FilterCount := v_FilterCount + 2;
+        if (p_IpTypeIsIPv4) {
+          v_Filter.contents[1] := cs_PktFilterCompIPv4RemoteAddress(v_IPv4RemoteAddress, v_IPv4SubnetMask);
+          v_FilterCount := v_FilterCount + 9;
+        }
+        else { // IPv6
+          v_Filter.contents[1] := cs_PktFilterCompIPv6RemoteAddress(v_IPv6RemoteAddress, v_IPv6SubnetMask);
+          v_FilterCount := v_FilterCount + 33;
+        }
+        v_Filter.contents[2] := cs_PktFilterCompIPSecSPI('0F80F000'O); // @sic R5s110778 sic@
+        v_FilterCount := v_FilterCount + 5;
+        v_Filter.contents[3] := cs_PktFilterCompTOSTrafficClass('A0FC'O);
+        v_FilterCount := v_FilterCount + 3;
+      }
+      case (4) {
+        v_Filter.iei         :=  '24'O; // UL only filter, ID=4
+        v_Filter.precedence  := int2bit(2, 8);
+        if (p_IpTypeIsIPv4) {
+          v_Filter.contents[0] := cs_PktFilterCompIPv4RemoteAddress(v_IPv4RemoteAddress, v_IPv4SubnetMask);
+          v_FilterCount := v_FilterCount + 9;
+        }
+        else { // IPv6
+          v_Filter.contents[0] := cs_PktFilterCompIPv6RemoteAddress(v_IPv6RemoteAddress, v_IPv6SubnetMask);
+          v_FilterCount := v_FilterCount + 33;
+        }
+        v_Filter.contents[1] := cs_PktFilterCompTOSTrafficClass('B0FC'O);
+        v_FilterCount := v_FilterCount + 3;
+        v_Filter.contents[2] := cs_PktFilterCompFlowLabel('000005'O);
+        v_FilterCount := v_FilterCount + 4;
+      }
+      case (5) {
+        v_Filter.iei         := '25'O;
+        v_Filter.precedence  := int2bit(255, 8);
+        if (p_IpTypeIsIPv4) {
+          v_Filter.contents[0] := cs_PktFilterCompIPv4RemoteAddress(v_IPv4RemoteAddress, v_IPv4SubnetMask);
+          v_FilterCount := v_FilterCount + 9;
+        }
+        else { // IPv6
+          v_Filter.contents[0] := cs_PktFilterCompIPv6RemoteAddress(v_IPv6RemoteAddress, v_IPv6SubnetMask);
+          v_FilterCount := v_FilterCount + 33;
+        }
+      }
+      case else {
+        // out of supported range
+        FatalError(__FILE__, __LINE__, "unsupported packet filter id");
+      }
+    }
+    v_Filter.iel := int2oct(v_FilterCount, 1);
+
+    p_PacketFilterByRef := v_Filter;
+    p_PacketFilterLengthByRef := v_FilterCount + 3;
+  }
+
+  function fl_IPSecESPDatagram_Create(integer     p_NextHeader,
+                                      O4_Type     p_SPI,
+                                      octetstring p_Payload)
+    return octetstring
+  {
+    var octetstring v_OctetString := ''O;
+    var O4_Type v_SequenceNumber := int2oct(1, 4);
+    var integer v_PayloadLen := lengthof(p_Payload);
+    var integer v_PaddingLen := 0;
+    var integer i;
+
+    v_OctetString := v_OctetString & p_SPI;              // Security Parameters Index
+    v_OctetString := v_OctetString & v_SequenceNumber;   // Sequence Number
+    v_OctetString := v_OctetString & p_Payload;
+
+    // Padding to ensure that the resulting text terminates on a 4-byte boundary. RFC 2406 cl2.4
+    select (v_PayloadLen mod 4) {
+      case (0) { v_PaddingLen := 2; }
+      case (1) { v_PaddingLen := 1; }
+      case (2) { v_PaddingLen := 0; }
+      case (3) { v_PaddingLen := 3; }
+    }
+    for (i:=0; i<v_PaddingLen; i:=i+1) {
+      v_OctetString := v_OctetString & int2oct(i+1, 1);        // The padding bytes when the encryption algorithm does not specify the padding contents
+    }
+    
+    v_OctetString := v_OctetString & int2oct(v_PaddingLen, 1); // The padding lenght and next header are mandatory
+    v_OctetString := v_OctetString & int2oct(p_NextHeader, 1);
+    
+    // Ciphering and authentication are not done. No authentication data present.
+    
+    return v_OctetString;
+  }
+
+  function fl_Get_IP_Packet_10_9_1(boolean p_IpTypeIsIPv4,
+                                   integer p_Index) return template (value) octetstring
+  {
+    var template (value) octetstring v_IpPacket;
+    var charstring v_IPv4_SourceAddr := "192.168.0.1";
+    var charstring v_IPv4_DestAddr   := "172.168.8.1";
+    var charstring v_IPv6_SourceAddr := "fe80::1:1";
+    var charstring v_IPv6_DestAddr   := "2001:0ba0::0001:0001"; // @sic R5s110645 sic@
+    var UInt20_Type v_IPv6_FlowLabel := 10;
+    var UInt16_Type v_SourcePort;
+    var UInt16_Type v_DestPort;
+    var O1_Type v_TOS_TC;
+    var UInt8_Type v_Protocol;
+    var O4_Type v_IPSecSPI := '0F80F000'O; // @sic R5s110645 sic@
+    var octetstring v_IPPayload;
+          
+    select (p_Index) { // Index is packet number per prose
+      case (1) {
+        v_Protocol   := tsc_IP_Protocol_UDP;
+        v_SourcePort := 60001;
+        v_DestPort   := 60350;
+        v_TOS_TC     := 'A9'O;
+      }
+      case (2) {
+        v_Protocol   := tsc_IP_Protocol_UDP;
+        v_SourcePort := 60001;
+        v_DestPort   := 60350;
+        v_TOS_TC     := 'A9'O;
+        v_IPv4_DestAddr   := "172.168.9.1"; // modified wrt base IP packet #1
+        v_IPv6_DestAddr   := "2001:0bb0::0001:0001"; // modified wrt base IP packet #1 @sic R5s110645 sic@
+      }
+      case (3) {
+        v_Protocol   := tsc_IP_Protocol_TCP; // modified wrt base IP packet #1
+        v_SourcePort := 60001;
+        v_DestPort   := 60350;
+        v_TOS_TC     := 'A9'O;
+      }
+      case (4) {
+        v_Protocol   := tsc_IP_Protocol_UDP;
+        v_SourcePort := 60002; // modified wrt base IP packet #1
+        v_DestPort   := 60350;
+        v_TOS_TC     := 'A9'O;
+      }
+      case (5) {
+        v_Protocol   := tsc_IP_Protocol_UDP;
+        v_SourcePort := 60101; // modified wrt base IP packet #1
+        v_DestPort   := 60350;
+        v_TOS_TC     := 'A9'O;
+      }
+      case (6) {
+        v_Protocol   := tsc_IP_Protocol_UDP;
+        v_SourcePort := 60001;
+        v_DestPort   := 60351; // modified wrt base IP packet #1
+        v_TOS_TC     := 'A9'O;
+      }
+      case (7) {
+        v_Protocol   := tsc_IP_Protocol_UDP;
+        v_SourcePort := 60001;
+        v_DestPort   := 60451; // modified wrt base IP packet #1
+        v_TOS_TC     := 'A9'O;
+      }
+      case (8) {
+        v_Protocol   := tsc_IP_Protocol_UDP;
+        v_SourcePort := 60001;
+        v_DestPort   := 60350;
+        v_TOS_TC     := 'E9'O; // modified wrt base IP packet #1
+      }
+      case (9) {
+        v_Protocol   := tsc_IP_Protocol_IPSec;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'A2'O;
+      }
+      case (10) {
+        v_Protocol   := tsc_IP_Protocol_IPSec;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'A2'O;
+        v_IPv4_DestAddr   := "172.168.9.1"; // modified wrt base IP packet #9
+        v_IPv6_DestAddr   := "2001:0bb0::0001:0001"; // modified wrt base IP packet #9 @sic R5s110645 sic@
+      }
+      case (11) {
+        v_Protocol   := tsc_IP_Protocol_TCP;  // modified wrt base IP packet #9
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'A2'O;
+      }
+      case (12) {
+        v_Protocol   := tsc_IP_Protocol_IPSec;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'A2'O;
+        v_IPSecSPI    := 'F90F0000'O;  // modified wrt base IP packet #9
+      }
+      case (13) {
+        v_Protocol   := tsc_IP_Protocol_IPSec;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'E9'O;  // modified wrt base IP packet #9
+      }
+      case (14) {
+        v_Protocol   := tsc_IP_Protocol_TCP;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'B3'O;
+        v_IPv6_FlowLabel := 5;
+        
+        if (p_IpTypeIsIPv4) {
+          FatalError(__FILE__, __LINE__, "packet id 14 is not for IPv4");
+        }
+      }
+      case (15) {
+        v_Protocol   := tsc_IP_Protocol_TCP;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'B3'O;
+        v_IPv6_FlowLabel := 5;
+        v_IPv6_DestAddr   := "2001:0bb0::0001:0001"; // modified wrt base IP packet #14 @sic R5s110645 sic@
+
+        if (p_IpTypeIsIPv4) {
+          FatalError(__FILE__, __LINE__, "packet id 15 is not for IPv4");
+        }
+      }
+      case (16) {
+        v_Protocol   := tsc_IP_Protocol_TCP;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'E9'O;  // modified wrt base IP packet #14
+        v_IPv6_FlowLabel := 5;
+        
+        if (p_IpTypeIsIPv4) {
+          FatalError(__FILE__, __LINE__, "packet id 16 is not for IPv4");
+        }
+      }
+      case (17) {
+        v_Protocol   := tsc_IP_Protocol_TCP;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'B3'O;
+        v_IPv6_FlowLabel := 10;  // modified wrt base IP packet #14
+        
+        if (p_IpTypeIsIPv4) {
+          FatalError(__FILE__, __LINE__, "packet id 17 is not for IPv4");
+        }
+      }
+      case (18) {
+        v_Protocol   := tsc_IP_Protocol_TCP;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'AA'O;
+      }
+      case (19) {
+        v_Protocol   := tsc_IP_Protocol_TCP;
+        v_SourcePort := 60101;
+        v_DestPort   := 60451;
+        v_TOS_TC     := 'AA'O;
+        v_IPv4_DestAddr   := "172.168.9.1"; // modified wrt base IP packet #18 @sic R5s110604 sic@
+        v_IPv6_DestAddr   := "2001:0ba1::0001:0001"; // modified wrt base IP packet #18 @sic R5s110645 sic@
+      }
+      case else {
+        // out of supported range
+        FatalError(__FILE__, __LINE__, "unsupported packet id");
+      }
+    }
+
+    if (p_IpTypeIsIPv4) {
+      select (v_Protocol) {
+        case (tsc_IP_Protocol_UDP) {
+          v_IPPayload := f_IPv4UdpDatagram_Create(v_IPv4_SourceAddr, v_IPv4_DestAddr, v_SourcePort, v_DestPort, tsc_IP_AnyData);
+        }
+        case (tsc_IP_Protocol_TCP) {
+          v_IPPayload := f_IPv4TcpDatagram_Create(v_IPv4_SourceAddr, v_IPv4_DestAddr, v_SourcePort, v_DestPort, tsc_IP_AnyData);
+        }
+        case (tsc_IP_Protocol_IPSec) {
+          v_IPPayload := fl_IPSecESPDatagram_Create(v_Protocol,
+                                                    v_IPSecSPI,
+                                                    f_IPv4UdpDatagram_Create(v_IPv4_SourceAddr, v_IPv4_DestAddr, v_SourcePort, v_DestPort, tsc_IP_AnyData));
+        }
+      }
+      v_IpPacket := f_IPv4Packet_Create(-, v_TOS_TC, v_Protocol, v_IPv4_SourceAddr, v_IPv4_DestAddr, v_IPPayload);
+    }
+    else {
+      select (v_Protocol) {
+        case (tsc_IP_Protocol_UDP) {
+          v_IPPayload := f_IPv6UdpDatagram_Create(v_IPv6_SourceAddr, v_IPv6_DestAddr, v_SourcePort, v_DestPort, tsc_IP_AnyData);
+        }
+        case (tsc_IP_Protocol_TCP) {
+          v_IPPayload := f_IPv6TcpDatagram_Create(v_IPv6_SourceAddr, v_IPv6_DestAddr, v_SourcePort, v_DestPort, tsc_IP_AnyData);
+        }
+        case (tsc_IP_Protocol_IPSec) {
+          v_IPPayload := fl_IPSecESPDatagram_Create(v_Protocol,
+                                                    v_IPSecSPI,
+                                                    f_IPv6UdpDatagram_Create(v_IPv6_SourceAddr, v_IPv6_DestAddr, v_SourcePort, v_DestPort, tsc_IP_AnyData));
+        }
+      }
+      v_IpPacket := f_IPv6Packet_Create(v_TOS_TC, v_IPv6_FlowLabel, v_Protocol, v_IPv6_SourceAddr, v_IPv6_DestAddr, v_IPPayload);
+
+    }
+    return v_IpPacket;
+  }
+
+  function fl_TC_10_3_1_and_10_9_1_Prepare2ndRun (EUTRA_CellId_Type p_CellId,
+                                                  template (value) RadioBearerList_Type p_DrbConfigList := cs_DrbConfigList_Def) runs on EUTRA_PTC
+  {
+    // Activate DHCP and ICMPv6 - had been stopped previously when test loop was activated
+    f_IP_Handling_Start(IP, PDN_1, cs_DrbInfo_EUTRA(eutra_CellA, tsc_DRB1)); // @sic R5s110673 sic@ @sic R5s110776 sic@
+
+    // open test loop
+    // deactivate test mode
+    f_EUTRA_OpenUE_TestLoopMode_Deactivate_TestMode (p_CellId);
+
+    // The SS initiates Detach procedure with the Detach Type IE "re-attach required"
+    SRB.send(cas_SRB2_NasPdu_REQ(
+             p_CellId,
+             cs_TimingInfo_Now,
+             cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                            cs_508_DETACH_REQUEST_MT(cs_DetachType(tsc_DetachMT_ReAttach), omit))));
+
+    // UE sends DETACH ACCEPT message
+    SRB.receive(car_SRB2_NasPdu_IND(
+                p_CellId,
+                cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                  cr_508_DETACH_ACCEPT)));
+
+    // The SS releases the RRC connection.
+    f_EUTRA_RRC_ConnectionRelease(p_CellId, -, -, -, p_DrbConfigList);   /* @sic R5s110634 MCC160 implementation of change 1.1 sic@ */
+
+    // IF NOT pc_Automatic_Re_Attach, the user initiates an attach by MMI or by AT command.
+    if (not pc_Automatic_Re_Attach) {
+      f_UT_TriggerAttach (UT);
+    }
+
+  }
+
+  } // end of group LocalFunctions
+
+  group TestcaseImplementations {
+
+  function f_TC_10_2_1_EUTRA() runs on EUTRA_PTC
+  { /* Dedicated EPS bearer context activation / Success */
+    // @sic R5s100295 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);  // @sic R5s110365 sic@
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_2_1_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_2_1_EUTRA
+
+  function fl_TC_10_2_1_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsProcedureTransactionId := '00'O;
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellA);
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA); //@sic R5-100786 sic@
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList;
+    
+    v_DRB_ToAddModList[0] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1);
+    v_DRB_ToAddModList[1] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB2); // @sic R5s110365 sic@
+    
+    //The SS pages the UE in order to establish a dedicated EPS bearer context.
+    //@siclog "Step 1" siclog@
+    f_EUTRA_UE_Page(eutra_CellA,
+                    cs_NasPaging_OneRecord(cs_PagingUE_Identity_S_TMSI(v_GutiParams.MME_Code,
+                                                                       v_GutiParams.M_TMSI)));
+    // The UE transmits a SERVICE REQUEST for downlink signalling.
+    //@siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_mt_Access,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(v_SecurityParams.KSIasme)));
+    
+    //  The SS establishes SRB2 and DRB associated with default EPS bearer context
+    // (a first PDN obtained during the attach procedure).
+    //@siclog "Step 2A" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    // The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST with
+    //        particular settings (use Test Reference dedicated EPS bearer context2 context #1 - see TS 36.508)
+    
+    /* Note: This message is included in a RRCConnectionReconfiguration message to
+     * setup the new radio bearer associated with the dedicated EPS bearer context
+     * activated by the NAS message
+     */
+    //@siclog "Step 3" siclog@
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                           omit,
+                                                                           omit,
+                                                                           cs_508_RadioResourceConfigDedicated_SRB2( v_DRB_ToAddModList,
+                                                                                                                     cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                     cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                                v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                                v_AntennaInfo)),
+                                                                           omit),
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_ActDedicatedEPSBearerCxtReq(tsc_EpsDedicatedBearerId,
+                                                                                      v_EpsProcedureTransactionId,
+                                                                                      cs_LinkedId(hex2bit( tsc_EpsDefaultBearerId)),
+                                                                                      cs_508_EPS_QoS_Dedicated_1, // According to Context#1 in TS 36.508
+                                                                                      f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId)))));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    
+    // Step 4. Check: Does the UE transmit an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message as specified?
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActDedicatedEPSBearerCxtAccept(tsc_EpsDedicatedBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+    
+    //  Check: Does the test result of CALL generic procedure indicate
+    //     that the UE can transmit data on the newly activated EPS bearer context ?
+    //     TS 36.508 clause 6.4.2.6
+    //@siclog "Step 5" siclog@
+    f_EUTRA_508Check_DedicatedEPSIsActive(eutra_CellA,
+                                          tsc_EpsDedicatedBearerId,
+                                          cds_508_EPS_QoS_Dedicated_1_tlv,
+                                          f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(tsc_EpsDedicatedBearerId));
+  } // function fl_TC_10_2_1_Body
+
+  function f_TC_10_3_1_EUTRA() runs on EUTRA_PTC
+  { /* EPS bearer context modification / Success */
+    // @sic R5s100360 sic@ @sic R5-113714 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    
+    f_EUTRA_SetCellPower (eutra_CellA, tsc_ServingCellRS_EPRE );
+
+    // Switch on UE
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+
+    f_EUTRA_TestBody_Set(true);
+    fl_TC_10_3_1_TestBody();
+    f_EUTRA_TestBody_Set(false);
+    
+    // Postamble
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_3_1_EUTRA
+
+  function fl_TC_10_3_1_TestBody() runs on EUTRA_PTC
+  {
+    var boolean v_IpTypeIsIPv4;
+    var template (value) RadioBearerList_Type v_DrbConfigList := {cs_OneDRB_ConfigAM(tsc_DRB1), cs_OneDRB_ConfigAM(tsc_DRB2)};
+             
+    if (pc_IPv4) {
+      v_IpTypeIsIPv4 := true;
+      fl_TC_10_3_1_TestProcedure(v_IpTypeIsIPv4);   // Steps 0-5 for IPv4
+      if (pc_IPv6) {
+        // Steps 6-13 are executed if execution for IPv6 follows
+        fl_TC_10_3_1_and_10_9_1_Prepare2ndRun (eutra_CellA, v_DrbConfigList);  // @sic R5s110634 MCC160 implementation of change 1.5 sic@
+      }
+    }
+    if (pc_IPv6) {
+      v_IpTypeIsIPv4 := false;
+      fl_TC_10_3_1_TestProcedure(v_IpTypeIsIPv4);   // Steps 0-5 for IPv6
+    }
+  } // function fl_TC_10_3_1_TestBody
+
+  function fl_TC_10_3_1_TestProcedure(boolean p_IpTypeIsIPv4) runs on EUTRA_PTC
+  {
+    var PDN_TypeToBeUsed_Type v_PDN_TypeToBeUsed;
+
+    if (p_IpTypeIsIPv4) { v_PDN_TypeToBeUsed := forceIPv4only; }   // @sic R5-120541 sic@
+    else                { v_PDN_TypeToBeUsed := forceIPv6only; }   // @sic R5-120541 sic@
+
+    //@siclog "Step 0" siclog@
+    // The SS performs the generic procedure to get UE in Loopback Activated (state 4)
+    // with a Reference default EPS bearer context #1
+    // and a Reference dedicated EPS bearer context #1 according to TS 36.508 on Cell A
+
+    // Now continue with the procedure
+    f_EUTRA_IdleUpdated(eutra_CellA, PREAMBLE, STATE2A_TESTLOOP_ModeB, NORMAL, -, v_PDN_TypeToBeUsed);
+
+    // UE is in Loopback Activated(state 4) according to TS 36.508 on Cell A.
+    f_EUTRA_RbEst_508_AM ( eutra_CellA );
+    f_EUTRA_CloseUE_TestLoopModeB ( eutra_CellA, '00'O );
+
+    // steps 1-5
+    fl_TC_10_3_1_ProcedureSteps1to5(p_IpTypeIsIPv4);
+   
+  } // fl_TC_10_3_1_TestProcedure
+
+  function fl_TC_10_3_1_ProcedureSteps1to5(boolean p_IpTypeIsIPv4) runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EPS_TI := tsc_PTI_Unassigned;
+    var charstring v_IP_Address1_NW := f_LoopbackModeB_IP_Address_NW(p_IpTypeIsIPv4);      /* @sic R5s120470 sic@ */
+    var UInt16_Type v_SourcePort := 60000;  // acc. to Table 10.3.1.3.3-2
+    var UInt16_Type v_DestPort   := 60000;  // acc. to Table 10.3.1.3.3-2
+    var octetstring v_IpPacket := f_IPv4IPv6_AnyUdpPacket(v_IP_Address1_NW, v_IP_Address1_NW, v_SourcePort, v_DestPort); // @sic R5s100189, R5-113734, R5s120470 sic@
+    
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message with new  UL TFT.
+    // This message is included in a DL Information Transfer message
+    //@siclog "Step 1" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(tsc_EpsDedicatedBearerId,
+                                                                             v_EPS_TI,
+                                                                             cds_508_EPS_QoS_Dedicated_1_tlv, // @sic R5-103625 sic@
+                                                                             f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(tsc_EpsDedicatedBearerId))))); // @sic R5-103625 sic@
+    
+    //  Check:  Does the UE transmit a MODIFY EPS BEARER CONTEXT ACCEPT message as specified?
+    //@siclog "Step 2" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtAccept(tsc_EpsDedicatedBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    
+    //@siclog "Step 3 Void" siclog@
+    //@siclog "Step 4" siclog@
+    // The SS transmits one IP Packet matching with new TFT (reference packet filter #3),
+    // but not existing uplink packet filters (reference packet filter #2).
+    DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU(eutra_CellA, tsc_RbId_DRB2, cs_TimingInfo_Now, {v_IpPacket} ));
+    
+    //  Check: Does UE send the IP Packet on the data radio bearer associated with the dedicated EPS bearer context?
+    //@siclog "Step 5" siclog@
+    DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList(eutra_CellA, tsc_RbId_DRB2, ?, {v_IpPacket} ));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+  }  // fl_TC_10_3_1_ProcedureSteps1to5
+
+  function f_TC_10_4_1_EUTRA() runs on EUTRA_PTC
+  { /* EPS bearer context deactivation / Success */
+    // @sic R5s100464 sic@ @sic R5-104735 sic@
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c3);  // @sic R5s106627 sic@ @sic R5-110726 sic@
+    
+    // Create cell and send out system information for CellA (serving) and Cell B (suitable)
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);  // @sic R5s110365 sic@
+    f_EUTRA_CellConfig_Def(eutra_CellB);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    fl_TC_10_4_1_Body();
+    f_EUTRA_TestBody_Set(false);
+    
+    f_EUTRA_Postamble(eutra_CellB, E1_IDLE);
+  } // function f_TC_10_4_1_EUTRA
+
+  function fl_TC_10_4_1_Body() runs on EUTRA_PTC
+  {
+    var EPS_BearerIdentity v_EpsBearerId2 := '6'H; // default bearer on additional PDN
+    var EPS_BearerIdentity v_EpsDedicatedBearerId2 := '7'H; // dedicated bearer id on additional PDN
+    var ProcedureTransactionIdentifier v_EpsTi2 := tsc_PTI_Unassigned;
+    var ProcedureTransactionIdentifier v_PTId_UE;
+    var template (omit) ProtocolConfigOptions v_Pco;  // @sic R5s100761 sic@
+    var template (value) AccessPointName v_AccessPointName;
+    var PDN_Address v_PDN_Address2;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NAS_MSG_Indication_Type v_NasInd;
+    var PDN_CONNECTIVITY_REQUEST v_PDNConnReq;
+    var template (value) ESM_Cause v_EsmCause43 := cs_ESM_Cause_v ('00101011'B); // Invalid EPS bearer identity
+    var template (value) ESM_Cause v_EsmCause36 := cs_ESM_Cause_v ('00100100'B); // Regular deactivation
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+    var GutiParameters_Type v_GutiParams;
+    var NAS_PlmnId v_PLMN;
+    var TrackingAreaCode v_Tac;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var template (value) TrackingAreaIdList v_TaiList;
+    var template (value) CellPowerList_Type v_CellPowerList;
+    var M_TMSI_Type v_M_Tmsi_Def := tsc_M_TMSI1;
+    var GutiParameters_Type v_GutiParameters := f_EUTRA_CellInfo_GetGuti ( eutra_CellA );
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_CellInfo := f_EUTRA_CellInfo_GetFDD_TDD_Info ( eutra_CellA);
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA);
+    var octetstring v_APN_Value := tsc_APN1; // APN-1(New PDN name), different from default
+    var template (omit) LocAreaId v_LAI := omit;
+    var EPS_UpdateTypeValue v_UpdateType := f_GetEPSTAUType(NORMAL); // @sic R5s110176 sic@
+    
+    timer t_Wait := 1.0;
+    
+    // Set the cell type of cell A to the ''Serving cell''.
+    // Set the cell type of cell B to the ''Suitable cell''.
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_ServingCellRS_EPRE  ),
+      cs_CellPower ( eutra_CellB, tsc_SuitableCellRS_EPRE )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList ); // @sic R5s110498 sic@
+
+    // Cause the UE to request connectivity to an additional PDN.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string); // @sic R5s100466 sic@
+    
+    // The UE transmits a SERVICE REQUEST
+    //@siclog "Step 1A" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    // The SS establishes SRB2 and DRB associated with default EPS bearer context obtained during the attach procedure.
+    //@siclog "Step 1B" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_CellInfo.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_CellInfo.soundingRS_UL_Config,
+                                                                                                                                                             v_AntennaInfo)),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // The UE transmits a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN.
+    //@siclog "Step 2" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN_Value)))))-> value v_ReceivedAsp;
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNConnReq := v_NasInd.Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := cs_AccessPointName(v_APN_Value);
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    // Change from DRB1 to DRB2 to handle U Plane data
+    f_EUTRA_StartIPfor2ndPDN(eutra_CellA);  // @sic R5s110449, R5-113734 change 8 sic@
+
+    // The SS transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message with IE EPS Bearer Identity set to new EPS bearer context.
+    // Note: the SS allocates a PDN address of a PDN type which is compliant with the PDN type requested by the UE.
+    //@siclog "Step 3" siclog@
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco), true); // @sic R5s110011 R5-120234 sic@
+    f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig (eutra_CellA,
+                                                           tsc_RRC_TI_Def,
+                                                           v_EpsBearerId2, // Default bearer ID to additional PDN
+                                                           v_PTId_UE,  // use value as defined by the UE
+                                                           v_AccessPointName,
+                                                           v_PDN_Address2,
+                                                           f_GetDefPCOforPCSCFAddress(v_Pco));
+    
+    // The UE transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message as specified.
+    //@siclog "Step 4" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActivateDefEpsBearerContextAccept(v_EpsBearerId2))));
+    // 1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+
+    // The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST relative to the additional PDN.
+    // Note: the same PDN address is applicable because the linked EPS bearer ID refers to the default EBC allocated in step 3.
+    //@siclog "Step 5" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB3,
+                                        v_EpsDedicatedBearerId2,
+                                        v_EpsTi2,
+                                        cs_LinkedId(hex2bit( v_EpsBearerId2)),
+                                        cs_508_EPS_QoS_Dedicated_1,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(1, v_EpsDedicatedBearerId2));
+    
+    
+    // The UE transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message as specified.
+    //@siclog "Step 6" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActDedicatedEPSBearerCxtAccept(v_EpsDedicatedBearerId2))));
+    
+    //  The SS releases the RRC connection.
+    //@siclog "Step 7" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    
+    //  The SS transmits a Paging message to the UE using S-TMSI with CN domain indicator set to "PS".
+    //@siclog "Step 8" siclog@
+    f_EUTRA_UE_Page ( eutra_CellA,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_M_Tmsi_Def )) );
+    //  The UE transmits the SERVICE REQUEST message.
+    //@siclog "Step 9" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(v_SecurityParams.KSIasme)));
+    
+    // The SS establishes SRB2 and DRBs associated with two default EPS bearer context (a first PDN obtained during the attach procedure and an additional PDN).
+    //@siclog "Step 9A" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2({cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1),
+                                                                                                                  cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB2), // @sic R5s110365 sic@
+                                                                                                                  cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB3)},
+                                                                                                                 cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                 cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_CellInfo.cqi_ReportConfig,
+                                                                                                                                                            v_EUTRA_FDD_TDD_CellInfo.soundingRS_UL_Config,
+                                                                                                                                                            v_AntennaInfo)),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                  cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    // The SS transmits a DEACTIVATE EPS BEARER CONTEXT REQUEST including the EPS bearer identity of the dedicated EPS bearer to the additional PDN.
+    //@siclog "Step 10" siclog@
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_DRB_Release (tsc_RRC_TI_Def, tsc_DRB3), // @sic R5s110275 sic@
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_DeactivateEPSBearerCxtReq(v_EpsDedicatedBearerId2,
+                                                                                    v_EpsTi2,
+                                                                                    v_EsmCause36))));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+
+    // Check: Does the UE transmit a DEACTIVATE EPS BEARER CONTEXT ACCEPT?
+    //@siclog "Step 11" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_DeactivateEPSBearerCxtAccept(v_EpsDedicatedBearerId2,
+                                                                                      v_EpsTi2))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 11");
+    // The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST relative to additional PDN.
+    // Note: the same PDN address is applicable because the linked EPS bearer ID refers to the default EBC allocated in step 3.
+    //@siclog "Step 12" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB3,
+                                        v_EpsDedicatedBearerId2,
+                                        v_EpsTi2,
+                                        cs_LinkedId(hex2bit( v_EpsBearerId2)),
+                                        cs_508_EPS_QoS_Dedicated_1,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(1, v_EpsDedicatedBearerId2));
+
+    // The UE transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message as specified.
+    //@siclog "Step 13" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActDedicatedEPSBearerCxtAccept(v_EpsDedicatedBearerId2))));
+    
+    // The SS transmits a DEACTIVATE EPS BEARER CONTEXT REQUEST including the EPS bearer identity of the dedicated EPS bearer to the additional PDN.
+    //@siclog "Step 14" siclog@
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_DRB_Release (tsc_RRC_TI_Def, tsc_DRB2),
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_DeactivateEPSBearerCxtReq(v_EpsBearerId2,
+                                                                                    v_EpsTi2,
+                                                                                    v_EsmCause36))));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // Check: Does the UE transmit a DEACTIVATE EPS BEARER CONTEXT ACCEPT?
+    //@siclog "Step 15" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_DeactivateEPSBearerCxtAccept(v_EpsBearerId2,
+                                                                                      v_EpsTi2))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 15");
+            
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message including the EPS bearer identity of the dedicated EPS bearer.
+    // This message is included in a DLInformationTransfer message.
+    //@siclog "Step 16" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsDedicatedBearerId2,
+                                                                             v_EpsTi2,
+                                                                             cds_508_EPS_QoS_Dedicated_1_tlv, // @sic R5-103625 sic@
+                                                                             f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(v_EpsDedicatedBearerId2))))); // @sic R5-103625 sic@
+    // Check: Does UE transmits a MODIFY EPS BEARER CONTEXT REJECT message with ESM cause #43?
+    //@siclog "Step 17" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsDedicatedBearerId2,
+                                                                                       v_EsmCause43))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 17");
+    // The SS transmits a DEACTIVATE EPS BEARER CONTEXT REQUEST that does not point an existing EPS bearer context.
+    //@siclog "Step 18" siclog@
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_DRB_Release (tsc_RRC_TI_Def, tsc_DRB2),
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_DeactivateEPSBearerCxtReq(v_EpsBearerId2,
+                                                                                    v_EpsTi2,
+                                                                                    v_EsmCause36))));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // Check: Does the UE transmit a DEACTIVATE EPS BEARER CONTEXT ACCEPT?
+    //@siclog "Step 19" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_DeactivateEPSBearerCxtAccept(v_EpsBearerId2,
+                                                                                      v_EpsTi2))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 19");
+    //  The SS releases the RRC connection.
+    //@siclog "Step 20" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    //  Cause the UE to request connectivity to an additional PDN.
+    //@siclog "Step 21" siclog@
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string); // APN-1(New PDN name), different from default @sic R5s100466 sic@
+    // The UE transmits a SERVICE REQUEST.
+    //@siclog "Step 21A" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    // The SS establishes SRB2 and DRBs associated with two default EPS bearer context (a first PDN obtained during the attach procedure and an additional PDN).
+    //@siclog "Step 21B" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_CellInfo.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_CellInfo.soundingRS_UL_Config,
+                                                                                                                                                             v_AntennaInfo)),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // The UE transmits a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN.
+    //@siclog "Step 22" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN_Value)))))-> value v_ReceivedAsp;
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNConnReq := v_NasInd.Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := cs_AccessPointName(v_APN_Value);
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    // The SS transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message with IE EPS Bearer Identity set to new EPS bearer context.
+    // Note: the SS allocates a PDN address of a PDN type which is compliant with the PDN type requested by the UE.
+    //@siclog "Step 23" siclog@
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco), true); // @sic R5s110011 R5-120234 sic@
+    f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig (eutra_CellA,
+                                                           tsc_RRC_TI_Def,
+                                                           v_EpsBearerId2, // Default bearer ID to additional PDN
+                                                           v_PTId_UE,  // use value as defined by the UE
+                                                           v_AccessPointName,
+                                                           v_PDN_Address2,
+                                                           f_GetDefPCOforPCSCFAddress(v_Pco));
+    // The UE transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message as specified.
+    //@siclog "Step 24" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActivateDefEpsBearerContextAccept(v_EpsBearerId2))));
+    // 1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+    
+    // The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST relative to additional PDN.
+    // Note: the same PDN address is applicable because the linked EPS bearer ID refers to the default EBC allocated in step 3.
+    //@siclog "Step 25" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB3,
+                                        v_EpsDedicatedBearerId2,
+                                        v_EpsTi2,
+                                        cs_LinkedId(hex2bit( v_EpsBearerId2)),
+                                        cs_508_EPS_QoS_Dedicated_1,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(1, v_EpsDedicatedBearerId2));
+    
+    
+    // The UE transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message as specified.
+    //@siclog "Step 26" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActDedicatedEPSBearerCxtAccept(v_EpsDedicatedBearerId2))));
+    
+    // The SS releases the RRC connection.
+    //@siclog "Step 27" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    // The SS transmits a Paging message to the UE using S-TMSI with CN domain indicator set to "PS".
+    //@siclog "Step 28" siclog@
+    f_EUTRA_UE_Page ( eutra_CellA,
+                      cs_NasPaging_OneRecord ( cs_PagingUE_Identity_S_TMSI ( v_GutiParameters.MME_Code, v_M_Tmsi_Def )) );
+    // The UE transmits SERVICE REQUEST message.
+    //@siclog "Step 29" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(v_SecurityParams.KSIasme)));
+    
+    // activate security in AS
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    // The SS performs a radio bearer establishment procedure.
+    // The RRCConnectionReconfiguration message doesn't include the EPS bearer ID of the additional PDN.
+    //@siclog "Step 30" siclog@
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_CellInfo.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_CellInfo.soundingRS_UL_Config,
+                                                                                                                                                             v_AntennaInfo)),
+                                                                        omit)));
+    
+    // Check: Does UE transmit a RRCConnectionReconfigurationComplete message?
+    //@siclog "Step 31" siclog@
+    SRB.receive ( car_SRB1_RrcPdu_IND ( eutra_CellA, cr_508_RRCConnectionReconfigurationComplete ( tsc_RRC_TI_Def ) ) );
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 31");
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message including the EPS bearer identity of the default EPS bearer to the additional PDN.
+    // This message is included in a DLInformationTransfer message.
+    //@siclog "Step 32" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsBearerId2,
+                                                                             v_EpsTi2,
+                                                                             cds_508_EPS_QoS_Dedicated_1_tlv, // @sic R5-103625 sic@
+                                                                             omit))));
+    // Check: Does UE transmit a MODIFY EPS BEARER CONTEXT REJECT message with ESM cause #43?
+    //@siclog "Step 32A" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsBearerId2,
+                                                                                       v_EsmCause43))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 32A");
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message including the EPS bearer identity of the dedicated EPS bearer.
+    //@siclog "Step 32B" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsDedicatedBearerId2,
+                                                                             v_EpsTi2,
+                                                                             cds_508_EPS_QoS_Dedicated_1_tlv, // @sic R5-103625 sic@
+                                                                             f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(v_EpsDedicatedBearerId2))))); // @sic R5-103625 sic@
+    // Check: Does UE transmit a MODIFY EPS BEARER CONTEXT REJECT message with ESM cause #43? (see Note 4)
+    //@siclog "Step 32C" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsDedicatedBearerId2,
+                                                                                       v_EsmCause43))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 32C");
+    // The SS releases the RRC connection.
+    //@siclog "Step 33" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    //  Cause the UE to request connectivity to an additional PDN.
+    //@siclog "Step 34" siclog@
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string); // APN-1(New PDN name), different from default @sic R5s100466 sic@
+    // The UE transmits a SERVICE REQUEST
+    //@siclog "Step 34A" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    
+    // The SS establishes SRB2 and DRB associated with default EPS bearer context obtained during the attach procedure
+    //@siclog "Step 34B" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_CellInfo.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_CellInfo.soundingRS_UL_Config,
+                                                                                                                                                             v_AntennaInfo)),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    // The UE transmits a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN.
+    //@siclog "Step 35" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN_Value)))))-> value v_ReceivedAsp;
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNConnReq := v_NasInd.Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := cs_AccessPointName(v_APN_Value);
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    // The SS transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message
+    // with IE EPS Bearer Identity set to new EPS bearer context.
+    //@siclog "Step 36" siclog@
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco), true); // @sic R5s110011 R5-120234 sic@
+    f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig (eutra_CellA,
+                                                           tsc_RRC_TI_Def,
+                                                           v_EpsBearerId2, // Default bearer ID to additional PDN
+                                                           v_PTId_UE,  // use value as defined by the UE
+                                                           v_AccessPointName,
+                                                           v_PDN_Address2,
+                                                           f_GetDefPCOforPCSCFAddress(v_Pco));
+    // The UE transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message as specified.
+    //@siclog "Step 37" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActivateDefEpsBearerContextAccept(v_EpsBearerId2))));
+    // 1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+    
+    //  The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST relative to additional PDN.
+    //@siclog "Step 38" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB3,
+                                        v_EpsDedicatedBearerId2,
+                                        v_EpsTi2,
+                                        cs_LinkedId(hex2bit( v_EpsBearerId2)),
+                                        cs_508_EPS_QoS_Dedicated_1,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(1, v_EpsDedicatedBearerId2));
+    
+    // The UE transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message as specified.
+    //@siclog "Step 39" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActDedicatedEPSBearerCxtAccept(v_EpsDedicatedBearerId2))));
+    
+    // The SS releases the RRC connection.
+    //@siclog "Step 40" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    
+    //  Cell A is a suitable cell, Cell B is the serving cell
+    //@siclog "Step 41" siclog@
+    v_CellPowerList := {
+      cs_CellPower ( eutra_CellA, tsc_SuitableCellRS_EPRE ),
+      cs_CellPower ( eutra_CellB, tsc_ServingCellRS_EPRE  )
+    };
+    f_EUTRA_SetCellPowerList ( v_CellPowerList );
+    
+    // The UE transmit a TRACKING AREA UPDATE REQUEST message as specified on Cell B.
+    //@siclog "Step 42" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellB,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cdr_TAU_Request_EPSBearerCtxtStatus( v_UpdateType,
+                                                                                                       f_EUTRA_SecurityKSIasme_Get (),
+                                                                                                       cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                                                       v_AdditionalUpdateType, // @sic R5-103681 sic@
+                                                                                                       cs_EPSBearerCtxtStatus_3Ctxts)));
+    // The SS transmits a TRACKING AREA UPDATE ACCEPT indicating only one EPS bearer (default EBId-1) active in the EPS bearer context status IE.
+    // The EPS bearer ID linked to the additional PDN is deactivated by SS.
+    //@siclog "Step 43" siclog@
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti(eutra_CellB);
+    v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    v_Tac := f_EUTRA_CellInfo_GetTAC ( eutra_CellB );
+    v_TaiList := cds_TAIListNonConsecutive_tlv( v_PLMN, { bit2oct(v_Tac) } );
+    if (v_UpdateType == tsc_EpsUpdate_Combined_TaLaUpdate) // @sic R5s110086 sic@
+    {
+      v_LAI := f_EUTRA_GetCellLAI(eutra_CellB, NORMAL); // @sic R5s110176 sic@
+    }
+    
+    SRB.send ( cas_SRB1_NasPdu_REQ ( eutra_CellB,
+                                     cs_TimingInfo_Now,
+                                     cs_NAS_Request ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cs_508_TAU_Accept ( v_UpdateType,
+                                                                          f_GutiParameters2MobileIdentity (tsc_IEI_Guti, v_GutiParams ),
+                                                                          v_TaiList,
+                                                                          cs_EPSBearerCtxtStatus_DefaultBearerOnly,
+                                                                          v_LAI,
+                                                                          omit, // v_MSId
+                                                                          f_GetAdditionalUpdateResult(v_NasInd.Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType)))));
+    
+    // The UE transmits TRACKING AREA UPDATE COMPLETE message.
+    //@siclog "Step 43AA" siclog@
+    SRB.receive(car_SRB1_NasPdu_IND(eutra_CellB,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_TAU_Complete))) -> value v_ReceivedAsp;
+    // VOID   @sic R5-113188 sic@
+    //@siclog "Step 43AB" siclog@
+
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message including the EPS bearer identity of the default EPS bearer to the additional PDN.
+    // This message is included in a DLInformationTransfer message.
+    //@siclog "Step 43A" siclog@
+    SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellB, // @sic R5s110593 sic@
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsBearerId2,
+                                                                             v_EpsTi2,
+                                                                             cds_508_EPS_QoS_Dedicated_1_tlv, // @sic R5-103625 sic@
+                                                                             omit))));
+    
+    // Check: Does UE transmits a MODIFY EPS BEARER CONTEXT REJECT message with ESM cause #43?
+    //@siclog "Step 43B" siclog@
+    SRB.receive(car_SRB1_NasPdu_IND(eutra_CellB,  // @sic R5s110593 sic@
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsBearerId2,
+                                                                                       v_EsmCause43))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 43B");
+    
+    // Step 43C. The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message including the EPS bearer identity of the dedicated EPS bearer.
+    //@siclog "Step 43C" siclog@
+    SRB.send(cas_SRB1_NasPdu_REQ(eutra_CellB,  // @sic R5s110593 sic@
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsDedicatedBearerId2,
+                                                                             v_EpsTi2,
+                                                                             cds_508_EPS_QoS_Dedicated_1_tlv, // @sic R5-103625 sic@
+                                                                             f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(v_EpsDedicatedBearerId2))))); // @sic R5-103625 sic@
+    
+    // Check: Does UE transmits a MODIFY EPS BEARER CONTEXT REJECT message with ESM cause #43?
+    //@siclog "Step 43D" siclog@
+    SRB.receive(car_SRB1_NasPdu_IND(eutra_CellB,  // @sic R5s110593 sic@
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsDedicatedBearerId2,
+                                                                                       v_EsmCause43))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 43D");
+    
+    //  The SS releases the RRC connection.
+    //@siclog "Step 44" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellB);
+    
+    // EXCEPTION: Step 45 & 46 describe behaviour that depends on the UE capability.
+    if ( pc_ESM_MO_Bearer_Allocation == true ) {  // @sic R5-121749 sic@
+      //  Cause the UE to request bearer resource allocation of dedicated EPS bearer associated with additional PDN connectivity.
+      //@siclog "Step 45" siclog@
+      f_UT_RequestActivateDedicatedBearer (UT,
+                                           hex2int(v_EpsDedicatedBearerId2),
+                                           hex2int(v_EpsBearerId2),
+                                           cs_508_EPS_QoS_Dedicated_1,
+                                           f_EUTRA_Get_508_TrafficFlowTemplate(1, v_EpsDedicatedBearerId2),
+                                           LOCAL_CNF_REQUIRED); // @sic R5s110055 sic@
+      // Check: Does the UE transmit SERVICE REQUEST?
+      //@siclog "Step 46" siclog@
+      t_Wait.start(3.0);
+      alt {
+        [] SRB.receive ( car_SRB1_NasPdu_IND ( eutra_CellB,
+                                               cr_NAS_Indication ( ?,
+                                                                   ?)))
+          {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 46");
+            t_Wait.stop;
+          }
+        [] t_Wait.timeout
+          {
+          }
+      }
+    }
+  } // function fl_TC_10_4_1_Body
+
+  function f_TC_10_5_1_EUTRA() runs on EUTRA_PTC
+  { /* UE requested PDN connectivity accepted by the network */
+    // @sic R5s100313 sic@
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    fl_TC_10_5_1_Body();
+    f_EUTRA_TestBody_Set(false);
+    
+    f_EUTRA_Postamble(eutra_CellA, E1_IDLE);
+  } // function f_TC_10_5_1_EUTRA
+
+  function fl_TC_10_5_1_Body() runs on EUTRA_PTC
+  { // @sic R5-104734 sic@
+  
+    var EPS_BearerIdentity v_EpsBearerId2 := '6'H;
+    var EPS_BearerIdentity v_EpsDedicatedBearerId := '7'H;
+    var ProcedureTransactionIdentifier v_PTId_UE;
+    var template (omit) ProtocolConfigOptions v_Pco;  // @sic R5s100761 sic@
+    var template (value) AccessPointName v_AccessPointName;
+    var PDN_Address v_PDN_Address2;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var PDN_CONNECTIVITY_REQUEST v_PDNConnReq;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NasCount_Type v_NasCountUL;
+    var template (value) PhysicalConfigDedicated_AntennaInfo_Type v_AntennaInfo := f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA); //@sic R5-100786 sic@
+    var octetstring v_APN_Value := tsc_APN1; // APN-1(New PDN name), different from default
+    
+    //  Cause the UE to request connectivity to an additional PDN.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string); // APN-1(New PDN name), different from default @sic R5s100466 sic@
+    //  UE sends SERVICE REQUEST message
+    //@siclog "Step 1A" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 1A");
+    //@siclog "Step 1B" siclog@
+    // The SS establishes SRB2 and DRB associated with default EPS bearer context.
+    // (a first PDN obtained during the attach procedure).
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM(tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             v_AntennaInfo)),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // Step 2. Check: Does the UE transmit a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN?
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN_Value))))) -> value v_ReceivedAsp;
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNConnReq := v_NasInd.Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    
+    // Get Procedure transaction identifier assigned by the UE
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := cs_AccessPointName(v_APN_Value);
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    // Change from DRB1 to DRB2 to handle U Plane data
+    f_EUTRA_StartIPfor2ndPDN(eutra_CellA);  // @sic R5s110449, R5-113734 change 8 sic@
+
+    // The SS transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST and
+    //         a ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST included
+    //          in dedicatedInfoNASList of RRCConnectionReconfiguration message.
+    // Ask UE to get its additional IP adress via DHCP or ICMP
+    //@siclog "Step 3" siclog@
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco), true); // @sic R5s110011 R5-120234 sic@
+    f_EUTRA_TxActivateDedicatedBearerCtxtOnAdditionalPDN(eutra_CellA,
+                                                         tsc_RRC_TI_Def,
+                                                         v_EpsBearerId2, // Default bearer ID to additional PDN
+                                                         v_EpsDedicatedBearerId, // Dedicated bearer ID
+                                                         v_PTId_UE,  // use value as defined by the UE
+                                                         v_AccessPointName,
+                                                         v_PDN_Address2,
+                                                         f_GetDefPCOforPCSCFAddress(v_Pco));
+    
+    //  Check: Does the UE transmit an ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message as specified?
+    // Parallel behaviour: Check: Does the UE transmit an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message as specified?
+    //@siclog "Step 4" siclog@
+    interleave {
+      [] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                         cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                           cr_508_ActivateDefEpsBearerContextAccept(v_EpsBearerId2))))
+        {}
+      [] SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                         cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                           cr_508_ActDedicatedEPSBearerCxtAccept(v_EpsDedicatedBearerId))))
+        {
+        }
+    };
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    // 1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+    
+    //@siclog "Step 5- 6 Void" siclog@
+    // The SS releases the RRC connection.
+    //@siclog "Step 7" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    
+  } // function fl_TC_10_5_1_Body
+
+  function f_TC_10_5_3_EUTRA() runs on EUTRA_PTC
+  { /* UE requested PDN connectivity not accepted */
+    /* @sic R5s100748 sic@ */
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);   // @sic R5s110675 sic@
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    fl_TC_10_5_3_Body();
+    f_EUTRA_TestBody_Set(false);
+    
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_5_3_EUTRA
+
+  function fl_TC_10_5_3_Body() runs on EUTRA_PTC
+  {
+    var EPS_BearerIdentity v_EpsBearerId2 := '6'H;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var ProcedureTransactionIdentifier v_PTId_UE;
+    var template (omit) ProtocolConfigOptions v_Pco;  // @sic R5s100761 sic@
+    var template (value) AccessPointName v_AccessPointName;
+    var PDN_Address v_PDN_Address2;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var PDN_CONNECTIVITY_REQUEST v_PDNConnReq;
+    var template (value) ESM_Cause v_EsmCause111;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    var octetstring v_APN1_Value := tsc_APN1; // APN-1(New PDN name), different from default
+    var octetstring v_APN2_Value := tsc_APN2; // APN-2(New PDN name), different from default
+    
+    // Cause the UE to request connectivity to an additional PDN.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN1_string);
+    
+    // The UE transmits a SERVICE REQUEST
+    //@siclog "Step 1A" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    //@siclog "Step 1B" siclog@
+    // The SS establishes SRB2 and DRB associated with the default EPS bearer context activated during the preamble
+    // (a first PDN obtained during the attach procedure).
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    //@siclog "Step 2" siclog@
+    // Step 2. The UE transmits a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN.
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN1_Value))))) -> value v_ReceivedAsp;
+    
+    v_PDNConnReq := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := v_PDNConnReq.accessPointName;
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    //  The SS transmits a PDN CONNECTIVITY REJECT message.
+    //@siclog "Step 3" siclog@
+    v_EsmCause111 := cs_ESM_Cause_v ('01101111'B);
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,     // @sic R5s110125 sic@
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_PdnConnectReject( '0'H, // no EPS bearer assigned
+                                                                     v_PTId_UE,
+                                                                     v_EsmCause111))));
+    
+    //@siclog "Step 4 - 5 Void" siclog@
+    
+    // The SS releases the RRC connection
+    //@siclog "Step 6" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    
+    // Cause the UE to request connectivity to an additional PDN.
+    //@siclog "Step 7" siclog@
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsBearerId2), tsc_APN2_string);
+    
+    //@siclog "Step 8" siclog@
+    //  The UE transmits a SERVICE REQUEST
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    
+    //@siclog "Step 9" siclog@
+    // The SS establishes a DRB associated with the default EPS bearer context activated during the preamble.
+    // Activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    //@siclog "Step 9A" siclog@
+    // Check: Does the UE transmit a PDN CONNECTIVITY REQUEST as specified to request an additional PDN?
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN2_Value))))) -> value v_ReceivedAsp;
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9A");
+    
+    v_PDNConnReq := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := cs_AccessPointName(tsc_APN2);
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    // Change from DRB1 to DRB2 to handle U Plane data
+    f_EUTRA_StartIPfor2ndPDN(eutra_CellA);  // @sic R5s110449, R5-113734 change 8 sic@
+
+    //@siclog "Step 9B" siclog@
+    // The SS transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message with IE EPS Bearer Identity set to new EPS bearer context.
+    // Ask UE to get its additional IP adress via DHCP or ICMP
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco), true); // @sic R5s110011 R5-120234 sic@
+    f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig (eutra_CellA,
+                                                           tsc_RRC_TI_Def,
+                                                           v_EpsBearerId2, // Default bearer ID to additional PDN
+                                                           v_PTId_UE,  // use value as defined by the UE
+                                                           v_AccessPointName,
+                                                           v_PDN_Address2,
+                                                           f_GetDefPCOforPCSCFAddress(v_Pco));
+    // Check: Does the UE transmit an ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message for the additional default EPS bearer?
+    //@siclog "Step 10" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActivateDefEpsBearerContextAccept(v_EpsBearerId2))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+    // 1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+    
+  } // function fl_TC_10_5_3_Body
+
+  function f_TC_10_6_1_EUTRA() runs on EUTRA_PTC
+  { // UE requested PDN disconnect procedure accepted by the network
+    // @sic R5s100326 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_508_ActivateAdditionalPDN (eutra_CellA, '6'H, RRC_IDLE);
+    f_EUTRA_TestBody_Set(true);
+    fl_TC_10_6_1_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E1_IDLE);
+  } // function f_TC_10_6_1_EUTRA
+
+  function fl_TC_10_6_1_Body() runs on EUTRA_PTC
+  { // @sic R5s100461 sic@ @sic R5-104733 sic@
+    var EPS_BearerIdentity v_EpsBearerId2 := '6'H; // default bearer on additional PDN
+    var template (value) ESM_Cause v_EsmCause;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var template (value) LinkedEpsBearerIdentity v_LinkedEpsBearerId := {idValue := hex2bit(v_EpsBearerId2)};
+    var PDN_DISCONNECT_REQUEST v_PDNDiscReq;
+    var ProcedureTransactionIdentifier v_EpsTi := tsc_PTI_Unassigned;
+    var NasCount_Type v_NasCountUL;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    var template (value) DRB_ToAddModList v_DRB_ToAddModList;
+        
+    // Cause the UE to request disconnection from the additional PDN
+    //@siclog "Step 1" siclog@
+    f_UT_DeactivateBearer(UT, hex2int(v_EpsBearerId2));
+    
+    // The UE transmits a SERVICE REQUEST message.
+    //@siclog "Step 1A" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               ?,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    //@siclog "Step 1B" siclog@
+    // The SS establishes SRB2 and DRBs associated with two default EPS bearer contexts
+    // (a first PDN obtained during the attach procedure and an additional PDN).
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+
+    v_DRB_ToAddModList[0] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1);
+    v_DRB_ToAddModList[1] := cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB2);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( v_DRB_ToAddModList,
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // Step 2. The UE transmits PDN DISCONNECT REQUEST
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNDisconnectReq(v_LinkedEpsBearerId)))) -> value v_ReceivedAsp;
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNDiscReq  := v_NasInd.Pdu.Msg.pDN_DISCONNECT_REQUEST;
+    v_EpsTi := v_PDNDiscReq.procedureTransactionIdentifier;
+    
+    //  The SS transmits a DEACTIVATE EPS BEARER CONTEXT REQUEST
+    //@siclog "Step 3" siclog@
+    v_EsmCause := cs_ESM_Cause_v ('00100100'B); // #36 regular deactivation
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_DRB_Release (tsc_RRC_TI_Def, tsc_DRB2),
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_DeactivateEPSBearerCxtReq(v_EpsBearerId2,
+                                                                                    v_EpsTi,
+                                                                                    v_EsmCause))));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // Step 4. Check: Does the UE transmit a DEACTIVATE EPS BEARER CONTEXT ACCEPT?
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_DeactivateEPSBearerCxtAccept(v_EpsBearerId2,
+                                                                                      tsc_PTI_Unassigned))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+    //@siclog "Step 5 Void" siclog@
+    // The SS releases the RRC connection.
+    //@siclog "Step 5A" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);
+    
+  } // function fl_TC_10_6_1_Body
+
+  function f_TC_10_7_1_EUTRA() runs on EUTRA_PTC
+  { // UE requested bearer resource allocation accepted by the network / new EPS bearer context
+    // @sic R5s100362 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_7_1_Body();
+    
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_7_1_EUTRA
+
+  function fl_TC_10_7_1_Body() runs on EUTRA_PTC
+  {
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var BEARER_RESOURCE_ALLOCATION_REQUEST v_BEARER_RESOURCE_ALLOCATION_Req;
+    var  ProcedureTransactionIdentifier v_EpsTi := tsc_PTI_Unassigned;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    
+    // Cause the UE to request bearer resource allocation of
+    // dedicated EPS bearer associated with first PDN connectivity
+    // @siclog "Step 1" siclog@
+    f_UT_RequestActivateDedicatedBearer (UT,
+                                         hex2int(tsc_EpsDedicatedBearerId),
+                                         hex2int(tsc_EpsDefaultBearerId),
+                                         cs_508_EPS_QoS_Dedicated_1,
+                                         f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId));
+    
+    // The UE transmits a SERVICE REQUEST message.
+    // @siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    
+    //  The SS establishes SRB2 and DRB associated with default EPS bearer context
+    // (a first PDN obtained during the attach procedure).
+    //@siclog "Step 2A" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    // @siclog "Step 3" siclog@
+    // Step 3. Check: Does the UE transmit a BEARER RESOURCE ALLOCATION REQUEST message?
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(?,
+                                                                                          tsc_EpsDefaultBearerId)))) -> value v_ReceivedAsp;
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+    // store PTI received
+    v_BEARER_RESOURCE_ALLOCATION_Req  := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_ALLOCATION_REQUEST; // @sic R5s100538 sic@
+    v_EpsTi := v_BEARER_RESOURCE_ALLOCATION_Req.procedureTransactionIdentifier;
+    // The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST message.
+    //@siclog "Step 4" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB2,
+                                        tsc_EpsDedicatedBearerId,
+                                        v_EpsTi,
+                                        cs_LinkedId(hex2bit( tsc_EpsDefaultBearerId)),
+                                        cs_508_EPS_QoS_Dedicated_1,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId));
+    
+    
+    //Check: Does the UE transmit an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message? (2,P)
+    //@siclog "Step 5" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActDedicatedEPSBearerCxtAccept(tsc_EpsDedicatedBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+    
+  } // function fl_TC_10_7_1_Body
+
+  function f_TC_10_7_2_EUTRA() runs on EUTRA_PTC
+  { // UE requested bearer resource allocation accepted by the network / existing EPS bearer context
+    // @sic R5s100364 sic@ @sic R5-106111 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0); // @sic R5s110008 sic@
+    
+    // Establish Generic RB plus AM DRB
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_7_2_Body();
+    
+    f_EUTRA_TestBody_Set(false);
+    
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_7_2_EUTRA
+
+  function fl_TC_10_7_2_Body() runs on EUTRA_PTC
+  {  // @sic R5-105012 sic@ @sic R5-106111 sic@
+    var ProcedureTransactionIdentifier v_EpsTi := tsc_PTI_Unassigned;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var BEARER_RESOURCE_ALLOCATION_REQUEST v_BEARER_RESOURCE_ALLOCATION_Req;
+    var template (value) NAS_DL_Message_Type v_ModifyEPSBearerCxtReq;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+
+    //  The SS releases the RRC connection.
+    //@siclog "Step 0" siclog@
+    f_EUTRA_RRC_ConnectionRelease(eutra_CellA);  // @sic R5-106111 sic@
+
+    //  Cause the UE to request bearer resource allocation of dedicated EPS bearer associated with first PDN connectivity
+    //@siclog "Step 1" siclog@
+    f_UT_RequestActivateDedicatedBearer (UT,
+                                         hex2int(tsc_EpsDedicatedBearerId2),
+                                         hex2int(tsc_EpsDefaultBearerId),
+                                         cs_508_EPS_QoS_Dedicated_1,
+                                         f_EUTRA_Get_508_TrafficFlowTemplate(2, tsc_EpsDedicatedBearerId2));
+    
+    //  The UE transmits a SERVICE REQUEST message.
+    //@siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    
+    //  The SS establishes SRB2 and DRB associated with default EPS bearer context
+    // (a first PDN obtained during the attach procedure).
+    //@siclog "Step 2A" siclog@
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1), cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB2)},   // @sic R5-106111 sic@
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    // Check: Does the UE transmit a BEARER RESOURCE ALLOCATION REQUEST message?
+    //@siclog "Step 3" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(?,
+                                                                                          tsc_EpsDefaultBearerId)))) -> value v_ReceivedAsp;
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 3");
+    // store PTI received
+    v_BEARER_RESOURCE_ALLOCATION_Req  := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_ALLOCATION_REQUEST; // @sic R5s100538 sic@
+    v_EpsTi := v_BEARER_RESOURCE_ALLOCATION_Req.procedureTransactionIdentifier;
+    
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message.
+    // This message is included in a DLInformationTransfer message.
+    //@siclog "Step 4" siclog@
+    v_ModifyEPSBearerCxtReq := cs_508_ModifyEPSBearerCxtReq(tsc_EpsDedicatedBearerId,
+                                                            v_EpsTi,
+                                                            cds_508_EPS_QoS_Dedicated_1_tlv,
+                                                            f_EUTRA_Get_508_TrafficFlowTemplate_2_Add(tsc_EpsDedicatedBearerId));  // @sic R5s100549 sic@ @sic R5-106111 sic@
+    //Send DLInformationTransfer as this only Modify EPS Bearer Request
+    SRB.send(cas_SRB_NasPdu_REQ(eutra_CellA,
+                                tsc_SRB2,
+                                cs_TimingInfo_Now,
+                                cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                               v_ModifyEPSBearerCxtReq)));
+
+    //  Check:  Does the UE transmit a MODIFY EPS BEARER CONTEXT ACCEPT message as specified?
+    //@siclog "Step 5" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtAccept(tsc_EpsDedicatedBearerId)))); // @sic R5s110008 sic@
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+    
+  } // function fl_TC_10_7_2_Body
+
+  function f_TC_10_7_3_EUTRA() runs on EUTRA_PTC
+  { // UE requested bearer resource allocation not accepted by the network
+    // @sic R5s100712 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_7_3_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_7_3_EUTRA
+
+  function fl_TC_10_7_3_Body() runs on EUTRA_PTC
+  {
+    var  ProcedureTransactionIdentifier v_EpsTi := tsc_PTI_Unassigned;
+    var  ProcedureTransactionIdentifier v_EpsPtiUnassigned := tsc_PTI_Unassigned;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var BEARER_RESOURCE_ALLOCATION_REQUEST v_BEARER_RESOURCE_ALLOCATION_Req;
+    var template (value) ESM_Cause v_EsmCause79;
+    var template (value) ESM_Cause v_EsmCause111;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    var template (value) NAS_DL_Message_Type v_BearerResourceAllocReject;
+    
+    //  Cause the UE to request bearer resource allocation of dedicated
+    //         EPS bearer associated with first PDN connectivity
+    //@siclog "Step 1" siclog@
+    f_UT_RequestActivateDedicatedBearer (UT,
+                                         hex2int(tsc_EpsDedicatedBearerId),
+                                         hex2int(tsc_EpsDefaultBearerId),
+                                         cs_508_EPS_QoS_Dedicated_1,
+                                         f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId));
+    
+    //  The UE transmits a SERVICE REQUEST message.
+    //@siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    
+    //  The SS establishes SRB2 and DRB associated with default EPS bearer context
+    // (a first PDN obtained during the attach procedure).
+    //@siclog "Step 2A" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    // The UE transmits a BEARER RESOURCE ALLOCATION REQUEST message.
+    //@siclog "Step 3" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(?,
+                                                                                          tsc_EpsDefaultBearerId)))) -> value v_ReceivedAsp;
+    // store PTI received
+    v_BEARER_RESOURCE_ALLOCATION_Req  := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_ALLOCATION_REQUEST;
+    v_EpsTi := v_BEARER_RESOURCE_ALLOCATION_Req.procedureTransactionIdentifier;
+    
+    // The SS transmits a BEARER RESOURCE ALLOCATION REJECT message.
+    //@siclog "Step 4" siclog@
+    v_EsmCause111 := cs_ESM_Cause_v ('01101111'B); // Protocol error unspecified
+    v_BearerResourceAllocReject := cs_508_BearerResourceAllocReject(v_EpsTi,
+                                                                    v_EsmCause111);
+    SRB.send(cas_SRB_NasPdu_REQ(eutra_CellA,  // @sic R5s110208 sic@
+                                tsc_SRB2,
+                                cs_TimingInfo_Now,
+                                cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   v_BearerResourceAllocReject)));
+    
+    // Delay to ensure that messages in steps 4 and 5 are not transmitted together
+    // to avoid possible race condition
+    //@siclog "Step 4A" siclog@
+    f_Delay (0.5);  // @sic R5s110500 sic@
+    //  The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST message.
+    //@siclog "Step 5" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB2,
+                                        tsc_EpsDedicatedBearerId,
+                                        v_EpsTi,
+                                        cs_LinkedId(hex2bit( tsc_EpsDefaultBearerId)),
+                                        cs_508_EPS_QoS_Dedicated_1,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId));
+    //  Check: Does the UE transmit an ACTIVATE DEDICATED EPS BEARER CONTEXT REJECT message?
+    //@siclog "Step 6" siclog@
+    v_EsmCause79 := cs_ESM_Cause_v ('00101111'B); // PTI mismatch
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_ActDedicatedEPSBearerCxtReject(tsc_EpsDedicatedBearerId,
+                                                                                        v_EpsPtiUnassigned,
+                                                                                        v_EsmCause79))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+  } // function fl_TC_10_7_3_Body
+
+  function f_TC_10_7_4_EUTRA() runs on EUTRA_PTC
+  { // UE requested bearer resource allocation / Expiry of timer T3480
+    // @sic R5s100746 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_7_4_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_7_4_EUTRA
+
+  function fl_TC_10_7_4_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsTi := tsc_PTI_Unassigned;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var BEARER_RESOURCE_ALLOCATION_REQUEST v_BEARER_RESOURCE_ALLOCATION_Req;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    
+    timer t_Timer3480Max := f_EUTRA_SetTimerToleranceMax (eutra_CellA, nasTimer, 8.0);
+    timer t_Timer3480Min := f_EUTRA_SetTimerToleranceMin (eutra_CellA, nasTimer, 8.0);
+    
+    //  Cause the UE to request bearer resource allocation of dedicated
+    //         EPS bearer associated with first PDN connectivity
+    //@siclog "Step 1" siclog@
+    f_UT_RequestActivateDedicatedBearer (UT,
+                                         hex2int(tsc_EpsDedicatedBearerId),
+                                         hex2int(tsc_EpsDefaultBearerId),
+                                         cs_508_EPS_QoS_Dedicated_1,
+                                         f_EUTRA_Get_508_TrafficFlowTemplate(1, tsc_EpsDedicatedBearerId));
+    
+    //  The UE transmits a SERVICE REQUEST message.
+    //@siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                                 cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    
+    //  The SS establishes SRB2 and DRB associated with default EPS bearer context
+    // (a first PDN obtained during the attach procedure).
+    //@siclog "Step 2A" siclog@
+    // activate security in AS with parameters from AKA performed in preamble
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // The UE transmits a BEARER RESOURCE ALLOCATION REQUEST message.
+    //@siclog "Step 3" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(?,
+                                                                                          tsc_EpsDefaultBearerId)))) -> value v_ReceivedAsp;
+    // store PTI received
+    v_BEARER_RESOURCE_ALLOCATION_Req  := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_ALLOCATION_REQUEST;
+    v_EpsTi := v_BEARER_RESOURCE_ALLOCATION_Req.procedureTransactionIdentifier;
+    
+    // Wait for 8 s to ensure that T3480 expires (1st expiry).
+    //@siclog "Step 4" siclog@
+    t_Timer3480Min.start; // premature retransmission would be caught in the default
+    t_Timer3480Max.start; // timeout would be caught in the default
+    t_Timer3480Min.timeout; // after this timeout retransmission is acceptable
+
+    // Check: Does the UE re-transmit a BEARER RESOURCE ALLOCATION REQUEST message?
+    //@siclog "Step 5" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(?,
+                                                                                          tsc_EpsDefaultBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+    
+    // Wait for 8 s to ensure that T3480 expires (2nd expiry).
+    //@siclog "Step 6" siclog@
+    t_Timer3480Min.start; // premature retransmission would be caught in the default
+    t_Timer3480Max.start; // timeout would be caught in the default
+    t_Timer3480Min.timeout; // after this timeout retransmission is acceptable
+    
+    // Check: Does the UE re-transmit a BEARER RESOURCE ALLOCATION REQUEST message?
+    //@siclog "Step 7" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(v_EpsTi,
+                                                                                          tsc_EpsDefaultBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 7");
+    
+    // Wait for 8 s to ensure that T3480 expires (3rd expiry).
+    //@siclog "Step 8" siclog@
+    t_Timer3480Min.start; // premature retransmission would be caught in the default
+    t_Timer3480Max.start; // timeout would be caught in the default
+    t_Timer3480Min.timeout; // after this timeout retransmission is acceptable
+    
+    // Check: Does the UE re-transmit a BEARER RESOURCE ALLOCATION REQUEST message?
+    //@siclog "Step 9" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(v_EpsTi,
+                                                                                          tsc_EpsDefaultBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 9");
+    
+    // Wait for 8 s to ensure that T3480 expires (4th expiry).
+    //@siclog "Step 10" siclog@
+    t_Timer3480Min.start; // premature retransmission would be caught in the default
+    t_Timer3480Max.start; // timeout would be caught in the default
+    t_Timer3480Min.timeout; // after this timeout retransmission is acceptable
+    
+    // Check: Does the UE re-transmit a BEARER RESOURCE ALLOCATION REQUEST message?
+    //@siclog "Step 11" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(v_EpsTi,
+                                                                                          tsc_EpsDefaultBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 11");
+    
+    // Wait for 8 s to ensure that T3480 expires (5th expiry).
+    //@siclog "Step 12" siclog@
+    t_Timer3480Max.start;
+    
+    // Check: Does the UE re-transmit a BEARER RESOURCE ALLOCATION REQUEST message?
+    //@siclog "Step 13" siclog@
+    alt {
+      [] SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                             cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                                 cr_508_BearerResourceAllocReq(v_EpsTi,
+                                                                                               tsc_EpsDefaultBearerId))))
+        {
+          t_Timer3480Max.stop;
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 13");
+        }
+      [] t_Timer3480Max.timeout
+        {
+        }
+    }
+    
+  } // function fl_TC_10_7_4_Body
+
+  function f_TC_10_7_5_EUTRA() runs on EUTRA_PTC
+  { /* UE requested PDN connectivity not accepted */
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    
+    f_EUTRA_TestBody_Set(true);
+    fl_TC_10_7_5_Body();
+    f_EUTRA_TestBody_Set(false);
+    
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_7_5_EUTRA
+
+  function fl_TC_10_7_5_Body() runs on EUTRA_PTC
+  { // @sic R5s110293 sic@
+    var  ProcedureTransactionIdentifier v_EpsTi := tsc_PTI_Unassigned;
+    var EPS_BearerIdentity v_EpsDefaultBearerId2 := '6'H;
+    var EPS_BearerIdentity v_EpsDedicatedBearerId2 := '7'H;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var ProcedureTransactionIdentifier v_PTId_UE;
+    var ProtocolConfigOptions v_Pco;
+    var template (value) AccessPointName v_AccessPointName;
+    var PDN_Address v_PDN_Address2;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var PDN_CONNECTIVITY_REQUEST v_PDNConnReq;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var template (value) EUTRA_FDD_TDD_CellInfo_Type v_EUTRA_FDD_TDD_Info := f_EUTRA_CellInfo_GetFDD_TDD_Info (eutra_CellA); //Get FDD or TDD mode from Cell-configuration
+    var octetstring v_APN_Value := tsc_APN1; // APN-1(New PDN name), different from default
+    var BEARER_RESOURCE_ALLOCATION_REQUEST v_BEARER_RESOURCE_ALLOCATION_Req;
+    var template (value) ESM_Cause v_EsmCause43;
+    var template (value) NAS_DL_Message_Type v_BearerResourceAllocReject;
+    
+    // Cause the UE to request connectivity to an additional PDN.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestAdditionalPDNConnectivity(UT, hex2int(v_EpsDefaultBearerId2), tsc_APN1_string);
+    
+    // The UE transmits a SERVICE REQUEST
+    //@siclog "Step 2" siclog@
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas(eutra_CellA,
+                                               tsc_RRC_TI_Def,
+                                               cr_EstablishmentCause_MoData,
+                                               cr_NAS_Indication (tsc_SHT_IntegrityProtected,
+                                                                  cr_508_SERVICE_REQUEST(f_EUTRA_SecurityKSIasme_Get())));
+    // The SS establishes SRB2 and DRB associated with the default EPS bearer context activated during the preamble
+    // (a first PDN obtained during the attach procedure).
+    //@siclog "Step "2A" siclog@
+    v_NasCountUL := v_NasInd.SecurityProtection.NasCount;
+    v_SecurityParams := f_EUTRA_Authentication_InitAS(v_SecurityParams, v_NasCountUL);
+    v_SecurityParams := f_EUTRA_RRC_ActivateSecurity(eutra_CellA,
+                                                     v_SecurityParams,
+                                                     v_NasCountUL);
+    f_EUTRA_Security_Set(v_SecurityParams);
+    
+    SRB.send(cas_SRB1_RrcPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_RRCConnectionReconfiguration_Common(tsc_RRC_TI_Def,
+                                                                        omit,
+                                                                        omit,
+                                                                        cs_508_RadioResourceConfigDedicated_SRB2( {cs_508_DRB_ToAddMod_DEFAULT_AM (tsc_DRB1)},
+                                                                                                                  cs_508_MAC_MainConfig_Explicit_RBC_DrxL,
+                                                                                                                  cs_508_PhysicalConfigDedicated_Default_RBC(v_EUTRA_FDD_TDD_Info.cqi_ReportConfig,
+                                                                                                                                                             v_EUTRA_FDD_TDD_Info.soundingRS_UL_Config,
+                                                                                                                                                             f_EUTRA_CellInfo_GetAntennaInfoDedicated (eutra_CellA))),
+                                                                        omit)));
+    
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    // The UE transmits a PDN CONNECTIVITY REQUEST message as specified to request an additional PDN.
+    //@siclog "Step 3" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_PDNConnReqAdditionalPDN(cr_PDN_Type(f_GetPdnType()), cr_AccessPointName(v_APN_Value))))) -> value v_ReceivedAsp;
+    
+    v_NasInd := v_ReceivedAsp.Signalling.Nas[0];
+    v_PDNConnReq := v_NasInd.Pdu.Msg.pDN_CONNECTIVITY_REQUEST;
+    v_PTId_UE := v_PDNConnReq.procedureTransactionIdentifier;
+    v_AccessPointName := cs_AccessPointName(tsc_APN1);
+    v_Pco := v_PDNConnReq.protocolConfigurationOptions;
+    
+    // Change from DRB1 to DRB2 to handle U Plane data
+    f_EUTRA_StartIPfor2ndPDN(eutra_CellA);  // @sic R5s110449, R5-113734 change 8 sic@
+
+    // The SS transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message
+    //@siclog "Step 4" siclog@
+    // The SS transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST message
+    // with IE EPS Bearer Identity set to new EPS bearer context.
+    // Ask UE to get its additional IP adress via DHCP or ICMP
+    v_PDN_Address2 := f_EUTRA_GetPDNAddress (f_CheckPCOforIPallocationViaNas (v_Pco), true);  // @sic R5s110011 R5-120234 sic@
+    f_EUTRA_TxActivateDefaultEpsBearerCtxtReq_DrbReconfig (eutra_CellA,
+                                                           tsc_RRC_TI_Def,
+                                                           v_EpsDefaultBearerId2, // Default bearer ID to additional PDN
+                                                           v_PTId_UE,  // use value as defined by the UE
+                                                           v_AccessPointName,
+                                                           v_PDN_Address2,
+                                                           f_GetDefPCOforPCSCFAddress(v_Pco));
+    // The UE transmits an ACTIVATE DEFAULT EPS BEARER CONTEXT ACCEPT message.
+    //@siclog "Step 5" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActivateDefEpsBearerContextAccept(v_EpsDefaultBearerId2))));
+    // 1.2s delay acc. to 36.508 cl. 4.5A.1 to allow user-plane signalling
+    f_EUTRA_DelayForUserPlaneSignalling();
+
+    // Cause the UE to request bearer resource allocation of dedicated EPS bearer associated with additional PDN connectivity.
+    //@siclog "Step 6" siclog@
+    f_UT_RequestActivateDedicatedBearer (UT,
+                                         hex2int(v_EpsDedicatedBearerId2),
+                                         hex2int(v_EpsDefaultBearerId2),
+                                         cs_508_EPS_QoS_Dedicated_1,
+                                         f_EUTRA_Get_508_TrafficFlowTemplate(1, v_EpsDedicatedBearerId2));
+    
+    // The UE transmits a BEARER RESOURCE ALLOCATION REQUEST message.
+    //@siclog "Step 7" siclog@
+    SRB.receive ( car_SRB2_NasPdu_IND ( eutra_CellA,
+                                        cr_NAS_Indication ( tsc_SHT_IntegrityProtected_Ciphered,
+                                                            cr_508_BearerResourceAllocReq(?,
+                                                                                          v_EpsDefaultBearerId2)))) -> value v_ReceivedAsp;
+    // store PTI received
+    v_BEARER_RESOURCE_ALLOCATION_Req  := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_ALLOCATION_REQUEST;
+    v_EpsTi := v_BEARER_RESOURCE_ALLOCATION_Req.procedureTransactionIdentifier;
+    // The SS transmits a BEARER RESOURCE ALLOCATION REJECT message.
+    //@siclog "Step 8" siclog@
+    v_EsmCause43 := cs_ESM_Cause_v ('00101011'B); // Invalid EPS bearer identity
+    v_BearerResourceAllocReject := cs_508_BearerResourceAllocReject(v_EpsTi,
+                                                                    v_EsmCause43);
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_RadioResConfig(tsc_RRC_TI_Def,
+                                                                                   cs_RadioResourceConfig_DRB_RECONFIG),
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   v_BearerResourceAllocReject)));
+    
+    //Receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA, cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def))); // @sic R5s100295 sic@
+
+    // The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST message.
+    //@siclog "Step 9" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB3, // @sic R5s110432 sic@
+                                        v_EpsDedicatedBearerId2,
+                                        tsc_PTI_Unassigned,
+                                        cs_LinkedId(hex2bit(v_EpsDefaultBearerId2)),
+                                        cs_508_EPS_QoS_Dedicated_1,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(1, v_EpsDedicatedBearerId2));
+
+    // Check: Does the UE transmit an ACTIVATE DEDICATED EPS BEARER CONTEXT REJECT message?
+    //@siclog "Step 10" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_ActDedicatedEPSBearerCxtReject(v_EpsDedicatedBearerId2,
+                                                                                        tsc_PTI_Unassigned,
+                                                                                        v_EsmCause43))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+    
+  } // function fl_TC_10_7_5_Body
+
+  function f_TC_10_8_1_EUTRA() runs on EUTRA_PTC
+  { // UE requested bearer resource modification accepted by the network / new EPS bearer context
+    // @sic R5s100470 sic@
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_8_1_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_8_1_EUTRA
+
+  function fl_TC_10_8_1_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsPti := '01'O;
+    var template (omit) EPS_QualityOfService v_Qos;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    //  Cause the UE to request bearer resource modification of
+    //          dedicated EPS bearer associated with first PDN connectivity.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestModifyDedicatedBearer (UT,
+                                       hex2int(tsc_EpsDedicatedBearerId),
+                                       hex2int(tsc_EpsDefaultBearerId),
+                                       cs_508_EPS_QoS_Dedicated_1,
+                                       f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify (tsc_EpsDedicatedBearerId));
+    //  Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 2" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_BearerResourceModReq(?,
+                                                                                  tsc_EpsDedicatedBearerId,
+                                                                                  omit)))) -> value v_ReceivedAsp;
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    // Store procedure transaction id to be used in SS responses.
+    v_EpsPti := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_MODIFICATION_REQUEST.procedureTransactionIdentifier;
+    v_Qos := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_MODIFICATION_REQUEST.requiredTrafficFlowQoS;
+    if (isvalue(v_Qos))  // @sic R5s110054 sic@
+    { /* requiredTrafficFlowQoS is an optional IE therefore it has a IEI */
+      v_Qos.iei := omit;
+    }
+    else
+    { /* requiredTrafficFlowQoS is not present in bEARER_RESOURCE_MODIFICATION_REQUEST */
+      v_Qos := cs_508_EPS_QoS_Dedicated_1;
+    }
+
+    //  The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST message.
+    //@siclog "Step 3" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB3,
+                                        tsc_EpsDedicatedBearerId2,
+                                        v_EpsPti,
+                                        cs_LinkedId(hex2bit( tsc_EpsDefaultBearerId)),
+                                        valueof(v_Qos),
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(2, tsc_EpsDedicatedBearerId2));  // @sic R5s100538 sic@
+    
+    //  Check: Does the UE transmit an ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT message? (2,P)
+    //@siclog "Step 4" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ActDedicatedEPSBearerCxtAccept(tsc_EpsDedicatedBearerId2))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+  } // function fl_TC_10_8_1_Body
+
+  function f_TC_10_8_2_EUTRA() runs on EUTRA_PTC
+  { /* @desc UE requested bearer resource modification accepted by the network / Existing EPS bearer context */
+    /* @sic R5s100693 sic@ */
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_8_2_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_8_2_EUTRA
+
+  function fl_TC_10_8_2_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsPti := '01'O;
+    var template (value) NAS_DL_Message_Type v_ModifyEPSBearerCxtReq;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    //  Cause the UE to request bearer resource modification of
+    //  dedicated EPS bearer associated with first PDN connectivity.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestModifyDedicatedBearer (UT,
+                                       hex2int(tsc_EpsDedicatedBearerId),
+                                       hex2int(tsc_EpsDefaultBearerId),
+                                       cs_508_EPS_QoS_Dedicated_1,   // @sic R5-104168 sic@
+                                       f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify (tsc_EpsDedicatedBearerId));
+    //  Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 2" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_BearerResourceModReq(?,
+                                                                                  tsc_EpsDedicatedBearerId,
+                                                                                  omit)))) -> value v_ReceivedAsp;
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    // Store procedure transaction id to be used in SS responses.
+    v_EpsPti :=  v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_MODIFICATION_REQUEST.procedureTransactionIdentifier;
+    
+    //  The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message.
+    //@siclog "Step 3" siclog@
+    v_ModifyEPSBearerCxtReq := cs_508_ModifyEPSBearerCxtReq(tsc_EpsDedicatedBearerId,
+                                                            v_EpsPti,
+                                                            cds_508_EPS_QoS_Dedicated_1_tlv,
+                                                            f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify (tsc_EpsDedicatedBearerId));  // @sic R5s110002 sic@
+    //Send DLInformationTransfer as this only Modify EPS Bearer Request
+    SRB.send(cas_SRB_NasPdu_REQ(eutra_CellA,
+                                tsc_SRB2,
+                                cs_TimingInfo_Now,
+                                cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                               v_ModifyEPSBearerCxtReq)));
+    //  Check: Does the UE transmit a MODIFY EPS BEARER CONTEXT ACCEPT message?
+    //@siclog "Step 4" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtAccept(tsc_EpsDedicatedBearerId))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+  } // function fl_TC_10_8_2_Body
+
+  function f_TC_10_8_3_EUTRA() runs on EUTRA_PTC
+  { /* @desc UE requested bearer resource modification not accepted by the network */
+    /* @sic R5s100695 sic@ */
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);  // @sic R5s106627 sic@
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_8_3_Body();
+
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_8_3_EUTRA
+
+  function fl_TC_10_8_3_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsPti := '01'O;
+    var ProcedureTransactionIdentifier v_EpsPtiUnassigned := tsc_PTI_Unassigned;
+    var template (value) NAS_DL_Message_Type v_BearerResourceAllocRej;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var template (value) ESM_Cause v_EsmCause79;
+    var template (value) ESM_Cause v_EsmCause111;
+
+    //  Cause the UE to request bearer resource modification of dedicated EPS bearer associated with first PDN connectivity.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestModifyDedicatedBearer (UT,
+                                       hex2int(tsc_EpsDedicatedBearerId),
+                                       hex2int(tsc_EpsDefaultBearerId),
+                                       cs_508_EPS_QoS_Dedicated_1,
+                                       f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(tsc_EpsDedicatedBearerId));    //  Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //  Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 2" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_BearerResourceModReq(?,
+                                                                                  tsc_EpsDedicatedBearerId,
+                                                                                  omit)))) -> value v_ReceivedAsp;
+    // Store procedure transaction id to be used in SS responses.
+    v_EpsPti :=  v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.bEARER_RESOURCE_MODIFICATION_REQUEST.procedureTransactionIdentifier;
+
+    //  The SS transmits a BEARER RESOURCE MODIFICATION REJECT message.
+    //@siclog "Step 3" siclog@
+    v_EsmCause111 := cs_ESM_Cause_v ('01101111'B); // Protocol error unspecified
+    v_BearerResourceAllocRej := cs_508_BearerResourceModificationReject(v_EpsPti, v_EsmCause111);
+
+    //Send DLInformationTransfer as this only Modify EPS Bearer Request
+    SRB.send(cas_SRB_NasPdu_REQ(eutra_CellA,
+                                tsc_SRB2,
+                                cs_TimingInfo_Now,
+                                cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                               v_BearerResourceAllocRej)));
+    // Delay to ensure that messages in steps 3 and 4 are not transmitted together
+    // to avoid possible race condition
+    //@siclog "Step 3A" siclog@
+    f_Delay (0.5);  // @sic R5s110500 sic@
+    //  The SS transmits an ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST message.
+    //@siclog "Step 4" siclog@
+    f_EUTRA_TxDedicatedEpsBearerCtxtReq(eutra_CellA,
+                                        tsc_DRB3,
+                                        tsc_EpsDedicatedBearerId2,
+                                        v_EpsPti,
+                                        cs_LinkedId(hex2bit( tsc_EpsDefaultBearerId)),
+                                        cds_EPS_QoS_Dedi_nonGBR_QCI,
+                                        f_EUTRA_Get_508_TrafficFlowTemplate(2, tsc_EpsDedicatedBearerId2));
+    //  Check: Does the UE transmit an ACTIVATE DEDICATED EPS BEARER CONTEXT REJECT message?
+    //@siclog "Step 5" siclog@
+    v_EsmCause79 := cs_ESM_Cause_v ('00101111'B); // PTI mismatch
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_ActDedicatedEPSBearerCxtReject(tsc_EpsDedicatedBearerId2,
+                                                                                        v_EpsPtiUnassigned,
+                                                                                        v_EsmCause79))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+  } // function fl_TC_10_8_3_Body
+
+  function f_TC_10_8_4_EUTRA() runs on EUTRA_PTC
+  { /* UE requested bearer resource modification / Cause #36 "regular deactivation" */
+    /* @sic R5s110375 sic@ */
+    
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_8_4_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_8_4_EUTRA
+
+  function fl_TC_10_8_4_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsPti := '01'O;
+    var ProcedureTransactionIdentifier v_EpsPtiUnassigned := tsc_PTI_Unassigned;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    
+    var EPS_BearerIdentity v_EpsBearerId := tsc_EpsDedicatedBearerId; // bearer for additional PDN
+    
+    var template (value) ESM_Cause v_EsmCause36 := cs_ESM_Cause_v ('00100100'B);   // Regular deactivation, #36
+    var template (present) ESM_Cause v_EsmCause43 := cr_ESM_Cause_v ('00101011'B); // Invalid EPS bearer identity, #43
+    var template TrafficFlowTemplate v_Tft;
+
+    var SRB_COMMON_IND v_ReceivedAsp;
+    
+    // Cause the UE to request bearer resource release of dedicated EPS bearer associated with first PDN connectivity.
+    //@siclog "Step 1" siclog@
+    f_UT_DeactivateBearer (UT, hex2int(v_EpsBearerId));
+    
+    //  Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 2" siclog@
+    v_Tft := cr_Tft('101'B);  // Delete packet filters from existing TFT
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cdr_BearerResourceModReq(?,
+                                                                               v_EpsBearerId,
+                                                                               cr_ESM_Cause_tv ('00100100'B),
+                                                                               v_Tft)))) -> value v_ReceivedAsp; // BEARER RESOURCE MODIFICATION REQUEST message with cause "regular deactivation", #36
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    
+    // Store PTI for SS responses
+    v_PdnConnectivityRequest := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg;
+    v_EpsPti := v_PdnConnectivityRequest.bEARER_RESOURCE_MODIFICATION_REQUEST.procedureTransactionIdentifier;
+    
+    //  The SS transmits a DEACTIVATE EPS BEARER CONTEXT REQUEST
+    //@siclog "Step 3" siclog@
+    SRB.send(cas_SRB1_RrcNasPdu_REQ(eutra_CellA,
+                                    cs_TimingInfo_Now,
+                                    cs_RRCConnectionReconfiguration_DRB_Release (tsc_RRC_TI_Def, tsc_DRB2),
+                                    cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                   cs_508_DeactivateEPSBearerCxtReq(v_EpsBearerId,
+                                                                                    v_EpsPti,
+                                                                                    v_EsmCause36))));
+    // receive RRCConnectionReconfigurationComplete
+    SRB.receive(car_SRB1_RrcPdu_IND(eutra_CellA,
+                                    cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+    
+    
+    // Check: Does the UE transmit a DEACTIVATE EPS BEARER CONTEXT ACCEPT message? (2,P)
+    //@siclog "Step 4" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_DeactivateEPSBearerCxtAccept(v_EpsBearerId,
+                                                                                      v_EpsPtiUnassigned))));
+    
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message
+    //@siclog "Step 5" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsBearerId,
+                                                                             v_EpsPtiUnassigned,
+                                                                             cds_EPS_QoS_Dedi_nonGBR_QCI_tlv,  // @sic R5-115537 sic@
+                                                                             f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(v_EpsBearerId) //ask to replace packet filters in existing TFT
+                                                                             ))));
+    
+    // Check: Does the UE transmit a MODIFY EPS BEARER CONTEXT REJECT message? (2,P)
+    //@siclog "Step 6" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsBearerId,
+                                                                                       v_EsmCause43))));
+    
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+    
+  } // function fl_TC_10_8_4_Body
+
+  function f_TC_10_8_5_EUTRA() runs on EUTRA_PTC
+  { /* UE requested bearer resource modification / BEARER RESOURCE MODIFICATION REJECT
+       message including cause #43 "invalid EPS bearer identity" */
+    /* @sic R5s110293 sic@ */
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 1, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_8_5_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_8_5_EUTRA
+
+  function fl_TC_10_8_5_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsPti := '01'O;
+    var ProcedureTransactionIdentifier v_EpsPtiUnassigned := tsc_PTI_Unassigned;
+
+    var EPS_BearerIdentity v_EpsDefaultBearerId := tsc_EpsDefaultBearerId; // EPS bearer identity (24.301 cl. 9.3.2)
+    var EPS_BearerIdentity v_EpsBearerId := tsc_EpsDedicatedBearerId; // bearer on additional PDN
+    var template (value) NAS_DL_Message_Type v_BearerResourceAllocRej;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+
+    var template (value) ESM_Cause v_EsmCause43 := cs_ESM_Cause_v ('00101011'B); // Invalid EPS bearer identity
+
+    var SRB_COMMON_IND v_ReceivedAsp;
+    
+    //  Cause the UE to request bearer resource modification of dedicated EPS bearer associated with first PDN connectivity.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestModifyDedicatedBearer (UT,
+                                       hex2int(v_EpsBearerId),
+                                       hex2int(v_EpsDefaultBearerId),
+                                       cs_508_EPS_QoS_Dedicated_1, // @sic R5s120479 sic@
+                                       f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify (v_EpsBearerId));
+    
+    //  The UE transmits a BEARER RESOURCE MODIFICATION REQUEST message
+    //@siclog "Step 2" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_BearerResourceModReq(?,
+                                                                                  v_EpsBearerId,
+                                                                                  omit)))) -> value v_ReceivedAsp;
+    // Store PTI for SS responses
+    v_PdnConnectivityRequest := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg;
+    v_EpsPti := v_PdnConnectivityRequest.bEARER_RESOURCE_MODIFICATION_REQUEST.procedureTransactionIdentifier;
+    
+    // The SS transmits a BEARER RESOURCE MODIFICATION REJECT message.
+    //@siclog "Step 3" siclog@
+    v_BearerResourceAllocRej := cs_508_BearerResourceModificationReject(v_EpsPti, v_EsmCause43);
+    
+    //Send DLInformationTransfer
+    SRB.send(cas_SRB_NasPdu_REQ(eutra_CellA,
+                                tsc_SRB2,
+                                cs_TimingInfo_Now,
+                                cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                               v_BearerResourceAllocRej)));
+    
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message
+    //@siclog "Step 4" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,   //  @sic R5-115638 sic@ @sic R5s110778 sic@
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsBearerId,
+                                                                             v_EpsPtiUnassigned,
+                                                                             cds_EPS_QoS_Dedi_nonGBR_QCI,  // @sic R5s100360 sic@
+                                                                             f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(v_EpsBearerId) //ask to replace packet filters in existing TFT
+                                                                             ))));
+
+    // Check: Does the UE transmit a MODIFY EPS BEARER CONTEXT REJECT message? (1,P)
+    //@siclog "Step 5" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsBearerId,
+                                                                                       v_EsmCause43))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 5");
+
+  } // function fl_TC_10_8_5_Body
+
+  function f_TC_10_8_6_EUTRA() runs on EUTRA_PTC
+  {
+    /* UE requested bearer resource modification / Collision of a UE requested bearer resource
+       modification procedure and EPS bearer context deactivation procedure */
+    /* @sic R5s110311 sic@ */
+
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_8_6_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_8_6_EUTRA
+
+  function fl_TC_10_8_6_Body() runs on EUTRA_PTC
+  {
+    var ProcedureTransactionIdentifier v_EpsPti := '01'O;
+    var ProcedureTransactionIdentifier v_EpsPtiUnassigned := tsc_PTI_Unassigned;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    
+    var EPS_BearerIdentity v_EpsDefaultBearerId := tsc_EpsDefaultBearerId; // EPS bearer identity (24.301 cl. 9.3.2)
+    var EPS_BearerIdentity v_EpsBearerId := tsc_EpsDedicatedBearerId; // bearer on additional PDN
+    
+    var template (value) ESM_Cause v_EsmCause36 := cs_ESM_Cause_v ('00100100'B); // Regular deactivation
+    var template (value) ESM_Cause v_EsmCause47 := cs_ESM_Cause_v ('00101111'B); // PTI mismatch
+    
+    var SRB_COMMON_IND v_ReceivedAsp;
+    
+    //  Cause the UE to request bearer resource modification of
+    //          dedicated EPS bearer associated with first PDN connectivity.
+    //@siclog "Step 1" siclog@
+    f_UT_RequestModifyDedicatedBearer (UT,
+                                       hex2int(v_EpsBearerId),
+                                       hex2int(v_EpsDefaultBearerId),
+                                       cs_508_EPS_QoS_Dedicated_1, // @sic R5s120479 sic@
+                                       f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify (v_EpsBearerId));
+    
+    //  The UE transmits a BEARER RESOURCE MODIFICATION REQUEST message
+    //@siclog "Step 2" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_BearerResourceModReq(?,
+                                                                                  v_EpsBearerId,
+                                                                                  omit)))) -> value v_ReceivedAsp;
+    
+    // Store PTI for SS responses
+    v_PdnConnectivityRequest := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg;
+    v_EpsPti := v_PdnConnectivityRequest.bEARER_RESOURCE_MODIFICATION_REQUEST.procedureTransactionIdentifier;
+    
+    //  The SS transmits a DEACTIVATE EPS BEARER CONTEXT REQUEST
+    //@siclog "Step 3" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_DeactivateEPSBearerCxtReq(v_EpsBearerId,
+                                                                                 tsc_PTI_Unassigned,
+                                                                                 v_EsmCause36))));
+    
+    // Check: Does the UE transmit a DEACTIVATE EPS BEARER CONTEXT ACCEPT message? (1,P)
+    //@siclog "Step 4" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_DeactivateEPSBearerCxtAccept(v_EpsBearerId,
+                                                                                      v_EpsPtiUnassigned))));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message
+    //@siclog "Step 5" siclog@
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,   //  @sic R5-115638 sic@ @sic R5s110778 sic@
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(v_EpsBearerId,
+                                                                             v_EpsPti,
+                                                                             cds_EPS_QoS_Dedi_nonGBR_QCI,  // @sic R5s100360 sic@
+                                                                             f_EUTRA_Get_508_TrafficFlowTemplate_2_Modify(v_EpsBearerId) //ask to replace packet filters in existing TFT
+                                                                             ))));
+    
+    // Check: Does the UE transmit a MODIFY EPS BEARER CONTEXT REJECT message? (1,P)
+    //@siclog "Step 6" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtReject (v_EpsBearerId,
+                                                                                       v_EsmCause47))));
+
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+  } // function fl_TC_10_8_6_Body
+
+  function f_TC_10_8_7_EUTRA() runs on EUTRA_PTC
+  { /* UE requested bearer resource modification / Expiry of timer T3481 */
+    /* @sic R5s110373 sic@ */
+  
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);
+    
+    f_EUTRA_Preamble(eutra_CellA, STATE2_IDLEUPDATE);
+    f_EUTRA_RbEst_508_AM(eutra_CellA);
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    fl_TC_10_8_7_Body();
+    
+    // Postamble
+    f_EUTRA_TestBody_Set(false);
+    f_EUTRA_Postamble(eutra_CellA, E2_T3440); // @sic R5s120080 sic@ */
+  } // function f_TC_10_8_7_EUTRA
+
+  function fl_TC_10_8_7_Body() runs on EUTRA_PTC
+  {
+    var EPS_BearerIdentity v_EpsBearerId := tsc_EpsDedicatedBearerId; // bearer for additional PDN
+    var template (present) NAS_UL_Message_Type v_BearerResourceModRequest;
+    var template TrafficFlowTemplate v_Tft;
+    var SubFrameTiming_Type v_Timing;
+    var float v_TimerT310plusT311Max := f_EUTRA_SetTimerToleranceMax (eutra_CellA, rrcTimer, 11.0);
+    
+    timer t_Timer3481Max := f_EUTRA_SetTimerToleranceMax (eutra_CellA, nasTimer, 8.0); //T3481 (24.301 table 10.3.1)
+    timer t_Timer3481Min := f_EUTRA_SetTimerToleranceMin (eutra_CellA, nasTimer, 8.0);
+
+    v_Tft := cr_Tft('101'B);  // Delete packet filters from existing TFT
+    v_BearerResourceModRequest := cdr_BearerResourceModReq(?,
+                                                           v_EpsBearerId,
+                                                           cr_ESM_Cause_tv ('00100100'B),
+                                                           v_Tft);
+    
+    
+    // Cause the UE to request bearer resource release of dedicated EPS bearer associated with first PDN connectivity.
+    //@siclog "Step 1" siclog@
+    f_UT_DeactivateBearer (UT, hex2int(v_EpsBearerId));
+    
+    //  The UE transmits a BEARER RESOURCE MODIFICATION REQUEST message.
+    //@siclog "Step 2" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      v_BearerResourceModRequest)));
+
+    // Wait for 8 s to ensure that T3481 expires (1st expiry).
+    //@siclog "Step 3" siclog@
+    t_Timer3481Min.start; // premature retransmission timeout be caught in the default
+    t_Timer3481Max.start; // timeout would be caught in the default
+    t_Timer3481Min.timeout; // after this timeout retransmission is acceptable
+
+    // Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 4" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      v_BearerResourceModRequest)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 4");
+    
+    // Wait for 8 s to ensure that T3481 expires (2nd expiry).
+    //@siclog "Step 5" siclog@
+    t_Timer3481Min.start; // premature retransmission timeout be caught in the default
+    t_Timer3481Max.start; // timeout would be caught in the default
+    t_Timer3481Min.timeout; // after this timeout retransmission is acceptable
+    
+    // Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 6" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      v_BearerResourceModRequest)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+
+    // Wait for 8 s to ensure that T3481 expires (3rd expiry).
+    //@siclog "Step 7" siclog@
+    t_Timer3481Min.start; // premature retransmission timeout be caught in the default
+    t_Timer3481Max.start; // timeout would be caught in the default
+    t_Timer3481Min.timeout; // after this timeout retransmission is acceptable
+
+    // Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 8" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      v_BearerResourceModRequest)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+
+    // Wait for 8 s to ensure that T3481 expires (4th expiry).
+    //@siclog "Step 9" siclog@
+    t_Timer3481Min.start; // premature retransmission timeout be caught in the default
+    t_Timer3481Max.start; // timeout would be caught in the default
+    t_Timer3481Min.timeout; // after this timeout retransmission is acceptable
+
+    //  Check: Does the UE transmit a BEARER RESOURCE MODIFICATION REQUEST message? (1,P)
+    //@siclog "Step 10" siclog@
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      v_BearerResourceModRequest)));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 10");
+    t_Timer3481Max.stop;
+
+    // local release
+    v_Timing := f_EUTRA_GetNextSendOccasion(eutra_CellA); // @sic R5s110516 change 4 sic@
+    f_EUTRA_RRC_ConnectionRelease_Local (eutra_CellA, v_Timing);
+                                         
+    //@siclog "Step 11" siclog@
+    // Set the cell type of Cell A to the "Non-suitable 'Off' cell".
+    f_EUTRA_SetCellPower(eutra_CellA, tsc_NonSuitableOffCellRS_EPRE);
+    
+    //@siclog "Step 12" siclog@
+    // Wait for T310 plus T311 to expire
+    // This is > 8 s to ensure that T3481 expires (5th expiry)
+    f_Delay(v_TimerT310plusT311Max);
+
+    //@siclog "Step 13" siclog@
+    // Set the cell type of Cell A to the "Suitable cell"
+    f_EUTRA_SetCellPower(eutra_CellA, tsc_SuitableCellRS_EPRE);
+
+    //@siclog "Step 14 - 16" siclog@
+    // Tracking area update procedure without RRC Connection Release
+    f_EUTRA_TrackingAreaUpdate_WithoutRelease(eutra_CellA,  tsc_RRC_TI_Def);
+ 
+  } // function fl_TC_10_8_7_Body
+
+  function f_TC_10_9_1_EUTRA() runs on EUTRA_PTC
+  { /* @sic R5-113713 sic@ */
+    f_EUTRA_NAS_Init(LTE_AllCellsOnSamePLMN, c1);
+    
+    // Create cell and send out system information
+    f_EUTRA_CellConfig_DRB_Common(eutra_CellA, 2, 0);
+    
+    f_EUTRA_SetCellPower (eutra_CellA, tsc_ServingCellRS_EPRE );
+    
+    // Switch on UE
+    f_EUTRA_SwitchOnUEandStartIP(eutra_CellA); // @sic R5s120065 sic@
+    
+    f_EUTRA_TestBody_Set(true);
+    fl_TC_10_9_1_TestBody();
+    f_EUTRA_TestBody_Set(false);
+    
+    f_EUTRA_Postamble(eutra_CellA, E2_CONNECTED);
+  } // function f_TC_10_9_1_EUTRA
+
+  function fl_TC_10_9_1_TestBody() runs on EUTRA_PTC
+  {
+    var boolean v_IpTypeIsIPv4;
+    var template (value) RadioBearerList_Type v_DrbConfigList := {cs_OneDRB_ConfigAM(tsc_DRB1), cs_OneDRB_ConfigAM(tsc_DRB2), cs_OneDRB_ConfigAM(tsc_DRB3)};
+
+    if (pc_IPv4) {
+      v_IpTypeIsIPv4 := true;
+      fl_TC_10_9_1_TestProcedure(v_IpTypeIsIPv4);    // Steps 0-8 for IPv4
+      if (pc_IPv6) {
+        // Steps 9-16 are executed if execution for IPv6 follows
+        fl_TC_10_3_1_and_10_9_1_Prepare2ndRun (eutra_CellA, v_DrbConfigList); // @sic R5s110634 MCC160 implementation of change 1.6 sic@
+      }
+    }
+    if (pc_IPv6) {
+      v_IpTypeIsIPv4 := false;
+      fl_TC_10_9_1_TestProcedure(v_IpTypeIsIPv4);    // Steps 0-8 for IPv6
+    }
+  } // function fl_TC_10_9_1_TestBody
+
+  function fl_TC_10_9_1_TestProcedure(boolean p_IpTypeIsIPv4) runs on EUTRA_PTC
+  {
+    var template (value) EPS_QoSList_Type v_Qos_List := {cs_508_EPS_QoS_Dedicated_1, cs_508_EPS_QoS_Dedicated_1};
+    var template (value) Tft_List_Type v_Tft_List := {fl_Get_TFT_10_9_1(p_IpTypeIsIPv4, tsc_EpsDedicatedBearerId),
+                                                      fl_Get_TFT_10_9_1(p_IpTypeIsIPv4, tsc_EpsDedicatedBearerId2)};
+    var PDN_TypeToBeUsed_Type v_PDN_TypeToBeUsed;
+
+    if (p_IpTypeIsIPv4) { v_PDN_TypeToBeUsed := forceIPv4only; }   // @sic R5-120542 sic@
+    else                { v_PDN_TypeToBeUsed := forceIPv6only; }   // @sic R5-120542 sic@
+
+    //@siclog "Step 0" siclog@
+    // The SS performs the generic procedure to get UE in Loopback Activated (state 4) on Cell A establishing a default EPS bearer
+    // in accordance to Reference default EPS bearer context #1 (DRB1) as specified in subclause 6.6.1 in [18]
+    // and two dedicated EPS bearers (DRB2 and DRB3) with EPS bearer context as specified in ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST message
+    // for DRB2 and DRB3 in subclause 10.9.1.3.3.
+
+    // Now continue with the procedure
+    f_EUTRA_IdleUpdated(eutra_CellA, PREAMBLE, STATE2A_TESTLOOP_ModeB, NORMAL, -, v_PDN_TypeToBeUsed);
+
+    // UE is in Loopback Activated(state 4) according to TS 36.508 on Cell A.
+    f_EUTRA_GenericRbEst(eutra_CellA, 2, 0, v_Qos_List, v_Tft_List); // TFTs are either IPv4 or IPv6
+    f_EUTRA_CloseUE_TestLoopModeB ( eutra_CellA, '00'O );
+    
+    // steps 1-8
+    fl_TC_10_9_1_ProcedureSteps1to8(p_IpTypeIsIPv4);
+    
+  } // fl_TC_10_9_1_TestProcedure
+
+  function fl_TC_10_9_1_ProcedureSteps1to8(boolean p_IpTypeIsIPv4) runs on EUTRA_PTC
+  {
+    var template (value) octetstring v_IpPacket;
+    var ProcedureTransactionIdentifier v_EpsTi := tsc_PTI_Unassigned;
+    var template (value) TrafficFlowTemplate v_TFT;
+    var integer N;
+    var integer v_Nmax;
+    var RadioBearerId_Type v_ExpectedDRB;
+
+    timer t_WatchDog := 5.0;
+
+    if (p_IpTypeIsIPv4) { v_Nmax := 13; } // IPv4
+    else                { v_Nmax := 17; } // IPv6
+
+    // EXCEPTION: Test steps 1 to 2 are repeated for N = 1 to Nmax
+    // using the IPv4 resp. IPv6 packet filters components in Table 10.9.1.3.2-1.
+    for (N := 1; N <= v_Nmax; N := N + 1) {
+
+      v_IpPacket := fl_Get_IP_Packet_10_9_1(p_IpTypeIsIPv4, N);
+
+      select (N) {                                  /* expected DRB acc. to table 10.9.1.3.2-2 */
+        case (4, 9, 14) { v_ExpectedDRB := tsc_RbId_DRB3; }
+        case (1, 6)     { v_ExpectedDRB := tsc_RbId_DRB2; }
+        case else       { v_ExpectedDRB := tsc_RbId_DRB1; }
+      }
+
+      //@siclog "Step 1" siclog@
+      // The SS transmits one IP Packet according to Table 10.9.1.3.2-2 for Sub-test index=N on DRB1
+      DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU(eutra_CellA, tsc_RbId_DRB1, cs_TimingInfo_Now, {v_IpPacket} ));
+
+      //@siclog "Step 2" siclog@
+      // Check: Does UE send the IP Packet on the data radio bearer as specified by Table 10.9.1.3.2-2 for Sub-test index=N?
+      DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList(eutra_CellA, v_ExpectedDRB, ?, {v_IpPacket} ));
+      f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 2");
+    }
+      
+    //@siclog "Step 3" siclog@
+    // The SS transmits a MODIFY EPS BEARER CONTEXT REQUEST message to add TFT to the default EPS bearer.
+    // This message is included in a DLInformationTransfer message.
+    v_TFT := fl_Get_TFT_10_9_1(p_IpTypeIsIPv4, tsc_EpsDefaultBearerId);
+    v_TFT.iei := '36'O;
+    SRB.send(cas_SRB2_NasPdu_REQ(eutra_CellA,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_ModifyEPSBearerCxtReq(tsc_EpsDefaultBearerId,
+                                                                             v_EpsTi,
+                                                                             cds_508_EPS_QoS_Default_1_tlv,
+                                                                             v_TFT))));
+
+    //@siclog "Step 4" siclog@
+    // UE transmits a MODIFY EPS BEARER CONTEXT ACCEPT message
+    SRB.receive(car_SRB2_NasPdu_IND(eutra_CellA,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_ModifyEPSBearerCxtAccept(tsc_EpsDefaultBearerId))));
+
+    //@siclog "Step 5" siclog@
+    // The SS transmits one IP Packet according to Table 10.9.1.3.2-2 for Sub-test index=18 on DRB1
+    v_IpPacket := fl_Get_IP_Packet_10_9_1(p_IpTypeIsIPv4, 18);
+    DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU(eutra_CellA, tsc_RbId_DRB1, cs_TimingInfo_Now, {v_IpPacket} ));
+
+    //@siclog "Step 6" siclog@
+    // Check: Does UE send the IP Packet on the data radio bearer as specified by Table 10.9.1.3.2-2 for Sub-test index=18?
+    DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList(eutra_CellA, tsc_RbId_DRB1, ?, {v_IpPacket} ));
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 6");
+
+    //@siclog "Step 7" siclog@
+    // The SS transmits one IP Packet according to Table 10.9.1.3.2-2 for Sub-test index=19 on DRB1
+    v_IpPacket := fl_Get_IP_Packet_10_9_1(p_IpTypeIsIPv4, 19);
+    DRB.send (cas_DRB_COMMON_REQ_PDCP_SDU(eutra_CellA, tsc_RbId_DRB1, cs_TimingInfo_Now, {v_IpPacket} ));
+
+    //@siclog "Step 8" siclog@
+    // Check: Does UE send an IP Packet on any of the dedicated or default data radio bearers?
+    t_WatchDog.start;
+    alt {
+      [] DRB.receive (car_DRB_COMMON_IND_PDCP_SDUList(eutra_CellA, ?, ?, {v_IpPacket} ))
+        {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Step 8");
+          t_WatchDog.stop;
+        }
+      [] t_WatchDog.timeout
+        {
+          f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "Step 8");
+        }
+    } // alt
+  } // function fl_TC_10_9_1_ProcedureSteps1to8
+
+  } // end of group TestcaseImplementations
+
+}

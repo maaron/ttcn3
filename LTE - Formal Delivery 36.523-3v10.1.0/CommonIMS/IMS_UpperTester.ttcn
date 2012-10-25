@@ -1,0 +1,190 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-18 10:50:08 +0200 (Mon, 18 Jun 2012) $
+// $Rev: 6929 $
+/******************************************************************************/
+
+module IMS_UpperTester {
+
+  import from UpperTesterCommon all;
+
+  type enumerated Ut_IMS_Command_Type {
+    REGISTER,
+    DEREGISTER,
+    INITIATE_CALL,
+    INITIATE_EMERGENCY_CALL,
+    ACTIVATE_TERMINATING_IDENTIFICATION_RESTRICTION,
+    DEACTIVATE_TERMINATING_IDENTIFICATION_RESTRICTION,
+    ACTIVATE_MESSAGE_WAIT_INDICATION,
+    CALL_HOLD,
+    CALL_RESUME,
+    TRIGGER_SMS,
+    TRIGGER_2ND_IMPU,
+    TRIGGER_3RD_IMPU,
+    SWITCH_OFF,
+    SWITCH_ON
+  };
+
+  type record UT_IMS_CMD {
+    Ut_IMS_Command_Type         Cmd,
+    Ut_CnfReq_Type              CnfReq,
+    Ut_ParameterList_Type       ParameterList optional  // to be used to include any additional information required
+  };
+
+
+  //----------------------------------------------------------------------------
+  // Ports:
+  type port UT_IMS_MTC_PORT message {   /* port at the IMS PTC to communicated with the upper tester (MTC)
+                                           @status    APPROVED */
+    out UT_IMS_CMD;
+    in  UT_COMMON_CNF;
+  };
+
+  type port UT_MTC_IMS_PORT message {   /* port at the upper tester (MTC) to communicated with the IMS PTC
+                                           @status     */
+    out UT_COMMON_CNF;
+    in  UT_IMS_CMD;
+  };
+
+
+  //============================================================================
+  // templates
+  //----------------------------------------------------------------------------
+
+  template (value) Ut_Parameter_Type cs_Ut_Parameter_Uri(charstring p_Value)          := cs_Ut_Parameter_Common("Uri", p_Value);
+  template (value) Ut_Parameter_Type cs_Ut_Parameter_PublicUserId(charstring p_Value) := cs_Ut_Parameter_Common("PublicUserId", p_Value);
+  template (value) Ut_Parameter_Type cs_Ut_Parameter_IPv4v6(charstring p_Value)       := cs_Ut_Parameter_Common("IPv4v6", p_Value);
+
+
+  template (value) UT_IMS_CMD cas_UT_Req (template (value) Ut_IMS_Command_Type p_Cmd,
+                                          template (value) Ut_CnfReq_Type p_Cnf := NO_CNF_REQUIRED,
+                                          template (omit)  Ut_ParameterList_Type p_Parameters := omit) :=
+  {
+    Cmd := p_Cmd,
+    CnfReq := p_Cnf,
+    ParameterList := p_Parameters
+  };
+
+  template (value) UT_COMMON_CNF cas_UT_Cnf :=
+  { // !!!! not needed if the SS already sends a valid confirmation !!!!
+    Result          := true,
+    ResultString    := omit
+  };
+
+  template UT_IMS_CMD car_UT_Req :=
+  {
+    Cmd := ?,
+    CnfReq := ?,
+    ParameterList := *
+  };
+
+  //============================================================================
+  // local functions
+  //----------------------------------------------------------------------------
+  /*
+   * @desc      local function to send command and get confirmation
+   * @param     p_Port
+   * @param     p_Cmd
+   * @status
+   */
+  function fl_UT_IMS_ApplyCommand(UT_IMS_MTC_PORT p_Port,
+                                  template (value) UT_IMS_CMD p_Cmd)
+  {
+    p_Port.send(p_Cmd);
+    if (match(CNF_REQUIRED, p_Cmd.CnfReq) or match(LOCAL_CNF_REQUIRED, p_Cmd.CnfReq)) {
+      p_Port.receive(car_UT_CnfAny);
+    }
+  }
+
+  function f_UT_IMS_Register(UT_IMS_MTC_PORT p_Port,
+                             boolean p_IsIPv6)
+  {
+    var charstring v_IPv4v6;
+    var template (value) Ut_ParameterList_Type v_ParameterList;
+    
+    if (p_IsIPv6) {v_IPv4v6 := "IPv6";}
+    else          {v_IPv4v6 := "IPv4";}
+    v_ParameterList := {cs_Ut_Parameter_IPv4v6(v_IPv4v6)};
+
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(REGISTER, -, v_ParameterList));
+  }
+
+  function f_UT_IMS_Deregister(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(DEREGISTER));
+  }
+
+  function f_UT_IMS_InitiateCall(UT_IMS_MTC_PORT p_Port,
+                                 charstring p_CalleeContactUri)
+  {
+    var template (value) Ut_ParameterList_Type v_ParameterList := {cs_Ut_Parameter_Uri(p_CalleeContactUri)};
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(INITIATE_CALL, -, v_ParameterList));
+  }
+
+  function f_UT_IMS_InitiateEmergencyCall(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(INITIATE_EMERGENCY_CALL));
+  }
+
+  function f_UT_IMS_ActivateMWI(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(ACTIVATE_MESSAGE_WAIT_INDICATION));
+  }
+  function f_UT_IMS_CallHold(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(CALL_HOLD));
+  }
+  function f_UT_IMS_CallResume(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(CALL_RESUME));
+  }
+
+
+  function f_UT_IMS_ActivateTerminatingIdentificationRestriction(UT_IMS_MTC_PORT p_Port,
+                                                                 charstring p_PublicUserIdentity)
+  {
+    var template (value) Ut_ParameterList_Type v_ParameterList := {cs_Ut_Parameter_PublicUserId(p_PublicUserIdentity)};
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(ACTIVATE_TERMINATING_IDENTIFICATION_RESTRICTION, -, v_ParameterList));
+  }
+
+  function f_UT_IMS_DectivateTerminatingIdentificationRestriction(UT_IMS_MTC_PORT p_Port,
+                                                                  charstring p_PublicUserIdentity)
+  {
+    var template (value) Ut_ParameterList_Type v_ParameterList := {cs_Ut_Parameter_PublicUserId(p_PublicUserIdentity)};
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(DEACTIVATE_TERMINATING_IDENTIFICATION_RESTRICTION, -, v_ParameterList));
+  }
+
+  function f_UT_IMS_TriggerSMS(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(TRIGGER_SMS));
+  }
+
+
+  function f_UT_IMS_Trigger2ndIMPU(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(TRIGGER_2ND_IMPU));
+  }
+
+
+  function f_UT_IMS_Trigger3rdIMPU(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(TRIGGER_3RD_IMPU));
+  }
+
+
+  function f_UT_IMS_SwitchOff(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(SWITCH_OFF, CNF_REQUIRED));
+  }
+
+
+  function f_UT_IMS_SwitchOn(UT_IMS_MTC_PORT p_Port)
+  {
+    fl_UT_IMS_ApplyCommand(p_Port, cas_UT_Req(SWITCH_ON));
+  }
+}

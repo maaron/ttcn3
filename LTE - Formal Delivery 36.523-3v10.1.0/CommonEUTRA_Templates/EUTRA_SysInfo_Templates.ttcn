@@ -1,0 +1,832 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module EUTRA_SysInfo_Templates {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_CommonDefs all;
+
+  template (value) PUSCH_ConfigCommon cs_508_PUSCH_ConfigCommon_Default(integer p_PuschHoppingOffset,
+                                                                        PUSCH_N_SB_Type  p_N_SB := 1,
+                                                                        PUSCH_HoppingMode_Type  p_HoppingMode := interSubFrame) :=
+  { /* 36.508 Table 4.6.3-10: PUSCH-ConfigCommon-DEFAULT as signalled in RadioResourceConfiguration and SIB2 */
+    /* @status    APPROVED */
+    /* @sic R5s110236 Additional change sic@ */
+    pusch_ConfigBasic := {
+      n_SB                := p_N_SB,                       /* INTEGER (1..4) */
+      hoppingMode         := p_HoppingMode,                /* interSubFrame, intraSubFrame */
+      pusch_HoppingOffset := p_PuschHoppingOffset,
+      enable64QAM         := false
+    },
+    ul_ReferenceSignalsPUSCH  := cs_UL_ReferenceSignalsPUSCH
+  };
+
+  template (value) DeltaFList_PUCCH cs_DeltaTFList_PUCCH :=
+  { /* @status    APPROVED */
+    deltaF_PUCCH_Format1    := deltaF0,  // deltaF-2, deltaF0, deltaF2, spare1
+    deltaF_PUCCH_Format1b   := deltaF3,  // deltaF1, deltaF3, deltaF5, spare1
+    deltaF_PUCCH_Format2    := deltaF0,  // deltaF-2, deltaF0, deltaF1, deltaF2
+    deltaF_PUCCH_Format2a   := deltaF0,  // deltaF-2, deltaF0, deltaF2, spare1
+    deltaF_PUCCH_Format2b   := deltaF0   // deltaF-2, deltaF0, deltaF2, spare1
+  };
+
+  template (value) PCCH_Config cs_508_PCCH_Config_Default :=
+  { /* 36.508 Table 4.6.3-3: PCCH-Config-DEFAULT
+       @status    APPROVED */
+    defaultPagingCycle := rf128,   /* rf32, rf64, rf128, rf256 */
+    nB                 := oneT
+  };
+
+  template (value) BCCH_DL_SCH_Message cs_SystemInformation_Common(template (value) SystemInformation_r8_IEs p_SystemInformation) :=
+  { /* @status    APPROVED */
+    message_ := {
+      c1 := {
+        systemInformation := {
+          criticalExtensions := {
+            systemInformation_r8 := p_SystemInformation
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SchedulingInfoList cs_SchedulingInfo_2SI(SiPeriodicity_Type   p_Sib3_Periodicity ) :=
+  { /* @status    APPROVED */
+    {
+      si_Periodicity := rf16,
+      sib_MappingInfo := {}    // only sibType2 present (see field description for SystemInformationBlockType1 in 36.331 cl. 6.2.2)
+    },
+    {
+      si_Periodicity := p_Sib3_Periodicity,
+      sib_MappingInfo := {sibType3}
+    }
+  };
+
+  template (value) SchedulingInfoList cs_SchedulingInfo_3SI(template (value) SiPeriodicity_Type  p_Si2_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si2_SIBMapping,
+                                                            template (value) SiPeriodicity_Type  p_Si3_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si3_SIBMapping) :=
+  { /* @status    APPROVED */
+    {
+      si_Periodicity := rf16,
+      sib_MappingInfo := {}  // only sibType2 present (see field description for SystemInformationBlockType1 in 36.331 cl. 6.2.2)
+    },
+    {
+      si_Periodicity  := p_Si2_Periodicity,
+      sib_MappingInfo := p_Si2_SIBMapping
+    },
+    {
+      si_Periodicity  := p_Si3_Periodicity,
+      sib_MappingInfo := p_Si3_SIBMapping
+    }
+  };
+
+  template (value) SchedulingInfoList cs_SchedulingInfo_4SI(template (value) SiPeriodicity_Type  p_Si2_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si2_SIBMapping,
+                                                            template (value) SiPeriodicity_Type  p_Si3_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si3_SIBMapping,
+                                                            template (value) SiPeriodicity_Type  p_Si4_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si4_SIBMapping) :=
+  { /* @status    APPROVED */
+    {
+      si_Periodicity := rf16,
+      sib_MappingInfo := {}  // only sibType2 present (see field description for SystemInformationBlockType1 in 36.331 cl. 6.2.2)
+    },
+    {
+      si_Periodicity  := p_Si2_Periodicity,
+      sib_MappingInfo := p_Si2_SIBMapping
+    },
+    {
+      si_Periodicity  := p_Si3_Periodicity,
+      sib_MappingInfo := p_Si3_SIBMapping
+    },
+    {
+      si_Periodicity  := p_Si4_Periodicity,
+      sib_MappingInfo := p_Si4_SIBMapping
+    }
+  };
+
+    template (value) SchedulingInfoList cs_SchedulingInfo_5SI(template (value) SiPeriodicity_Type  p_Si2_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si2_SIBMapping,
+                                                            template (value) SiPeriodicity_Type  p_Si3_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si3_SIBMapping,
+                                                            template (value) SiPeriodicity_Type  p_Si4_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si4_SIBMapping,
+                                                            template (value) SiPeriodicity_Type  p_Si5_Periodicity,
+                                                            template (value) SIB_MappingInfo p_Si5_SIBMapping
+                                                            ) :=
+  { /* @status    APPROVED */
+    {
+      si_Periodicity := rf16,
+      sib_MappingInfo := {}  // only sibType2 present (see field description for SystemInformationBlockType1 in 36.331 cl. 6.2.2)
+    },
+    {
+      si_Periodicity  := p_Si2_Periodicity,
+      sib_MappingInfo := p_Si2_SIBMapping
+    },
+    {
+      si_Periodicity  := p_Si3_Periodicity,
+      sib_MappingInfo := p_Si3_SIBMapping
+    },
+    {
+      si_Periodicity  := p_Si4_Periodicity,
+      sib_MappingInfo := p_Si4_SIBMapping
+    },
+    {
+      si_Periodicity  := p_Si5_Periodicity,
+      sib_MappingInfo := p_Si5_SIBMapping
+    }
+  };
+
+  template (value) PHICH_Config cs_508_PHICH_Config_Default :=
+  { /* 36.508 Table 4.6.3-4: PHICH-Config-DEFAULT;
+       signalled in MIB;
+       @status    APPROVED */
+    phich_Duration := normal,
+    phich_Resource := one                //As per 34.108 cl 4.4.3.2
+  };
+
+  template (value) BCCH_BCH_Message cs_508_MasterInformationBlock_Init(EUTRA_SysinfoDL_Bandwidth_Type p_DL_ChBandwidth) :=
+  { /* 36.508 Table 4.4.3.2-1: MasterInformationBlock;
+       @status    APPROVED */
+    message_ := {
+      dl_Bandwidth  :=  p_DL_ChBandwidth,
+      phich_Config := cs_508_PHICH_Config_Default,
+      systemFrameNumber := int2bit(0, 8),             /* Defines the 8 most significant bits of the SFN
+                                                         This value shall be fullfilled by SS*/
+      spare   :=  '0000000000'B
+    }
+  };
+
+  template (value) TDD_Config cs_TDD_ConfigDef ( TDD_SubframeAssignment_Type p_TDD_SubframeAssignment ):=
+  { /* @status    APPROVED */
+    subframeAssignment := p_TDD_SubframeAssignment,
+    specialSubframePatterns  := ssp6
+  };
+
+  template (value) BCCH_DL_SCH_Message cs_508_SystemInformationBlockType1_Def(template (value) PLMN_IdentityList p_PLMN_IdentityList,
+                                                                              template (value) TrackingAreaCode p_TrackingAreaCode,
+                                                                              template (value) CellIdentity p_CellIdentity,
+                                                                              integer p_EutraBand,
+                                                                              template (value) SchedulingInfoList p_SchedulingInformation,
+                                                                              template (omit) TDD_Config p_TDD_Config) :=
+  { /* Note: in 36.331 V8.2.0 there are no types defined for sub-structures of SystemInformationBlockType1;
+       there it is currently not possible to hand over a parameter containing e.g. the scheduling info (Sib2SchedulingInfoAllSI_Type);
+       @status    APPROVED */
+    message_ := {
+      c1 := {
+        systemInformationBlockType1 := {
+          cellAccessRelatedInfo := {
+            plmn_IdentityList := p_PLMN_IdentityList,
+            trackingAreaCode := p_TrackingAreaCode,
+            cellIdentity := p_CellIdentity,
+            cellBarred := notBarred,
+            intraFreqReselection := notAllowed,            /*  Cond CellBarred */
+            csg_Indication := false,
+            csg_Identity  := omit
+          },
+          cellSelectionInfo := {
+            q_RxLevMin := -53,    // -106dB acc. to 36.508 table 4.4.3.2-3
+            q_RxLevMinOffset := omit
+          },
+          p_Max  :=  omit,
+          freqBandIndicator := p_EutraBand,
+          schedulingInfoList := p_SchedulingInformation,
+          tdd_Config := p_TDD_Config,
+          si_WindowLength := ms20,
+          systemInfoValueTag := 0,                     /* to be incremented whenever the SIB is changed */
+          nonCriticalExtension :=   { // @sic R5-120616 sic@
+             lateNonCriticalExtension := omit,
+             nonCriticalExtension := {
+                ims_EmergencySupport_r9 := true_,
+                cellSelectionInfo_v920 := omit,
+                nonCriticalExtension := omit
+                }
+            }
+        }
+      }
+    }
+  };
+
+  template (value) BCCH_DL_SCH_Message cds_508_SystemInformationBlockType1_QBased (template (value) PLMN_IdentityList p_PLMN_IdentityList,
+                                                                                   template (value) TrackingAreaCode p_TrackingAreaCode,
+                                                                                   template (value) CellIdentity p_CellIdentity,
+                                                                                   integer p_EutraBand,
+                                                                                   template (value) SchedulingInfoList p_SchedulingInformation,
+                                                                                   template (omit) TDD_Config p_TDD_Config)
+    modifies cs_508_SystemInformationBlockType1_Def :=
+  { // Content acc. to 36.508 Table 4.4.3.2-3 with condition QBASED
+    /* @status    APPROVED */
+    message_ := {
+      c1 := {
+        systemInformationBlockType1 := {
+          nonCriticalExtension := {
+            nonCriticalExtension := {
+              cellSelectionInfo_v920 := {
+                q_QualMin_r9 := -20,
+                q_QualMinOffset_r9 := omit
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) RACH_ConfigCommon cs_508_RACH_ConfigCommon_Default :=
+  { /* 36.508 Table 4.6.3-12: RACH-ConfigCommon-DEFAULT;
+       @status    APPROVED */
+    preambleInfo := {
+      numberOfRA_Preambles := n52,                           /* n4, n8, n12, n16 ,n20, n24, n28,
+                                                                n32, n36, n40, n44, n48, n52, n56,n60, n64
+                                                                DEFAULT n64 */
+      preamblesGroupAConfig  := omit
+    },
+    powerRampingParameters := {
+      powerRampingStep := dB2,                                /* dB0, dB2,dB4, dB6 */
+      preambleInitialReceivedTargetPower := dBm_104           /* DEFAULT dBm-104
+                                                                 dBm-120, dBm-118, dBm-116, dBm-114, dBm-112, dBm-110, dBm-108, dBm-106,
+                                                                 dBm-104, dBm-102, dBm-100, dBm-98, dBm-96, dBm-94, dBm-92, dBm-90; */
+    },
+    ra_SupervisionInfo := {
+      preambleTransMax := n6,                                 /* n1, n2, n3, n4, n5, n6, n7, n8, n10; */
+      ra_ResponseWindowSize := sf10,                          /* sf2, sf3, sf4, sf5, sf6, sf7, sf8, sf10; */
+      mac_ContentionResolutionTimer := sf48                   /* sf8, sf16, sf24, sf32, sf40, sf48, sf56, sf64;  */
+    },
+    maxHARQ_Msg3Tx := 4                                       /* INTEGER (1..8);  */
+  };
+
+  template (value) BCCH_Config cs_508_BCCH_Config_Default :=
+  { /* 36.508 Table 4.6.3-1: BCCH-Config-DEFAULT */
+    /* @status    APPROVED */
+    modificationPeriodCoeff   := n4                           /* n1, n2, n4, n8; */
+  };
+
+  template (value) PRACH_ConfigInfo cs_PRACH_ConfigInfoFDD(Prach_FrequencyOffset_Type p_Prach_FrequencyOffset) :=
+  { /* 36.508 Table 4.6.3-7: PRACH-ConfigCommon-DEFAULT */
+    /* @status    APPROVED */
+    prach_ConfigIndex         := 3,           /* as per 34.108 cl 4.4.3.4 */
+    highSpeedFlag             := false,
+    zeroCorrelationZoneConfig := 5,           /* INTEGER (0..15)*/
+    prach_FreqOffset          := p_Prach_FrequencyOffset
+  };
+
+  template (value) PRACH_ConfigInfo cs_PRACH_ConfigInfoTDD(Prach_FrequencyOffset_Type p_Prach_FrequencyOffset) :=
+  { /* 36.508 Table 4.6.3-7: PRACH-ConfigCommon-DEFAULT */
+    /* @status    APPROVED */
+    prach_ConfigIndex         := 51,           /* as per 34.108 cl 4.4.3.4 */
+    highSpeedFlag             := false,
+    zeroCorrelationZoneConfig := 4,           /* INTEGER (0..15)*/
+    prach_FreqOffset          := p_Prach_FrequencyOffset
+  };
+
+  template (value) PRACH_ConfigSIB cs_508_PRACH_ConfigSIB_FDD (  Prach_FrequencyOffset_Type  p_Prach_FrequencyOffset,
+                                                                 RootSequenceIndex_Type      p_RootSequenceIndex      ) :=
+  { /* 36.508 Table 4.6.3-7a: PRACH-ConfigSIB-DEFAULT; as signalled in SIB2 */
+    /* @status    APPROVED */
+    rootSequenceIndex := p_RootSequenceIndex,     // @sic R5-096641 sic@
+    prach_ConfigInfo := cs_PRACH_ConfigInfoFDD (p_Prach_FrequencyOffset)
+  };
+
+  template (value) PRACH_ConfigSIB cs_508_PRACH_ConfigSIB_TDD(Prach_FrequencyOffset_Type  p_Prach_FrequencyOffset,
+                                                              RootSequenceIndex_Type      p_RootSequenceIndex    ) :=
+  { /* 36.508 Table 4.6.3-7a: PRACH-ConfigSIB-DEFAULT;
+       as signalled in SIB2;
+       @status    APPROVED */
+    rootSequenceIndex :=  p_RootSequenceIndex,     // @sic R5-096641 sic@
+    prach_ConfigInfo := cs_PRACH_ConfigInfoTDD (p_Prach_FrequencyOffset)
+  };
+
+  template (value) PDSCH_ConfigCommon cs_508_PDSCH_ConfigCommon_Default (P_b_Type p_P_b ):=
+  { /* 36.508 Table 4.6.3-5: PDSCH-ConfigCommon-DEFAULT;
+       @status    APPROVED */
+    referenceSignalPower := 18,    /* 1 TX - INTEGER (0) */
+    p_b                  := p_P_b      /* 1 TX or 2Tx - INTEGER (0..3) @sic R5-100786 sic@  */
+  };
+
+  template (value) UL_ReferenceSignalsPUSCH cs_UL_ReferenceSignalsPUSCH :=
+  { /* as signalled in RadioResourceConfiguration and SIB2;
+       @status    APPROVED */
+    groupHoppingEnabled     := true,
+    groupAssignmentPUSCH    := 0,                         /* INTEGER (0..29)*/
+    sequenceHoppingEnabled  := false,
+    cyclicShift             := 0
+  };
+
+  template (value) PUCCH_ConfigCommon cs_508_PUCCH_ConfigCommon_Default(N_RB_CQI_Type p_N_RB_CQI) :=
+  { /* 36.508 Table 4.6.3-8: PUCCH-ConfigCommon-DEFAULT;
+       as signalled in RadioResourceConfiguration and SIB2;
+       @status    APPROVED */
+    deltaPUCCH_Shift := ds2,     // ds1, ds2, ds3, spare1
+    nRB_CQI          := p_N_RB_CQI,
+    nCS_AN           := 6,
+    n1PUCCH_AN       := 0
+  };
+
+  template (value) SoundingRS_UL_ConfigCommon cs_508_SoundingRS_UL_ConfigCommon_FDD(SrsBandwidthConfiguration_Type  p_SrsBandwidthConfiguration) :=
+  { /* 36.508 Table 4.6.3-21: SoundingRS-UL-ConfigCommon-DEFAULT;
+       @status    APPROVED */
+    setup := {
+      srs_BandwidthConfig := p_SrsBandwidthConfiguration,
+      srs_SubframeConfig  := sc0,       /* sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12, sc13, sc14, sc15 */
+      ackNackSRS_SimultaneousTransmission := true,
+      srs_MaxUpPts        := omit
+    }
+  };
+
+  template (value) SoundingRS_UL_ConfigCommon cs_508_SoundingRS_UL_ConfigCommon_TDD(SrsBandwidthConfiguration_Type  p_SrsBandwidthConfiguration) :=
+  { /* 36.508 Table 4.6.3-21: SoundingRS-UL-ConfigCommon-DEFAULT;
+       @status    APPROVED */
+    setup := {
+      srs_BandwidthConfig := p_SrsBandwidthConfiguration,
+      srs_SubframeConfig  := sc4,       /* sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12, sc13, sc14, sc15 */
+      ackNackSRS_SimultaneousTransmission := true,
+      srs_MaxUpPts        := omit
+    }
+  };
+
+  template (value) UplinkPowerControlCommon cs_508_UplinkPowerControlCommon_Default :=
+  { /* 36.508 Table 4.6.3-25: UplinkPowerControlCommon-DEFAULT;
+       @status    APPROVED */
+    p0_NominalPUSCH     := -85,       // INTEGER (-126..24)
+    alpha               := al08,      // al0, al04, al05, al06, al07, al08, al09, al1
+    p0_NominalPUCCH     := -117,      // INTEGER (-127..-96)
+    deltaFList_PUCCH    := cs_DeltaTFList_PUCCH,
+    deltaPreambleMsg3   := 4         // INTEGER (-1..6)
+  };
+
+  template (value) RadioResourceConfigCommonSIB cs_508_RadioResourceConfigCommonSIB_Default(N_RB_CQI_Type                  p_N_RB_CQI,
+                                                                                            PUSCH_HoppingOffset_Type       p_PuschHoppingOffset,
+                                                                                            template (value) SoundingRS_UL_ConfigCommon  p_SoundingRS_UL_ConfigCommon,
+                                                                                            template (value) PRACH_ConfigSIB p_PRACH_ConfigSIB,
+                                                                                            P_b_Type p_P_b) :=
+  { /* 36.508 Table 4.6.3-14: RadioResourceConfigCommonSIB-DEFAULT;
+       @status    APPROVED */
+    rach_ConfigCommon          := cs_508_RACH_ConfigCommon_Default,                          /* @sic R5s100135 sic@ */
+    bcch_Config                := cs_508_BCCH_Config_Default,
+    pcch_Config                := cs_508_PCCH_Config_Default,
+    prach_Config               := p_PRACH_ConfigSIB,
+    pdsch_ConfigCommon         := cs_508_PDSCH_ConfigCommon_Default( p_P_b),                 /* @sic R5s100135 sic@ */
+    pusch_ConfigCommon         := cs_508_PUSCH_ConfigCommon_Default(p_PuschHoppingOffset ),  /* @sic R5s100135 sic@ */
+    pucch_ConfigCommon         := cs_508_PUCCH_ConfigCommon_Default(p_N_RB_CQI),             /* @sic R5s100135 sic@ */
+    soundingRS_UL_ConfigCommon := p_SoundingRS_UL_ConfigCommon,                              /* @sic R5s100135 sic@ */
+    uplinkPowerControlCommon   := cs_508_UplinkPowerControlCommon_Default,                   /* @sic R5s100135 sic@ */
+    ul_CyclicPrefixLength      := len1,                          // len1, len2
+    uplinkPowerControlCommon_v1020 := omit                                                   /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+  };
+
+  template (value) UE_TimersAndConstants cs_508_UE_TimersAndConstants :=
+  { /* 36.508 values specified in Table 4.4.3.3-1: SystemInformationBlockType2;
+       @status    APPROVED */
+    t300  := ms1000,      /* ms100, ms200, ms400, ms600, ms1000, ms1500, ms2000; */
+    t301  := ms1000,      /* ms100, ms200, ms400, ms600, ms1000, ms1500, ms2000; */
+    t310  := ms1000,      /* ms0, ms50, ms100, ms200, ms500, ms1000, ms2000; */
+    n310  := n1,          /* n1, n2, n3, n4, n6, n8, n10, n20 */
+    t311  := ms10000,     /* ms1000, ms3000, ms5000, ms10000 */
+    n311  := n1           /* n1, n2, n3, n4, n5, n6, n8, n10 */
+  };
+
+  template (value) AccessBarringInformation_Type cs_AccessBarringInformation_TemporaryBarring(AC_BarringConfig.ac_BarringTime p_BarringTime := s4) :=
+  { /* @status    APPROVED */
+    ac_BarringForEmergency := false,
+    ac_BarringForMO_Signalling := {
+      ac_BarringFactor := p00,
+      ac_BarringTime := p_BarringTime,
+      ac_BarringForSpecialAC := '11111'B
+    },
+    ac_BarringForMO_Data := omit
+  };
+
+  template (value) SystemInformationBlockType2 cs_508_SystemInformationBlockType2_Def(template (omit) EUTRA_SysinfoUL_Bandwidth_Type p_UL_ChBandwidth,
+                                                                                      N_RB_CQI_Type p_N_RB_CQI,
+                                                                                      PUSCH_HoppingOffset_Type p_PuschHoppingOffset,
+                                                                                      template (value) SoundingRS_UL_ConfigCommon p_SoundingRS_UL_ConfigCommon,
+                                                                                      template (value) PRACH_ConfigSIB p_PRACH_ConfigSIB,
+                                                                                      P_b_Type p_P_b) :=
+  { /* @status    APPROVED */
+    ac_BarringInfo            := omit,
+    radioResourceConfigCommon := cs_508_RadioResourceConfigCommonSIB_Default(p_N_RB_CQI, p_PuschHoppingOffset, p_SoundingRS_UL_ConfigCommon, p_PRACH_ConfigSIB, p_P_b ),
+    ue_TimersAndConstants     := cs_508_UE_TimersAndConstants,
+    freqInfo := {
+      ul_CarrierFreq          := omit,
+      ul_Bandwidth            := p_UL_ChBandwidth,            /* n6, n15, n25, n50, n75, n100; FFS */
+      additionalSpectrumEmission := 1                         // FFS acc. to TS 36.101 Table 6.2.4-1;
+    },
+    mbsfn_SubframeConfigList  := omit,
+    timeAlignmentTimerCommon  := sf750,  /* sf500, sf750, sf1280, sf1920, sf2560, sf5120, sf10240, asn1-infinity */
+    lateNonCriticalExtension  := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    ssac_BarringForMMTEL_Voice_r9  := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    ssac_BarringForMMTEL_Video_r9  := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    ac_BarringForCSFB_r10     := omit         /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+  };
+
+  template (value) SystemInformationBlockType3 cs_508_SystemInformationBlockType3_Def :=
+  { /* @status    APPROVED */
+    cellReselectionInfoCommon := {
+      q_Hyst                       := dB0,   /* dB0, dB1, dB2, dB3, dB4, dB5, dB6, dB8, dB10,
+                                                dB12, dB14, dB16, dB18, dB20, dB22, dB24; */
+      speedStateReselectionPars    := omit
+    },
+    cellReselectionServingFreqInfo := {
+      s_NonIntraSearch             := omit,  /* INTEGER (0..56);  */
+      threshServingLow             := 0,     /* INTEGER (0..56);  */
+      cellReselectionPriority      := 4      /* INTEGER (0..7);  */
+    },
+    intraFreqCellReselectionInfo   := {
+      q_RxLevMin                   := -53,   /* -106dB acc. to 36.508 table 4.4.3.3-2 */
+      p_Max                        := omit,
+      s_IntraSearch                := omit,  /* INTEGER (0..56);  */
+      allowedMeasBandwidth         := omit,
+      presenceAntennaPort1         := false,
+      neighCellConfig              := '01'B,
+      t_ReselectionEUTRA           :=  0,
+      t_ReselectionEUTRA_SF        := omit
+    },
+    lateNonCriticalExtension       := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    s_IntraSearch_v920             := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    s_NonIntraSearch_v920          := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    q_QualMin_r9                   := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    threshServingLowQ_r9           := omit    /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformationBlockType3 cds_508_SystemInformationBlockType3_Qbased
+  modifies cs_508_SystemInformationBlockType3_Def :=
+  { // Acc to 36.508 Table 4.4.3.3-2 with condition QBASED
+    /* @status    APPROVED */
+    s_IntraSearch_v920  := omit,
+    s_NonIntraSearch_v920   := omit,
+    q_QualMin_r9 := -20,
+    threshServingLowQ_r9 := 3
+  };
+
+  template (value) SystemInformationBlockType3 cs_508_SystemInformationBlockType3_Common(Q_Hyst_Type                                    p_Q_Hyst := dB0,
+                                                                                         template (omit) SpeedStateReselectionPars_Type p_SpeedStateReselectionPars := omit,
+                                                                                         template (omit) ReselectionThreshold           p_S_NonIntraSearch := omit,
+                                                                                         ReselectionThreshold                           p_ThreshServingLow := 0,
+                                                                                         CellReselectionPriority                        p_CellReselectionPriority := 4,
+                                                                                         Q_RxLevMin                                     p_Q_RxLevMin := -53,
+                                                                                         template (omit) P_Max                          p_P_Max := omit,
+                                                                                         template (omit) ReselectionThreshold           p_S_IntraSearch := omit,
+                                                                                         template (omit) AllowedMeasBandwidth           p_AllowedMeasBandwidth := omit,
+                                                                                         PresenceAntennaPort1                           p_PresenceAntennaPort1 := false,
+                                                                                         NeighCellConfig                                p_NeighCellConfig := '01'B,
+                                                                                         T_Reselection                                  p_T_Reselection := 0,
+                                                                                         template (omit) SpeedStateScaleFactors         p_SpeedStateScaleFactors := omit) :=
+  { /* @status    APPROVED */
+    cellReselectionInfoCommon := {
+      q_Hyst                       := p_Q_Hyst,
+      speedStateReselectionPars    := p_SpeedStateReselectionPars
+    },
+    cellReselectionServingFreqInfo := {
+      s_NonIntraSearch             := p_S_NonIntraSearch,
+      threshServingLow             := p_ThreshServingLow,
+      cellReselectionPriority      := p_CellReselectionPriority
+    },
+    intraFreqCellReselectionInfo   := {
+      q_RxLevMin                   := p_Q_RxLevMin,
+      p_Max                        := p_P_Max,
+      s_IntraSearch                := p_S_IntraSearch,
+      allowedMeasBandwidth         := p_AllowedMeasBandwidth,
+      presenceAntennaPort1         := p_PresenceAntennaPort1,
+      neighCellConfig              := p_NeighCellConfig,
+      t_ReselectionEUTRA           := p_T_Reselection,
+      t_ReselectionEUTRA_SF        := p_SpeedStateScaleFactors
+    },
+    lateNonCriticalExtension       := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    s_IntraSearch_v920             := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    s_NonIntraSearch_v920          := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    q_QualMin_r9                   := omit,   /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    threshServingLowQ_r9           := omit    /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformationBlockType3 cs_508_SystemInformationBlockType3_NonIntraSearch_Intrasearch (ReselectionThreshold p_S_NonIntraSearch,
+                                                                                                              ReselectionThreshold p_S_IntraSearch) :=
+  /* @status    APPROVED */
+   cs_508_SystemInformationBlockType3_Common (-, -, p_S_NonIntraSearch, -, -, -, -, p_S_IntraSearch);
+
+  template (value) SystemInformationBlockType4 cs_508_SystemInformationBlockType4_Def :=
+  { /* @status    APPROVED */
+    intraFreqNeighCellList  := omit,
+    intraFreqBlackCellList  := omit,
+    csg_PhysCellIdRange     := omit,
+    lateNonCriticalExtension := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) InterFreqCarrierFreqInfo cs_InterFreqCarrierFreq(template (value) CarrierFreqEUTRA p_EUTRA_CarrierFreq,
+                                                                    AllowedMeasBandwidth   p_AllowedMeasBandwidth) :=
+  { /* default SIB5 contents in 36.508 Table 4.4.3.3-4;
+       @status    APPROVED */
+    dl_CarrierFreq           := p_EUTRA_CarrierFreq.dl_CarrierFreq,
+    q_RxLevMin               := -53, // -106dB acc. to 36.508 table 4.4.3.3-4
+    p_Max                    := omit,
+    t_ReselectionEUTRA       := 0,
+    t_ReselectionEUTRA_SF    := omit,
+    threshX_High             := 2, // 4dB
+    threshX_Low              := 1, // 2dB
+    allowedMeasBandwidth     := p_AllowedMeasBandwidth, // for default 5MHz Bandwidth
+    presenceAntennaPort1     := false,
+    cellReselectionPriority  := 4,
+    neighCellConfig          := '01'B,  // No MBSFN subframes are present in all neighbour cells)
+    q_OffsetFreq             := dB0,
+    interFreqNeighCellList   := omit,
+    interFreqBlackCellList   := omit,
+    q_QualMin_r9             := omit,      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    threshX_Q_r9             := omit       /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformationBlockType5 cs_508_SystemInformationBlockType5_Def(template (value) InterFreqCarrierFreqList  p_InterFreqCarrierList) :=
+  { /* @status    APPROVED */
+    interFreqCarrierFreqList := p_InterFreqCarrierList,
+    lateNonCriticalExtension := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) CarrierFreqListUTRA_TDD cs_CarrierFreqListUTRA_TDD(template (value) CarrierFreqUTRA_TDD  p_CarrierFreqListUTRA_TDD1,
+                                                                      template (omit) CarrierFreqUTRA_TDD  p_CarrierFreqListUTRA_TDD2,
+                                                                      template (omit) CarrierFreqUTRA_TDD  p_CarrierFreqListUTRA_TDD3) :=
+  { /* @status    APPROVED */
+    p_CarrierFreqListUTRA_TDD1,
+    p_CarrierFreqListUTRA_TDD2,
+    p_CarrierFreqListUTRA_TDD3
+  };
+
+  template (value) CarrierFreqUTRA_TDD cs_CarrierFreqUTRA_TDD (template (value) ARFCN_ValueUTRA p_ARFCN_ValueUTRA) :=
+  { /* @status    APPROVED */
+    carrierFreq              :=   p_ARFCN_ValueUTRA,
+    cellReselectionPriority  :=   3,
+    threshX_High             :=   2,    // 4dB  -  Actual value of threshold in dB = IE value * 2
+    threshX_Low              :=   1,    // 2dB  -  Actual value of threshold in dB = IE value * 2
+    q_RxLevMin               :=   -40,  // -79dBm -  Actual value = IE value * 2+1,
+    p_MaxUTRA                :=   21    // 21dBm
+  };
+
+  template (value) CarrierFreqListUTRA_FDD cs_CarrierFreqListUTRA_FDD(template (value) CarrierFreqUTRA_FDD  p_CarrierFreqListUTRA_FDD1,
+                                                                      template (omit) CarrierFreqUTRA_FDD  p_CarrierFreqListUTRA_FDD2,
+                                                                      template (omit) CarrierFreqUTRA_FDD  p_CarrierFreqListUTRA_FDD3) :=
+  { /* @status    APPROVED */
+    p_CarrierFreqListUTRA_FDD1,
+    p_CarrierFreqListUTRA_FDD2,
+    p_CarrierFreqListUTRA_FDD3
+  };
+
+  template (value) CarrierFreqUTRA_FDD cs_CarrierFreqUTRA_FDD(ARFCN_ValueUTRA p_ARFCN_ValueUTRA) :=
+  { /* @status    APPROVED */
+    carrierFreq              :=   p_ARFCN_ValueUTRA,
+    cellReselectionPriority  :=   3,
+    threshX_High             :=   2,    // 4dB  -  Actual value of threshold in dB = IE value * 2
+    threshX_Low              :=   1,    // 2dB  -  Actual value of threshold in dB = IE value * 2
+    q_RxLevMin               :=   -40,  // -79dBm -  Actual value = IE value * 2+1,
+    p_MaxUTRA                :=   21,   // 21dBm
+    q_QualMin                :=  -24,   // -24dBm
+    threshX_Q_r9             := omit       /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformationBlockType6 cs_508_SystemInformationBlockType6_Def(template (omit) CarrierFreqListUTRA_FDD p_CarrierFreqListUTRA_FDD,
+                                                                                      template (omit) CarrierFreqListUTRA_TDD p_CarrierFreqListUTRA_TDD) :=
+  { /* @status    APPROVED */
+    carrierFreqListUTRA_FDD  :=  p_CarrierFreqListUTRA_FDD,
+    carrierFreqListUTRA_TDD  :=  p_CarrierFreqListUTRA_TDD,
+    t_ReselectionUTRA        :=  0,
+    t_ReselectionUTRA_SF     :=  omit,
+    lateNonCriticalExtension :=  omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) CarrierFreqsGERAN cs_CarrierFreqsGERAN ( ARFCN_ValueGERAN     p_ARFCN_ValueGERAN,
+                                                            BandIndicatorGERAN   p_BandIndicatorGERAN,
+                                                            template (value) ExplicitListOfARFCNs p_ExplicitListOfARFCNs ) :=
+  { /* @status    APPROVED */
+    startingARFCN := p_ARFCN_ValueGERAN,
+    bandIndicator := p_BandIndicatorGERAN,
+    followingARFCNs  := {
+      explicitListOfARFCNs := p_ExplicitListOfARFCNs
+    }
+  };
+
+  template (value) CarrierFreqsInfoGERAN cs_CarrierFreqsInfoGERAN(template (value) CarrierFreqsGERAN p_CarrierFreqsGERAN,
+                                                                  integer p_Priority := 2) :=
+  { /* @status    APPROVED */
+    carrierFreqs  :=      p_CarrierFreqsGERAN,
+    commonInfo    := {
+      cellReselectionPriority     :=  p_Priority,
+      ncc_Permitted               :=  '11111111'B,
+      q_RxLevMin                  :=  2,
+      p_MaxGERAN                  :=  0,
+      threshX_High                :=  2,
+      threshX_Low                 :=  2
+    }
+  };
+
+  template (value) SystemInformationBlockType7 cs_508_SystemInformationBlockType7_Def(template (omit) CarrierFreqsInfoListGERAN p_CarrierFreqsInfoListGERAN,
+                                                                                      template (value) T_Reselection p_T_ReselectionGeran := 0) :=
+  { /* @status    APPROVED */
+    t_ReselectionGERAN      := p_T_ReselectionGeran,     /* @sic R5s120290 sic@ */
+    t_ReselectionGERAN_SF   := omit,
+    carrierFreqsInfoList    := p_CarrierFreqsInfoListGERAN,
+    lateNonCriticalExtension := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) CellReselectionParametersCDMA2000 cs_CellReselectionParameters1xRTT ( template (value) BandClassListCDMA2000 p_BandClassListCDMA2000,
+                                                                                         template (value) NeighCellListCDMA2000 p_NeighCellListCDMA2000) :=
+  { /* @status    APPROVED */
+    bandClassList := p_BandClassListCDMA2000,
+    neighCellList := p_NeighCellListCDMA2000,
+    t_ReselectionCDMA2000 := 0,             // value FFS in 36.508 INTEGER (0..7),
+    t_ReselectionCDMA2000_SF := omit
+  };
+
+  template (value) Parameters1XRTT_Type cs_Parameters1xRTT ( template (value) BandClassListCDMA2000 p_BandClassListCDMA2000,
+                                                             template (value) NeighCellListCDMA2000 p_NeighCellListCDMA2000 ) :=
+  { /* acc to 36.508 Table 4.4.3.3-7: SystemInformationBlockType8 */
+    /* @status    APPROVED */
+    csfb_RegistrationParam1XRTT := omit,    // all values are FFS in 36.508
+    longCodeState1XRTT := omit, // value FFS in 36.508
+    cellReselectionParameters1XRTT := cs_CellReselectionParameters1xRTT (p_BandClassListCDMA2000,p_NeighCellListCDMA2000 )
+  };
+
+  template (value) NeighCellsPerBandclassCDMA2000 cs_NeighCellsPerBandclassC2K ( ARFCN_ValueCDMA2000 p_ARFCN_ValueCDMA2000,
+                                                                                 PhysCellIdListCDMA2000 p_PhysCellIdListCDMA2000 ):=
+  { /* @status    APPROVED */
+    arfcn := p_ARFCN_ValueCDMA2000,
+    physCellIdList := p_PhysCellIdListCDMA2000
+  };
+
+  template (value) NeighCellCDMA2000 cs_NeighCellCDMA2000 ( BandclassCDMA2000 p_BandclassCDMA2000,
+                                                            template (value) NeighCellsPerBandclassListCDMA2000 p_NeighCellsPerBandclassListCDMA2000) :=
+  { /* @status    APPROVED */
+    bandClass := p_BandclassCDMA2000,
+    neighCellsPerFreqList := p_NeighCellsPerBandclassListCDMA2000
+  };
+
+  template (value) BandClassInfoCDMA2000 cs_BandClassInfoCDMA2000 (BandclassCDMA2000 p_BandclassCDMA2000):=
+  { /* @status    APPROVED */
+    bandClass := p_BandclassCDMA2000,
+    cellReselectionPriority := 1,   // Acc. to 36.508 Table 4.4.3.3-7 @sic R5s100848 sic@
+    threshX_High  := 30,    // Acc. to 36.508 Table 4.4.3.3-7 @sic R5s100848 sic@
+    threshX_Low   := 32    // Acc. to 36.508 Table 4.4.3.3-7 @sic R5s100848 sic@
+  };
+
+  template (value) CellReselectionParametersCDMA2000 cs_CellReselectionParameter (  template (value) BandClassListCDMA2000 p_BandClassListCDMA2000,
+                                                                                    template (value) NeighCellListCDMA2000 p_NeighCellListCDMA2000 ):=
+  { /* @status    APPROVED */
+    bandClassList := p_BandClassListCDMA2000,
+    neighCellList := p_NeighCellListCDMA2000,
+    t_ReselectionCDMA2000 := 0,            // Acc. to 36.508 Table 4.4.3.3-7
+    t_ReselectionCDMA2000_SF   := omit     // Acc. to 36.508 Table 4.4.3.3-7
+  };
+
+  template (value) ParametersHRPD_Type cs_ParametersHRPD ( template (value) BandClassListCDMA2000 p_BandClassListCDMA2000,
+                                                           template (value) NeighCellListCDMA2000 p_NeighCellListCDMA2000 ) :=
+  { /* @status    APPROVED */
+    preRegistrationInfoHRPD := {
+      preRegistrationAllowed  := false,
+      preRegistrationZoneId   := omit,
+      secondaryPreRegistrationZoneIdList  := omit // FFS only used in P3 P4 C2K test cases
+    },
+    cellReselectionParametersHRPD := cs_CellReselectionParameter (p_BandClassListCDMA2000, p_NeighCellListCDMA2000)
+  };
+
+  template (value) SystemInformationBlockType8 cs_508_SystemInformationBlockType8_Def( template (omit) ParametersHRPD_Type p_ParametersHRPD,
+                                                                                       template (omit) Parameters1XRTT_Type p_Parameters1XRTT ) :=
+  { /* @status    APPROVED */
+    // Acc. to 36.508 Table 4.4.3.3-7: SystemInformationBlockType8
+    systemTimeInfo  := {
+      cdma_EUTRA_Synchronisation := true,
+      cdma_SystemTime := { synchronousSystemTime:= int2bit(0, 39) }  //A valid value as per TS 36.331 and calculated by the SS
+    },
+    searchWindowSize := 5,
+    parametersHRPD   := p_ParametersHRPD,
+    parameters1XRTT  := p_Parameters1XRTT,
+    lateNonCriticalExtension               := omit,     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    csfb_SupportForDualRxUEs_r9            := omit,     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    cellReselectionParametersHRPD_v920     := omit,     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    cellReselectionParameters1XRTT_v920    := omit,     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    csfb_RegistrationParam1XRTT_v920       := omit,     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    ac_BarringConfig1XRTT_r9               := omit,     /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+    csfb_DualRxTxSupport_r10               := omit      /* @sic R5s120178 BASELINE MOVING 2012 sic@ */
+  };
+
+  template (value) SystemInformationBlockType9 cs_SystemInformationBlockType9_Def (template (omit) HnbName_Type p_HnbName) :=
+  { /* @status    APPROVED */
+    hnb_Name := p_HnbName,
+    lateNonCriticalExtension               := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformationBlockType10 cs_SystemInformationBlockType10_Def (template(value) MessageIdentifier_Type p_MessageIdentifier,
+                                                                                     template (value) SerialNumber_Type p_SerialNumber,
+                                                                                     template (value) WarningType_Type p_WarningType,
+                                                                                     template (omit) WarningSecurityInfo_Type p_WarningSecurityInfo) :=
+  { /* @status    APPROVED */
+    messageIdentifier := p_MessageIdentifier,
+    serialNumber := p_SerialNumber,
+    warningType := p_WarningType,
+    warningSecurityInfo := p_WarningSecurityInfo,
+    lateNonCriticalExtension               := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformationBlockType11 cs_SystemInformationBlockType11_Def(template(value) MessageIdentifier_Type p_MessageIdentifier,
+                                                                                    template (value) SerialNumber_Type p_SerialNumber,
+                                                                                    template (value) WarningMessageSegmentType_Type p_WarningMessageSegmentType,
+                                                                                    template (value) WarningMessageSegmentNumber_Type p_WarningMessageSegmentNumber,
+                                                                                    template (value) WarningMessageSegment_Type p_WarningMessageSegment,
+                                                                                    template (omit) DataCodingScheme_Type p_DataCodingScheme) :=
+  { /* @status    APPROVED */
+    messageIdentifier := p_MessageIdentifier,
+    serialNumber := p_SerialNumber,
+    warningMessageSegmentType := p_WarningMessageSegmentType,
+    warningMessageSegmentNumber := p_WarningMessageSegmentNumber,
+    warningMessageSegment := p_WarningMessageSegment,
+    dataCodingScheme := p_DataCodingScheme,
+    lateNonCriticalExtension := omit      /* @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB2(template (value) SystemInformationBlockType2 p_SystemInformationBlockType2) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib2 := p_SystemInformationBlockType2 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB3(template (value) SystemInformationBlockType3 p_SystemInformationBlockType3) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib3 := p_SystemInformationBlockType3 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB4(template (value) SystemInformationBlockType4 p_SystemInformationBlockType4) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib4 := p_SystemInformationBlockType4 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB5(template (value) SystemInformationBlockType5 p_SystemInformationBlockType5) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib5 := p_SystemInformationBlockType5 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB6(template (value) SystemInformationBlockType6 p_SystemInformationBlockType6) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib6 := p_SystemInformationBlockType6 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB7(template (value) SystemInformationBlockType7 p_SystemInformationBlockType7) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib7 := p_SystemInformationBlockType7 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB8(template (value) SystemInformationBlockType8 p_SystemInformationBlockType8) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib8 := p_SystemInformationBlockType8 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB9(template (value) SystemInformationBlockType9 p_SystemInformationBlockType9) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib9 := p_SystemInformationBlockType9 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB10(template (value) SystemInformationBlockType10 p_SystemInformationBlockType10) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib10 := p_SystemInformationBlockType10 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB11(template (value) SystemInformationBlockType11 p_SystemInformationBlockType11) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {{ sib11 := p_SystemInformationBlockType11 }},
+    nonCriticalExtension := omit
+  };
+
+  template (value) SystemInformation_r8_IEs cs_SI_SIB5_SIB6(template (value) SystemInformationBlockType5 p_SystemInformationBlockType5,
+                                                            template (value) SystemInformationBlockType6 p_SystemInformationBlockType6) :=
+  { /* @status    APPROVED */
+    sib_TypeAndInfo := {
+      { sib5 := p_SystemInformationBlockType5 },
+      { sib6 := p_SystemInformationBlockType6 }
+    },
+    nonCriticalExtension := omit
+  };
+
+  template (value) BcchInfo_Type cs_BCCHInfo_C1(template (value) BCCH_BCH_Message    p_MIB,
+                                                template (value) BCCH_DL_SCH_Message p_SIB1,
+                                                template (value) SI_List_Type        p_SI_List,
+                                                template (omit)  SegmentedSI_List_Type p_SegmentedSI_List := omit) :=
+  { /* @status    APPROVED */
+    /* @sic R5-112161: new optional parameter for segmented SIs sic@ */
+    MIB  := p_MIB,
+    SIB1 := p_SIB1,
+    SIs  := p_SI_List,
+    SegmentedSIs := p_SegmentedSI_List
+  };
+
+}

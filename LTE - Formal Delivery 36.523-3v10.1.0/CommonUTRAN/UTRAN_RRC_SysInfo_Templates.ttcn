@@ -1,0 +1,2275 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 15:15:45 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7303 $
+/******************************************************************************/
+
+module UTRAN_RRC_SysInfo_Templates {
+
+  import from UTRAN_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from UTRAN_CommonDefs all;
+  import from UTRAN_RRC_CommonTemplates all;
+
+  template (value) SchedulingInformation.scheduling.sib_Pos cs_SIB_Pos_Rep16(integer p_Pos) := { rep16 := p_Pos };   /* @status    APPROVED */
+
+  template (value) SchedulingInformation.scheduling.sib_Pos cs_SIB_Pos_Rep64(integer p_Pos) := { rep64 := p_Pos };   /* @status    APPROVED */
+
+  template (value) SchedulingInformation.scheduling.sib_Pos cs_SIB_Pos_Rep128(integer p_Pos) := { rep128 := p_Pos }; /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SchedulingInformation(template (value) SchedulingInformation.scheduling.sib_Pos p_SIB_Pos,
+                                                                  template (omit)  SegCount p_SegCount := omit,  // DEFAULT: 1
+                                                                  template (omit)  SibOFF_List p_SIB_PosOffsetInfo := omit) :=
+  {  /* @status    APPROVED */
+    scheduling := {
+      segCount := p_SegCount,
+      sib_Pos := p_SIB_Pos,
+      sib_PosOffsetInfo := p_SIB_PosOffsetInfo
+    }
+  };
+
+  template (value) SchedulingInformation cs_SB1_Schedul1  := cs_SchedulingInformation(cs_SIB_Pos_Rep16 (1), 1);                     /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB5_Schedul1 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (19), 1);                    /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB5_Schedul2 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (19), 2, {so4});             /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB5_Schedul3 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (19), 3, {so4, so2});        /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB5_Schedul4 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (19), 4, {so4, so2, so2});   /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB6_Schedul1 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (3), 1);                     /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB6_Schedul2 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (3), 2, {so4});              /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB6_Schedul3 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (3), 3, {so4, so2});         /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB6_Schedul4 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (3), 4, {so4, so2, so2});    /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB11_Schedul1 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (29), 1);                   /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB11_Schedul2 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (29), 2, {so2});            /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB11_Schedul3 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (29), 3, {so2, so2});       /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB19_Schedul1 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (14), 1);                   /* @status    APPROVED */
+
+  template (value) SchedulingInformation cs_SIB19_Schedul2 := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (14), 2, {so2});            /* @status    APPROVED */
+
+  template (value) MasterInformationBlock cs_MIB_Def(template (value) PLMN_Identity p_PLMN) :=
+  { /* @status    APPROVED */
+    mib_ValueTag := 1,
+    plmn_Type := {
+      gsm_MAP := {
+        plmn_Identity := p_PLMN
+      }
+    },
+    sibSb_ReferenceList := {
+      {
+        sibSb_Type := { sysInfoTypeSB1 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep16 (1) )
+      },
+      {
+        sibSb_Type := { sysInfoType1 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (11) )
+      },
+      {
+        sibSb_Type := { sysInfoType2 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (11) )
+      },
+      {
+        sibSb_Type := { sysInfoType3 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (10) )
+      },
+      {
+        sibSb_Type := { sysInfoType4 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (26) )
+      },
+      {
+        sibSb_Type := { sysInfoType5 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (19), 4, {so4, so2, so2} )
+      }
+    },
+    v690NonCriticalExtensions := omit
+  };
+
+  template (value) MasterInformationBlock cs_MIB_UTRAN_GERAN_Def(PLMN_Identity p_PLMN) :=
+  { /* @status    APPROVED */
+    mib_ValueTag := 1,
+    plmn_Type := {
+      gsm_MAP := {
+        plmn_Identity := p_PLMN
+      }
+    },
+    sibSb_ReferenceList := {
+      {
+        sibSb_Type := { sysInfoTypeSB1 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep16 (1) )
+      },
+      {
+        sibSb_Type := { sysInfoType1 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (10) )
+      },
+      {
+        sibSb_Type := { sysInfoType2 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (10) )
+      },
+      {
+        sibSb_Type := { sysInfoType3 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (7) )
+      },
+      {
+        sibSb_Type := { sysInfoType4 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (31) )
+      },
+      {
+        sibSb_Type := { sysInfoType5 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (18), 4, {so2, so4, so2} )
+      }
+    },
+    v690NonCriticalExtensions := omit
+  };
+
+  template (value) MasterInformationBlock cds_MIB_MultiplePlmnList(template (value) PLMN_Identity p_PLMN,
+                                                                   Multiple_PLMN_List_Type p_Multiple_PLMN_List)
+    modifies cs_MIB_Def :=
+  { /* @status   APPROVED  */
+    v690NonCriticalExtensions := {
+      masterInformationBlock_v690ext := {
+        multiplePLMN_List := {
+          mibPLMN_Identity := true,
+          multiplePLMNs := p_Multiple_PLMN_List
+        }
+      },
+      v6b0NonCriticalExtensions := omit
+    }
+  };
+
+  template (value) SysInfoTypeSB1 cs_SB1_Def :=
+  { /* @status    APPROVED */
+    sib_ReferenceList := {
+      {
+        sib_Type := { sysInfoType6 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (3), 4, {so4, so2, so2} )
+      },
+      {
+        sib_Type := { sysInfoType7 := NULL },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep16 (2) )
+      },
+      {
+        sib_Type := { sysInfoType11 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (29), 3, {so2, so2} )
+      },
+      {
+        sib_Type := { sysInfoType12 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (13), 1 )   // @sic R5s100871 sic@
+      },
+      {
+        sib_Type := { sysInfoType18 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (18) )
+      }
+    },
+    v6b0NonCriticalExtensions := {
+      sysInfoTypeSB1_v6b0ext := {
+        extSIBTypeInfoSchedulingInfo_List := omit
+      },
+      v860NonCriticalExtensions := {
+        sysInfoTypeSB1_v860ext := {
+          extSIBTypeInfoSchedulingInfo_List := {
+            {
+              extensionSIB_Type2 := { systemInfoType19 := NULL },
+              schedulingInfo := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (13), 3, {so2, so2} ),
+              valueTagInfo := { cellValueTag := 1}
+            }
+          },
+          extGANSS_SIBTypeInfoSchedulingInfoList := omit
+        },
+        nonCriticalExtensions := omit
+      }
+    }
+  };
+
+  template (value) SysInfoTypeSB1 cs_SB1_UTRAN_GERAN_Def :=
+  { /* @status    APPROVED */
+    sib_ReferenceList := {
+      {
+        sib_Type := { sysInfoType6 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (2), 4, {so2, so4, so2} )
+      },
+      {
+        sib_Type := { sysInfoType7 := NULL },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep16 (7) )
+      },
+      {
+        sib_Type := { sysInfoType11 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (26), 4, {so2, so4, so2} )
+      },
+      {
+        sib_Type := { sysInfoType12 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (11), 4, {so4, so2, so2} )
+      },
+      {
+        sib_Type := { sysInfoType18 := 1 },
+        scheduling := cs_SchedulingInformation(cs_SIB_Pos_Rep64 (23) )
+      }
+    },
+    v6b0NonCriticalExtensions := {
+      sysInfoTypeSB1_v6b0ext   := {
+        extSIBTypeInfoSchedulingInfo_List := omit
+      },
+      v860NonCriticalExtensions := {
+        sysInfoTypeSB1_v860ext := {
+          extSIBTypeInfoSchedulingInfo_List := {
+            {
+              extensionSIB_Type2 := { systemInfoType19 := NULL },
+              schedulingInfo  := cs_SchedulingInformation(cs_SIB_Pos_Rep128 (46), 3, {so30, so2} ),
+              valueTagInfo := {cellValueTag := 1}
+            }
+          },
+          extGANSS_SIBTypeInfoSchedulingInfoList := omit
+        },
+        nonCriticalExtensions := omit
+      }
+    }
+  };
+
+  template (value) SysInfoType1 cs_SIB1_Def(octetstring p_Lac,
+                                            octetstring p_Rac,
+                                            octetstring p_NMO,
+                                            octetstring p_T3212,
+                                            integer p_AttFlag,
+                                            CN_DRX_CycleLengthCoefficient p_DRX_1,
+                                            CN_DRX_CycleLengthCoefficient p_DRX_2) :=
+  { /* @status    APPROVED */
+    cn_CommonGSM_MAP_NAS_SysInfo := p_Lac,
+    cn_DomainSysInfoList := {
+      {
+        cn_DomainIdentity := ps_domain,
+        cn_Type := {
+          gsm_MAP := p_Rac & p_NMO
+        },
+        cn_DRX_CycleLengthCoeff := p_DRX_1
+      },
+      {
+        cn_DomainIdentity := cs_domain,
+        cn_Type := {
+          gsm_MAP := p_T3212 & int2oct(p_AttFlag, 1)
+        },
+        cn_DRX_CycleLengthCoeff := p_DRX_2
+      }
+    },
+    ue_ConnTimersAndConstants := {
+      t_301 := omit,
+      n_301 := omit,
+      t_302 := omit,
+      n_302 := omit,
+      t_304 := omit,
+      n_304 := omit,
+      t_305 := omit,
+      t_307 := omit,
+      t_308 := omit,
+      t_309 := omit,
+      t_310 := omit,
+      n_310 := omit,
+      t_311 := omit,
+      t_312 := omit,
+      n_312 := omit,
+      t_313 := omit,
+      n_313 := omit,
+      t_314 := omit,
+      t_315 := omit,
+      n_315 := omit,
+      t_316 := omit,
+      t_317 := omit
+    },
+    ue_IdleTimersAndConstants := {
+      t_300 := ms4000,
+      n_300 := tsc_N300,
+      t_312 := 10,
+      n_312 := s1
+    },
+    v3a0NonCriticalExtensions := omit
+  };
+
+  template (value) SysInfoType2 cs_SIB2_Def(bitstring p_URAId) :=
+  { /* @status    APPROVED */
+    ura_IdentityList := {
+      p_URAId
+    },
+    nonCriticalExtensions := omit
+  };
+
+  template (value) CellSelectReselectInfoSIB_3_4 cs_CellSelectReselectInfoSIB_3_4(template (value) CellSelectReselectInfoSIB_3_4.modeSpecificInfo p_ModeSpecificInfo,
+                                                                                  MaxAllowedUL_TX_Power p_MaxAllowedUL_TX_Power) :=
+  { /* @status    APPROVED */
+    mappingInfo := omit,
+    cellSelectQualityMeasure := {
+      cpich_RSCP := NULL
+    },
+    modeSpecificInfo := p_ModeSpecificInfo,
+    q_Hyst_l_S := 1,     // (IE value*2)
+    t_Reselection_S := 0,
+    hcs_ServingCellInformation := omit,
+    maxAllowedUL_TX_Power := p_MaxAllowedUL_TX_Power
+  };
+
+  template (value) RAT_FDD_InfoList cs_RAT_FDD_InfoList_GERAN :=
+  { /* @status    APPROVED */
+    {
+      rat_Identifier := gsm,
+      s_SearchRAT := -16,
+      s_HCS_RAT := omit,
+      s_Limit_SearchRAT := 0
+    }
+  };
+
+  template (value) RAT_TDD_InfoList cs_RAT_TDD_InfoList_GERAN :=
+  { /* @status    APPROVED */
+    {
+      rat_Identifier := gsm,
+      s_SearchRAT := -32,
+      s_HCS_RAT := omit,
+      s_Limit_SearchRAT := 0
+    }
+  };
+
+  template (value) CellSelectReselectInfoSIB_3_4.modeSpecificInfo cs_SIB3_4_ModeSpecificInfo_FDD(template (omit) RAT_FDD_InfoList p_RAT_FDD_InfoList := omit) :=
+  { /* @status    APPROVED */
+    fdd := {
+      s_Intrasearch := 8,     // IE value * 2
+      s_Intersearch := 8,     // IE value * 2
+      s_SearchHCS := omit,
+      rat_List := p_RAT_FDD_InfoList,
+      q_QualMin := -24,
+      q_RxlevMin := -40     // (IE value * 2) + 1. Value according to 34.108 cl. 6.1.5
+    }
+  };
+
+  template (value) CellSelectReselectInfoSIB_3_4.modeSpecificInfo cs_SIB3_ModeSpecificInfo_TDD :=
+  { /* @status    APPROVED */
+    tdd := {
+      s_Intrasearch := 10,
+      s_Intersearch := 10,
+      s_SearchHCS := omit,
+      rat_List := omit,
+      q_RxlevMin := -41   //(IE value * 2) + 1. Value according to 34.108 cl. 6.1.6
+    }
+  };
+
+  template (value) CellSelectReselectInfoSIB_3_4.modeSpecificInfo cs_SIB4_ModeSpecificInfo_TDD(template (omit) RAT_TDD_InfoList p_RAT_TDD_InfoList := omit) :=
+  {  /* @status    APPROVED */
+    tdd := {
+      s_Intrasearch := 10,         // IE value * 2
+      s_Intersearch := 10,          // IE value * 2
+      s_SearchHCS := omit,
+      rat_List := p_RAT_TDD_InfoList,
+      q_RxlevMin := -52            //  (IE value * 2) + 1
+    }
+  };
+
+  template (value) CellSelectReselectInfoSIB_3_4.modeSpecificInfo cs_SIB3_ModeSpecificInfo_TDD_GERAN :=
+  { /* @status    APPROVED */
+    tdd := {
+      s_Intrasearch := 21,
+      s_Intersearch := 21,
+      s_SearchHCS := omit,
+      rat_List := cs_RAT_TDD_InfoList_GERAN,
+      q_RxlevMin := -41   //(IE value * 2) + 1. Value according to 34.108 cl. 6.1.6
+    }
+  };
+
+  template (value) SysInfoType3 cs_SIB3_Common(B28_Type p_CellIdentity,
+                                               template (value) CellSelectReselectInfoSIB_3_4 p_CellSelectReselectInfoSIB_3_4) :=
+  { /* @status    APPROVED */
+    sib4indicator := true,
+    cellIdentity := p_CellIdentity,
+    cellSelectReselectInfo := p_CellSelectReselectInfoSIB_3_4,
+    cellAccessRestriction := {
+      cellBarred := {
+        notBarred := NULL
+      },
+      cellReservedForOperatorUse := notReserved,
+      cellReservationExtension := notReserved,
+      accessClassBarredList := {
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred,
+        notBarred
+      }
+    },
+    v4b0NonCriticalExtensions := omit
+  };
+
+  template (value) SysInfoType3 cs_SIB3_DefUTRAN(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB3_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_4_ModeSpecificInfo_FDD, 21));
+
+  template (value) SysInfoType3 cs_SIB3_DefUTRAN_GERAN(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB3_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_4_ModeSpecificInfo_FDD(cs_RAT_FDD_InfoList_GERAN), 21));
+
+  template (value) SysInfoType3 cs_SIB3_DefUTRAN_TDD(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB3_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_ModeSpecificInfo_TDD, 30));
+
+  template (value) SysInfoType3 cs_SIB3_DefUTRAN_GERAN_TDD(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB3_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_ModeSpecificInfo_TDD_GERAN, 30));
+
+  template (value) SysInfoType3 cds_SIB3_Barred(B28_Type                                               p_CellIdentity,
+                                                template (value) CellSelectReselectInfoSIB_3_4         p_CellSelectReselectInfoSIB_3_4,
+                                                template (value) CellAccessRestriction                 p_CellAccessRestriction,
+                                                template (omit) SysInfoType3.v4b0NonCriticalExtensions p_V4b0NonCriticalExtensions)
+  modifies cs_SIB3_Common :=
+  { /* @status    APPROVED */
+    cellAccessRestriction := p_CellAccessRestriction,
+    v4b0NonCriticalExtensions := p_V4b0NonCriticalExtensions
+  };
+
+  template (value) CellAccessRestriction cs_CellAccessRestriction_Common(template (value) CellBarred           p_CellBarred,
+                                                                         template (value) ReservedIndicator    p_CellReservedForOperatorUse,
+                                                                         template (value) ReservedIndicator    p_CellReservationExtension,
+                                                                         template (omit) AccessClassBarredList p_AccessClassBarredList) :=
+  { /* @status    APPROVED */
+    cellBarred := p_CellBarred,
+    cellReservedForOperatorUse := p_CellReservedForOperatorUse,
+    cellReservationExtension := p_CellReservationExtension,
+    accessClassBarredList := p_AccessClassBarredList
+  };
+
+  template (value) SysInfoType4 cs_SIB4_Common(B28_Type p_CellIdentity,
+                                               template (value) CellSelectReselectInfoSIB_3_4 p_CellSelectReselectInfoSIB_3_4) :=
+  { /* @status    APPROVED */
+    cellIdentity := p_CellIdentity,
+    cellSelectReselectInfo := p_CellSelectReselectInfoSIB_3_4,
+    cellAccessRestriction := {
+      cellBarred := {
+        notBarred := NULL
+      },
+      cellReservedForOperatorUse := notReserved,
+      cellReservationExtension := notReserved,
+      accessClassBarredList := omit
+    },
+    v4b0NonCriticalExtensions := omit
+  };
+
+  template (value) SysInfoType4 cs_SIB4_DefUTRAN(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB4_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_4_ModeSpecificInfo_FDD, 21));
+
+  template (value) SysInfoType4 cs_SIB4_DefUTRAN_GERAN(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB4_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB3_4_ModeSpecificInfo_FDD(cs_RAT_FDD_InfoList_GERAN), 21));
+
+  template (value) SysInfoType4 cs_SIB4_DefUTRAN_TDD(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB4_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB4_ModeSpecificInfo_TDD, 21));
+
+  template (value) SysInfoType4 cs_SIB4_DefUTRAN_GERAN_TDD(B28_Type p_CellIdentity) :=
+  /* @status    APPROVED */
+    cs_SIB4_Common(p_CellIdentity, cs_CellSelectReselectInfoSIB_3_4(cs_SIB4_ModeSpecificInfo_TDD(cs_RAT_TDD_InfoList_GERAN), 30));
+
+  template (value) OpenLoopPowerControl_TDD cs_OpenLoopPowerControl_TDD :=
+  { /* Default OpenLoopPowerControl_TDD; TDD only */
+    /* @status    APPROVED */
+    primaryCCPCH_TX_Power := tsc_PrimaryCCPCH_TX_Power,
+    alpha := omit,
+    prach_ConstantValue := 0,
+    dpch_ConstantValue := 0,
+    pusch_ConstantValue := omit
+  };
+
+  template (value) IndividualTimeslotInfo_LCR_r4_ext cs_IndividualTimeslotInfo_LCR_r4_ext_SCCPCH :=
+  { /* used in system info, reference to "cb_IndividualTimeslotInfo_LCR_r4_SCCPCH"; TDD only */
+    /* @status    APPROVED */
+    midambleShiftAndBurstType := {
+      midambleAllocationMode := {defaultMidamble := NULL},
+      midambleConfiguration := 4
+    },
+    modulation := mod_QPSK,
+    ss_TPC_Symbols := zero
+  };
+
+  template (value) IndividualTimeslotInfo cs_IndividualTimeslotInfo_SCCPCH :=
+  { /* IndividualTimeslotInfo for SCCPCH; TDD only */
+    /* @status    APPROVED */
+    timeslotNumber := 0,
+    tfci_Existence := true,
+    midambleShiftAndBurstType := {
+      burstType := {
+        type1 := {
+          midambleConfigurationBurstType1and3 := ms4,
+          midambleAllocationMode := {defaultMidamble := NULL}
+        }
+      }
+    }
+  };
+
+  template (value) SysInfoType5 cs_SIB5_Def_TDD(PICH_PowerOffset p_PowerPICH,
+                                                CellParametersID p_CellParametersID) :=
+  { /* @status    APPROVED */
+    sib6indicator := true,
+    pich_PowerOffset := p_PowerPICH,
+    modeSpecificInfo := {
+      tdd := {
+        pusch_SysInfoList_SFN := omit,
+        pdsch_SysInfoList_SFN := omit,
+        openLoopPowerControl_TDD := cs_OpenLoopPowerControl_TDD
+      }
+    },
+    primaryCCPCH_Info := {
+      tdd := {
+        syncCase := omit,
+        cellParametersID := p_CellParametersID,
+        sctd_Indicator := false
+      }
+    },
+    prach_SystemInformationList := {
+      {
+        prach_RACH_Info := {
+          modeSpecificInfo := {
+            tdd := {
+              timeslot := 1,
+              channelisationCodeList := {sf8 := { cc8_8 } },
+              prach_Midamble := direct
+            }
+          }
+        },
+        transportChannelIdentity := tsc_RACH1,
+        rach_TransportFormatSet := omit,
+        rach_TFCS := {
+          normalTFCI_Signalling := {
+            complete := {
+              ctfcSize := {
+                ctfc2Bit := {
+                  cs_TFCS_CtfcSize_Ctfc2Bit(0),
+                  cs_TFCS_CtfcSize_Ctfc2Bit(1)
+                }
+              }
+            }
+          }
+        },
+        prach_Partitioning := omit,
+        persistenceScalingFactorList := {
+          psf0_9,
+          psf0_9,
+          psf0_9,
+          psf0_9,
+          psf0_9
+        },
+        ac_To_ASC_MappingTable := {
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        },
+        modeSpecificInfo := {
+          tdd := NULL
+        }
+      }
+    },
+    sCCPCH_SystemInformationList := {
+      {
+        secondaryCCPCH_Info := {
+          modeSpecificInfo := {
+            tdd := {
+              commonTimeslotInfo := cs_CommonTimeslotInfoSCCPCH,
+              individualTimeslotInfo := cs_IndividualTimeslotInfo_SCCPCH,
+              channelisationCode := tsc_S_CCPCH1_1P1F_ChC
+            }
+          }
+        },
+        tfcs := {
+          normalTFCI_Signalling := {
+            complete := {
+              ctfcSize := {
+                ctfc4Bit := {
+                  cs_TFCS_CtfcSize_Ctfc4Bit(0),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(1),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(2),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(3),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(4),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(5),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(6),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(8)
+                }
+              }
+            }
+          }
+        },
+        fach_PCH_InformationList := {
+          {
+            transportFormatSet := {
+              commonTransChTFS := cs_PCH_TFS_UE_TDD
+            },
+            transportChannelIdentity := tsc_PCH1,     // PCH
+            ctch_Indicator := false
+          },
+          {
+            transportFormatSet := {
+              commonTransChTFS := cs_FACH_TFS_UE_TDD
+            },
+            transportChannelIdentity := tsc_FACH1,     // FACH
+            ctch_Indicator := false
+          },
+          {
+            transportFormatSet := {
+              commonTransChTFS := cs_FACH_TFS_PS_UE_TDD
+            },
+            transportChannelIdentity := tsc_FACH2,     // FACH
+            ctch_Indicator := false
+          }
+        },
+        pich_Info := omit
+      }
+    },
+    cbs_DRX_Level1Information := omit,
+    v4b0NonCriticalExtensions := {
+      sysInfoType5_v4b0ext :=
+      {
+        pNBSCH_Allocation_r4 := omit,
+        openLoopPowerControl_IPDL_TDD := omit,
+        prach_SystemInformationList_LCR_r4 :=
+        {
+          {
+            prach_RACH_Info_LCR := cs_PRACH_RACH_Info_LCR_r4(tsc_PRACH1_ChC, tsc_FPACH1_ChC),
+            rach_TransportFormatSet_LCR := {commonTransChTFS_LCR := cs_RACH_TFS_LCR},
+            prach_Partitioning_LCR :=
+            {
+              // accessServiceClass-TDD-LCR is MD, please see comment on IE 'ASCSetting-TDD-LCR-r4'  in 25.331-480,
+              { accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4 },
+              { accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4 },
+              { accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4 },
+              { accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4 },
+              { accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4 },
+              { accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4 },
+              { accessServiceClass_TDD_LCR := cs_AccessServiceClass_TDD_LCR_r4 }
+            } // End of PRACH-Partitioning-LCR-r4
+          }
+        }, // End of prach_SystemInformationList-LCR-r4
+        tdd128SpecificInfo :=
+        {
+          pusch_SysInfoList_SFN := omit,
+          pdsch_SysInfoList_SFN := omit,
+          pCCPCH_LCR_Extensions := { tstd_Indicator := false },
+          sCCPCH_LCR_ExtensionsList := {
+            {
+              secondaryCCPCH_LCR_Extensions :=
+              {
+                individualTimeslotLCR_Ext := cs_IndividualTimeslotInfo_LCR_r4_ext_SCCPCH
+              },
+              pich_Info := cs_PichInfo_TDD
+            }
+          } // End of SCCPCH-SystemInformationList-LCR-r4-ext
+        }, // End of TddSpecificInfo
+        frequencyBandIndicator := omit
+      },// End of sysInfoType5-v4xyext
+      v590NonCriticalExtensions := {
+        sysInfoType5_v590ext := omit,
+        v650NonCriticalExtensions := {
+          sysInfoType5_v650ext := omit,
+          v680NonCriticalExtensions := {
+            sysInfoType5_v680ext := {
+              hsdpa_CellIndicator := hsdpa_CapableCell
+            },
+            v690NonCriticalExtensions := {   // @sic R5s110215 sic@
+              sysInfoType5_v690ext := cs_SysInfoType5_v690ext_IEs_AddRACH_TF,
+              v770NonCriticalExtensions := omit
+
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SysInfoType5 cs_SIB5_Def(PICH_PowerOffset p_PowerPICH,
+                                            AICH_PowerOffset p_PowerAICH) :=
+  { /* @status    APPROVED */
+    sib6indicator := true,
+    pich_PowerOffset := p_PowerPICH,
+    modeSpecificInfo := {
+      fdd := {
+        aich_PowerOffset := p_PowerAICH
+      }
+    },
+    primaryCCPCH_Info := omit,
+    prach_SystemInformationList := {
+      {
+        prach_RACH_Info := {
+          modeSpecificInfo := {
+            fdd := {
+              availableSignatures := tsc_PRACH1_Signatures,
+              availableSF := tsc_PRACH1_SF,
+              preambleScramblingCodeWordNumber := tsc_PRACH1_ScrC,
+              puncturingLimit := pl1,
+              availableSubChannelNumbers := '111111111111'B
+            }
+          }
+        },
+        transportChannelIdentity := tsc_RACH1,
+        rach_TransportFormatSet := {
+          commonTransChTFS := cs_RACH_TFS_UE_FDD
+        },
+        rach_TFCS := {
+          normalTFCI_Signalling := {
+            complete := {
+              ctfcSize := {
+                ctfc2Bit := {
+                  {
+                    ctfc2 := 0,
+                    powerOffsetInformation := {
+                      gainFactorInformation := {
+                        computedGainFactors := 0
+                      },
+                      powerOffsetPp_m := 0
+                    }
+                  },
+                  {
+                    ctfc2 := 1,
+                    powerOffsetInformation := {
+                      gainFactorInformation := {
+                        signalledGainFactors := {
+                          modeSpecificInfo := {
+                            fdd := {
+                              gainFactorBetaC := tsc_GainFactorBetaC_Below64k
+                            }
+                          },
+                          gainFactorBetaD := 15,
+                          referenceTFC_ID := 0
+                        }
+                      },
+                      powerOffsetPp_m := 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        prach_Partitioning := {
+          fdd := {
+            {
+              accessServiceClass_FDD := omit
+            },
+            {
+              accessServiceClass_FDD := {
+                availableSignatureStartIndex := 0,
+                availableSignatureEndIndex := 7,
+                assignedSubChannelNumber := '1111'B
+              }
+            },
+            {
+              accessServiceClass_FDD := omit
+            },
+            {
+              accessServiceClass_FDD := {
+                availableSignatureStartIndex := 0,
+                availableSignatureEndIndex := 7,
+                assignedSubChannelNumber := '1111'B
+              }
+            },
+            {
+              accessServiceClass_FDD := omit
+            },
+            {
+              accessServiceClass_FDD := {
+                availableSignatureStartIndex := 0,
+                availableSignatureEndIndex := 7,
+                assignedSubChannelNumber := '1111'B
+              }
+            },
+            {
+              accessServiceClass_FDD := omit
+            },
+            {
+              accessServiceClass_FDD := {
+                availableSignatureStartIndex := 0,
+                availableSignatureEndIndex := 7,
+                assignedSubChannelNumber := '1111'B
+              }
+            }
+          }
+        },
+        persistenceScalingFactorList := {
+          psf0_9,
+          psf0_9,
+          psf0_9,
+          psf0_9,
+          psf0_9,
+          psf0_9
+        },
+        ac_To_ASC_MappingTable := {
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        },
+        modeSpecificInfo := {
+          fdd := {
+            primaryCPICH_TX_Power := 31,
+            constantValue := -10,
+            prach_PowerOffset := {
+              powerRampStep := 3,     // db
+              preambleRetransMax := 4
+            },
+            rach_TransmissionParameters := {
+              mmax := 2,
+              nb01Min := 3,
+              nb01Max := 10
+            },
+            aich_Info := {
+              channelisationCode256 := tsc_AICH1_ChC,
+              sttd_Indicator := false,
+              aich_TransmissionTiming := e0
+            }
+          }
+        }
+      }
+    },
+    sCCPCH_SystemInformationList := {
+      {
+        secondaryCCPCH_Info := {
+          modeSpecificInfo := {
+            fdd := {
+              dummy1 := mayBeUsed,     // mandatory ie
+              dummy2 := omit,
+              secondaryScramblingCode := omit,
+              sttd_Indicator := false,
+              sf_AndCodeNumber := tsc_S_CCPCH1_ChC,
+              pilotSymbolExistence := false,
+              tfci_Existence := true,
+              positionFixedOrFlexible := flexible,
+              timingOffset := 0
+            }
+          }
+        },
+        tfcs := {
+          normalTFCI_Signalling := {
+            complete := {
+              ctfcSize := {
+                ctfc4Bit := {
+                  cs_TFCS_CtfcSize_Ctfc4Bit(0),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(1),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(2),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(3),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(4),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(5),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(6),
+                  cs_TFCS_CtfcSize_Ctfc4Bit(8)
+                }
+              }
+            }
+          }
+        },
+        fach_PCH_InformationList := {
+          {
+            transportFormatSet := {
+              commonTransChTFS := cs_PCH_TFS_UE
+            },
+            transportChannelIdentity := tsc_PCH1,     // PCH
+            ctch_Indicator := false
+          },
+          {
+            transportFormatSet := {
+              commonTransChTFS := cs_FACH_TFS_UE
+            },
+            transportChannelIdentity := tsc_FACH1,     // FACH
+            ctch_Indicator := false
+          },
+          {
+            transportFormatSet := {
+              commonTransChTFS := cs_FACH_TFS_PS_UE
+            },
+            transportChannelIdentity := tsc_FACH2,     // FACH
+            ctch_Indicator := false
+          }
+        },
+        pich_Info := {
+          fdd := {
+            channelisationCode256 := tsc_PICH1_ChC,
+            pi_CountPerFrame := e18,
+            sttd_Indicator := false
+          }
+        }
+      }
+    },
+    cbs_DRX_Level1Information := omit,
+    v4b0NonCriticalExtensions := {  // @sic R5s110215 sic@
+      sysInfoType5_v4b0ext := omit,
+      v590NonCriticalExtensions := {
+        sysInfoType5_v590ext := omit,
+        v650NonCriticalExtensions := {
+          sysInfoType5_v650ext := omit,
+          v680NonCriticalExtensions := {
+            sysInfoType5_v680ext := omit,
+            v690NonCriticalExtensions := {
+              sysInfoType5_v690ext := cs_SysInfoType5_v690ext_IEs_AddRACH_TF,
+              v770NonCriticalExtensions := omit
+
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SysInfoType5 cds_SIB5_v650ext(PICH_PowerOffset p_PowerPICH,
+                                                 AICH_PowerOffset p_PowerAICH,
+                                                 RadioFrequencyBandFDD2 p_RadioFrequencyBandFDD2) modifies cs_SIB5_Def :=
+  { /* @status    APPROVED */
+    v4b0NonCriticalExtensions := {
+      sysInfoType5_v4b0ext := {     // @sic R5s120573 sic@
+        frequencyBandIndicator := extension_indicator
+        },
+      v590NonCriticalExtensions := {
+        v650NonCriticalExtensions := {
+          sysInfoType5_v650ext := {
+            frequencyBandIndicator2 := p_RadioFrequencyBandFDD2
+          }  // @sic R5s120178 sic@
+        }
+      }
+    }
+  };
+
+  template (value) SysInfoType5 cds_SIB5_v4b0ext(PICH_PowerOffset p_PowerPICH,
+                                                 AICH_PowerOffset p_PowerAICH,
+                                                 RadioFrequencyBandFDD p_RadioFrequencyBandFDD) modifies cs_SIB5_Def :=
+  { /* @status    APPROVED */
+    v4b0NonCriticalExtensions := {
+      sysInfoType5_v4b0ext := {
+        frequencyBandIndicator := p_RadioFrequencyBandFDD
+      }  // @sic R5s120177 sic@
+    }
+  };
+
+  template (value) SysInfoType5 cds_SIB5_va40ext (PICH_PowerOffset p_PowerPICH,
+                                                  AICH_PowerOffset p_PowerAICH,
+                                                  RadioFrequencyBandFDD3 p_RadioFrequencyBandFDD3)
+    modifies cs_SIB5_Def :=
+  { /* @status    APPROVED */
+    // @sic R5s120178 sic@
+    v4b0NonCriticalExtensions := {
+      v590NonCriticalExtensions := {
+        v650NonCriticalExtensions := {
+          v680NonCriticalExtensions := {
+            v690NonCriticalExtensions := {
+              v770NonCriticalExtensions := {
+                sysInfoType5_v770ext := {
+                   modeSpecificInfo := omit,
+                   sccpch_SystemInformationList := omit,
+                   sccpch_SystemInformation_MBMS := omit,
+                   tDD_MBSFNInformation := omit
+                },
+                v860NonCriticalExtensions := {
+                  sysInfoType5_v860ext := {
+                     dummy := omit,
+                     modeSpecificInfo := { fdd  := { hs_dsch_DrxCellfach_info := omit } }
+                     },
+                  v890NonCriticalExtensions := {
+                    sysInfoType5_v890ext := {
+                         secondFrequencyInfo:= omit,
+                         commonEDCHSystemInfo:=omit},
+                    v8b0NonCriticalExtensions := {
+                      sysInfoType5_v8b0ext := {
+                          tresetUsageIndicator := omit,
+                          upPCHpositionInfo := omit },
+                      v8d0NonCriticalExtensions := {
+                        sysInfoType5_v8d0ext := { commonEDCHSystemInfoFDD := omit },
+                        va40NonCriticalExtensions := {
+                          sysInfoType5_va40ext := {
+                            frequencyBandsIndicatorSupport := omit,
+                            frequencyBandIndicator3 := p_RadioFrequencyBandFDD3
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  template (value) AdditionalPRACH_TF_and_TFCS_CCCH_List cs_AddPRACH_TF_TFS_CCCH_FDD :=
+  { /* @status    APPROVED */
+    {
+      additionalPRACH_TF_and_TFCS_CCCH_IEs :=
+      {
+        powerOffsetInformation := {
+          gainFactorInformation := {
+            signalledGainFactors := {
+              modeSpecificInfo := {
+                fdd := {
+                  gainFactorBetaC := 11
+                }
+              },
+              gainFactorBetaD := 15,
+              referenceTFC_ID := 0
+            }
+          },
+          powerOffsetPp_m := 0
+        },
+        dynamicTFInformationCCCH := {
+          octetModeRLC_SizeInfoType2 := {
+            sizeType1:= 24 // Actual size = (sizeType1 * 8) + 48
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SysInfoType5_v690ext_IEs cs_SysInfoType5_v690ext_IEs_AddRACH_TF :=
+  { /* @status    APPROVED */
+    edch_CellIndicator := omit,
+    sccpch_SystemInformation_MBMS := omit,
+    additionalPRACH_TF_and_TFCS_CCCH_List := cs_AddPRACH_TF_TFS_CCCH_FDD,
+    cBS_DRX_Level1Information_extension := omit
+  };
+
+  template (value) SysInfoType5 cs_SIB5_Band5(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v4b0ext(p_PowerPICH, p_PowerAICH, bandV);      /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band6(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v4b0ext(p_PowerPICH, p_PowerAICH, bandVI);     /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band7(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v4b0ext(p_PowerPICH, p_PowerAICH, bandVII);    /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band8 (PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandVIII);  /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band11(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXI);    /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band12(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXII);   /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band13(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXIII);  /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band14(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXIV);   /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band15(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXV);    /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band16(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXVI);   /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band17(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXVII);  /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band18(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXVIII); /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band19(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXIX);   /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band20(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXX);    /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band21(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXXI);   /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band22(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandXXII);  /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5_Band25(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_va40ext(p_PowerPICH, p_PowerAICH, bandXXV);   /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5bis_Band4 (PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v4b0ext(p_PowerPICH, p_PowerAICH, bandIV);  /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5bis_Band9 (PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandIX);  /* @status    APPROVED */
+
+  template (value) SysInfoType5 cs_SIB5bis_Band10(PICH_PowerOffset p_PowerPICH, AICH_PowerOffset p_PowerAICH) := cds_SIB5_v650ext(p_PowerPICH, p_PowerAICH, bandX);   /* @status    APPROVED */
+
+  template (value) SysInfoType6 cs_SIB6_Def(PICH_PowerOffset p_PowerPICH,
+                                            AICH_PowerOffset p_PowerAICH) :=
+  { /* @status    APPROVED */
+    pich_PowerOffset := p_PowerPICH,
+    modeSpecificInfo := {
+      fdd := {
+        aich_PowerOffset := p_PowerAICH,
+        dummy := omit
+      }
+    },
+    primaryCCPCH_Info := omit,
+    prach_SystemInformationList := omit,
+    sCCPCH_SystemInformationList := omit,
+    cbs_DRX_Level1Information := omit,
+    v4b0NonCriticalExtensions := omit
+  };
+
+  template (value) SysInfoType6 cs_SIB6_Def_TDD(PICH_PowerOffset p_PowerPICH) :=
+  { /* @status    APPROVED */
+    pich_PowerOffset := p_PowerPICH,
+    modeSpecificInfo := {
+      tdd := {
+        pusch_SysInfoList_SFN := omit,
+        pdsch_SysInfoList_SFN := omit,
+        openLoopPowerControl_TDD := {
+          primaryCCPCH_TX_Power := 12,
+          alpha := omit,
+          prach_ConstantValue := 0,
+          dpch_ConstantValue := 0,
+          pusch_ConstantValue := omit
+        }
+      }
+    },
+    primaryCCPCH_Info := omit,
+    prach_SystemInformationList := omit,
+    sCCPCH_SystemInformationList := omit,
+    cbs_DRX_Level1Information := omit,
+    v4b0NonCriticalExtensions := omit
+  };
+
+  template (value) SysInfoType7 cs_SIB7_Def :=
+  { /* @status    APPROVED */
+    modeSpecificInfo := {
+      fdd := {
+        ul_Interference := -100
+      }
+    },
+    prach_Information_SIB5_List := {
+      2
+    },
+    prach_Information_SIB6_List := omit,
+    expirationTimeFactor := omit,
+    nonCriticalExtensions := omit
+  };
+
+  template (value) SysInfoType7 cs_SIB7_Def_TDD :=
+  { /* @status    APPROVED */
+    modeSpecificInfo := {tdd := NULL},
+    prach_Information_SIB5_List := {
+      2
+    },
+    prach_Information_SIB6_List := {
+      2
+    },
+    expirationTimeFactor := omit,
+    nonCriticalExtensions := omit
+  };
+
+  template (value) NewIntraFreqCellSI_RSCP cs_NewIntraFreqCell_FDD(integer p_CellId,
+                                                                   PrimaryScramblingCode p_PrimaryScramblingCode,
+                                                                   boolean p_ReadSFN_Indicator) :=
+  { /* @status    APPROVED */
+    intraFreqCellID := p_CellId,
+    cellInfo := {
+      cellIndividualOffset := omit,     // default value
+      referenceTimeDifferenceToCell := omit,
+      modeSpecificInfo := {
+        fdd := {
+          primaryCPICH_Info := {
+            primaryScramblingCode := p_PrimaryScramblingCode
+          },
+          primaryCPICH_TX_Power := omit,
+          readSFN_Indicator := p_ReadSFN_Indicator,
+          tx_DiversityIndicator := false
+        }
+      },
+      cellSelectionReselectionInfo := omit
+    }
+  };
+
+  template (value) NewInterFreqCellSI_RSCP cs_NewInterFreqCell_FDD(integer p_CellId,
+                                                                   FrequencyInfo p_FrequencyInfo,
+                                                                   PrimaryScramblingCode p_PrimaryScramblingCode) :=
+  { /* @status    APPROVED */
+    interFreqCellID := p_CellId,
+    frequencyInfo := p_FrequencyInfo,
+    cellInfo := {
+      cellIndividualOffset := omit,     // default value
+      referenceTimeDifferenceToCell := omit,
+      modeSpecificInfo := {
+        fdd := {
+          primaryCPICH_Info := {
+            primaryScramblingCode := p_PrimaryScramblingCode
+          },
+          primaryCPICH_TX_Power := omit,
+          readSFN_Indicator := false,
+          tx_DiversityIndicator := false
+        }
+      },
+      cellSelectionReselectionInfo := omit     // value same as the serving cell
+    }
+  };
+
+  template (value) NewInterRATCell_B cs_NewInterRATCell(integer p_GERANCell_Id,
+                                                        integer p_GERANCell_Ncc,
+                                                        integer p_GERANCell_Bcc,
+                                                        Frequency_Band p_GERANCell_BandInd,
+                                                        integer p_GERANCell_Freq) :=
+  {  /* @status    APPROVED */
+    interRATCellID := p_GERANCell_Id,
+    technologySpecificInfo := {
+      gsm := {
+        cellSelectionReselectionInfo := omit,
+        interRATCellIndividualOffset := 0,
+        bsic := {
+          ncc := p_GERANCell_Ncc,
+          bcc := p_GERANCell_Bcc
+        },
+        frequency_band := p_GERANCell_BandInd,
+        bcch_ARFCN := p_GERANCell_Freq,
+        dummy := omit
+      }
+    }
+  };
+
+  template (value) IntraFreqEventCriteriaList cs_IntraFreqEvent1b_1c :=
+  { /* @status    APPROVED */
+    {
+      event := {
+        e1b := {
+          triggeringCondition := activeSetCellsOnly,
+          reportingRange := 10,     // Actual value ReportingRange = IE value * 0.5
+          forbiddenAffectCellList := omit,
+          w := 1
+        }
+      },
+      hysteresis := 0,
+      timeToTrigger := ttt640,
+      reportingCellStatus := {
+        withinActiveAndOrMonitoredUsedFreq := e3
+      }
+    },
+    {
+      event := {
+        e1c := {
+          replacementActivationThreshold := t3,
+          reportingAmount := ra4,
+          reportingInterval := ri4
+        }
+      },
+      hysteresis := 0,
+      timeToTrigger := ttt640,
+      reportingCellStatus := {
+        withinActiveAndOrMonitoredUsedFreq := e3
+      }
+    }
+  };
+
+  template (value) SysInfoType11 cs_SIB11_Common_FDD(template (value) NewIntraFreqCellSI_List_RSCP p_NewIntraFreqCellList,
+                                                     template (value) NewInterFreqCellSI_List_RSCP p_NewInterFreqCellList,
+                                                     template (omit) InterRATMeasurementSysInfo_B p_InterRATMeasurementSysInfo := omit,
+                                                     boolean p_Sib12indicator := true) :=
+  { /* @status    APPROVED */
+    sib12indicator := p_Sib12indicator,
+    fach_MeasurementOccasionInfo := omit,
+    measurementControlSysInfo := {
+      use_of_HCS := {
+        hcs_not_used := {
+          cellSelectQualityMeasure := {
+            cpich_RSCP := {
+              intraFreqMeasurementSysInfo := {
+                intraFreqMeasurementID := omit,     // default value
+                intraFreqCellInfoSI_List := {
+                  removedIntraFreqCellList := omit,     // removedIntraFreqCellList in SIB11 is not used and ignored by the UE
+                  newIntraFreqCellList := p_NewIntraFreqCellList
+                },
+                intraFreqMeasQuantity := {
+                  filterCoefficient := omit,     // default value
+                  modeSpecificInfo := {
+                    fdd := {
+                      intraFreqMeasQuantity_FDD := cpich_RSCP
+                    }
+                  }
+                },
+                intraFreqReportingQuantityForRACH := omit,
+                maxReportedCellsOnRACH := omit,
+                reportingInfoForCellDCH := {
+                  intraFreqReportingQuantity := {
+                    activeSetReportingQuantities := {
+                      dummy := noReport,
+                      cellIdentity_reportingIndicator := true,
+                      cellSynchronisationInfoReportingIndicator := false,
+                      modeSpecificInfo := {
+                        fdd := {
+                          cpich_Ec_N0_reportingIndicator := false,
+                          cpich_RSCP_reportingIndicator := true,
+                          pathloss_reportingIndicator := false
+                        }
+                      }
+                    },
+                    monitoredSetReportingQuantities := {
+                      dummy := noReport,
+                      cellIdentity_reportingIndicator := true,
+                      cellSynchronisationInfoReportingIndicator := true,
+                      modeSpecificInfo := {
+                        fdd := {
+                          cpich_Ec_N0_reportingIndicator := false,
+                          cpich_RSCP_reportingIndicator := true,
+                          pathloss_reportingIndicator := false
+                        }
+                      }
+                    },
+                    detectedSetReportingQuantities := omit
+                  },
+                  measurementReportingMode := {
+                    measurementReportTransferMode := acknowledgedModeRLC,
+                    periodicalOrEventTrigger := eventTrigger
+                  },
+                  reportCriteria := {
+                    intraFreqReportingCriteria := {
+                      eventCriteriaList := cs_IntraFreqEvent1b_1c
+                    }
+                  }
+                }
+              },
+              interFreqMeasurementSysInfo := {
+                interFreqCellInfoSI_List := {
+                  removedInterFreqCellList := omit,     // removedInterFreqCellList in SIB11 is not used and ignored by the UE
+                  newInterFreqCellList := p_NewInterFreqCellList
+                }
+              }
+            }
+          },
+          interRATMeasurementSysInfo := p_InterRATMeasurementSysInfo
+        }
+      },
+      trafficVolumeMeasSysInfo := omit,
+      dummy := omit
+    },
+    v4b0NonCriticalExtensions := omit
+  };
+
+  template (value) NewIntraFreqCellSI_List_RSCP cs_NewIntraFreqCellList_Def_FDD(integer p_ActiveCellInfo_CellId,
+                                                                                PrimaryScramblingCode p_ActiveCellInfo_PriScrmCode,
+                                                                                integer p_IntraCellInfo2_CellId,
+                                                                                PrimaryScramblingCode p_IntraCellInfo2_PriScrmCode) :=
+  { /* @status    APPROVED */
+    cs_NewIntraFreqCell_FDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_PriScrmCode, false), // readSFN_Indicator := false
+    cs_NewIntraFreqCell_FDD(p_IntraCellInfo2_CellId, p_IntraCellInfo2_PriScrmCode, true)   // readSFN_Indicator := true
+  };
+
+  template (value) NewInterFreqCellSI_List_RSCP cs_NewInterFreqCellList_Def_FDD(integer p_InterCellInfo3_CellId,
+                                                                                FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                                                PrimaryScramblingCode p_InterCellInfo3_PriScrmCode,
+                                                                                integer p_InterCellInfo4_CellId,
+                                                                                FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                                                PrimaryScramblingCode p_InterCellInfo4_PriScrmCode) :=
+  { /* @status    APPROVED */
+    cs_NewInterFreqCell_FDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_PriScrmCode),
+    cs_NewInterFreqCell_FDD(p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_PriScrmCode)
+  };
+
+  template (value) NewIntraFreqCellSI_List_RSCP cs_NewIntraFreqCellList_Freq2_FDD(integer p_ActiveCellInfo_CellId,
+                                                                                  PrimaryScramblingCode p_ActiveCellInfo_PriScrmCode) :=
+  { /* @status    APPROVED */
+    cs_NewIntraFreqCell_FDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_PriScrmCode, false)  // readSFN_Indicator := false
+  };
+
+  template (value) NewInterFreqCellSI_List_RSCP cs_NewInterFreqCellList_Freq2_FDD(integer p_InterCellInfo2_CellId,
+                                                                                  FrequencyInfo p_InterCellInfo2_FreqInfo,
+                                                                                  PrimaryScramblingCode p_InterCellInfo2_PriScrmCode,
+                                                                                  integer p_InterCellInfo3_CellId,
+                                                                                  FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                                                  PrimaryScramblingCode p_InterCellInfo3_PriScrmCode,
+                                                                                  integer p_InterCellInfo4_CellId,
+                                                                                  FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                                                  PrimaryScramblingCode p_InterCellInfo4_PriScrmCode) :=
+  { /* @status    APPROVED */
+    cs_NewInterFreqCell_FDD(p_InterCellInfo2_CellId, p_InterCellInfo2_FreqInfo, p_InterCellInfo2_PriScrmCode),
+    cs_NewInterFreqCell_FDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_PriScrmCode),
+    cs_NewInterFreqCell_FDD(p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_PriScrmCode)
+  };
+
+  template (omit) InterRATMeasurementSysInfo_B cs_InterRATMeasurementSysInfo_UG(integer p_GERANCell1_Id,
+                                                                                integer p_GERANCell1_Ncc,
+                                                                                integer p_GERANCell1_Bcc,
+                                                                                Frequency_Band p_GERANCell1_BandInd,
+                                                                                integer p_GERANCell1_Freq,
+                                                                                integer p_GERANCell2_Id,
+                                                                                integer p_GERANCell2_Ncc,
+                                                                                integer p_GERANCell2_Bcc,
+                                                                                Frequency_Band p_GERANCell2_BandInd,
+                                                                                integer p_GERANCell2_Freq,
+                                                                                integer p_GERANCell3_Id,
+                                                                                integer p_GERANCell3_Ncc,
+                                                                                integer p_GERANCell3_Bcc,
+                                                                                Frequency_Band p_GERANCell3_BandInd,
+                                                                                integer p_GERANCell3_Freq) :=
+  {  /* @status    APPROVED */
+    interRATCellInfoList := {
+      removedInterRATCellList := {
+        removeNoInterRATCells := NULL
+      },
+      newInterRATCellList := {
+        cs_NewInterRATCell(p_GERANCell1_Id, p_GERANCell1_Ncc, p_GERANCell1_Bcc, p_GERANCell1_BandInd, p_GERANCell1_Freq),
+        cs_NewInterRATCell(p_GERANCell2_Id, p_GERANCell2_Ncc, p_GERANCell2_Bcc, p_GERANCell2_BandInd, p_GERANCell2_Freq),
+        cs_NewInterRATCell(p_GERANCell3_Id, p_GERANCell3_Ncc, p_GERANCell3_Bcc, p_GERANCell3_BandInd, p_GERANCell3_Freq)
+      }
+    }
+  };
+
+  template (value) SysInfoType11 cs_SIB11_Def_FDD(integer p_ActiveCellInfo_CellId,
+                                                  PrimaryScramblingCode p_ActiveCellInfo_PriScrmCode,
+                                                  integer p_IntraCellInfo2_CellId,
+                                                  PrimaryScramblingCode p_IntraCellInfo2_PriScrmCode,
+                                                  integer p_InterCellInfo3_CellId,
+                                                  FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                  PrimaryScramblingCode p_InterCellInfo3_PriScrmCode,
+                                                  integer p_InterCellInfo4_CellId,
+                                                  FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                  PrimaryScramblingCode p_InterCellInfo4_PriScrmCode) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_FDD( cs_NewIntraFreqCellList_Def_FDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_PriScrmCode,
+                                                         p_IntraCellInfo2_CellId, p_IntraCellInfo2_PriScrmCode),
+                         cs_NewInterFreqCellList_Def_FDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_PriScrmCode,
+                                                         p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_PriScrmCode));
+
+  template (value) SysInfoType11 cs_SIB11_Freq2_FDD(integer p_ActiveCellInfo_CellId,
+                                                    PrimaryScramblingCode p_ActiveCellInfo_PriScrmCode,
+                                                    integer p_InterCellInfo2_CellId,
+                                                    FrequencyInfo p_InterCellInfo2_FreqInfo,
+                                                    PrimaryScramblingCode p_InterCellInfo2_PriScrmCode,
+                                                    integer p_InterCellInfo3_CellId,
+                                                    FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                    PrimaryScramblingCode p_InterCellInfo3_PriScrmCode,
+                                                    integer p_InterCellInfo4_CellId,
+                                                    FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                    PrimaryScramblingCode p_InterCellInfo4_PriScrmCode) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_FDD( cs_NewIntraFreqCellList_Freq2_FDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_PriScrmCode),
+                         cs_NewInterFreqCellList_Freq2_FDD(p_InterCellInfo2_CellId, p_InterCellInfo2_FreqInfo, p_InterCellInfo2_PriScrmCode,
+                                                           p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_PriScrmCode,
+                                                           p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_PriScrmCode));
+
+  template (value) SysInfoType11 cs_SIB11_Def_UG_FDD(integer p_ActiveCellInfo_CellId,
+                                                     PrimaryScramblingCode p_ActiveCellInfo_PriScrmCode,
+                                                     integer p_IntraCellInfo2_CellId,
+                                                     PrimaryScramblingCode p_IntraCellInfo2_PriScrmCode,
+                                                     integer p_InterCellInfo3_CellId,
+                                                     FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                     PrimaryScramblingCode p_InterCellInfo3_PriScrmCode,
+                                                     integer p_InterCellInfo4_CellId,
+                                                     FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                     PrimaryScramblingCode p_InterCellInfo4_PriScrmCode,
+                                                     integer p_GERANCell1_Id,
+                                                     integer p_GERANCell1_Ncc,
+                                                     integer p_GERANCell1_Bcc,
+                                                     Frequency_Band p_GERANCell1_BandInd,
+                                                     integer p_GERANCell1_Freq,
+                                                     integer p_GERANCell2_Id,
+                                                     integer p_GERANCell2_Ncc,
+                                                     integer p_GERANCell2_Bcc,
+                                                     Frequency_Band p_GERANCell2_BandInd,
+                                                     integer p_GERANCell2_Freq,
+                                                     integer p_GERANCell3_Id,
+                                                     integer p_GERANCell3_Ncc,
+                                                     integer p_GERANCell3_Bcc,
+                                                     Frequency_Band p_GERANCell3_BandInd,
+                                                     integer p_GERANCell3_Freq) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_FDD( cs_NewIntraFreqCellList_Def_FDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_PriScrmCode,
+                                                         p_IntraCellInfo2_CellId, p_IntraCellInfo2_PriScrmCode),
+                         cs_NewInterFreqCellList_Def_FDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_PriScrmCode,
+                                                         p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_PriScrmCode),
+                         cs_InterRATMeasurementSysInfo_UG(p_GERANCell1_Id, p_GERANCell1_Ncc, p_GERANCell1_Bcc, p_GERANCell1_BandInd, p_GERANCell1_Freq,
+                                                          p_GERANCell2_Id, p_GERANCell2_Ncc, p_GERANCell2_Bcc, p_GERANCell2_BandInd, p_GERANCell2_Freq,
+                                                          p_GERANCell3_Id, p_GERANCell3_Ncc, p_GERANCell3_Bcc, p_GERANCell3_BandInd, p_GERANCell3_Freq),
+                         false); // sib12indicator := false
+
+  template (value) SysInfoType11 cs_SIB11_Freq2_UG_FDD(integer p_ActiveCellInfo_CellId,
+                                                       PrimaryScramblingCode p_ActiveCellInfo_PriScrmCode,
+                                                       integer p_InterCellInfo2_CellId,
+                                                       FrequencyInfo p_InterCellInfo2_FreqInfo,
+                                                       PrimaryScramblingCode p_InterCellInfo2_PriScrmCode,
+                                                       integer p_InterCellInfo3_CellId,
+                                                       FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                       PrimaryScramblingCode p_InterCellInfo3_PriScrmCode,
+                                                       integer p_InterCellInfo4_CellId,
+                                                       FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                       PrimaryScramblingCode p_InterCellInfo4_PriScrmCode,
+                                                       integer p_GERANCell1_Id,
+                                                       integer p_GERANCell1_Ncc,
+                                                       integer p_GERANCell1_Bcc,
+                                                       Frequency_Band p_GERANCell1_BandInd,
+                                                       integer p_GERANCell1_Freq,
+                                                       integer p_GERANCell2_Id,
+                                                       integer p_GERANCell2_Ncc,
+                                                       integer p_GERANCell2_Bcc,
+                                                       Frequency_Band p_GERANCell2_BandInd,
+                                                       integer p_GERANCell2_Freq,
+                                                       integer p_GERANCell3_Id,
+                                                       integer p_GERANCell3_Ncc,
+                                                       integer p_GERANCell3_Bcc,
+                                                       Frequency_Band p_GERANCell3_BandInd,
+                                                       integer p_GERANCell3_Freq) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_FDD( cs_NewIntraFreqCellList_Freq2_FDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_PriScrmCode),
+                         cs_NewInterFreqCellList_Freq2_FDD(p_InterCellInfo2_CellId, p_InterCellInfo2_FreqInfo, p_InterCellInfo2_PriScrmCode,
+                                                           p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_PriScrmCode,
+                                                           p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_PriScrmCode),
+                         cs_InterRATMeasurementSysInfo_UG(p_GERANCell1_Id, p_GERANCell1_Ncc, p_GERANCell1_Bcc, p_GERANCell1_BandInd, p_GERANCell1_Freq,
+                                                          p_GERANCell2_Id, p_GERANCell2_Ncc, p_GERANCell2_Bcc, p_GERANCell2_BandInd, p_GERANCell2_Freq,
+                                                          p_GERANCell3_Id, p_GERANCell3_Ncc, p_GERANCell3_Bcc, p_GERANCell3_BandInd, p_GERANCell3_Freq));
+
+  template (value) NewIntraFreqCellSI_RSCP_LCR_r4 cs_NewIntraFreqCell_TDD(integer p_CellId,
+                                                                          CellParametersID p_CellParametersID,
+                                                                          boolean p_ReadSFN_Indicator) :=
+  { /* @status    APPROVED */
+    intraFreqCellID := p_CellId,
+    cellInfo := {
+      cellIndividualOffset := omit,     // default value
+      referenceTimeDifferenceToCell := omit,
+      primaryCCPCH_Info := {
+        tstd_Indicator     :=      false,
+        cellParametersID    :=     p_CellParametersID,
+        sctd_Indicator      :=     false
+      },
+      primaryCCPCH_TX_Power   :=   omit,
+      timeslotInfoList        :=   omit,
+      readSFN_Indicator       :=   p_ReadSFN_Indicator,
+      cellSelectionReselectionInfo  :=  omit
+    }
+  };
+
+  template (value) NewInterFreqCellSI_RSCP_LCR_r4 cs_NewInterFreqCell_TDD(integer p_CellId,
+                                                                          FrequencyInfo p_FrequencyInfo,
+                                                                          CellParametersID p_CellParametersID) :=
+  { /* @status    APPROVED */
+    interFreqCellID := p_CellId,
+    frequencyInfo := p_FrequencyInfo,
+    cellInfo := {
+      cellIndividualOffset := omit,     // default value
+      referenceTimeDifferenceToCell := omit,
+      primaryCCPCH_Info := {
+        tstd_Indicator    :=    false,
+        cellParametersID  :=    p_CellParametersID,
+        sctd_Indicator    :=    false
+      },
+      primaryCCPCH_TX_Power  := omit,
+      timeslotInfoList       := omit,
+      readSFN_Indicator      := false,
+      cellSelectionReselectionInfo := omit     // value same as the serving cell
+    }
+  };
+
+  template (value) SysInfoType11 cs_SIB11_Common_TDD (template (value) NewIntraFreqCellSI_List_RSCP_LCR_r4 p_NewIntraFreqCellSI_List,
+                                                      template (value) NewInterFreqCellSI_List_RSCP_LCR_r4 p_NewInterFreqCellSI_List,
+                                                      template (omit) InterRATMeasurementSysInfo_B p_InterRATMeasurementSysInfo := omit) :=
+  { /* @status    APPROVED */
+    sib12indicator := true,
+    fach_MeasurementOccasionInfo := omit,
+    measurementControlSysInfo := {
+      use_of_HCS := {
+        hcs_not_used := {
+          cellSelectQualityMeasure := {
+            cpich_RSCP := {
+              intraFreqMeasurementSysInfo := omit,
+              interFreqMeasurementSysInfo := omit
+            } // End of cellSelectQualityMeasure
+          },
+          interRATMeasurementSysInfo := p_InterRATMeasurementSysInfo
+        } // End of use_of_HCS
+      },
+      trafficVolumeMeasSysInfo := omit,
+      dummy := omit
+    }, // End of measurementControlSysInfo
+    v4b0NonCriticalExtensions := {
+      sysInfoType11_v4b0ext := {
+        fach_MeasurementOccasionInfo_LCR_Ext  := omit,
+        measurementControlSysInfo_LCR := {
+          use_of_HCS := {
+            hcs_not_used := {
+              cellSelectQualityMeasure := {
+                cpich_RSCP := {
+                  intraFreqMeasurementSysInfo := {
+                    intraFreqMeasurementID := omit,  // default value 1
+                    intraFreqCellInfoSI_List := {
+                      removedIntraFreqCellList := omit,   // removedIntraFreqCellList in SIB11 is not used and ignored by the UE
+                      newIntraFreqCellList := p_NewIntraFreqCellSI_List
+                    },//End of intraFreqCellInfo
+                    intraFreqMeasQuantity  := {
+                       filterCoefficient := omit,     // default value
+                       modeSpecificInfo := {
+                          tdd := {
+                                intraFreqMeasQuantity_TDDList := { primaryCCPCH_RSCP }
+                                 }
+                       }
+                    },
+                    intraFreqReportingQuantityForRACH  := omit,
+                    maxReportedCellsOnRACH     :=     omit,
+                    reportingInfoForCellDCH    :=     omit
+                  }, // End of intraFreqMeasurementSysInfo-RSCP-LCR-r4
+                  interFreqMeasurementSysInfo := {
+                    interFreqCellInfoSI_List := {
+                      removedInterFreqCellList := omit,  // removedInterFreqCellList in SIB11 is not used and ignored by the UE
+                      newInterFreqCellList := p_NewInterFreqCellSI_List
+                    } // End of interFreqCellInfoSI_List
+                  }// End of interFreqMeasurementSysInfo
+                } // End of cpich_RSCP
+              }
+            } // End of hcs_not_used
+          }
+        } // End of MeasurementControlSysInfo_LCR_r4_ext
+      }, // End of SysInfoType11_v4xyext_IES
+      v590NonCriticalExtension := omit
+    } // End of v4xyNonCriticalExtensions
+  };
+
+  template (value) NewIntraFreqCellSI_List_RSCP_LCR_r4 cs_NewIntraFreqCellList_Def_TDD(integer p_ActiveCellInfo_CellId,
+                                                                                       CellParametersID p_ActiveCellInfo_CellParametersID,
+                                                                                       integer p_IntraCellInfo2_CellId,
+                                                                                       CellParametersID p_IntraCellInfo2_CellParametersID) :=
+  { /* @status    APPROVED */
+    cs_NewIntraFreqCell_TDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_CellParametersID, false), // readSFN_Indicator := false
+    cs_NewIntraFreqCell_TDD(p_IntraCellInfo2_CellId, p_IntraCellInfo2_CellParametersID, true)   // readSFN_Indicator := true
+  };
+
+  template (value) NewInterFreqCellSI_List_RSCP_LCR_r4 cs_NewInterFreqCellList_Def_TDD(integer p_InterCellInfo3_CellId,
+                                                                                       FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                                                       PrimaryScramblingCode p_InterCellInfo3_CellParametersID,
+                                                                                       integer p_InterCellInfo4_CellId,
+                                                                                       FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                                                       PrimaryScramblingCode p_InterCellInfo4_CellParametersID) :=
+  { /* @status    APPROVED */
+    cs_NewInterFreqCell_TDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_CellParametersID),
+    cs_NewInterFreqCell_TDD(p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_CellParametersID)
+  };
+
+  template (value) NewIntraFreqCellSI_List_RSCP_LCR_r4 cs_NewIntraFreqCellList_Freq2_TDD(integer p_ActiveCellInfo_CellId,
+                                                                                         CellParametersID p_ActiveCellInfo_CellParametersID) :=
+  { /* @status    APPROVED */
+    cs_NewIntraFreqCell_TDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_CellParametersID, false)  // readSFN_Indicator := false
+  };
+
+  template (value) NewInterFreqCellSI_List_RSCP_LCR_r4 cs_NewInterFreqCellList_Freq2_TDD(integer p_InterCellInfo2_CellId,
+                                                                                         FrequencyInfo p_InterCellInfo2_FreqInfo,
+                                                                                         PrimaryScramblingCode p_InterCellInfo2_CellParametersID,
+                                                                                         integer p_InterCellInfo3_CellId,
+                                                                                         FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                                                         PrimaryScramblingCode p_InterCellInfo3_CellParametersID,
+                                                                                         integer p_InterCellInfo4_CellId,
+                                                                                         FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                                                         PrimaryScramblingCode p_InterCellInfo4_CellParametersID) :=
+  { /* @status    APPROVED */
+    cs_NewInterFreqCell_TDD(p_InterCellInfo2_CellId, p_InterCellInfo2_FreqInfo, p_InterCellInfo2_CellParametersID),
+    cs_NewInterFreqCell_TDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_CellParametersID),
+    cs_NewInterFreqCell_TDD(p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_CellParametersID)
+  };
+
+  template (value) SysInfoType11 cs_SIB11_Def_TDD ( integer p_ActiveCellInfo_CellId,
+                                                    CellParametersID p_ActiveCellInfo_CellParametersID,
+                                                    integer p_IntraCellInfo2_CellId,
+                                                    CellParametersID p_IntraCellInfo2_CellParametersID,
+                                                    integer p_InterCellInfo3_CellId,
+                                                    FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                    CellParametersID p_InterCellInfo3_CellParametersID,
+                                                    integer p_InterCellInfo4_CellId,
+                                                    FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                    CellParametersID p_InterCellInfo4_CellParametersID) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_TDD (cs_NewIntraFreqCellList_Def_TDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_CellParametersID,
+                                                         p_IntraCellInfo2_CellId, p_IntraCellInfo2_CellParametersID),
+                         cs_NewInterFreqCellList_Def_TDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_CellParametersID,
+                                                         p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_CellParametersID));
+
+  template (value) SysInfoType11 cs_SIB11_Freq2_TDD ( integer p_ActiveCellInfo_CellId,
+                                                      CellParametersID p_ActiveCellInfo_CellParametersID,
+                                                      integer p_InterCellInfo2_CellId,
+                                                      FrequencyInfo p_InterCellInfo2_FreqInfo,
+                                                      CellParametersID p_InterCellInfo2_CellParametersID,
+                                                      integer p_InterCellInfo3_CellId,
+                                                      FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                      CellParametersID p_InterCellInfo3_CellParametersID,
+                                                      integer p_InterCellInfo4_CellId,
+                                                      FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                      CellParametersID p_InterCellInfo4_CellParametersID) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_TDD (cs_NewIntraFreqCellList_Freq2_TDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_CellParametersID),
+                         cs_NewInterFreqCellList_Freq2_TDD(p_InterCellInfo2_CellId, p_InterCellInfo2_FreqInfo, p_InterCellInfo2_CellParametersID,
+                                                           p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_CellParametersID,
+                                                           p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_CellParametersID));
+
+  template (value) SysInfoType11 cs_SIB11_Def_UG_TDD ( integer p_ActiveCellInfo_CellId,
+                                                       CellParametersID p_ActiveCellInfo_CellParametersID,
+                                                       integer p_IntraCellInfo2_CellId,
+                                                       CellParametersID p_IntraCellInfo2_CellParametersID,
+                                                       integer p_InterCellInfo3_CellId,
+                                                       FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                       CellParametersID p_InterCellInfo3_CellParametersID,
+                                                       integer p_InterCellInfo4_CellId,
+                                                       FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                       CellParametersID p_InterCellInfo4_CellParametersID,
+                                                       integer p_GERANCell1_Id,
+                                                       integer p_GERANCell1_Ncc,
+                                                       integer p_GERANCell1_Bcc,
+                                                       Frequency_Band p_GERANCell1_BandInd,
+                                                       integer p_GERANCell1_Freq,
+                                                       integer p_GERANCell2_Id,
+                                                       integer p_GERANCell2_Ncc,
+                                                       integer p_GERANCell2_Bcc,
+                                                       Frequency_Band p_GERANCell2_BandInd,
+                                                       integer p_GERANCell2_Freq,
+                                                       integer p_GERANCell3_Id,
+                                                       integer p_GERANCell3_Ncc,
+                                                       integer p_GERANCell3_Bcc,
+                                                       Frequency_Band p_GERANCell3_BandInd,
+                                                       integer p_GERANCell3_Freq) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_TDD (cs_NewIntraFreqCellList_Def_TDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_CellParametersID,
+                                                         p_IntraCellInfo2_CellId, p_IntraCellInfo2_CellParametersID),
+                         cs_NewInterFreqCellList_Def_TDD(p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_CellParametersID,
+                                                         p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_CellParametersID),
+                         cs_InterRATMeasurementSysInfo_UG(p_GERANCell1_Id, p_GERANCell1_Ncc, p_GERANCell1_Bcc, p_GERANCell1_BandInd, p_GERANCell1_Freq,
+                                                          p_GERANCell2_Id, p_GERANCell2_Ncc, p_GERANCell2_Bcc, p_GERANCell2_BandInd, p_GERANCell2_Freq,
+                                                          p_GERANCell3_Id, p_GERANCell3_Ncc, p_GERANCell3_Bcc, p_GERANCell3_BandInd, p_GERANCell3_Freq));
+
+  template (value) SysInfoType11 cs_SIB11_Freq2_UG_TDD ( integer p_ActiveCellInfo_CellId,
+                                                         CellParametersID p_ActiveCellInfo_CellParametersID,
+                                                         integer p_InterCellInfo2_CellId,
+                                                         FrequencyInfo p_InterCellInfo2_FreqInfo,
+                                                         CellParametersID p_InterCellInfo2_CellParametersID,
+                                                         integer p_InterCellInfo3_CellId,
+                                                         FrequencyInfo p_InterCellInfo3_FreqInfo,
+                                                         CellParametersID p_InterCellInfo3_CellParametersID,
+                                                         integer p_InterCellInfo4_CellId,
+                                                         FrequencyInfo p_InterCellInfo4_FreqInfo,
+                                                         CellParametersID p_InterCellInfo4_CellParametersID,
+                                                         integer p_GERANCell1_Id,
+                                                         integer p_GERANCell1_Ncc,
+                                                         integer p_GERANCell1_Bcc,
+                                                         Frequency_Band p_GERANCell1_BandInd,
+                                                         integer p_GERANCell1_Freq,
+                                                         integer p_GERANCell2_Id,
+                                                         integer p_GERANCell2_Ncc,
+                                                         integer p_GERANCell2_Bcc,
+                                                         Frequency_Band p_GERANCell2_BandInd,
+                                                         integer p_GERANCell2_Freq,
+                                                         integer p_GERANCell3_Id,
+                                                         integer p_GERANCell3_Ncc,
+                                                         integer p_GERANCell3_Bcc,
+                                                         Frequency_Band p_GERANCell3_BandInd,
+                                                         integer p_GERANCell3_Freq) :=
+  /* @status    APPROVED */
+    cs_SIB11_Common_TDD (cs_NewIntraFreqCellList_Freq2_TDD(p_ActiveCellInfo_CellId, p_ActiveCellInfo_CellParametersID),
+                         cs_NewInterFreqCellList_Freq2_TDD(p_InterCellInfo2_CellId, p_InterCellInfo2_FreqInfo, p_InterCellInfo2_CellParametersID,
+                                                           p_InterCellInfo3_CellId, p_InterCellInfo3_FreqInfo, p_InterCellInfo3_CellParametersID,
+                                                           p_InterCellInfo4_CellId, p_InterCellInfo4_FreqInfo, p_InterCellInfo4_CellParametersID),
+                         cs_InterRATMeasurementSysInfo_UG(p_GERANCell1_Id, p_GERANCell1_Ncc, p_GERANCell1_Bcc, p_GERANCell1_BandInd, p_GERANCell1_Freq,
+                                                          p_GERANCell2_Id, p_GERANCell2_Ncc, p_GERANCell2_Bcc, p_GERANCell2_BandInd, p_GERANCell2_Freq,
+                                                          p_GERANCell3_Id, p_GERANCell3_Ncc, p_GERANCell3_Bcc, p_GERANCell3_BandInd, p_GERANCell3_Freq));
+
+  template (value) SysInfoType12 cs_SIB12_Def :=
+  { /* @status    APPROVED */
+    fach_MeasurementOccasionInfo := omit,
+    measurementControlSysInfo := {
+      use_of_HCS := {
+        hcs_not_used := {
+          cellSelectQualityMeasure := {
+            cpich_RSCP := {
+              intraFreqMeasurementSysInfo := omit,
+              interFreqMeasurementSysInfo := omit
+            }
+          },
+          interRATMeasurementSysInfo := omit
+        }
+      },
+      trafficVolumeMeasSysInfo := omit,
+      dummy := omit
+    },
+    v4b0NonCriticalExtensions := omit
+  };
+
+  template (value) SysInfoType16 cs_SIB16_Def (SF512_AndPilot p_SF512_AndPilot):=
+  { /* @status    APPROVED */
+    preDefinedRadioConfiguration := {
+      predefinedRB_Configuration := cs_PredefinedRB_CfgSIB16,
+      preDefTransChConfiguration := cs_PreDefTransChCfg_Speech12_2k,
+      preDefPhyChConfiguration   := cs_PreDefPhyChCfgSIB16 ( p_SF512_AndPilot)
+    },
+    v770NonCriticalExtensions := omit
+  };
+
+  template (value) PreDefPhyChConfiguration cs_PreDefPhyChCfgSIB16 (SF512_AndPilot p_SF512_AndPilot):=
+  { /* @status    APPROVED */
+    ul_DPCH_InfoPredef := cs_UL_DPCH_InfoPredefSIB16,
+    dl_CommonInformationPredef := cs_DL_CommonInformationPredefSIB16 ( p_SF512_AndPilot )
+  };
+
+  template (value) UL_DPCH_InfoPredef cs_UL_DPCH_InfoPredefSIB16 :=
+  { /* @status    APPROVED */
+    ul_DPCH_PowerControlInfo := {
+      fdd := {
+        powerControlAlgorithm := {
+          algorithm1 := 1
+        }
+      }
+    },
+    modeSpecificInfo := {
+      fdd := {
+        tfci_Existence := false,
+        puncturingLimit := pl0_88
+      }
+    }
+  };
+
+  template (value) DL_CommonInformationPredef cs_DL_CommonInformationPredefSIB16 (SF512_AndPilot p_SF512_AndPilot):=
+  { /* @status    APPROVED */
+    dl_DPCH_InfoCommon := {
+      modeSpecificInfo := {
+        fdd := {
+          spreadingFactorAndPilot := p_SF512_AndPilot,
+          positionFixedOrFlexible := fixed,
+          tfci_Existence := false
+        }
+      }
+    }
+  };
+
+  template (value) TFCS_ReconfAdd_CtfcSize_Ctfc6Bit_Type cs_TFCS_ReconfAdd_Ctfc6Bit_SI(TFCS_ReconfAdd_CtfcSize_Ctfc6Bit_Type.ctfc6 p_Ctfc6) :=
+  { /* @status    APPROVED */
+    ctfc6 := p_Ctfc6,
+    powerOffsetInformation := {
+      gainFactorInformation := {
+        signalledGainFactors := {
+          modeSpecificInfo := {
+            fdd := {
+              gainFactorBetaC := 0
+            }
+          },
+          gainFactorBetaD := 0,
+          referenceTFC_ID := omit
+        }
+      },
+      powerOffsetPp_m := 0
+    }
+  };
+
+  template (value) PreDefTransChConfiguration cs_PreDefTransChCfg_Speech12_2k :=
+  { /* @status    APPROVED */
+    ul_CommonTransChInfo := {
+      tfc_Subset := {allowedTFC_List := {0, 1, 2, 3, 4, 5}},
+      prach_TFCS := omit,
+      modeSpecificInfo := {
+        fdd := {
+          ul_TFCS := {
+            normalTFCI_Signalling := {
+              addition := {
+                ctfcSize := {
+                  ctfc6Bit := {
+                    cs_TFCS_ReconfAdd_Ctfc6Bit_SI(0),
+                    cs_TFCS_ReconfAdd_Ctfc6Bit_SI(1),
+                    cs_TFCS_ReconfAdd_Ctfc6Bit_SI(11),
+                    cs_TFCS_ReconfAdd_Ctfc6Bit_SI(12),
+                    cs_TFCS_ReconfAdd_Ctfc6Bit_SI(13),
+                    cs_TFCS_ReconfAdd_Ctfc6Bit_SI(23)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    ul_AddReconfTrChInfoList := {
+      {
+        ul_TransportChannelType := dch,
+        transportChannelIdentity := tsc_UL_DCH1,
+        transportFormatSet := {
+          dedicatedTransChTFS := cs_DCH_81_TFS_UE
+        }
+      },
+      {
+        ul_TransportChannelType := dch,
+        transportChannelIdentity := tsc_UL_DCH2,
+        transportFormatSet := {
+          dedicatedTransChTFS := cs_DCH_103_TFS_UE
+        }
+      },
+      {
+        ul_TransportChannelType := dch,
+        transportChannelIdentity := tsc_UL_DCH3,
+        transportFormatSet := {
+          dedicatedTransChTFS := cs_DCH_60_TFS_UE
+        }
+      },
+      {
+        ul_TransportChannelType := dch,
+        transportChannelIdentity := tsc_UL_DCH5,
+        transportFormatSet := {
+          dedicatedTransChTFS := cs_DCH_148_TFS_UE_UL
+        }
+      }
+    },
+    dl_CommonTransChInfo := {
+      sccpch_TFCS := omit,
+      modeSpecificInfo := {
+        fdd := {
+          dl_Parameters := {
+            sameAsUL := NULL
+          }
+        }
+      }
+    },
+    dl_TrChInfoList := {
+      {
+        dl_TransportChannelType := dch,
+        dl_transportChannelIdentity := tsc_DL_DCH1,
+        tfs_SignallingMode := {
+          sameAsULTrCH := {
+            ul_TransportChannelType := dch,
+            ul_TransportChannelIdentity := tsc_UL_DCH1
+          }
+        },
+        dch_QualityTarget := {
+          bler_QualityValue := 0
+        },
+        dummy := omit
+      },
+      {
+        dl_TransportChannelType := dch,
+        dl_transportChannelIdentity := tsc_DL_DCH2,
+        tfs_SignallingMode := {
+          sameAsULTrCH := {
+            ul_TransportChannelType := dch,
+            ul_TransportChannelIdentity := tsc_UL_DCH2
+          }
+        },
+        dch_QualityTarget := {
+          bler_QualityValue := 0
+        },
+        dummy := omit
+      },
+      {
+        dl_TransportChannelType := dch,
+        dl_transportChannelIdentity := tsc_DL_DCH3,
+        tfs_SignallingMode := {
+          sameAsULTrCH := {
+            ul_TransportChannelType := dch,
+            ul_TransportChannelIdentity := tsc_UL_DCH3
+          }
+        },
+        dch_QualityTarget := {
+          bler_QualityValue := 0
+        },
+        dummy := omit
+      },
+      {
+        dl_TransportChannelType := dch,
+        dl_transportChannelIdentity := tsc_DL_DCH5,
+        tfs_SignallingMode := {
+          sameAsULTrCH := {
+            ul_TransportChannelType := dch,
+            ul_TransportChannelIdentity := tsc_UL_DCH5
+          }
+        },
+        dch_QualityTarget := { bler_QualityValue := 0},
+        dummy := omit
+      }
+    }
+  };
+
+  template (value) UL_LogicalChannelMappings cs_UL_LogicalChannelMappings_OneChannel_DCH(TransportChannelIdentity p_TransportChannelIdentity,
+                                                                                         LogicalChannelIdentity   p_LogicalChannelIdentity,
+                                                                                         MAC_LogicalChannelPriority p_LogicalChannelPriority) :=
+  { /* @status    APPROVED */
+    oneLogicalChannel := {
+      ul_TransportChannelType := {
+        dch := p_TransportChannelIdentity
+      },
+      logicalChannelIdentity := p_LogicalChannelIdentity,
+      rlc_SizeList := {
+        configured := NULL
+      },
+      mac_LogicalChannelPriority := p_LogicalChannelPriority
+    }
+  };
+
+  template (value) DL_LogicalChannelMappingList cs_DL_LogicalChannelMapping_OneChannel_DCH(TransportChannelIdentity p_TransportChannelIdentity,
+                                                                                           LogicalChannelIdentity  p_LogicalChannelIdentity) :=
+  { /* @status    APPROVED */
+    {
+      dl_TransportChannelType := {
+        dch := p_TransportChannelIdentity
+      },
+      logicalChannelIdentity := p_LogicalChannelIdentity
+    }
+  };
+
+  template (value) RLC_InfoChoice cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB0 :=
+  { /* @status    APPROVED */
+    rlc_Info := {
+      ul_RLC_Mode := {
+        ul_UM_RLC_Mode := {
+          transmissionRLC_Discard := {
+            timerBasedNoExplicit := dt100
+          }
+        }
+      },
+      dl_RLC_Mode := {
+        dl_UM_RLC_Mode := NULL
+      }
+    }
+  };
+
+  template (value) RLC_InfoChoice cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB2_RB3_RB4 :=
+  { /* @status    APPROVED */
+    rlc_Info := {
+      ul_RLC_Mode := {
+        ul_AM_RLC_Mode := {
+          transmissionRLC_Discard := {
+            maxDAT_Retransmissions := {
+              maxDAT := dat4,
+              timerMRW := te100,
+              maxMRW := mm4
+            }
+          },
+          transmissionWindowSize := tw8,
+          timerRST := tr500,
+          max_RST := rst4,
+          pollingInfo := {
+            timerPollProhibit := tpp200,
+            timerPoll := tp200,
+            poll_PDU := omit,
+            poll_SDU := sdu1,
+            lastTransmissionPDU_Poll := true,
+            lastRetransmissionPDU_Poll := true,
+            pollWindow := pw99,
+            timerPollPeriodic := omit
+          }
+        }
+      },
+      dl_RLC_Mode := {
+        dl_AM_RLC_Mode := {
+          inSequenceDelivery := true,
+          receivingWindowSize := rw8,
+          dl_RLC_StatusInfo := {
+            timerStatusProhibit := tsp200,
+            dummy := te200,
+            missingPDU_Indicator := true,
+            timerStatusPeriodic := omit
+          }
+        }
+      }
+    }
+  };
+
+  template (value) RLC_InfoChoice cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB10_RB11_RB12 :=
+  { /* @status    APPROVED */
+    rlc_Info := {
+      ul_RLC_Mode := {
+        ul_TM_RLC_Mode := {
+          transmissionRLC_Discard := omit,
+          segmentationIndication := true
+        }
+      },
+      dl_RLC_Mode := {
+        dl_TM_RLC_Mode := {
+          segmentationIndication := true
+        }
+      }
+    }
+  };
+
+  template (value) PredefinedRB_Configuration cs_PredefinedRB_CfgSIB16:=
+  { /* @status    APPROVED */
+    re_EstablishmentTimer := useT315,
+    srb_InformationList := {
+      {
+        rb_Identity := tsc_RB1,
+        rlc_InfoChoice := cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB0,
+        rb_MappingInfo := {
+          {
+            ul_LogicalChannelMappings := cs_UL_LogicalChannelMappings_OneChannel_DCH(tsc_UL_DCH5, tsc_UL_DCCH1, tsc_MAC_LogicalChannelPrio1),
+            dl_LogicalChannelMappingList := cs_DL_LogicalChannelMapping_OneChannel_DCH(tsc_DL_DCH5, tsc_DL_DCCH1)
+          }
+        }
+      },
+      {
+        rb_Identity := tsc_RB2,
+        rlc_InfoChoice := cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB2_RB3_RB4,
+        rb_MappingInfo := {
+          {
+            ul_LogicalChannelMappings := cs_UL_LogicalChannelMappings_OneChannel_DCH(tsc_UL_DCH5, tsc_UL_DCCH2, tsc_MAC_LogicalChannelPrio2),
+            dl_LogicalChannelMappingList := cs_DL_LogicalChannelMapping_OneChannel_DCH(tsc_DL_DCH5, tsc_DL_DCCH2)
+          }
+        }
+      },
+      {
+        rb_Identity := tsc_RB3,
+        rlc_InfoChoice := cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB2_RB3_RB4,
+        rb_MappingInfo := {
+          {
+            ul_LogicalChannelMappings := cs_UL_LogicalChannelMappings_OneChannel_DCH(tsc_UL_DCH5, tsc_UL_DCCH3, tsc_MAC_LogicalChannelPrio3),
+            dl_LogicalChannelMappingList := cs_DL_LogicalChannelMapping_OneChannel_DCH(tsc_DL_DCH5, tsc_DL_DCCH3)
+          }
+        }
+      },
+      {
+        rb_Identity := tsc_RB4,
+        rlc_InfoChoice := cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB2_RB3_RB4,
+        rb_MappingInfo := {
+          {
+            ul_LogicalChannelMappings := cs_UL_LogicalChannelMappings_OneChannel_DCH(tsc_UL_DCH5, tsc_UL_DCCH4, tsc_MAC_LogicalChannelPrio4),
+            dl_LogicalChannelMappingList := cs_DL_LogicalChannelMapping_OneChannel_DCH(tsc_DL_DCH5, tsc_DL_DCCH4)
+          }
+        }
+      }
+    },
+    rb_InformationList := {
+      {
+        rb_Identity := tsc_RB10,
+        pdcp_Info := omit,
+        rlc_InfoChoice := cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB10_RB11_RB12,
+        rb_MappingInfo := {
+          {
+            ul_LogicalChannelMappings := cs_UL_LogicalChannelMappings_OneChannel_DCH(tsc_UL_DCH1, tsc_UL_DTCH1, tsc_MAC_LogicalChannelPrio6),
+            dl_LogicalChannelMappingList := cs_DL_LogicalChannelMapping_OneChannel_DCH(tsc_DL_DCH1, tsc_DL_DTCH1)
+          }
+        }
+      },
+      {
+        rb_Identity := tsc_RB11,
+        pdcp_Info := omit,
+        rlc_InfoChoice := cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB10_RB11_RB12,
+        rb_MappingInfo := {
+          {
+            ul_LogicalChannelMappings := cs_UL_LogicalChannelMappings_OneChannel_DCH(tsc_UL_DCH2, tsc_UL_DTCH2, tsc_MAC_LogicalChannelPrio6),
+            dl_LogicalChannelMappingList := cs_DL_LogicalChannelMapping_OneChannel_DCH(tsc_DL_DCH2, tsc_DL_DTCH2)
+          }
+        }
+      },
+      {
+        rb_Identity := tsc_RB12,
+        pdcp_Info := omit,
+        rlc_InfoChoice := cs_PredefinedRB_CfgSIB16_RLC_InfoChoice_RB10_RB11_RB12,
+        rb_MappingInfo := {
+          {
+            ul_LogicalChannelMappings := cs_UL_LogicalChannelMappings_OneChannel_DCH(tsc_UL_DCH3, tsc_UL_DTCH3, tsc_MAC_LogicalChannelPrio6),
+            dl_LogicalChannelMappingList := cs_DL_LogicalChannelMapping_OneChannel_DCH(tsc_DL_DCH3, tsc_DL_DTCH3)
+          }
+        }
+      }
+    }
+  };
+
+  template (value) SysInfoType18 cs_SIB18_Def :=
+  { /* @status    APPROVED */
+    idleModePLMNIdentities := {
+      plmnsOfIntraFreqCellsList := omit,
+      plmnsOfInterFreqCellsList := omit,
+      plmnsOfInterRATCellsList := omit
+    },
+    connectedModePLMNIdentities := omit,
+    v6b0NonCriticalExtensions := omit
+  };
+
+  template (value) EUTRA_FrequencyAndPriorityInfoList cs_Eutra_FreqAndPriList_OneEntry_Common ( EARFCN                                           p_Earfcn,
+                                                                                                template (omit) EUTRA_MeasurementBandwidth       p_MeasurementBandwidth,
+                                                                                                EutraFrequencyAndPriorityInfoPriorityValue_Type  p_PriorityValue,
+                                                                                                EutraFrequencyAndPriorityInfoQrxLevMin_Type      p_QrxLevMinEutra,
+                                                                                                EutraFrequencyAndPriorityInfoThreshXhigh_Type    p_ThreshXhigh,
+                                                                                                EutraFrequencyAndPriorityInfoThreshXlow_Type     p_ThreshXlow,
+                                                                                                template (omit) EUTRA_BlacklistedCellPerFreqList p_Eutra_blackListedCellList,
+                                                                                                boolean                                          p_EutraDetection ) :=
+  { /* @status    APPROVED */
+    {
+      earfcn := p_Earfcn,
+      measurementBandwidth := p_MeasurementBandwidth,
+      priority       := p_PriorityValue,
+      qRxLevMinEUTRA := p_QrxLevMinEutra,
+      threshXhigh := p_ThreshXhigh,
+      threshXlow := p_ThreshXlow,
+      eutra_blackListedCellList := p_Eutra_blackListedCellList,
+      eutraDetection := p_EutraDetection
+    }
+  };
+
+  template (value) EUTRA_FrequencyAndPriorityInfoList cs_Eutra_FreqAndPriList_OneEntry_Def ( EARFCN p_Earfcn,
+                                                                                             EUTRA_MeasurementBandwidth p_MeasurementBandwidth,
+                                                                                             EutraFrequencyAndPriorityInfoPriorityValue_Type p_PriorityValue := 4  ) :=
+  /* @status    APPROVED */
+    cs_Eutra_FreqAndPriList_OneEntry_Common ( p_Earfcn,
+                                              p_MeasurementBandwidth,
+                                              p_PriorityValue,
+                                              -53, // @sic R5-120312 sic@
+                                              2,
+                                              1,
+                                              omit,
+                                              true );
+
+  template (value) EUTRA_FrequencyAndPriorityInfo cs_EUTRA_FrequencyAndPriorityInfo(EARFCN p_E_Cell,
+                                                                                    EUTRA_MeasurementBandwidth p_EUTRA_MeasurementBandwidth) :=
+  { /* @status    APPROVED */
+    earfcn := p_E_Cell,
+    measurementBandwidth := p_EUTRA_MeasurementBandwidth, //@sic R5s100871 sic@
+    priority := 4,
+    qRxLevMinEUTRA := -53,  //@sic R5s120321 sic@
+    threshXhigh := 2,
+    threshXlow := 1,
+    eutra_blackListedCellList := omit,
+    eutraDetection := true
+  };
+
+  template (value) UTRA_PriorityInfoList cs_Utra_PriorityInfoList_Common ( UtraServingCellPriorityValue_Type    p_Priority_value,
+                                                                           UtraServingCellPrioritySearch1_Type  p_S_PrioritySearch1,
+                                                                           UtraServingCellthreshServingLow_Type p_ThreshServingLow ) :=
+  { /* @status    APPROVED */
+    utra_ServingCell := {
+      priority          := p_Priority_value,
+      s_PrioritySearch1 := p_S_PrioritySearch1,
+      s_PrioritySearch2 := omit,
+      threshServingLow := p_ThreshServingLow
+    },
+    utran_FDD_FrequencyList := omit,
+    utran_TDD_FrequencyList := omit
+  };
+
+  template (value) UTRA_PriorityInfoList cs_Utra_PriorityInfoList_Def := cs_Utra_PriorityInfoList_Common ( 3, 0, 0 ); /* @status    APPROVED */
+
+  template (value) UTRA_PriorityInfoList cs_Utra_PriorityInfoList_Prio(UtraServingCellPriorityValue_Type p_Priority_value) := cs_Utra_PriorityInfoList_Common(p_Priority_value, 0, 0); /* @status    APPROVED */
+
+  template (value) SysInfoType19 cs_SIB19_Common ( template (omit) UTRA_PriorityInfoList              p_Utra_PriorityInfoList,
+                                                   template (omit) GSM_PriorityInfoList               p_Gsm_PriorityInfoList,
+                                                   template (omit) EUTRA_FrequencyAndPriorityInfoList p_Eutra_FrequencyAndPriorityInfoList ) :=
+  { /* @status    APPROVED */
+    // SIB19 acc. to 36.508 Table 4.4.4.1-1
+    utra_PriorityInfoList := p_Utra_PriorityInfoList,
+    gsm_PriorityInfoList := p_Gsm_PriorityInfoList,
+    eutra_FrequencyAndPriorityInfoList := p_Eutra_FrequencyAndPriorityInfoList,
+    v920NonCriticalExtensions := omit               /* @sic R5s110176 Baseline Moving sic@ */
+  };
+
+  template (value) SysInfoType19 cs_SIB19_Def (template (omit) EUTRA_FrequencyAndPriorityInfoList p_Eutra_FrequencyAndPriorityInfoList) :=
+    /* @status    APPROVED */
+    cs_SIB19_Common ( cs_Utra_PriorityInfoList_Def, omit, p_Eutra_FrequencyAndPriorityInfoList );
+
+  template (value) SysInfoType19 cds_SIB19_Qbased (template (omit) EUTRA_FrequencyAndPriorityInfoList p_Eutra_FrequencyAndPriorityInfoList)
+  modifies cs_SIB19_Def :=
+  { // SIB19 acc. to 36.508 Table 4.4.4.1-1 with condition QBASED
+    /* @status    APPROVED */
+    v920NonCriticalExtensions := {
+      sysInfoType19_v920ext:= {
+        utra_PriorityInfoList_v920ext:={ threshServingLow2:=7},
+        eutra_FrequencyAndPriorityInfoList_v920ext := {{
+            qqualMinEUTRA   := -20,
+            threshXhigh2 := 5,
+            threshXlow2:= 5
+          }
+        }
+      },
+      nonCriticalExtensions := omit // mandatory field missing
+    }
+  };
+
+  template (value) SysInfoType19 cs_SIB19_UtraAndOneEutraEntry ( template (value) UTRA_PriorityInfoList              p_Utra_PriorityInfoList,
+                                                                 template (value) EUTRA_FrequencyAndPriorityInfoList p_Eutra_FrequencyAndPriorityInfoList ) :=
+    /* @status    APPROVED */
+    cs_SIB19_Common ( p_Utra_PriorityInfoList, omit, p_Eutra_FrequencyAndPriorityInfoList );
+
+}

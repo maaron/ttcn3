@@ -1,0 +1,475 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:49:20 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7317 $
+/******************************************************************************/
+
+module InterRat_Handover_UtoE {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_NasCtrl all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_IdleMode all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from EUTRA_SysInfo_Templates all;
+  import from EUTRA_Timing all;
+  import from NAS_CommonTemplates all;
+  import from NAS_CommonTypeDefs all;
+
+  template NAS_UL_Message_Type cdr_TAU_Request_HO (template (present)  EPS_UpdateTypeValue p_EpsUpdate_TypeValue,
+                                                   NAS_KsiValue p_KsiValue,
+                                                   template DRXparameter p_DRXparameter, // @sic R5s120210 sic@
+                                                   template AdditionalUpdateType p_AdditionalUpdateType)
+    modifies cr_508_TAU_Request :=
+  { /* @status    APPROVED */
+    tRACKING_AREA_UPDATE_REQUEST := {
+      asmeNasKeySetId := cr_NAS_KeySetIdentifier ('000'B, tsc_NasKsi_MappedSecurityContext),
+      nonCurrentNativeNasKeySetId := cdr_NAS_KeySetIdentifier_tlv ('000'B, '0'B),
+      oldPtmsiSignature := cr_PTMSI_SignatureAny,
+      additionalGuti := cr_MobileIdAny ('50'O)
+    }
+  };
+
+  function f_EUTRA_508Check_TrackingAreaUpdating_AfterHO(EUTRA_CellId_Type p_CellId,
+                                                         EUTRA_SecurityParams_Type p_Auth_Params_Native,
+                                                         NasCountInfo_Type p_NasCountInfo,
+                                                         boolean p_CSInOtherRAT := true) runs on EUTRA_PTC
+  {
+    var GutiParameters_Type v_GutiParams := f_EUTRA_CellInfo_GetGuti(p_CellId);
+    var NAS_PlmnId v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    var template (omit) EPS_BearerContextStatus v_EPS_ContextStatus;
+    var SRB_COMMON_IND v_ReceivedAsp;
+    var template (value) TrackingAreaIdList v_TaiList;
+    var EUTRA_SecurityParams_Type v_SecurityParams := f_EUTRA_Security_Get();
+    var NasCount_Type v_NasCountUL;
+    var Frequency_IE_Type v_Frequency_IE := f_EUTRA_CellInfo_GetFrequencyIEs(p_CellId);
+    var CarrierFreqEUTRA  v_EUTRA_CarrierFreq := v_Frequency_IE.UL_DL_Earfcn;
+    var template (value) CarrierBandwidthEUTRA v_EUTRA_CarrierBandwidth := cs_CarrierBandwidthEUTRA(v_Frequency_IE.DL_ChBandwidth, v_Frequency_IE.UL_ChBandwidth);
+    var EPS_UpdateTypeValue v_UpdateType := f_GetEPSTAUType(NORMAL);
+    var EPS_UpdateTypeValue v_UpdateResult := v_UpdateType;
+    var template (omit) MobileIdentity v_MSId := f_GetMSId(NORMAL);
+    var template (omit) LocAreaId v_LAI := f_EUTRA_GetCellLAI(p_CellId, NORMAL);
+    var SubFrameTiming_Type v_Timing;
+    
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();
+    
+    v_TaiList := cds_TAIListNonConsecutive_tlv(f_Asn2Nas_PlmnId(v_GutiParams.PLMN_Identity),
+                                               { bit2oct(f_EUTRA_CellInfo_GetTAC(p_CellId)) } );
+
+    if (v_UpdateType != tsc_EpsUpdate_TaUpdate) { // TA Only;  @sic R5s120490 sic@
+      if (p_CSInOtherRAT) {
+        v_UpdateType := tsc_EpsUpdate_Combined_IMSIAttach;
+      } else {
+        v_UpdateType := tsc_EpsUpdate_Combined_TaLaUpdate;
+      }
+    }
+    
+    /* Step 1: Does the UE transmit an ULInformationTransfer message?
+       This includes a TRACKING AREA UPDATE REQUEST message  */
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected,
+                                                      cdr_TAU_Request_HO(v_UpdateType,                 // @sic R5-123720 sic@
+                                                                         f_EUTRA_SecurityKSIasme_Get(),
+                                                                         cr_DRXparameter_Any ('5C'O) ifpresent, // @sic R5s120210, R5-123117 sic@
+                                                                         v_AdditionalUpdateType))))
+      -> value v_ReceivedAsp;
+    
+    // Send this back in the Accept
+    v_EPS_ContextStatus := v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.epsBearerContextStatus;
+    
+    /* Step 2: The SS transmits a DLInformationTransfer message
+       This includes a TRACKING AREA UPDATE ACCEPT message */
+    SRB.send(cas_SRB2_NasPdu_REQ(p_CellId,
+                                 cs_TimingInfo_Now,
+                                 cs_NAS_Request(tsc_SHT_IntegrityProtected_Ciphered,
+                                                cs_508_TAU_Accept(v_UpdateResult,  // @sic R5s120490 sic@
+                                                                  f_GutiParameters2MobileIdentity (tsc_IEI_Guti, v_GutiParams),
+                                                                  v_TaiList,
+                                                                  v_EPS_ContextStatus,
+                                                                  v_LAI,
+                                                                  v_MSId,
+                                                                  f_GetAdditionalUpdateResult(v_ReceivedAsp.Signalling.Nas[0].Pdu.Msg.tRACKING_AREA_UPDATE_REQUEST.addUpdateType)))));
+    
+    
+    /* Step 3: The UE transmits a ULInformationTransfer message
+       This includes a TRACKING AREA UPDATE COMPLETE message */
+    SRB.receive(car_SRB2_NasPdu_IND(p_CellId,
+                                    cr_NAS_Indication(tsc_SHT_IntegrityProtected_Ciphered,
+                                                      cr_508_TAU_Complete)));
+
+    /* Now complete Authentication process if the UE comes from UTRAN cell
+       without proper authentication parameters */
+    if (f_EUTRA_SecurityKSIasme_Get() == '111'B) {
+      //4a1 4a2: Authentication Procedure
+      /* Authentication Procedure according to 24.301 cl. 5.4.2 */
+      v_SecurityParams := f_EUTRA_NAS_Authentication(p_CellId,
+                                                     tsc_SRB2,
+                                                     v_SecurityParams,
+                                                     tsc_SHT_IntegrityProtected_Ciphered,
+                                                     tsc_SHT_IntegrityProtected_Ciphered,
+                                                     v_PLMN);
+    }
+    
+    /* StepS 5&6:
+       The SS transmits a NAS SECURITY MODE COMMAND message to activate NAS
+       security.  <-- SECURITY MODE COMMAND
+
+       The UE transmits a NAS SECURITY MODE COMPLETE message and establishes
+       the initial security configuration.  --> SECURITY MODE COMPLETE
+    */
+    f_EUTRA_SS_NAS_CountSet (p_NasCountInfo.DL, p_NasCountInfo.UL); // @sic R5s102535 sic@
+    f_EUTRA_Security_Set(p_Auth_Params_Native); // @sic R5s102535 sic@
+    v_NasCountUL := f_EUTRA_NAS_ActivateSecurity(p_CellId, p_Auth_Params_Native, tsc_SRB2, omit); // @sic R5s102535 sic@
+    v_SecurityParams := f_EUTRA_Security_Get (); // @sic R5s102535 sic@
+    
+    // Step7
+    /* SS performs an RRC Connection Reconfiguration procedure with intra cell handover
+       and security reconfiguration on the cell */
+    v_Timing := f_EUTRA_GetNextSendOccasion(p_CellId);
+    f_EUTRA_RRC_ConnReconfigHO_IntraLTE_MobilitySecurity(p_CellId,
+                                                         p_CellId,
+                                                         f_Generate_cs_MobilityControlInfo_HO(p_CellId,
+                                                                                              v_EUTRA_CarrierFreq,
+                                                                                              omit,
+                                                                                              v_EUTRA_CarrierBandwidth,
+                                                                                              1),
+                                                         cs_508SecurityConfigHO_IntraLTE_Native,  // @sic R5s120535 sic@
+                                                         cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    
+    /* Note: current implementation releases SRBs and reconfigures C-RNTI 5ms after sending the RRCConnectionReconfiguration
+       => RLC ACK is not taken into consideration */
+    
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 5);   // add 5ms
+    
+    // Release SRBs and DRBs
+    f_EUTRA_SS_SRBs_DRBs_Release(p_CellId, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    
+    // Configure C-RNTI based contention resolution in cell
+    /* f_EUTRA_SS_ConfigRachProcedure ( p_CellId,
+                                     tsc_C_RNTI_Def2,
+                                     cs_RachProcedureConfig_CRNTI ( f_EUTRA_CellInfo_GetRAR_TA ( p_CellId ),
+                                                                    f_EUTRA_CellInfo_GetDL_ChBandwidth(p_CellId)),// @sic R5-103846 sic@
+                                     cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));*/
+    
+    // @sic R5s100516 change 10 sic@
+    f_EUTRA_SS_ConfigRachProcedure_HO(p_CellId,
+                                      cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number),
+                                      tsc_C_RNTI_Def2);
+    
+    // Save new C-RNTI in cell configuration for the cell
+    f_EUTRA_CellInfo_SetC_RNTI(p_CellId, tsc_C_RNTI_Def2);
+    
+    // Setup SRBs and DRBs again
+    v_Timing := f_EUTRA_TimingInfoAdd(v_Timing, 5);   // add 5ms
+    f_EUTRA_SS_SRBs_DRBs_Config(p_CellId, cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    
+    // Enable RRC Integrity and Ciphering at SS target cell
+    v_SecurityParams := f_EUTRA_AS_ActivateSecurity_NewAKA(p_CellId,
+                                                           v_SecurityParams,
+                                                           v_NasCountUL,
+                                                           cs_TimingInfo(v_Timing.SFN.Number, v_Timing.Subframe.Number));
+    f_EUTRA_Security_Set(v_SecurityParams);
+
+    /* Step 8: Receive RRCConnectionReconfigurationComplete */
+    SRB.receive(car_SRB1_RrcPdu_IND(p_CellId, cr_508_RRCConnectionReconfigurationComplete(tsc_RRC_TI_Def)));
+
+    /* RRCConnectionReconfigurationComplete correctly received on the cell */
+    f_EUTRA_PreliminaryPass(__FILE__, __LINE__, "36.508 Subclause 6.4.2.10 Step 8");
+
+    // @sic R5s100520 change 11 sic@
+    // configure RACH procedure for target cell back to default
+    f_EUTRA_SS_ConfigRachProcedure_Def(p_CellId);     /* @sic acc. to R5s100029 change 3 sic@ */
+  }
+
+  function f_TC_8_4_2_2_EUTRA() runs on EUTRA_PTC
+  {
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var CellReselectionPriority v_CellReselectionPriority := 5;
+    var P_MaxUTRA_FDD v_P_MaxUTRA := 0;
+    
+    var EUTRA_FDD_TDD_Mode_Type v_FDD_TDD_Cell1;
+    var template (omit) CarrierFreqListUTRA_FDD v_CarrierFreqListUTRA_FDD := omit;
+    var template (omit) CarrierFreqListUTRA_TDD v_CarrierFreqListUTRA_TDD := omit;
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    
+    var EUTRA_SecurityParams_Type v_Auth_Params, v_Auth_Params_Native;
+    var NasCountInfo_Type v_NasCountInfo;
+    
+    var AbsoluteCellPower_Type v_Cell_specificRS_EPRE_T1 := -90;
+    var AbsoluteCellPower_Type v_Cell_specificRS_EPRE_T2 := -70;
+    
+    f_EUTRA_Init ( c4 );
+    //different MaxReferencePower needs to be initialized
+    //Set maximum cell powel level for Cell 1 to be used in creation
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -70);
+    
+    //Coordinate with UTRAN component to receive UTRAN frequencies
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+    
+    //Get FDD or TDD mode
+    v_FDD_TDD_Cell1 := f_EUTRA_CellInfo_GetFDD_TDD ( eutra_Cell1 );
+    
+    //Set SIB6 for Cell 1 according to Table 8.4.2.2.3.3-2
+    if (v_FDD_TDD_Cell1 == FDD) {
+      v_CarrierFreqListUTRA_FDD := { cs_CarrierFreqUTRA_FDD_CRPrio_PMax(v_UTRANSysInfo.Utran[0].FDD.Freq, v_CellReselectionPriority, v_P_MaxUTRA) };
+    }
+    else {
+      v_CarrierFreqListUTRA_TDD := { cs_CarrierFreqUTRA_TDD_CRPrio_PMax(v_UTRANSysInfo.Utran[0].TDD.Freq, v_CellReselectionPriority, v_P_MaxUTRA) };
+    }
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell1, cs_508_SystemInformationBlockType6_Def(v_CarrierFreqListUTRA_FDD, v_CarrierFreqListUTRA_TDD));
+    
+    //* @desc Create and configure cell
+    f_EUTRA_CellConfig_Def(eutra_Cell1);
+    
+    //* @desc Send relevant EUTRA cell info to UTRAN PTC
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN,
+                                         f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)),
+                                         cs_EUTRA_HOInfo (f_ConvertUL_BandwidthToInteger (f_EUTRA_CellInfo_GetUL_ChBandwidth (eutra_Cell1)),
+                                                          f_EUTRA_CellInfo_GetPhyCellId(eutra_Cell1),
+                                                          f_EUTRA_CellInfo_GetRootSequenceIndex (eutra_Cell1)));
+    
+    // @desc Bring UE to state 2
+    f_EUTRA_Preamble_InterRAT ( eutra_Cell1, STATE2_IDLEUPDATE, UTRAN );
+    
+    f_EUTRA_TestBody_Set(true);
+    
+    //@siclog "Step 0" siclog@
+    f_Delay (6.0); // @sic R5-113680 sic@
+    
+    //@siclog "Step 1" siclog@
+    //SS changes Cell1 and UTRAN cell5 level acc. to table 8.4.2.2.3.2-1
+    //* @desc Sets the cell power attenuation and stores the value in the EUTRA_CellInfo
+    f_EUTRA_SetCellPower( eutra_Cell1, v_Cell_specificRS_EPRE_T1 );
+    //@sic R5s120535 sic@
+    // Backup Auth params and NAS count.
+    v_Auth_Params := f_EUTRA_Security_Get ();
+    v_Auth_Params_Native := v_Auth_Params;
+    v_NasCountInfo.DL := f_EUTRA_SS_NAS_CountGetDLNext();
+    v_NasCountInfo.UL := f_EUTRA_SS_NAS_CountGetULNext();
+    // Update security params when authentication done on UTRAN side
+    f_EUTRA_InterRAT_InitialiseAuthParams (UTRAN);
+        
+    // Wait for trigger from UTRAN side at step 9
+    f_IRAT_WaitForCoOrd_Trigger(UTRAN);
+    
+    //@siclog "Step 9" siclog@
+    //SS changes Cell1 and UTRAN cell5 level acc. to row T2 in table 8.4.2.2.3.2-1
+    //* @desc Sets the cell power attenuation and stores the value in the EUTRA_CellInfo
+    f_EUTRA_SetCellPower( eutra_Cell1, v_Cell_specificRS_EPRE_T2 );
+    
+    //Make HO specific steps for interRAT HO
+    // Configure C-RNTI based contention resolution in target cell
+    f_EUTRA_SS_ConfigRachProcedure(eutra_Cell1, tsc_C_RNTI_Def2, cs_RachProcedureConfig_CRNTI_Dedicated (f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                 f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1) )); // @sic R5-123712 sic@
+    
+    //Save new C-RNTI in cell configuration for p_TargetCellId
+    f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell1, tsc_C_RNTI_Def2 );
+    // activate RRC security at SS target cell for SRB 1, 2 and 1 AM DRB
+    v_Auth_Params := f_EUTRA_Security_Get();
+    v_Auth_Params := f_EUTRA_MappedContext_HO_Init(v_Auth_Params, v_Auth_Params.AuthParams);
+    f_EUTRA_SS_NAS_CountSet ('FFFFFFFF'O, 'FFFFFFFF'O); // UL & DL
+    f_EUTRA_SS_RRC_EnableIntProt_CiphULandDL (eutra_Cell1,
+                                              v_Auth_Params.AS_Integrity,
+                                              v_Auth_Params.AS_Ciphering,
+                                              cs_TimingInfo_Now);
+
+    f_EUTRA_Security_Set(v_Auth_Params);
+    
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell (cell 1)
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_ULGrantAllocation_Def_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+    
+    // UTRAN side will do steps10&11
+    
+    //@siclog "Step 12" siclog@
+    //check: does the UE tx a rrcconnectionreconfigurationcomplete message on cell1 using security key derived from new kENB?
+    SRB.receive( car_SRB1_RrcPdu_IND( eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete( v_RRC_TI ) ) );
+    /* SS automatically checks that UE transmit an RRCConnectionReconfigurationComplete using the indicated
+       security key and the indicated security algortihms */
+    f_EUTRA_PreliminaryPass( __FILE__, __LINE__, "Test Case 8.4.2.2 Step 12" );
+    
+    //Start periodic sending of TA command in target cell (cell 1)
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+    
+    // configure RACH procedure for target cell back to default
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+    
+    //@siclog "Step 12A" siclog@
+    //generic procedure in 36.508 subclause 6.4.2.10 on cell1  //@sic CR R5-096115 sic@
+    f_EUTRA_508Check_TrackingAreaUpdating_AfterHO(eutra_Cell1,v_Auth_Params_Native,v_NasCountInfo); //@sic R5s120535 sic@
+    
+    //@siclog "Step 13 - 19 Void" siclog@
+    
+    //@siclog "Step 20" siclog@
+    //check: does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell1?
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+    
+    // Send trigger to UTRAN to end the test case
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    //postamble
+    f_EUTRA_TestBody_Set(false);
+    
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble(eutra_Cell1, E2_CONNECTED);//@sic R5-103875 sic@
+  }
+
+  function f_TC_8_4_2_4_EUTRA() runs on EUTRA_PTC
+  { /* Inter-RAT Handover / from UTRA(HSDPA) to E-UTRA  / Data */
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var CellReselectionPriority v_CellReselectionPriority := 5;
+    var P_MaxUTRA_FDD v_P_MaxUTRA := 0;
+    
+    //@sic Removed T0 from CR R5-104790 sic@
+    var AbsoluteCellPower_Type v_Cell_specificRS_EPRE_T1 := -90;
+    var AbsoluteCellPower_Type v_Cell_specificRS_EPRE_T2 := -70;
+    
+    var EUTRA_FDD_TDD_Mode_Type v_FDD_TDD_Cell1;
+    var template (omit) CarrierFreqListUTRA_FDD v_CarrierFreqListUTRA_FDD := omit;
+    var template (omit) CarrierFreqListUTRA_TDD v_CarrierFreqListUTRA_TDD := omit;
+    var IRAT_CoOrd_SysInfo_Type v_UTRANSysInfo;
+    
+    var EUTRA_SecurityParams_Type v_Auth_Params, v_Auth_Params_Native;
+    var NasCountInfo_Type v_NasCountInfo;
+    
+    f_EUTRA_Init ( c4 );
+    f_EUTRA_CellInfo_InitMaxReferencePower (eutra_Cell1, -70);
+    //Coordinate with UTRAN component to receive UTRAN frequencies
+    v_UTRANSysInfo := f_IRAT_WaitForCoOrd_SysInfo (UTRAN);
+
+    //Get FDD or TDD mode
+    v_FDD_TDD_Cell1 := f_EUTRA_CellInfo_GetFDD_TDD ( eutra_Cell1 );
+
+    //Set SIB6 for Cell 1 according to Table 8.4.2.2.3.3-2
+    if (v_FDD_TDD_Cell1 == FDD) {
+      v_CarrierFreqListUTRA_FDD := { cs_CarrierFreqUTRA_FDD_CRPrio_PMax(v_UTRANSysInfo.Utran[0].FDD.Freq, v_CellReselectionPriority, v_P_MaxUTRA) };
+    } else {
+      v_CarrierFreqListUTRA_TDD := { cs_CarrierFreqUTRA_TDD_CRPrio_PMax(v_UTRANSysInfo.Utran[0].TDD.Freq, v_CellReselectionPriority, v_P_MaxUTRA) };
+    }
+    f_EUTRA_CellInfo_SetSIB6(eutra_Cell1, cs_508_SystemInformationBlockType6_Def(v_CarrierFreqListUTRA_FDD, v_CarrierFreqListUTRA_TDD));
+
+
+    //* @desc Create and configure cell
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //* @desc Send relevant EUTRA cell info to UTRAN PTC
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN, f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)),
+                                         cs_EUTRA_HOInfo (f_ConvertUL_BandwidthToInteger (f_EUTRA_CellInfo_GetUL_ChBandwidth (eutra_Cell1)),
+                                                          f_EUTRA_CellInfo_GetPhyCellId(eutra_Cell1),
+                                                          f_EUTRA_CellInfo_GetRootSequenceIndex (eutra_Cell1)));
+
+    // @desc Bring UE to state 2
+    f_EUTRA_Preamble_InterRAT ( eutra_Cell1, STATE2_IDLEUPDATE, UTRAN );
+
+    f_EUTRA_TestBody_Set(true);
+
+    //@siclog "Step 0" siclog@
+    f_Delay (6.0); // @sic R5-113680 sic@
+    
+    //@siclog "Step 1" siclog@
+    //SS changes Cell1 and UTRAN cell5 level acc. to table 8.4.2.4.3.2-1
+    //* @desc Sets the cell power attenuation and stores the value in the EUTRA_CellInfo
+    f_EUTRA_SetCellPower( eutra_Cell1, v_Cell_specificRS_EPRE_T1 );
+    // Backup Auth params and NAS count.
+    //@sic R5s120535 sic@
+    v_Auth_Params := f_EUTRA_Security_Get ();
+    v_Auth_Params_Native := v_Auth_Params;
+    v_NasCountInfo.DL := f_EUTRA_SS_NAS_CountGetDLNext();
+    v_NasCountInfo.UL := f_EUTRA_SS_NAS_CountGetULNext();
+    // Update security params when authentication done on UTRAN side
+    f_EUTRA_InterRAT_InitialiseAuthParams (UTRAN);
+    
+    // Wait for trigger from UTRAN side at step 9
+    f_IRAT_WaitForCoOrd_Trigger(UTRAN);
+
+    //@siclog "Step 9" siclog@
+    //SS changes Cell1 and UTRAN cell5 level acc. to row T2 in table 8.4.2.4.3.2-1
+    //* @desc Sets the cell power attenuation and stores the value in the EUTRA_CellInfo
+    f_EUTRA_SetCellPower( eutra_Cell1, v_Cell_specificRS_EPRE_T2 );
+
+    //Make HO specific steps for interRAT HO
+    // Configure C-RNTI based contention resolution in target cell
+    f_EUTRA_SS_ConfigRachProcedure(eutra_Cell1, tsc_C_RNTI_Def2, cs_RachProcedureConfig_CRNTI_Dedicated (f_EUTRA_CellInfo_GetRAR_TA(eutra_Cell1),
+                                                                 f_EUTRA_CellInfo_GetDL_ChBandwidth(eutra_Cell1) )); // @sic R5-123712 sic@
+    
+    //Save new C-RNTI in cell configuration for p_TargetCellId
+    f_EUTRA_CellInfo_SetC_RNTI ( eutra_Cell1, tsc_C_RNTI_Def2 );
+    // activate RRC security at SS target cell for SRB 1, 2 and 1 AM DRB
+    //@sic R5s120535 sic@
+    v_Auth_Params := f_EUTRA_Security_Get();
+    v_Auth_Params := f_EUTRA_MappedContext_HO_Init(v_Auth_Params, v_Auth_Params.AuthParams);
+    f_EUTRA_SS_NAS_CountSet ('FFFFFFFF'O, 'FFFFFFFF'O); // UL & DL
+    f_EUTRA_SS_RRC_EnableIntProt_CiphULandDL (eutra_Cell1,
+                                              v_Auth_Params.AS_Integrity,
+                                              v_Auth_Params.AS_Ciphering,
+                                              cs_TimingInfo_Now);
+
+    f_EUTRA_Security_Set ( v_Auth_Params );
+
+    //Configure UL grant configuration ("OnSR", periodic TA is NOT started) in target cell (cell 1)
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_ULGrantAllocation_Def_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_None));
+
+    // UTRAN side will do steps10&11
+
+    //@siclog "Step 12" siclog@
+    //check: does the UE tx a rrcconnectionreconfigurationcomplete message on cell1 using security key derived from new kENB?
+    SRB.receive( car_SRB1_RrcPdu_IND( eutra_Cell1, cr_508_RRCConnectionReconfigurationComplete( v_RRC_TI ) ) );
+    /* SS automatically checks that UE transmit an RRCConnectionReconfigurationComplete using the indicated
+       security key and the indicated security algortihms */
+    f_EUTRA_PreliminaryPass( __FILE__, __LINE__, "Test Case 8.4.2.4 Step 12" );
+
+    //Start periodic sending of TA command in target cell (cell 1)
+    f_EUTRA_SS_CommonCellConfig(eutra_Cell1, cas_PUCCH_Synch_Config_REQ(eutra_Cell1, cs_TimingInfo_Now, cs_PUCCH_Synch_Auto_Def));
+
+    // configure RACH procedure for target cell back to default
+    f_EUTRA_SS_ConfigRachProcedure_Def(eutra_Cell1);     /* @sic acc. to R5s100029 change 3 sic@ */
+
+    //@siclog "Step 12A" siclog@
+    //generic procedure in 36.508 subclause 6.4.2.10 on cell1
+    //@sic CR R5-096115 R5s120535 sic@
+    f_EUTRA_508Check_TrackingAreaUpdating_AfterHO(eutra_Cell1, v_Auth_Params_Native,v_NasCountInfo);
+
+    //@siclog "Step 13 - 19 Void" siclog@
+
+    //@siclog "Step 20" siclog@
+    //check: does the test result of generic test procedure in TS 36.508 subclause 6.4.2.3 indicate that the UE is in E-UTRA RRC_CONNECTED state on Cell1?
+    f_EUTRA_508Check_ConnectedState ( eutra_Cell1 );
+
+    // Send trigger to UTRAN to end the test case
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+
+    //postamble
+    f_EUTRA_TestBody_Set(false);
+
+    // Release RRC Connection and Switch off
+    f_EUTRA_Postamble(eutra_Cell1, E2_CONNECTED);//@sic R5-103875 sic@
+  }
+
+}

@@ -1,0 +1,372 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 22:41:12 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7327 $
+/******************************************************************************/
+
+module MultiLayer_Procedures_EG_GERAN {
+
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from GERAN_CellInfo all;
+  import from GERAN_CommonFunctions all;
+  import from GERAN_Component all;
+  import from GERAN_Parameters all;
+  import from GERAN_Templates all;
+  import from GERAN_TypeDefs all;
+  import from NAS_24008Templates all;
+  import from NAS_24008TypeDefs all;
+  import from NAS_CommonTemplates all;
+  import from Parameters all;
+  import from UTRANGERAN_CommonFunctions all;
+
+  function f_GERAN_CSFB_Redirection_CCO_MT_Steps5_19(GERAN_CellId_Type p_CellId,
+                                                     G_LogicChType     p_ChannelType,
+                                                     SubChannelNumber  p_SubChannel) runs on GERAN_PTC return G_LogicChType
+  {
+    //Authentication
+    f_GERAN_MM_Authentication (p_CellId, p_ChannelType, p_SubChannel);
+    
+    //Activate Ciphering
+    f_GERAN_Ciphering_Mode_Setting (p_CellId, tsc_PhyCh0, p_ChannelType, p_SubChannel);
+    
+    //Steps 10 to 19 of the generic test procedure in TS 51.010-1 subclause 10.1.3 are performed
+    return f_GERAN_EnterU10_MT_Step10_19(p_CellId, p_ChannelType, p_SubChannel);  // @sic R5-123629 sic@
+  }
+
+  function f_GERAN_CSFB_Redirection_CCO_MT_Steps20_34(GERAN_CellId_Type p_CellId,
+                                                     G_LogicChType     p_ChannelType) runs on GERAN_PTC
+  {
+    //Steps 20-22: Disconnect the MT call with MT procedure
+    f_GERAN_CC_Disconnect(p_CellId, p_ChannelType, 15); // @sic R5-123629 sic@
+    
+    //Release channel
+    f_G_ChannelRelease (p_CellId, tsc_PhyCh0, p_ChannelType, 15); // @sic R5-123629 sic@
+    
+    //Perform RAU
+    f_GERAN_508CheckCampOnNewGeranCell(p_CellId);
+  }
+
+  function f_GERAN_CSFB_Redirection_CCO_MT(GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var G_L2_DATAMESSAGE_IND v_G_L2_DATAMESSAGE_IND;
+    var G_LogicChType v_ChannelType, v_Tch;
+    var SubChannelNumber v_SubChannel;
+    var default v_MyDefaultVar := null;
+        
+    //Receive Channel Request & Send Immediate assignment
+    f_GERAN_RRConnEst(p_CellId);
+    
+    v_MyDefaultVar := activate (a_Receive_ParallelGPRS_Suspension (p_CellId));  // @sic R5-123629 sic@
+
+    //Receive PAGING RESPONSE
+    G_L2.receive (car_G_L2_Estab_IND (p_CellId,
+                                      ?,
+                                      ?,
+                                      ?,
+                                      cr_G_PagRsp(?, cr_MobileIdAny(omit)))) -> value v_G_L2_DATAMESSAGE_IND;
+    v_ChannelType := v_G_L2_DATAMESSAGE_IND.sabm.g_LogicChType;
+    v_SubChannel := v_G_L2_DATAMESSAGE_IND.sabm.subChannel;
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "CS fallback to GERAN with redirection or CCO / MT call (DTM not supported) Step 4");
+    
+    // @sic R5s120339 sic@
+    G_L2.receive (car_G_L2_DATA_IND (p_CellId, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    if (pc_UTRA) { // @sic R5-123629 sic@
+      G_L2.receive (car_G_L2_DATA_IND (p_CellId, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+    }
+    //Steps 5 to 34 of the procedure
+    // @sic R5-123629 sic@
+    v_Tch := f_GERAN_CSFB_Redirection_CCO_MT_Steps5_19(p_CellId, v_ChannelType, v_SubChannel);
+    deactivate (v_MyDefaultVar);
+    f_GERAN_CSFB_Redirection_CCO_MT_Steps20_34(p_CellId, v_Tch);
+  }
+
+  altstep  a_Receive_ParallelGPRS_Suspension (GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  { // @sic R5-123629 sic@
+
+    []  G_L2.receive (car_G_L2_DATA_IND (p_CellId,
+                                         ?,
+                                         tsc_PhyCh0,
+                                         ?,
+                                         ?,
+                                         ?,
+                                         cr_GPRS_SuspensionReq(?, cr_RAI (omit))))
+       {
+         repeat;
+       }
+
+  }
+
+  function f_GERAN_CSFB_Redirection_CCO_M0_Steps3_32 (GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    var G_L2_DATAMESSAGE_IND v_G_L2_DATAMESSAGE_IND;
+    var G_LogicChType v_ChannelType, v_TchType;
+    var SubChannelNumber v_SubChannel;
+    var default v_MyDefaultVar := null;
+    
+    v_MyDefaultVar := activate (a_Receive_ParallelGPRS_Suspension (p_CellId));  // @sic R5-123629 sic@
+
+    //Receive CM Service Request
+    G_L2.receive (car_G_L2_Estab_IND (p_CellId,
+                                          ?,
+                                          ?,
+                                          ?,
+                                          cr_G_CMServiceRequest (?))) -> value v_G_L2_DATAMESSAGE_IND;
+    v_ChannelType := v_G_L2_DATAMESSAGE_IND.sabm.g_LogicChType;
+    v_SubChannel := v_G_L2_DATAMESSAGE_IND.sabm.subChannel;
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "CS fallback to GERAN with redirection or CCO / MO call (DTM not supported) Step 4");
+
+    // @sic R5s120339 sic@
+    G_L2.receive (car_G_L2_DATA_IND (p_CellId, ?, tsc_PhyCh0, ?, ?, ?, cr_G_ClassmarkChangeAny));
+    if (pc_UTRA) { // @sic R5-123629 sic@
+      G_L2.receive (car_G_L2_DATA_IND (p_CellId, ?, tsc_PhyCh0, ?, ?, ?, cr_G_UtranClassmarkChange));
+    }
+
+    v_TchType := f_GERAN_EnterU10_MO_Steps5_19(p_CellId, v_ChannelType, v_SubChannel); // @sic R5s120600 sic@
+    
+    deactivate (v_MyDefaultVar); // @sic R5-123629 sic@
+    
+    //Steps 20-22: Disconnect the MT call with MT procedure
+    f_GERAN_CC_Disconnect(p_CellId, v_TchType, -, cs_TI_MO); // @sic R5s120600 sic@
+    
+    //Release channel
+    f_G_ChannelRelease (p_CellId, tsc_TchCh, v_TchType, 15); // @sic R5s120600 sic@
+    
+    //Perform RAU
+    f_GERAN_508CheckCampOnNewGeranCell(p_CellId);
+  }
+
+  function f_GERAN_CSFB_Redirection_CCO_M0 (GERAN_CellId_Type p_CellId) runs on GERAN_PTC
+  {
+    //Receive Channel Request & Send Immediate assignment
+    f_GERAN_RRConnEst(p_CellId);
+
+    //RSteps 3 to 32
+    f_GERAN_CSFB_Redirection_CCO_M0_Steps3_32(p_CellId);
+  }
+
+  function f_TC_13_1_7_GERAN() runs on GERAN_PTC
+  {
+    //Initialisise cell info and cofigure cell 24
+    f_GERAN_Init(EUTRA_GERAN);
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_CreateTCH (geran_Cell24);
+    
+    //Send cell info to EUTRA PTC
+    f_GERAN_Send_IR_SysInfoToEUTRA (geran_Cell24);
+    
+    //Receive updated auth parameters
+    f_GERAN_InterRAT_InitialiseAuthParams();
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell); // @sic R5-123126 sic@
+    f_GERAN_SetChPwrLevel (geran_Cell24, tsc_TchCh, tsc_GERAN_SuitableNeighbourCell); // @sic R5-123126 sic@
+    
+    f_GERAN_TestBody_Set(true);
+    
+    //@siclog "Step 7-40" siclog@
+    //Steps 1 to 34 of the generic test procedure described in TS36.508 subclause 6.4.3.8.1 are performed on Cell24
+    f_GERAN_CSFB_Redirection_CCO_MT(geran_Cell24);
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 13.1.7 Step 40");
+    
+    //Tell EUTRA PTC that test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_GERAN_TestBody_Set(false);
+    
+    //Perform postamble
+    f_GERAN_Postamble(geran_Cell24, G1_IDLE, -, -, tsc_TCH_F); // @sic R5s120498 sic@
+  }
+
+  function f_TC_13_1_8_GERAN() runs on GERAN_PTC
+  {
+    //Initialisise cell info and cofigure cell 24
+    f_GERAN_Init(EUTRA_GERAN);
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    f_GERAN_CreateTCH (geran_Cell24);
+    
+    
+    //Set cell power according to "T0"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    f_GERAN_SetChPwrLevel (geran_Cell24, tsc_TchCh, tsc_GERAN_SuitableNeighbourCell);
+    
+    f_GERAN_TestBody_Set(true);
+    
+    //Receive updated auth parameters
+    f_GERAN_InterRAT_InitialiseAuthParams();
+
+    //@siclog "Step 4-35" siclog@
+    //Steps 1 to 32 of the generic test procedure described in TS36.508 subclause 6.4.3.8.2 are performed on Cell24
+    f_GERAN_CSFB_Redirection_CCO_M0(geran_Cell24);
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 13.1.8 Step 35");
+    
+    //Tell EUTRA PTC that test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_GERAN_TestBody_Set(false);
+    
+    //Perform postamble
+    f_GERAN_Postamble(geran_Cell24, G1_IDLE, -, -, tsc_TCH_F); // @sic R5s120500 sic@
+  }
+
+  function f_TC_13_1_9_GERAN() runs on GERAN_PTC
+  { /* Call setup from E-UTRA RRC_IDLE / CS fallback to GSM with CCO without NACC / MO call */
+    
+    //Initialisise cell info and cofigure cell 24
+    f_GERAN_Init(EUTRA_GERAN);
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    //Send cell info to EUTRA PTC
+    f_GERAN_Send_IR_SysInfoToEUTRA (geran_Cell24);
+    
+    //Receive updated auth parameters
+    f_GERAN_InterRAT_InitialiseAuthParams();
+    
+    //Set cell power according to "T0"
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    f_GERAN_CreateTCH (geran_Cell24);
+    f_GERAN_SetChPwrLevel (geran_Cell24, tsc_TchCh, tsc_GERAN_SuitableNeighbourCell);
+    
+    f_GERAN_TestBody_Set(true);
+    
+    //@siclog "Step 8 Void" siclog@
+
+    //@siclog "Step 9-40" siclog@
+    f_GERAN_CSFB_Redirection_CCO_M0_Steps3_32(geran_Cell24);
+    
+    //Tell EUTRA PTC that test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_GERAN_TestBody_Set(false);
+    
+    //Perform postamble
+    f_GERAN_Postamble(geran_Cell24, G1_IDLE, -, -, tsc_TCH_F); // @sic R5s120504 sic@
+  }
+
+  function f_TC_13_1_10_GERAN() runs on GERAN_PTC
+  {
+    //Initialisise cell info and cofigure cell 24
+    f_GERAN_Init(EUTRA_GERAN);
+    
+    f_GERAN_CreateCell (geran_Cell24);
+    //Send cell info to EUTRA PTC
+    f_GERAN_Send_IR_SysInfoToEUTRA (geran_Cell24);
+    
+    f_GERAN_InterRAT_InitialiseAuthParams ();
+    
+    //Set cell power according to "T0"
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    f_GERAN_CreateTCH (geran_Cell24);
+    f_GERAN_SetChPwrLevel (geran_Cell24, tsc_TchCh, tsc_GERAN_SuitableNeighbourCell);
+    f_GERAN_TestBody_Set(true);
+    
+    f_GERAN_CSFB_Redirection_CCO_MT(geran_Cell24);
+    f_GERAN_PreliminaryPass (__FILE__, __LINE__, "Test Case 13.1.7 Step 40");
+    
+    //Tell EUTRA PTC that test case is over
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_GERAN_TestBody_Set(false);
+    
+    //Perform postamble
+    f_GERAN_Postamble(geran_Cell24, G1_IDLE, -, -, tsc_TCH_F); // @sic R5s120509 sic@
+  }
+
+  function f_TC_13_3_2_2_GERAN () runs on GERAN_PTC
+  { /* Inter-system connection re-establishment / E-UTRAN to GPRS / Further data are to be transferred */
+    
+    var G_LLC_DATAMESSAGE_IND v_LLCDataInd;
+    var B3_Type v_UpdateType;
+    var PDP_ContextStatus v_PDP_Context_Status;
+    var GERAN_SecurityInfo_Type v_SecurityInfo;
+    var octetstring v_PLMN;
+    var O1_Type v_RAC;
+    var O2_Type v_LAC;
+    var boolean v_EndofTBF := false;
+    //var octetstring v_IPv4IPv6_IcmpEchoReply := f_IPv4IPv6_IcmpEchoReply(f_LoopbackModeB_IP_Address_UE());      /* @sic R5s120470 sic@ Shoulsn't this be tested against? */
+    
+    //Initialise test case
+    f_GERAN_Init(EUTRA_GERAN);
+    f_GERAN_CreateCell (geran_Cell24);
+    
+    v_PLMN := f_GERAN_PLMN_Get(geran_Cell24);
+    v_RAC := f_GERAN_RAC_Get(geran_Cell24);
+    v_LAC := f_GERAN_LAC_Get(geran_Cell24);
+    
+    //Receieve auth parameters and set cell power level of cell 24 to suitable according to TS 36.508 subclause 6.2.2.1
+    f_GERAN_InterRAT_InitialiseAuthParams();
+    f_GERAN_SetCellPowerLevel (geran_Cell24, tsc_GERAN_SuitableNeighbourCell);
+    f_GERAN_TestBody_Set(true);
+    //Create the physical channel in GERAN cell ?
+    //f_GERAN_CreateTCH (geran_Cell24);
+    
+    //@siclog "Step 2" siclog@
+    
+    //@siclog "Step 3-5" siclog@
+    //Receive RAU Request Message
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24,
+                                             car_G_LLC_UnitData_IND (cr_G_RA_UpdReqAny (cr_GMM_UpdateType('0'B,
+                                                                                                          (tsc_I_UpdateTypeRAOnly, tsc_I_UpdateTypeCombined)),
+                                                                                        cr_RAI (omit),
+                                                                                        cr_PTMSI_SignatureAny ifpresent,
+                                                                                        ?)));
+    //Check PDP context status (shall be indicated as not PDP-INACTIVE)
+    v_PDP_Context_Status := v_LLCDataInd.unit.msg.rauReq.pDP_ContextStatus;
+    if (match(v_PDP_Context_Status, cs_PDP_ContextStatusInactive)){
+      f_GERAN_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test case 13.3.2.2 Step 3 - PDP Context Status is incorrect/PDP-inactive");
+    }
+    else {
+      f_GERAN_PreliminaryPass(__FILE__, __LINE__, "Test case 13.3.2.2 Step 3");
+    }
+    
+    v_UpdateType := f_UG_RauReq_GetUpdateValueForRauAcc(v_LLCDataInd.unit.msg.rauReq);
+    if (v_UpdateType == tsc_I_UpdateTypeCombinedWithIMSI or v_UpdateType == tsc_I_UpdateTypeCombined) {
+      v_SecurityInfo := f_GERAN_SecurityInfo_Get();
+      v_SecurityInfo.CSinOtherRAT := true;
+      f_GERAN_SecurityInfo_Set(v_SecurityInfo);
+    }
+    
+    //@siclog "Step 6-9" siclog@
+    //Perform Authentication
+    f_GERAN_GPRS_Authentication (geran_Cell24);
+    
+    //@siclog "Step 10-11" siclog@
+    //Send RAU Accept
+    f_GPRS_SendDownlinkMsg(geran_Cell24, 1, cas_G_LLC_UnitData_Req (f_GERAN_TLLI_Get(geran_Cell24),
+                                                                    tsc_LLCSapi_GMM,
+                                                                    tsc_LLC_PM,
+                                                                    px_GSM_CipheringOnOff,
+                                                                    cs_G_RA_UpdAcc3(cs_GMM_UpdateResult(v_UpdateType),
+                                                                                    cs_RAI(omit, cs_LAI(omit, v_PLMN, v_LAC), v_RAC),
+                                                                                    cs_PTMSI_Signature (px_PTMSI_SigDef),
+                                                                                    cs_MobileIdTMSIorPTMSI ('18'O, px_PTMSI_Def),
+                                                                                    v_PDP_Context_Status)));
+    //@siclog "Step 12-13" siclog@
+    //Receive RAU Complete Message
+    v_LLCDataInd := f_GPRS_ReceiveUplinkMsg (geran_Cell24, car_G_LLC_UnitData_IND (cr_G_RA_UpdComplete));
+    
+    //@siclog "Step 14" siclog@
+    //Void
+    
+    //@siclog "Step 15" siclog@
+    //Check: Does the UE loop back the IP packet on the DRB associated with the default EPS bearer context? */
+    f_GERAN_Receive_UplinkDataStart (geran_Cell24); // @sic R5s120570 sic@
+    a_GERAN_Receive_UplinkData (geran_Cell24, v_EndofTBF); // @sic R5s120570 sic@
+    f_GERAN_PreliminaryPass(__FILE__, __LINE__, "Test case 13.3.2.2 Step 15");
+    
+    //Tell to EUTRA PTC Test case is now finished on GERAN side
+    f_IRAT_SendCoOrd (EUTRA, cms_IRAT_Trigger);
+    
+    f_GERAN_TestBody_Set(false);
+    
+    //Switch/power off UE and release cell
+    f_GERAN_Postamble (geran_Cell24, G1_IDLE);
+  }
+
+}

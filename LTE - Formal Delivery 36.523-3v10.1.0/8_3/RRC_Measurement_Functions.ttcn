@@ -1,0 +1,55 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:26:06 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7315 $
+/******************************************************************************/
+
+module RRC_Measurement_Functions {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_SRB_Templates all;
+
+  function f_Check_Timer_MeasurementReport(EUTRA_CellId_Type p_CellId,
+                                           float p_Timer,
+                                           template (present) UL_DCCH_Message p_MeasurementReport ) runs on EUTRA_PTC
+  {
+    timer t_Wait;
+    t_Wait.start(p_Timer);
+    alt {
+      [] t_Wait.timeout
+        {
+          f_EUTRA_SetVerdictFailOrInconc( __FILE__, __LINE__, "Check failed: No MeasurementReport message received within certain time" );
+        }
+      [] SRB.receive( car_SRB1_RrcPdu_IND( p_CellId, p_MeasurementReport ) )
+        {
+          t_Wait.stop; //@sic R5s100580 Change2 sic@
+          f_EUTRA_PreliminaryPass( __FILE__, __LINE__, "Preliminary pass: MeasurementReport message received within a certain time" );
+        }
+    }
+  }
+
+  function f_NoMeasurementReport(EUTRA_CellId_Type p_CellId,
+                                 float p_Timer,
+                                 template (present) UL_DCCH_Message p_MeasurementReport) runs on EUTRA_PTC
+  {
+    timer t_Wait;
+    t_Wait.start(p_Timer);
+    alt {
+      [] t_Wait.timeout
+        {
+        }
+      [] SRB.receive( car_SRB1_RrcPdu_IND( p_CellId, p_MeasurementReport ) )
+        {
+          f_EUTRA_SetVerdictFailOrInconc( __FILE__, __LINE__, "Check failed: MeasurementReport message received within certain time" );
+        }
+    }
+  }
+
+}

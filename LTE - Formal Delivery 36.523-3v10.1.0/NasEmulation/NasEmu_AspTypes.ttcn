@@ -1,0 +1,60 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-27 14:31:17 +0200 (Wed, 27 Jun 2012) $
+// $Rev: 6963 $
+/******************************************************************************/
+
+module NasEmu_AspTypes {
+  //****************************************************************************
+  // System interface between NAS emulation and system adaptor
+  //****************************************************************************
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:2002" all;
+
+  group System_Interface {
+
+  //****************************************************************************
+  // ASP Type Definitions:
+  //****************************************************************************
+
+  type record RRC_PDU_REQ {
+    ReqAspCommonPart_Type       Common, /* CellId : identifier of the cell
+                                         * RoutingInfo : SRB0, SRB1, SRB2
+                                         * TimingInfo : Now in normal cases;
+                                         *   For latency tests TimingInfo can be set to the SFN/subframe in which the RRC messages shall be sent out
+                                         *   NOTE 1: if the RRC PDU is too long to be sent in one TTI the TimingInfo corresponds to the first TTI
+                                         *   NOTE 2: the TimingInfo is not changed by the NAS Emu (i.e. the timing info as coming from the test case (SRB_COMMON_REQ) is handed through by the NAS Emu)
+                                         * ControlInfo
+                                         *   CnfFlag:=false;
+                                         *   FollowOnFlag
+                                         *     true: Indicates that the message(s) to be sent on the same TTI will follow
+                                         *           NOTE 1: If the TimingInfo is not the same for messages to be sent on the same TTI, the SS shall produce an error
+                                         *           NOTE 2: the follow on flag applies only for messages of the same SRB
+                                         *     false: Indicates that no more message(s) will follow */
+    RRC_MSG_Request_Type        RrcPdu
+  };
+  type record RRC_PDU_IND {             /* common ASP to receive PDUs from SRB0, SRB1 or SRB2 */
+    IndAspCommonPart_Type       Common, /* CellId : identifier of the cell
+                                         * RoutingInfo : SRB0, SRB1, SRB2
+                                         * TimingInfo : time when message has been received (frame and sub-frame number); this is handed through to the test case by the NAS emulation
+                                         *   NOTE: normally an RRC PDU is expected in one TTI; nevertheless if it is spread over more than one TTIs TimingInfo shall refer to the end of the PDU i.e. to the last RLC PDU being received;
+                                         * Status : OK or RRC integrity error */
+    RRC_MSG_Indication_Type     RrcPdu
+  };
+
+  //****************************************************************************
+  // Port definitions
+  //****************************************************************************
+
+  type port NASEMU_SYSTEM_PORT message {         /* NASEMU PTC: Port for Sending/Receiving data to/from the SYSTEM Interface */
+    out RRC_PDU_REQ;
+    in  RRC_PDU_IND;
+  };
+
+  } // End group System_Interface
+}

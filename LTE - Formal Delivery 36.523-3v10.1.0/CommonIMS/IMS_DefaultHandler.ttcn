@@ -1,0 +1,47 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-05 15:12:54 +0200 (Wed, 05 Sep 2012) $
+// $Rev: 7330 $
+/******************************************************************************/
+
+module IMS_DefaultHandler {
+
+  import from IMS_ASP_TypeDefs all;
+  import from IMS_ASP_Templates all;
+  import from IMS_Component all;
+  import from IMS_PTC_CoordMsg all;
+  import from IMS_CommonProcedures_Registration all;
+
+  //****************************************************************************
+  // Main loop:
+  //----------------------------------------------------------------------------
+
+  function f_IMS_DefaultHandler() runs on IMS_PTC
+  {
+    var boolean v_Giba := false;
+    var IMS_DATA_REQ v_IMS_DATA_REQ;
+
+    f_IMS_PTC_Init(defaultHandling);
+
+    while (true) {
+      alt {
+        [] IMS_Server.receive(car_IMS_Register_Request(cr_IMS_RoutingInfo(unprotected))) -> value v_IMS_DATA_REQ       // receive any REGISTER on unprotected port
+          {
+            f_IMS_IPCAN_SendCoOrdMsg(IPCAN);     // send trigger to EUTRA PTC to indicate start of IMS registration @sic R5-123731 sic@
+            f_IMS_Registration(v_Giba, v_IMS_DATA_REQ);
+            f_IMS_IPCAN_SendCoOrdMsg(IPCAN);     // send trigger to EUTRA PTC to indicate end of IMS registration @sic R5-123731 sic@
+          }
+
+        [] IMS_Server.receive(car_IMS_Register_Request(cr_IMS_RoutingInfo(protected))) -> value v_IMS_DATA_REQ
+          {
+            f_IMS_PTC_Deregistration(v_IMS_DATA_REQ);
+          }
+      }
+    }
+  }
+}

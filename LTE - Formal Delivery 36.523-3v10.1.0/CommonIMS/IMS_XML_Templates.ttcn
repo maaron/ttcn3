@@ -1,0 +1,169 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-31 09:56:08 +0200 (Fri, 31 Aug 2012) $
+// $Rev: 7209 $
+/******************************************************************************/
+
+module IMS_XML_Templates {
+  import from CommonDefs all;
+  import from urn_ietf_params_xml_ns_reginfo all; // TODO_XML RFC 3680 Registration Info
+  
+  template (value) Reginfo cs_NotifyXMLDummy :=
+  {
+    sequence := {
+      registration := {},
+      anyName := omit
+    },
+    version := 0,
+    state := "full",
+    namespaces := {
+      "urn:ietf:params:xml:ns:reginfo",
+      "urn:ietf:params:xml:ns:gruuinfo"
+    }
+  };
+
+  //----------------------------------------------------------------------------
+
+  template (value) contactSequence cs_ContactSequence(charstring p_ContactUri,
+                                                      struct_unknown_param p_UnknownParams := {}) :=
+  {
+    uri := p_ContactUri,
+    display_name := omit,
+    unknown_param := p_UnknownParams,
+    anyName := omit
+  };
+
+  template (value) registrationInfo cs_RegistrationInfo(template (value) contactElement p_Contact,
+                                                        charstring p_PublicUserId,
+                                                        charstring p_Id,
+                                                        charstring p_State) :=
+  {
+    sequence := {
+      contact := {
+        p_Contact
+      },
+      anyName := omit
+    },
+    aor := p_PublicUserId,
+    id := p_Id,
+    state := p_State
+  };
+    
+  //----------------------------------------------------------------------------
+
+  template (value) contactElement cs_RegistrationContact_Active(template (value) contactSequence p_ContactSequence,
+                                                                charstring p_CallId,
+                                                                integer p_Cseq,
+                                                                charstring p_Id,
+                                                                template (omit) pubGruu p_PubGruu := omit,
+                                                                template (omit) tempGruu p_TempGruu := omit) :=
+  {
+    sequence := p_ContactSequence,
+    state := "active",
+    event := "registered",
+    duration_registered := omit,
+    expires := omit,
+    retry_after := omit,
+    id := p_Id,
+    q := omit,
+    callid := p_CallId,
+    cseq := p_Cseq,
+    pub_gruu := p_PubGruu,
+    temp_gruu := p_TempGruu
+  };
+
+  //----------------------------------------------------------------------------
+
+  // XML message body used in NOTIFY for reg-event package - GRUU case(see TS 34.229, A.1.6)
+  // TODO_XML - dummy template to be replaced with correct one
+  function f_IMS_XmlMessageForNotify(CharStringList_Type p_PublicUserIds,
+                                     charstring p_ContactUri,
+                                     charstring p_CallIdFromRegister,
+                                     integer p_CseqFromRecentRegister,
+                                     struct_unknown_param p_UnknownParams := {},
+                                     template (omit) pubGruu p_PubGruu := omit,
+                                     template (omit) tempGruu p_TempGruu := omit) return template (value) Reginfo
+  { // Set corresponding XML message to be included in NOTIFY message
+    var CharStringList_Type v_PublicUserIds;
+    var template (value) Reginfo v_XmlMessage := cs_NotifyXMLDummy;
+    var template (value) Registrations v_Registrations;
+    var charstring v_ContactId;
+    var charstring v_RegistrationId;
+    var charstring v_Digit;
+    var integer i;
+    var integer k := 0;
+
+    // Remove empty PublicUserIds
+    for (i := 0; i < lengthof(p_PublicUserIds); i := i + 1) {
+      if (p_PublicUserIds[i] != "") {
+        v_PublicUserIds[k] := p_PublicUserIds[i];
+        k := k + 1;
+      }
+    }
+    
+    // Build each registration info and add it to the list
+    for (i := 0; i < lengthof(v_PublicUserIds); i := i + 1) {
+      v_Digit := int2str(i);
+      v_RegistrationId := "a10" & v_Digit;
+      v_ContactId := "98" & v_Digit;
+      v_Registrations[i] := cs_RegistrationInfo(cs_RegistrationContact_Active(cs_ContactSequence(p_ContactUri, p_UnknownParams),
+                                                                              p_CallIdFromRegister,
+                                                                              p_CseqFromRecentRegister,
+                                                                              v_ContactId,
+                                                                              p_PubGruu,
+                                                                              p_TempGruu),
+                                                v_PublicUserIds[i],
+                                                v_RegistrationId,
+                                                "active");
+    }
+    v_XmlMessage.sequence.registration := v_Registrations;
+    return v_XmlMessage;
+  }
+
+  //----------------------------------------------------------------------------
+
+  template (value) contactElement cs_RegistrationContact_Terminated(template (value) contactSequence p_ContactSequence,
+                                                                    charstring p_Id) :=
+  {
+    sequence := p_ContactSequence,
+    state := "terminated",
+    event := "rejected",
+    duration_registered := omit,
+    expires := omit,
+    retry_after := omit,
+    id := p_Id,
+    q := omit,
+    callid := omit,
+    cseq := omit,
+    pub_gruu := omit,
+    temp_gruu := omit
+  };
+
+  template (value) Reginfo cs_NotifyTerminated(charstring p_PublicUserId1,
+                                               //charstring p_PublicUserId2,
+                                               charstring p_ContactUri,
+                                               charstring p_AssocTelUri) :=
+  {
+    sequence := {
+      registration := {
+        cs_RegistrationInfo(cs_RegistrationContact_Terminated(cs_ContactSequence(p_ContactUri), "980"),
+                            p_PublicUserId1,
+                            "a100",
+                            "terminated"),
+        cs_RegistrationInfo(cs_RegistrationContact_Terminated(cs_ContactSequence(p_ContactUri), "981"),
+                            p_AssocTelUri,
+                            "a101",
+                            "terminated")
+      },
+      anyName := omit
+    },
+    version := 1,
+    state := "full",
+    namespaces := omit
+  };
+}

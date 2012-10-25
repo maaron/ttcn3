@@ -1,0 +1,682 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module NasEmu {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_NasCtrl all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_SecurityDefinitionsAndExternalFunctions all;
+  import from NAS_CommonTypeDefs all;
+  import from NasEmu_AspTypes all;
+  import from NasEmu_Component all;
+  import from NasEmu_Templates all;
+
+  const boolean tsc_NasEmu_TerminateOnError := true;        /* @status    APPROVED */
+
+  type union NasEmu_DecodedNasPduUL_Type {      /* Return type for f_NasEmu_DecodeMsg
+                                                   @status    APPROVED */
+    NAS_UL_Message_Type  Msg,
+    Null_Type            Invalid
+  };
+
+  type record NasEmu_DecodingInfo_Type {        /* Return type for f_DecipherAndDecodeNasPdu
+                                                   @status    APPROVED */
+    NAS_MSG_Indication_Type  NasIndication optional,       // omit when octetstring cannot be decoded
+    boolean                  IntegrityError
+  };
+
+  type union NasEmu_SN_Type {           /* @status    APPROVED */
+    integer             Long,           // sequence number as usual (1 octet)
+    integer             Short           // short sequence number as used in SERVICE REQUEST (5 bits)
+  };
+
+  template (value) NasEmu_DecodingInfo_Type cs_DecodingInfo_Init :=
+  { /* @status    APPROVED */
+    NasIndication := omit,
+    IntegrityError := false
+  };
+
+  template (value) IndicationStatus_Type cs_IndicationStatus_NasIntegrityError :=
+  { /* @status    APPROVED */
+    Error := {
+      Integrity := {
+        Nas := true,
+        Pdcp := false
+      },
+      System := 0
+    }
+  };
+
+  template (value) NAS_MSG_Indication_Type cs_NAS_MSG_Indication(SecurityHeaderType p_NAS_SecurityStatus,
+                                                                 NasCount_Type p_NasCount,
+                                                                 NAS_UL_Message_Type p_NAS_UL_Message) :=
+  { /* local type templates (uses f_NasEmu_DecodePiggybacked) */
+    /* @status    APPROVED */
+    SecurityProtection:= {
+      Status := p_NAS_SecurityStatus,
+      NasCount := p_NasCount
+    },
+    Pdu := {
+      Msg := p_NAS_UL_Message,
+      PiggybackedPduList := f_NasEmu_DecodePiggybacked(p_NAS_UL_Message)
+    }
+  };
+
+  template (value) NasSecurity_Type cs_NasSecurity_Init :=
+  { /* @status    APPROVED */
+    Integrity := {
+      Algorithm := '000'B,
+      K_NAS     := int2bit(0, 128)
+    },
+    Ciphering := {
+      Algorithm := '000'B,
+      K_NAS     := int2bit(0, 128)
+    },
+    NasCount := {
+      UL        := f_NasCountInit(),
+      DL        := f_NasCountInit()
+    },
+    BearerId := '00000'B,       /* fix value acc. 33.401 cl. 8.1
+                                   @sic R5-101050: BearerId changed to 5 bits sic@ */
+    SecurityStarted := false
+  };
+
+  function f_NasEmulationError(charstring p_FileName,
+                               LineNo_Type p_LineNo,
+                               charstring p_Msg)
+  {
+    var boolean v_TerminateOnError := tsc_NasEmu_TerminateOnError;
+
+    if (v_TerminateOnError) {
+      f_SetVerdict(inconc, p_FileName, p_LineNo, p_Msg);
+      self.kill;
+    } else {
+      f_ErrorLog(p_FileName, p_LineNo, p_Msg);
+    }
+  };
+
+  function f_NasEmu_Encvalue(template (value) NAS_DL_Message_Type p_NasMessage) return bitstring
+  {
+    return encvalue(p_NasMessage);
+  };
+
+  function f_NasEmu_Decvalue(inout bitstring p_EncodedNasMessage,
+                             out NAS_UL_Message_Type p_NAS_UL_Message) return integer
+  {
+    return decvalue(p_EncodedNasMessage, p_NAS_UL_Message);
+  };
+
+  function f_NasEmu_DecodeMsg(octetstring p_EncodedMsg) return NasEmu_DecodedNasPduUL_Type
+  {
+    var bitstring v_NasPduBitstring;
+    var NAS_UL_Message_Type v_NAS_UL_Message;
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+
+    v_NasPduBitstring := oct2bit(p_EncodedMsg);
+    if (f_NasEmu_Decvalue(v_NasPduBitstring, v_NAS_UL_Message) != 0) {  /* v_NasPduBitstring needed as a variable since being 'inout' in decvalue
+                                                                           v_NAS_UL_Message is out parameter i.e. needs not to be initialised */
+      f_NasEmulationError(__FILE__, __LINE__, "NAS message cannot be decoded");
+      v_DecodedNasPduUL.Invalid := true;
+    } else {
+      v_DecodedNasPduUL.Msg := v_NAS_UL_Message;
+    }
+    return v_DecodedNasPduUL;
+  }
+
+  function f_NasEmu_DecodePiggybacked(NAS_UL_Message_Type p_NAS_UL_Message) return template (omit) NAS_UL_PduList_Type
+  {
+    var template (omit) NAS_UL_PduList_Type v_NAS_UL_PduList := omit;
+    var template (omit) NAS_UL_Pdu_Type     v_NAS_UL_Pdu := omit;
+    var octetstring v_PiggybackedOctetString := ''O;
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+
+    if (ischosen(p_NAS_UL_Message.ul_NAS_TRANSPORT)) {
+      // v_PiggybackedOctetString := p_NAS_UL_Message.ul_NAS_TRANSPORT.nasMessage.smsMessage;
+      // decoding of smsMessage is not supported (i.e. the test case needs to deal with an octetstring)
+
+    } else if (ischosen(p_NAS_UL_Message.aTTACH_COMPLETE)) {
+      v_PiggybackedOctetString := p_NAS_UL_Message.aTTACH_COMPLETE.esmMessage.esmPdu;
+
+    } else if (ischosen(p_NAS_UL_Message.aTTACH_REQUEST)) {
+      v_PiggybackedOctetString := p_NAS_UL_Message.aTTACH_REQUEST.esmMessage.esmPdu;
+
+    } else {
+      // NAS message does not contain piggybacked NAS message
+    }
+
+    if (lengthof(v_PiggybackedOctetString) > 0) {
+
+      v_DecodedNasPduUL := f_NasEmu_DecodeMsg(v_PiggybackedOctetString);
+      if (ischosen(v_DecodedNasPduUL.Invalid)) {
+        // do nothing i.e. keep v_NAS_UL_Pdu as omit
+      } else {
+        v_NAS_UL_Pdu.Msg := v_DecodedNasPduUL.Msg;
+        // recursive call: check whether piggybacked message contains further piggybacked messages
+        v_NAS_UL_Pdu.PiggybackedPduList := f_NasEmu_DecodePiggybacked(v_DecodedNasPduUL.Msg);
+      }
+      v_NAS_UL_PduList[0] := v_NAS_UL_Pdu;      // Note: acc. to 24.301 V8.0.0 cl. 9.9.3.15 there is only one PDU piggybacked
+    }
+    return v_NAS_UL_PduList;
+  }
+
+  function f_NasEmu_EncodePiggybacked(NAS_DL_Pdu_Type p_NAS_DL_Pdu) return octetstring
+  {
+    const IEI8_Type const_EsmMsgIEI := '78'O;     // IEI for EsmMessage contained in AttachReject
+    var template (value) NAS_DL_Message_Type v_NAS_DL_Message := p_NAS_DL_Pdu.Msg;
+    var NAS_DL_PduList_Type v_PiggybackedPduList;
+    var NAS_DL_Pdu_Type v_PiggybackedPDU;
+    var integer v_NoOfPiggybacked;
+    var octetstring v_EncodedPiggybackedMsg;
+
+    if (ispresent(p_NAS_DL_Pdu.PiggybackedPduList)) {
+      v_PiggybackedPduList := p_NAS_DL_Pdu.PiggybackedPduList;
+      v_NoOfPiggybacked := lengthof(v_PiggybackedPduList);
+    } else {
+      v_NoOfPiggybacked := 0;
+    }
+
+    if (v_NoOfPiggybacked > 0) {
+      v_PiggybackedPDU := v_PiggybackedPduList[0];
+      v_EncodedPiggybackedMsg := bit2oct(f_NasEmu_Encvalue(v_PiggybackedPDU.Msg));
+
+      if (v_NoOfPiggybacked > 1) {
+        f_NasEmulationError(__FILE__, __LINE__, "number of piggybacked PDUs is > 1 but acc. to 24.301 V8.0.0 there is only one message being piggy-backed");
+        /* only the first piggybacked PDU will be considered */
+      }
+      if (ispresent(v_PiggybackedPDU.PiggybackedPduList)) {
+        f_NasEmulationError(__FILE__, __LINE__, "Acc. to 24.301 V8.0.0 there is just one level of piggy-backing");
+        /* piggybacking for the piggybacked PDU is ignored */
+      }
+
+      if (ischosen(v_NAS_DL_Message.aTTACH_ACCEPT)) {
+        v_NAS_DL_Message.aTTACH_ACCEPT.esmMessage := cs_ESM_MessageContainer(omit, v_EncodedPiggybackedMsg);
+
+      } else if (ischosen(v_NAS_DL_Message.aTTACH_REJECT)) {
+        v_NAS_DL_Message.aTTACH_REJECT.esmMessage := cs_ESM_MessageContainer(const_EsmMsgIEI, v_EncodedPiggybackedMsg);
+
+      } else if (ischosen(v_NAS_DL_Message.dl_NAS_TRANSPORT)) {
+        f_NasEmulationError(__FILE__, __LINE__, "DL_NAS_TRANSPORT: encoding of SMS PDUs is not supported by the NAS emulator");
+        // v_NAS_DL_Message.dl_NAS_TRANSPORT.nasMessage.smsMessage := ...;
+
+      } else {
+        f_NasEmulationError(__FILE__, __LINE__, "NAS message can not carry piggy-backed NAS PDU");
+        /* piggy backed messages is ignored */
+      }
+    }
+    return bit2oct(f_NasEmu_Encvalue(v_NAS_DL_Message));
+  }
+
+  function f_NasSecurity_ExtractSNfromCOUNT(NasCount_Type p_Count) return NAS_SequenceNumber
+  {
+    return int2oct(oct2int(p_Count) mod 256, 1);
+  };
+
+  function f_NasSecurity_EstimateCOUNT(NasCount_Type p_PrevCount,
+                                       NasEmu_SN_Type p_SequenceNumber) return NasCount_Type
+  {
+    var integer v_PrevCountValue := oct2int(p_PrevCount);
+    var integer v_CountValue;
+    var integer v_MaxSnPlus1;
+    var integer v_PrevSnValue;
+    var integer v_ReceivedSnValue;
+    var integer v_OverflowCounter;    /* Note: for normal (long) SN this is the overflow counter as described in 24.301;
+                                         for 5 bit SN it includes the 3 most significant bits of the least significant octet (what normally is the SN) */
+    if (ischosen(p_SequenceNumber.Long)) {
+      v_ReceivedSnValue := p_SequenceNumber.Long;
+      v_MaxSnPlus1 := 256;
+    } else {
+      v_ReceivedSnValue := p_SequenceNumber.Short;
+      v_MaxSnPlus1 := 32;
+    }
+    v_OverflowCounter := v_PrevCountValue / v_MaxSnPlus1;
+    v_PrevSnValue := v_PrevCountValue mod v_MaxSnPlus1;
+
+    if (v_ReceivedSnValue < v_PrevSnValue) {     // => overflow
+      v_OverflowCounter := (v_OverflowCounter + 1) mod 65536;
+    }
+    v_CountValue := (v_OverflowCounter * v_MaxSnPlus1) + v_ReceivedSnValue;
+
+    return int2oct(v_CountValue, 4);
+  };
+
+  function f_NasCountInit() return NasCount_Type
+  {
+    var integer v_CountValue := (65536 * 256) - 1;
+    return int2oct(v_CountValue, 4);
+  }
+
+  function fl_NasSecurity_Init() runs on NASEMU_PTC
+  {
+    vc_NasSecurity := valueof(cs_NasSecurity_Init);    // valueof cannot be avoided here
+  };
+
+  altstep a_ConfigurationHandler() runs on NASEMU_PTC
+  {
+    var NAS_CTRL_REQ v_ConfigAsp;
+    var NasCountInfo_Type v_NasCountInfo;
+
+    [] CTRL.receive(cr_NAS_CTRL_Security_REQ) -> value v_ConfigAsp {            /* NAS SECURITY */
+      if (ischosen(v_ConfigAsp.Request.Security.StartRestart)) {                /* Start NAS Security */
+        vc_NasSecurity.SecurityStarted := true;
+        vc_NasSecurity.Integrity := v_ConfigAsp.Request.Security.StartRestart.Integrity;
+        vc_NasSecurity.Ciphering := v_ConfigAsp.Request.Security.StartRestart.Ciphering;
+        if (ispresent(v_ConfigAsp.Request.Security.StartRestart.NasCountReset)) {
+          vc_NasSecurity.NasCount.UL := f_NasCountInit();
+          vc_NasSecurity.NasCount.DL := f_NasCountInit();
+        }
+      } else {                                                                  /* Release: Reset NAS Security */
+        fl_NasSecurity_Init();
+      }
+      if (v_ConfigAsp.Common.ControlInfo.CnfFlag) {
+        CTRL.send(cs_NAS_CTRL_Security_CNF);
+      }
+    }
+    [] CTRL.receive(cr_NAS_CTRL_NasCount_REQ) -> value v_ConfigAsp {            /* NAS COUNT */
+      if (ischosen(v_ConfigAsp.Request.NasCount.Set)) {
+        v_NasCountInfo := v_ConfigAsp.Request.NasCount.Set;
+        if (ispresent(v_NasCountInfo.UL)) {
+          vc_NasSecurity.NasCount.UL := v_NasCountInfo.UL;
+        } /* else: keep as it is */
+        if (ispresent(v_NasCountInfo.DL)) {
+          vc_NasSecurity.NasCount.DL := v_NasCountInfo.DL;
+        } /* else: keep as it is */
+        if (v_ConfigAsp.Common.ControlInfo.CnfFlag) {
+          CTRL.send(cs_NAS_CTRL_NasCountSet_CNF);
+        }
+      } else if (ischosen(v_ConfigAsp.Request.NasCount.Get)) {
+        if (v_ConfigAsp.Common.ControlInfo.CnfFlag) {
+          CTRL.send(cs_NAS_CTRL_NasCountGet_CNF(vc_NasSecurity.NasCount));
+        }
+      }
+    }
+  };
+
+  function f_EncodeAndCipherNasPdu(NAS_MSG_Request_Type p_NAS_MSG_Request) runs on NASEMU_PTC return DedicatedInfoNAS
+  {
+    var SecurityHeaderType v_SecurityStatus := p_NAS_MSG_Request.SecurityProtection.Status;
+    var boolean v_ForceMacError := p_NAS_MSG_Request.SecurityProtection.ForceMacError;  // @sic R5s100358 additional changes sic@
+    var octetstring v_EncodedNasPdu;
+    var NasCount_Type v_CountDL;
+    var MessageAuthenticationCode v_CalculatedMac;
+    var NAS_SequenceNumber v_SequenceNumber;
+    var octetstring v_Octet6toN;
+
+    v_EncodedNasPdu := f_NasEmu_EncodePiggybacked(p_NAS_MSG_Request.Pdu);
+
+    if (v_SecurityStatus != tsc_SHT_NoSecurityProtection) {
+
+      if (not vc_NasSecurity.SecurityStarted) {
+        f_NasEmulationError(__FILE__, __LINE__, "security is not started");
+        /* => PDU will not be security protected */
+
+      } else {
+        /* Note: acc. 24.301 cl. 4.4.1 "When both ciphering and integrity protection are activated, then the NAS message is first encrypted
+           and then the encrypted NAS message and the SN are integrity protected by calculating the MAC"
+           => we apply ciphering first and then integrity protection */
+
+        // INCREMENT DL NAS COUNT:
+        v_CountDL := f_NasSecurity_IncrementCOUNT(vc_NasSecurity.NasCount.DL);
+        vc_NasSecurity.NasCount.DL := v_CountDL;
+
+        // APPLY CIPHERING (if necessary):
+        if ((v_SecurityStatus == tsc_SHT_IntegrityProtected_Ciphered) or
+            (v_SecurityStatus == tsc_SHT_IntegrityProtected_Ciphered_NewSecurityContext)) {
+
+          v_EncodedNasPdu := fx_NasCiphering(v_EncodedNasPdu,
+                                             vc_NasSecurity.Ciphering.Algorithm,
+                                             vc_NasSecurity.Ciphering.K_NAS,
+                                             v_CountDL,
+                                             vc_NasSecurity.BearerId);
+        }
+
+        // APPLY INTEGRITY PROTECTION:
+        v_SequenceNumber := f_NasSecurity_ExtractSNfromCOUNT(v_CountDL);
+        v_Octet6toN := v_SequenceNumber & v_EncodedNasPdu;
+        v_CalculatedMac := fx_NasIntegrityAlgorithm(v_Octet6toN,
+                                                    vc_NasSecurity.Integrity.Algorithm,
+                                                    vc_NasSecurity.Integrity.K_NAS,
+                                                    v_CountDL,
+                                                    vc_NasSecurity.BearerId,
+                                                    tsc_DirectionDL);
+
+        if (v_ForceMacError) {    // @sic R5s100358 additional changes sic@
+          v_CalculatedMac := not4b v_CalculatedMac;      // O4_Type
+        }
+
+        // build up SECURITY PROTECTED NAS message
+        // @sic R5s090194: v_SecurityStatus used directly in call of cs_SecurityProtectedNasMsg sic@
+        v_EncodedNasPdu := bit2oct(f_NasEmu_Encvalue(cs_SecurityProtectedNasMsg(v_SecurityStatus,
+                                                                                v_CalculatedMac,
+                                                                                v_SequenceNumber,
+                                                                                v_EncodedNasPdu)));
+      }
+    }
+    return v_EncodedNasPdu;
+  }
+
+  altstep a_AspFromTestcaseHandler() runs on NASEMU_PTC
+  {
+    var SRB_COMMON_REQ v_AspFromTC;
+    var ReqAspCommonPart_Type v_ReqAspCommonPart;
+    var NAS_MSG_Request_Type v_NasPduFromTC;
+    var template (value) RRC_MSG_Request_Type v_RrcPduToSYS;
+    var template (value) DL_DCCH_Message v_DL_DCCH_Message;
+    var DedicatedInfoNAS v_NAS_DedicatedInformation[maxDRB];   // we use an array as long as this is an inline type definition in ASN.1
+    var integer v_NoOfNasPdus := 0;
+    var boolean v_RrcPduIsPresent;
+    var boolean v_NasPduIsPresent;
+    var integer I;
+
+    [] TC_SRB.receive(car_SignallingAspFromTC) -> value v_AspFromTC {
+
+      v_ReqAspCommonPart := v_AspFromTC.Common;
+      v_RrcPduIsPresent := ispresent(v_AspFromTC.Signalling.Rrc);
+      v_NasPduIsPresent := ispresent(v_AspFromTC.Signalling.Nas);
+
+      if (v_NasPduIsPresent) {
+        // Note: in case of RRCConnectionReconfiguration there may be more than one NAS PDUs
+        v_NoOfNasPdus := lengthof(v_AspFromTC.Signalling.Nas);       // Note: per ASN.1 definition length is restricted to maxDRB
+        for (I:=0; I < v_NoOfNasPdus; I:= I + 1) {
+          v_NasPduFromTC := v_AspFromTC.Signalling.Nas[I];
+          v_NAS_DedicatedInformation[I] := f_EncodeAndCipherNasPdu(v_NasPduFromTC);   // encode NAS PDU; apply NAS security (if reqired)
+        }
+      }
+
+      if (v_RrcPduIsPresent) {
+        // ******* RRC PDU (containing RRC control information)
+
+        v_RrcPduToSYS := v_AspFromTC.Signalling.Rrc;
+
+        if (v_NasPduIsPresent) {
+          // ***** NAS PDU BEING PIGGY BACKED
+          if (not ischosen(v_RrcPduToSYS.Dcch)) {
+            // ***** SRB0
+            f_NasEmulationError(__FILE__, __LINE__, "no piggy-backing possible for CCCH message");
+            return;     /* don't send anything */
+
+          } else {
+            // ***** SRB1/2
+            v_DL_DCCH_Message := v_RrcPduToSYS.Dcch;  /* extract RRC message;
+                                                         Note: since v_RrcPduToSYS is a union v_RrcPduToSYS.Dcch is never omit */
+
+            if (ischosen(v_DL_DCCH_Message.message_.c1.rrcConnectionReconfiguration)) {     /* RRC message is RRCConnectionReconfiguration */
+              // *** RRC CONNECTION RECONFIGURATION:
+              for (I:=0; I < v_NoOfNasPdus; I:= I + 1) {
+                v_DL_DCCH_Message.message_.c1.rrcConnectionReconfiguration.criticalExtensions.c1.rrcConnectionReconfiguration_r8.dedicatedInfoNASList[I] :=
+                  v_NAS_DedicatedInformation[I];
+              }
+
+            } else if (ischosen(v_DL_DCCH_Message.message_.c1.dlInformationTransfer)) {     /* RRC message is DLInformationTransfer */
+              // *** DL INFORMATION TRANSFER:
+              if (v_NoOfNasPdus > 1) {
+                f_NasEmulationError(__FILE__, __LINE__, "too many NAS PDUs (shall be a maximun of 1 PDU for DLInformationTransfer)");
+                return;     /* don't send anything */
+              } else {
+                v_DL_DCCH_Message.message_.c1.dlInformationTransfer.criticalExtensions.c1.dlInformationTransfer_r8.dedicatedInfoType.dedicatedInfoNAS :=
+                  v_NAS_DedicatedInformation[0];
+              }
+
+            } else {
+              // *** OTHER RRC PDU:
+              f_NasEmulationError(__FILE__, __LINE__, "RRC message can not carry piggy-backed NAS PDU");
+              return;    /* don't do anything else */
+            }
+            v_RrcPduToSYS := cs_RRC_MSG_RequestDCCH(v_DL_DCCH_Message);
+          }
+        }
+      } else {
+        // ******* NAS PDU only:
+        if (not v_NasPduIsPresent) {
+          f_NasEmulationError(__FILE__, __LINE__, "neither RRC nor NAS PDU to be sent");
+          return;     /* don't send anything */
+        } else {
+          if (v_NoOfNasPdus > 1) {
+            f_NasEmulationError(__FILE__, __LINE__, "too many NAS PDUs (shall be a maximun of 1 PDU for DLInformationTransfer)");
+            return;     /* don't send anything */
+          } else {
+            v_RrcPduToSYS := cs_RRC_MSG_RequestDCCH(cs_DLInformationTransfer(tsc_RRC_TI_Def, v_NAS_DedicatedInformation[0]));
+          }
+        }
+      }
+      SYS_SRB.send(cas_PduToSYS(v_ReqAspCommonPart, v_RrcPduToSYS));
+    }
+  }
+
+  function f_DecipherAndDecodeNasPdu(DedicatedInfoNAS p_NAS_DedicatedInformation)
+    runs on NASEMU_PTC
+    return template (value) NasEmu_DecodingInfo_Type
+  {
+    var template (value) NasEmu_DecodingInfo_Type v_DecodingInfo := cs_DecodingInfo_Init; // NasIndication := omit, IntegrityError := false
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+    var octetstring v_IntegrityProtectedOctets;
+    var SECURITY_PROTECTED_NAS_MESSAGE v_SecurityProtectedNasMsg;
+    var MessageAuthenticationCode v_ContainedMac;
+    var MessageAuthenticationCode v_CalculatedMac;
+    var NasEmu_SN_Type v_SequenceNumber;
+    var B16_Type v_ShortMac;                     // (SERVICE_REQUEST)
+    var NAS_Message v_EncodedNasPdu;
+    var NasCount_Type v_CountUL;
+    var SecurityHeaderType v_SecurityHeader;
+
+    // Decode NAS message: message is either SECURITY_PROTECTED_NAS_MESSAGE or non-protected NAS message
+    v_DecodedNasPduUL := f_NasEmu_DecodeMsg(p_NAS_DedicatedInformation);
+
+    if (ischosen(v_DecodedNasPduUL.Invalid)) {
+      return v_DecodingInfo;            // v_DecodingInfo is {omit, false}
+    }
+
+    if (ischosen(v_DecodedNasPduUL.Msg.sECURITY_PROTECTED_NAS_MESSAGE)) {     // SECURITY_PROTECTED_NAS_MESSAGE
+
+      v_SecurityProtectedNasMsg := v_DecodedNasPduUL.Msg.sECURITY_PROTECTED_NAS_MESSAGE;
+
+      v_SecurityHeader      := v_SecurityProtectedNasMsg.securityHeaderType;
+      v_ContainedMac        := v_SecurityProtectedNasMsg.messageAuthenticationCode;
+      v_SequenceNumber.Long := oct2int(v_SecurityProtectedNasMsg.sequenceNumber);
+      v_EncodedNasPdu       := v_SecurityProtectedNasMsg.nasMessage;
+      v_CountUL             := f_NasSecurity_EstimateCOUNT(vc_NasSecurity.NasCount.UL, v_SequenceNumber);
+
+
+      if ((not vc_NasSecurity.SecurityStarted) and (v_SecurityHeader != tsc_SHT_IntegrityProtected)) { /* @sic R5s100024 tsc_SHT_EnabledSecurityProtection replaced by tsc_SHT_IntegrityProtected sic@ */
+        /* Note: A UE is allowed to transmit a security protected Attach request (Security header set to '0001'B)
+         *       at the initial registration in case the USIM used has a valid EPS security context  */
+
+        f_NasEmulationError(__FILE__, __LINE__, "security protected PDU received but security is not started");
+        return v_DecodingInfo;            // v_DecodingInfo is {omit, false}
+
+      } else {
+        if (vc_NasSecurity.SecurityStarted) {
+          /* Note: acc. 24.301 cl. 4.4.1 "When both ciphering and integrity protection are activated, then the NAS message is first encrypted
+             and then the encrypted NAS message and the SN are integrity protected by calculating the MAC"
+             => we apply integrity protection on the ciphered ciphering data */
+
+          // CHECK INTEGRITY
+          v_IntegrityProtectedOctets := v_SecurityProtectedNasMsg.sequenceNumber & v_EncodedNasPdu;
+          v_CalculatedMac := fx_NasIntegrityAlgorithm(v_IntegrityProtectedOctets,
+                                                      vc_NasSecurity.Integrity.Algorithm,
+                                                      vc_NasSecurity.Integrity.K_NAS,
+                                                      v_CountUL,
+                                                      vc_NasSecurity.BearerId,
+                                                      tsc_DirectionUL);
+          if (v_ContainedMac == v_CalculatedMac) {
+            vc_NasSecurity.NasCount.UL := v_CountUL;   /* write back the latest count value */
+
+          } else {
+            // UL NAS COUNT is not updated in case of integrity error
+            v_DecodingInfo.IntegrityError := true;
+          }
+
+          // DECIPHERING:
+          if ((v_SecurityHeader == tsc_SHT_IntegrityProtected_Ciphered) or
+              (v_SecurityHeader == tsc_SHT_IntegrityProtected_Ciphered_NewSecurityContext)) {
+
+            v_EncodedNasPdu := fx_NasDeciphering(v_EncodedNasPdu,
+                                                 vc_NasSecurity.Ciphering.Algorithm,
+                                                 vc_NasSecurity.Ciphering.K_NAS,
+                                                 v_CountUL,
+                                                 vc_NasSecurity.BearerId);
+          }
+        } else {
+          // NAS security not started yet, but e.g. in case of ATTACH REQ
+          vc_NasSecurity.NasCount.UL := v_CountUL;   /* write back the latest count value */
+        }
+        // Decode NAS message
+        v_DecodedNasPduUL := f_NasEmu_DecodeMsg(v_EncodedNasPdu);
+        if (ischosen(v_DecodedNasPduUL.Invalid)) {
+          // Do nothing: v_DecodingInfo.NasIndication remains omit
+        } else {
+          v_DecodingInfo.NasIndication := cs_NAS_MSG_Indication(v_SecurityHeader,
+                                                                v_CountUL,
+                                                                v_DecodedNasPduUL.Msg);
+        }
+      }
+    } else if (ischosen(v_DecodedNasPduUL.Msg.sERVICE_REQUEST)) {             // SERVICE_REQUEST
+
+      // NAS COUNT: Wrap-around count + seq number
+      // SERVICE_REQUEST: 5-bit seq number
+      //                  Short MAC: cl. 9.9.3.28 integrity is applied on the octet 1 and 2 of the SERVICE_REQUEST
+
+      v_SequenceNumber.Short := bit2int(v_DecodedNasPduUL.Msg.sERVICE_REQUEST.ksiAndSN.sn);
+      v_ShortMac := v_DecodedNasPduUL.Msg.sERVICE_REQUEST.shortMAC.macValue;
+      v_CountUL  := f_NasSecurity_EstimateCOUNT(vc_NasSecurity.NasCount.UL, v_SequenceNumber);
+
+      v_IntegrityProtectedOctets := substr(p_NAS_DedicatedInformation, 0, 2); // 24.301 cl. 9.9.3.28: integrity is applied on the first 2 octets of SERVICE_REQUEST
+
+      v_CalculatedMac := fx_NasIntegrityAlgorithm(v_IntegrityProtectedOctets,
+                                                  vc_NasSecurity.Integrity.Algorithm,
+                                                  vc_NasSecurity.Integrity.K_NAS,
+                                                  v_CountUL,
+                                                  vc_NasSecurity.BearerId,
+                                                  tsc_DirectionUL);
+
+      if (bit2oct(v_ShortMac) == substr(v_CalculatedMac, 2, 2)) {             // 24.301 cl. 9.9.3.28: ShortMAC contains the 2 least significant octets of the MAC
+        vc_NasSecurity.NasCount.UL := v_CountUL;                              // write back the latest count value
+
+      } else {
+        // UL NAS COUNT is not updated in case of integrity error
+        v_DecodingInfo.IntegrityError := true;
+      }
+      v_DecodingInfo.NasIndication := cs_NAS_MSG_Indication(tsc_SHT_IntegrityProtected,
+                                                            vc_NasSecurity.NasCount.UL,
+                                                            v_DecodedNasPduUL.Msg);
+
+    } else {                                                                  // non security protected PDU
+      v_DecodingInfo.NasIndication := cs_NAS_MSG_Indication(tsc_SHT_NoSecurityProtection,
+                                                            vc_NasSecurity.NasCount.UL,                     /* Note: NAS-Count shall be ignored by the test case
+                                                                                                               in case of non-protected messages */
+                                                            v_DecodedNasPduUL.Msg);
+    }
+    return v_DecodingInfo;
+  };
+
+  altstep a_AspFromSystemAdaptorHandler() runs on NASEMU_PTC
+  {
+    var RRC_PDU_IND v_AspFromSYS;
+    var RRC_MSG_Indication_Type v_RrcIndication;
+    var UL_DCCH_Message v_RrcPdu;
+    var ULInformationTransfer_r8_IEs v_ULInformationTransfer;
+    var template (value) SRB_COMMON_IND v_SRB_COMMON_IND;
+    var template (value) NasEmu_DecodingInfo_Type v_DecodingInfo;
+    var DedicatedInfoNAS v_NAS_DedicatedInformation[maxDRB];   // even though currently (DEC08) there is always only one DedicatedInfoNAS we use an array
+    var integer v_NoOfNasPdus;
+    var boolean v_RrcPduPresent;
+    var boolean v_IntegrityError;
+    var integer I;
+
+    [] SYS_SRB.receive(car_PduFromSYS) -> value v_AspFromSYS {
+      v_RrcIndication := v_AspFromSYS.RrcPdu;
+      v_SRB_COMMON_IND := cas_SignallingAspToTC_Init(v_AspFromSYS.Common);   // RRC and NAS both are initialised as omit
+
+      if (ischosen(v_RrcIndication.Ccch)) {                                     /* CCCH -> SRB0 */
+        v_SRB_COMMON_IND.Signalling.Rrc := v_RrcIndication;
+
+      } else {                                                                  /* DCCH -> SRB1/2 */
+
+        v_RrcPdu := v_RrcIndication.Dcch;
+        v_RrcPduPresent := true;
+        v_NoOfNasPdus := 0;
+        v_IntegrityError := false;
+
+        if (ischosen(v_RrcPdu.message_.c1)) {
+
+          if (ischosen(v_RrcPdu.message_.c1.rrcConnectionSetupComplete)) {
+            // RRC CONNECTION SETUP COMPLETE
+            if (ischosen(v_RrcPdu.message_.c1.rrcConnectionSetupComplete.criticalExtensions.c1.rrcConnectionSetupComplete_r8)) {
+              v_NAS_DedicatedInformation[0] := v_RrcPdu.message_.c1.rrcConnectionSetupComplete.criticalExtensions.c1.rrcConnectionSetupComplete_r8.dedicatedInfoNAS;
+              v_NoOfNasPdus := 1;
+            }
+
+          } else if (ischosen(v_RrcPdu.message_.c1.ulInformationTransfer)) {
+            // UL INFORMATION TRANSFER
+            if (ischosen(v_RrcPdu.message_.c1.ulInformationTransfer.criticalExtensions.c1.ulInformationTransfer_r8)) {
+              v_ULInformationTransfer := v_RrcPdu.message_.c1.ulInformationTransfer.criticalExtensions.c1.ulInformationTransfer_r8;
+              if (ischosen(v_ULInformationTransfer.dedicatedInfoType.dedicatedInfoNAS)) {  /* @sic R5s100135 sic@ */
+                v_NAS_DedicatedInformation[0] := v_ULInformationTransfer.dedicatedInfoType.dedicatedInfoNAS;  /* @sic R5s100135 sic@ */
+                v_RrcPduPresent := false;
+                v_NoOfNasPdus := 1;
+              }
+              else {
+                /* @sic R5-106675 (clause 4.4.3.2): ulInformationTransfer does not contain NAS PDU but CDMA2000 message(s) sic@ */
+                /* @sic C2K TUNNELING: hand-over ulInformationTransfer to EUTRA sic@ */
+              }
+            }
+          } else {
+            // OTHER RRC PDU
+          }
+        }
+
+        if (v_RrcPduPresent) {
+          v_SRB_COMMON_IND.Signalling.Rrc := v_RrcIndication;
+        }
+        if (v_NoOfNasPdus > 0) {
+          for (I := 0; I < v_NoOfNasPdus; I := I + 1) {
+            v_DecodingInfo := f_DecipherAndDecodeNasPdu(v_NAS_DedicatedInformation[I]);
+            v_SRB_COMMON_IND.Signalling.Nas[I] := v_DecodingInfo.NasIndication;         // omit if message cannot be decoded => shall lead to a test case error
+            v_IntegrityError := v_IntegrityError or valueof(v_DecodingInfo.IntegrityError);    // valueof cannot be avoided here
+          }
+          if (v_IntegrityError) {                                                       // set Error choice of common part only if there is an error
+            /* @sic R5s100024 sic@ */
+            if (ischosen(v_SRB_COMMON_IND.Common.Status.Error)) {     /* there is already an error flagged by the SA */
+              v_SRB_COMMON_IND.Common.Status.Error.Integrity.Nas := true;
+            } else {                                                  /* the error needs to be set */
+              v_SRB_COMMON_IND.Common.Status := cs_IndicationStatus_NasIntegrityError;
+            }
+          }
+        }
+      }
+      TC_SRB.send(v_SRB_COMMON_IND);
+    }
+  }
+
+  function f_NASEMU_MainLoop() runs on NASEMU_PTC
+  { /* @sic R5-106675 (clause 4.4.3.2): New parameter to tell the NAS emulator whether C2K pre-registration shall be supported or not sic@
+       @sic C2K TUNNELING: parameter removed again sic@ */
+    fl_NasSecurity_Init();
+
+    while (true) {
+      alt {
+        [] a_ConfigurationHandler();
+        [] a_AspFromTestcaseHandler();
+        [] a_AspFromSystemAdaptorHandler();
+        [] any port.receive {
+          f_NasEmulationError(__FILE__, __LINE__, "unexpected message (skipped)");
+          repeat;
+        }
+      }
+    }
+  };
+
+}

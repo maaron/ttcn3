@@ -1,0 +1,818 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-02 22:44:17 +0200 (Sun, 02 Sep 2012) $
+// $Rev: 7242 $
+/******************************************************************************/
+
+module NAS_CommonTemplates {
+
+  import from CommonDefs all;
+  import from NAS_CommonTypeDefs all;
+
+  group NAS_CommonConstants {
+
+  const B1_Type tsc_Spare1 :=        '0'B;                /* @status    APPROVED */
+
+  const B2_Type tsc_Spare2 :=       '00'B;                /* @status    APPROVED */
+
+  const B3_Type tsc_Spare3 :=      '000'B;                /* @status    APPROVED */
+
+  const B5_Type tsc_Spare5 :=    '00000'B;                /* @status    APPROVED */
+
+  const B6_Type tsc_Spare6 :=   '000000'B;                /* @status    APPROVED */
+
+  const SpareHalfOctet tsc_SpareHalfOctet := '0'H;        /* @status    APPROVED */
+
+  const NAS_IdType tsc_IdType_IMSI   := '001'B;           /* @status    APPROVED */
+
+  const NAS_IdType tsc_IdType_IMEI   := '010'B;           /* @status    APPROVED */
+
+  const NAS_IdType tsc_IdType_IMEISV := '001'B;           /* @status    APPROVED */
+
+  const NAS_IdType tsc_IdType_TMSI   := '100'B;           /* @status    APPROVED */
+
+  const NAS_IdType tsc_IdType_GUTI   := '110'B;           /* @status    APPROVED */
+
+  const GprsTimerUnit tsc_GprsTimerUnit_2sec  := '000'B;  /* @status    APPROVED */
+
+  const GprsTimerUnit tsc_GprsTimerUnit_1min  := '001'B;  /* @status    APPROVED */
+
+  const GprsTimerUnit tsc_GprsTimerUnit_6min  := '010'B;  /* @status    APPROVED */
+
+  const GprsTimerUnit tsc_GprsTimerUnit_deact := '111'B;  /* @status    APPROVED */
+
+  const O2_Type tsc_PCO_Id_PCSCFv4 := '000C'O;            /* @status    APPROVED */
+
+  const O2_Type tsc_PCO_Id_PCSCFv6 := '0001'O;            /* @status    APPROVED */
+
+  const B7_Type tsc_EmergServManual := '0100000'B;        /* @status    APPROVED */
+
+  const B7_Type tsc_EmergServAuto := '1000000'B;          /* @status    APPROVED */
+
+  } // end of group NAS_CommonConstants
+
+  template (value) AccessPointName cs_AccessPointName (octetstring p_Name) :=
+  { /* @status    APPROVED */
+    iei   := omit,
+    iel   := int2oct(lengthof(p_Name),1),
+    nameValue := p_Name
+  };
+
+  template (present) AccessPointName cr_AccessPointName (octetstring p_Name) :=
+  {  /* @status    APPROVED */
+    iei   := '28'O,
+    iel   := int2oct(lengthof(p_Name),1),
+    nameValue := p_Name
+  };
+
+  template AccessPointName cr_AccessPointName_Any :=
+  { /* @status    APPROVED */
+    iei   := '28'O,
+    iel   := ?,
+    nameValue := ?
+  };
+
+  template AddUpdateParams cr_AddUpdateParams_Any :=
+  { /* @status    APPROVED */
+    iei  := ?,                   // '1100'B
+    spare:=?,
+    csmo := ?,                   // @sic R5s120178 Baseline Moving sic@
+    csmt := ?
+  };
+
+  template AuthenticationFailureParameter cr_AuthFailParam_Any :=
+  { /* TLV format to be used in Authentication_Failure */
+    /* @status    APPROVED */
+    iei             := '30'O, // version 110, and value used in GMM
+    iel             := '0E'O,
+    auts            := ?
+  };
+
+  template AuthenticationFailureParameter cdr_AuthFailParamGSM_Any modifies cr_AuthFailParam_Any :=
+  { /* @status    APPROVED */
+    iei             := '22'O
+  };
+
+  template (value) RAND cs_RAND_v(B128_Type p_RAND) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    randValue := p_RAND
+  };
+
+  template (value) RAND cs_GMM_AuthRAND(B128_Type p_Rand) :=
+  { /* @status    APPROVED */
+    iei             := '21'O,
+    randValue       := p_Rand
+  };
+
+  template (value) AUTN cs_AUTN_lv(B128_Type p_AUTN) :=
+  { /* @status    APPROVED */
+    iei := omit,
+    iel := '10'O,       /* AUTN has length of 128 bits i.e. 16 octets */
+    aUTN := p_AUTN
+  };
+
+  template (value) AUTN cs_GSM_AUTN(template (value) B128_Type p_AUTN) :=
+  { /* @status    APPROVED */
+    iei             := '20'O,
+    iel             := '10'O,                        // Length of 16 octets
+    aUTN            := p_AUTN                        // value of Authentication Parameter AUTN
+  };
+
+  template (value) AUTN cs_GMM_AUTN(B128_Type p_Autn) :=
+  { /* @status    APPROVED */
+    iei             := '28'O,
+    iel             := '10'O,
+    aUTN            := p_Autn
+  };
+
+  template (value) CiphKeySeqNum cs_CiphKeySeqNum(template (omit) IEI4_Type p_IEI,
+                                                  template (value) KeySeq p_KeySeq) :=
+  { /* @status    APPROVED */
+    iei             := p_IEI,
+    spare1          := '0'B,
+    keySeq          := p_KeySeq
+  };
+
+  template CiphKeySeqNum cr_CiphKeySeqNum(template (omit) IEI4_Type p_IEI,
+                                          template (present) KeySeq p_KeySeq) :=
+  { /* @status    APPROVED */
+    iei             := p_IEI,
+    spare1          := '0'B,
+    keySeq          := p_KeySeq
+  };
+
+  template Codec cr_CodecAny :=
+  { /* @status    APPROVED */
+    sysId           := ?,                            // system identifcation
+    len             := ?,                            // length
+    bitMap1to8      := ?,                            // codec bitmap bits 1-8
+    bitMap9to16     := *                             // codec bitmap bits 9-16
+  };
+
+  template CodecList cr_CodecListAny :=
+  { /* @status    APPROVED */
+    iei             := '40'O,                        // '01000000'B (40 hex)
+    iel             := ?,                            // length
+    codec           := ({cr_CodecAny, cr_CodecAny, cr_CodecAny, *}, {cr_CodecAny, cr_CodecAny, *}, {cr_CodecAny, *}) // Codec list @sic R5s110278 sic@
+  };
+
+  template (value) DetachType cs_DetachType(NAS_AttDetValue_Type p_TypeOfDetach):=
+  { /* @status    APPROVED */
+    switchOff          := '0'B,
+    typeOfDetach       := p_TypeOfDetach
+  };
+
+  template DetachType cr_DetachType(template (present) B1_Type p_SwitchOff,
+                                    template (present) NAS_AttDetValue_Type p_TypeOfDetach) :=
+  { /* @status    APPROVED */
+    switchOff          := p_SwitchOff,
+    typeOfDetach       := p_TypeOfDetach
+  };
+
+  template DetachType cr_DetachTypeOnSwitchOff := cr_DetachType('1'B, ?);    /* @status    APPROVED */
+
+  template DeviceProperties cr_DeviceProperties_Any (IEI4_Type p_IEI) :=
+  { /* @status    APPROVED */
+    iei         := p_IEI,
+    spare       := tsc_Spare3,
+    lowPriority := ?
+  };
+
+  template DRXparameter cr_DRXparameter_Any (template (omit) IEI8_Type p_IEI) :=
+  { /* @status    APPROVED */
+    iei             := p_IEI,
+    splitPGcycleCode := ?,                           // Split PG cycle code
+    cnDRXcoef       := ?,                            // CN specific DRX cycle length coefficient
+    splitOnCCCH     := ?,                            // Split on CCCCH
+    nonDRXtimer     := ?                             // non-DRX timer
+  };
+
+  template EDGE_Struct cr_EDGE_Struct_Any :=
+  { /* @status    APPROVED */
+    modulationCapability := ?,
+    pwrMask1        := ?,
+    eDGE_RF_PowerCapability1 := *,                   // not present if pwrMask1 = 0
+    pwrMask2        := ?,
+    eDGE_RF_PowerCapability2 := *                    // not present if pwrMask2 = 0
+  };
+
+  template EmergServCat cr_EmergServCatAny :=
+  { /* @status    APPROVED */
+    spare           := '0'B,
+    emergSCValue    := ?                             // Emergency Service Category value
+  };
+
+  template (value) EmergServCat cs_EmergServCat(B7_Type p_EmergSCValue) :=
+  { /* @status    APPROVED */
+    spare           := '0'B,
+    emergSCValue    := p_EmergSCValue                // Emergency Service Category value
+  };
+
+  template (value) EmergNum cs_EmergencyLocalNumber(Type4Length_Type p_Length,
+                                                    template (value) EmergServCat p_EmergSCValue,
+                                                    octetstring p_Number) :=
+  { /* @status    APPROVED */
+    len := p_Length,                   // length
+    emergServCat := p_EmergSCValue,    // Emergency Service Category
+    digits := p_Number                 // BCD numbers
+  };
+
+  template (value) GPRS_Timer cs_GprsTimer_tv(IEI8_Type p_IEI, // @sic R5s100662 sic@
+                                              B3_Type p_Unit,
+                                              B5_Type p_Value) :=
+  { /* @status    APPROVED */
+    iei   := p_IEI,               // '1E'O
+    unit  := p_Unit,
+    timerValue := p_Value
+  };
+
+  template (value) GPRS_Timer cs_GprsTimer_v(GprsTimerUnit p_Unit,
+                                             B5_Type p_Value) :=
+  { /* @status    APPROVED */
+    iei        := omit,
+    unit       := p_Unit,
+    timerValue := p_Value
+  };
+
+  template (value) IdentityType cs_IdentityType(NAS_IdType p_NAS_IdType) :=
+  { /* @status    APPROVED */
+    spare           := '0'B,
+    typeOfId        := p_NAS_IdType
+  };
+
+  template LocAreaId cr_LAI(template (omit) IEI8_Type p_IEI,
+                            template (present) octetstring p_PLMN := ?,
+                            template (present) octetstring p_LAC := ?) :=
+  { /* @status    APPROVED */
+    iei      := p_IEI,
+    plmn     := p_PLMN,                       // MCC + MNC
+    lac      := p_LAC                         // location area code
+  };
+
+  template LocAreaId cr_LAI_Any   := cr_LAI('13'O); /* @status    APPROVED */
+
+  template LocAreaId cr_LAI_Any_v := cr_LAI(omit);  /* @status    APPROVED */
+
+  template (value) LocAreaId cs_LAI(template (omit) IEI8_Type p_IEI,
+                                    octetstring p_PLMN,
+                                    octetstring p_LAC) :=
+  { /* @status    APPROVED */
+    iei      := p_IEI,
+    plmn     := p_PLMN,                       // MCC + MNC
+    lac      := p_LAC                         // location area code
+  };
+
+  template (value) LLC_SAPI cs_LLC_SAPI(template (omit) IEI8_Type p_IEI := omit,
+                                        B4_Type p_LlcSapiValue) :=
+  { /* @status    APPROVED */
+    iei             := p_IEI,
+    spare           := '0000'B,
+    llcSapiValue    := p_LlcSapiValue
+  };
+
+  template (value) LLC_SAPI cs_LLC_SAPI_11 (template (omit) IEI8_Type p_IEI := omit) := cs_LLC_SAPI(p_IEI, '1011'B);   /* @status    APPROVED */
+
+  template (value) LLC_SAPI cs_LLC_SAPI_03 (template (omit) IEI8_Type p_IEI := omit) := cs_LLC_SAPI(p_IEI, '0011'B);   /* @status    APPROVED */
+
+  template MobileIdentity cr_MobileIdAny (template (omit) IEI8_Type p_IEI) :=
+  { /* @status    APPROVED */
+    iei             := p_IEI,
+    iel             := ?,
+    idDigit1        := ?,
+    oddEvenInd      := ?,
+    typeOfId        := ?,
+    otherDigits     := ?
+  };
+
+  template (value) MobileIdentity cs_MobileIdentityGuti(template (omit) IEI8_Type p_IEI,
+                                                        octetstring p_Guti) :=
+  {
+    /* Reference: 24.301 cl. 9.9.3.12;
+       @status    APPROVED */
+    iei         := p_IEI,
+    iel         := int2oct(lengthof(p_Guti) + 1, 1),    // 11 octets in case of GUTI
+    idDigit1    := '1111'B,                             // in case of the GUTI
+    oddEvenInd  := '0'B,                                // in case of the GUTI
+    typeOfId    := tsc_IdType_GUTI,                     // 3 bits
+    otherDigits := p_Guti                               // 10 octets acc. to 24.301
+  };
+
+  template (value) MobileIdentity cs_MobileIdentityImsi(B4_Type p_FirstDigit,
+                                                        B1_Type p_OddEvenInd,
+                                                        octetstring p_OtherDigits) :=
+  { /* @status    APPROVED */
+    iei         := '17'O,
+    iel         := int2oct(lengthof(p_OtherDigits) + 1, 1),
+    idDigit1    := p_FirstDigit,                        // 4 bits
+    oddEvenInd  := p_OddEvenInd,                        // 1 bit
+    typeOfId    := tsc_IdType_IMSI,                     // 3 bits
+    otherDigits := p_OtherDigits
+  };
+
+  template (value) MobileIdentity cds_MobileIdentityImsi_lv(B4_Type p_FirstDigit,
+                                                            B1_Type p_OddEvenInd,
+                                                            octetstring p_OtherDigits)
+    modifies cs_MobileIdentityImsi :=
+  { /* @status    APPROVED */
+    iei   := omit
+  };
+
+  template (value) MobileIdentity cs_MobileIdTMSIorPTMSI(template (omit) IEI8_Type p_IEI,
+                                                         O4_Type p_TmsiPtmsi) :=
+  { /* @status    APPROVED */
+    iei             :=  p_IEI,                          // for U/G this is '18'O
+    iel             := '05'O,                           // TMSI consists of 4 octets
+    idDigit1        := '1111'B,                         // special coding for TMSI
+    oddEvenInd      := '0'B,                            // even
+    typeOfId        := tsc_IdType_TMSI,                 // TMSI / P-TMSI
+    otherDigits     := p_TmsiPtmsi
+  };
+
+  template (value) MobileIdentity cs_MobileIdTMSI (template (omit) IEI8_Type p_IEI,       // iei can be '17' (MM) or '13' (GMM) or omit
+                                                   O4_Type p_Tmsi) :=
+    /* @status    APPROVED */
+    cs_MobileIdTMSIorPTMSI(p_IEI, p_Tmsi);
+
+  template MobileIdentity cr_MobileIdTMSI_lv (template (present) octetstring p_Tmsi := ?) :=
+  { /* @status    APPROVED */
+    iei             := omit,
+    iel             := '05'O,                        // TMSI consists of 4 octets
+    idDigit1        := '1111'B,                      // special coding for TMSI
+    oddEvenInd      := '0'B,                         // even
+    typeOfId        := tsc_IdType_TMSI,              // TMSI
+    otherDigits     := p_Tmsi
+  };
+
+  template MobileIdentity cdr_MobileIdTMSI_tlv (template (present) octetstring p_Tmsi := ?,
+                                                IEI8_Type p_IEI := '18'O)
+    modifies cr_MobileIdTMSI_lv :=
+  { /* @status    APPROVED */
+    iei             := p_IEI
+  };
+
+  template MobileIdentity cr_MobileIdentityImei(B4_Type p_FirstDigit,
+                                                B1_Type p_OddEvenInd,
+                                                octetstring p_OtherDigits) :=
+  {  /* @status    APPROVED */
+    iei         := omit,
+    iel         := int2oct(lengthof(p_OtherDigits) + 1, 1),
+    idDigit1    := p_FirstDigit,                        // 4 bits
+    oddEvenInd  := p_OddEvenInd,                        // 1 bit
+    typeOfId    := tsc_IdType_IMEI,                     // 3 bits
+    otherDigits := p_OtherDigits
+  };
+
+  template MS_Clsmk2 cr_MS_Clsmk2_Any_tlv (template (omit) IEI8_Type p_IEI := '11'O) :=
+  { /* @status    APPROVED */
+    iei             := p_IEI, // @sic R5s100662, R5s110112 sic@
+    iel             := '03'O,
+    spare1_1        := '0'B,
+    revLvl          := ?,
+    eSIND           := ?,
+    a5_1            := ?,
+    rFPwrCap        := ?,
+    spare1_2        := '0'B,
+    pSCap           := ?,
+    sSSI            := ?,
+    sMCap           := ?,
+    vBS             := ?,
+    vGCS            := ?,
+    fC              := ?,
+    cM3             := ?,
+    spare1_3        := '0'B,
+    lCSVA           := ?,
+    uCS2            := ?,
+    soLSA           := ?,
+    cMSP            := ?,
+    a5_3            := ?,
+    a5_2            := ?
+  };
+
+  template MS_Clsmk2 cr_MS_Clsmk2_Any :=
+  /* @status    APPROVED */
+    cr_MS_Clsmk2_Any_tlv (omit);
+
+  template MS_Clsmk3 cr_MSCLSMK3_Any :=
+  { /* @status    APPROVED */
+    iei             := '20'O,                        /* 0x20 */
+    iel             := ?,                            /* OCTETSTRING [1] */
+    spareBit        := '0'B,                         // spare bit */
+    multibandSupported := ?,
+    a5_7            := ?,                            /* a5/7 algorithm supported */
+    a5_6            := ?,                            /* a5/6 algorithm supported */
+    a5_5            := ?,                            /* a5/5 algorithm supported */
+    a5_4            := ?,                            /* a5/4 algorithm supported */
+    associatedRadioCapabilty2 := *,                  /* present if multibandSupported = 101 or 110 */
+    spareBits1      := *,                            /* present if multibandSupported = 001 or 010 or 100 */
+    associatedRadioCapabilty1 := *,                  /* present if multibandSupported = 001 or 010 or 100 or 101 or 110 */
+    maskBit1        := ?,
+    rGSM_RadioCapability := *,                       /* R-GSM band associated radio capability.
+                                                        not present if maskB1 = 0 */
+    maskBit2        := ?,
+    multiSlotClass  := *,                            /* multi slot class.
+                                                        not present if multiSlotClass = 0 */
+    uCS2Treatment   := ?,
+    extMeasurementCapability := ?,                   /* extended measurement capability */
+    maskBit3        := ?,
+    msMeasurementCapability := cr_MS_MeasCapability_Any ifpresent, /* MS measurement capability
+    // not present if maskB3 = 0 */
+    maskBit4        := ?,
+    msPositioningMethod := *,                        /* MS positioning method capability
+                                                        not present if maskB4 = 0 */
+    maskBit5        := ?,
+    eDGE_MultiSlot  := *,                            /* EDGE multi slot capability
+                                                        not present if maskB5 = 0 */
+    maskBit6        := ?,
+    psk8_Struct     := cr_EDGE_Struct_Any ifpresent, /* EDGE struct
+                                                        not present if maskB6 = 0 */
+    maskBit7        := ?,
+    gSM400BandsSupported := *,                       /* not present if maskBIt7 = 0 */
+    gSM400AssociatedRadioCapability := *,            /* not present if gSM400BandsSupported = 00 or maskB7 = 0 */
+    maskBit8        := ?,
+    gSM850AssociatedRadiioCapability := *,           /* not present if maskBIt8 = 0 */
+    maskBit9        := ?,
+    pCS1900AssociatedRadiioCapability := *,          /* not present if maskBIt9 = 0 */
+    uMTS_FDD_RAT_Capability := ?,
+    uMTS384TDD_RAT_Capability := ?,
+    cDMA2000_RAT_Capability := ?,
+    maskBit10       := ?,
+    dTM_GPRS_MultiSlotSubclass := *,                 /* not present if maskB10 = 0 */
+    singleSlotDTM   := *,                            /* not present if maskB10 = 0 */
+    maskBit11       := *,                            /* not present if maskB10 = 0 */
+    dTM_EGPRS_MultiSlorSubclass := *,                /* not present if maskB10 = 0 or maskB11 = 0 */
+    maskBit12       := ?,
+    singleBandSupport := *,                          /* not present if maskB12 = 0 */
+    maskBit13       := *,
+    gSM700AssociatedRadioCapability := *,            /* not present if maskB13 = 0 */
+    uMTS128TDD_RAT_Capability := *,
+    gERANFeatPack1  := *,
+    mask14          := *,
+    extDTM_GPRS_MultiSlotSubclass := *,              /* not present if maskB14 = 0 */
+    etxDTM_EGPRS_MultiSlotSubclass := *,             /* not present if maskB14 = 0 */
+    mask15          := *,
+    highMultislotCap := *,                           /* not present if mask15 = 0 */
+    mask16          := *,
+    gERANIuModeLength := *,                          /* not present if maskB16 = 0 */
+    gERANFLOIuCap   := *,
+    gERANIuModeSpareBits := *,                       /* not present if maskB16 = 0 */
+    gERANFeatPack2  := *,
+    gMSKMultislotPowerProfile := *,
+    pSKMultislotPowerProfile := *,
+    mask17          := *,                            /* rel 6 features */
+    tGSM400BandsSupported := *,                      /* not present if maskB17 = 0 */
+    tGSM400AssocRadioCap := *,                       /* not present if maskB17 = 0 */
+    spare          := *,                              // @sic R5s110176 Baseline Moving sic@
+    dlAdvancedRxPerf := *,
+    dTMEhancCap     := *,
+    mask19          := *,
+    dTMGPRSHighMultislotClass := *,                  /* not present if maskB19 = 0 */
+    offsetReq       := *,                            /* not present if maskB19 = 0 */
+    mask20          := *,                            /* not present if maskB19 = 0 */
+    dTMEGPRSHighMultislotClass := *,                 /* not present if maskB19 and maskB20 = 0 */
+    rptdACCHCap     := *,
+    mask21          := *,
+    gsm710AssocRadioCap  := *, /* not present if maskBit21 = 0 */
+    mask22          := *,
+    tgsm810AssocRadioCap  := *, /* not present if maskBit22 = 0 */
+    cipheringModeSettingCap  := *,
+    addPositionCap  := *,
+    eutraFDDSupport := *, /* rel 8 features */
+    eutraTDDSupport := *,
+    eutraMeasAndReporting := *,     /* @sic R5s100135 Baseline moving sic@ */
+    priorityBasedReselection:= *,   // @sic R5s110176 Baseline Moving sic@
+    utraCSGCellsReporting := *,     // @sic R5s110176 Baseline Moving sic@
+    vamosLevel := *,                // @sic R5s110176 Baseline Moving sic@
+    tighterCap := *, // @sic R5s120178 Baseline Moving sic@
+    selectCipheringDLSACCH := *, // @sic R5s120178 Baseline Moving sic@
+    spareBits2      := *
+  };
+
+  template MS_Clsmk3 cdr_MSCLSMK3_EutraCheck modifies cr_MSCLSMK3_Any :=
+  { /* @status    APPROVED */
+    iei             := omit, // @sic R5s110244 sic@
+    iel             := omit, // @sic R5s110244 sic@
+    eutraFDDSupport := ?,
+    eutraTDDSupport := ?
+  };
+
+  template MS_MeasCapability cr_MS_MeasCapability_Any :=
+  { /* @status    APPROVED */
+    sMS_VALUE       := ?,
+    sM_VALUE        := ?
+  };
+
+  template MS_NetworkCap cr_MS_NetworkCap_Any :=
+  { /* 24.301 cl. 9.9.3.18 -> 24.008 cl. 10.5.5.12;
+       @status    APPROVED */
+    iei  := '31'O,                                   /* present in case of TV; omit in case of V */
+    iel  := ?,                                       /* present in case of LV or TLV; omit in case of V */
+    gea1  := ?,
+    smCapDedicated  := ?,
+    smCapGPRS  := ?,
+    ucs2  := ?,
+    ssScreeningIndicator  := ?,
+    soLSACap  := ?,
+    revLevelIndicator  := ?,
+    pfcFeatureMode  := ?,
+    gea2  := ?,
+    gea3  := ?,
+    gea4  := ?,
+    gea5  := ?,
+    gea6  := ?,
+    gea7  := ?,
+    lcsVACap  := ?,
+    psHOtoUTRAN_IuModeCap  := ?,
+    psHOtoEUTRAN_S1ModeCap  := ?,
+    emmCombinedCap  := ?,       // @sic R5s110176 Baseline Moving sic@
+    isrSupport  := ?,
+    srvccToGERAN_UTRANCap  := ?,
+    epcCap  := ?,
+    nfCap := *,       // @sic R5s110176 Baseline Moving R5s110242 sic@
+    spareBits := *
+  };
+
+  template MS_NetworkCap cdr_MS_NetworkCapAss_lv modifies cr_MS_NetworkCap_Any :=
+  { /* @status    APPROVED */
+    iei := omit
+  };
+
+  template MS_NetworkFeatureSupport cr_MS_NetworkFeatureSupport_Any (IEI4_Type p_IEI) :=
+  { /* 24.301 cl. 9.9.2.0A -> 24.008 cl. 10.5.5.15 */
+    /* @status    APPROVED */
+    iei                := p_IEI,
+    spare              := tsc_Spare3,
+    extdPeriodicTimers := ?
+  };
+
+  template (value) PacketFlowIdentifier cs_PktFlowId :=
+  { /* @status    APPROVED */
+    iei             := '34'O,
+    iel             := '01'O,
+    spare           := '0'B,
+    idValue         := '0000000'B                       // Best effort
+  };
+
+  template (value) PLMN_List cs_PLMN_List(NAS_PlmnIdList_Type p_PlmnIdList) :=
+  { /* @status    APPROVED */
+    iei    := '4A'O,
+    iel    := int2oct(lengthof(p_PlmnIdList) * 3, 1),
+    plmnList := p_PlmnIdList
+  };
+
+  template (value) PLMN_List cs_PLMN_List_1PLMN(NAS_PlmnId p_Plmn1) :=
+  /* @status    APPROVED */
+    cs_PLMN_List({p_Plmn1});
+
+  template (value) PLMN_List cs_PLMN_List_2PLMNs(NAS_PlmnId p_Plmn1,
+                                                 NAS_PlmnId p_Plmn2) :=
+  /* @status    APPROVED */
+    cs_PLMN_List({p_Plmn1, p_Plmn2});
+
+  template (value) PLMN_List cs_PLMN_List_3PLMNs(NAS_PlmnId p_Plmn1,
+                                                 NAS_PlmnId p_Plmn2,
+                                                 NAS_PlmnId p_Plmn3) :=
+  /* @status    APPROVED */
+    cs_PLMN_List({p_Plmn1, p_Plmn2, p_Plmn3});
+
+  template (value) PLMN_List cs_PLMN_List_4PLMNs(NAS_PlmnId p_Plmn1,
+                                                 NAS_PlmnId p_Plmn2,
+                                                 NAS_PlmnId p_Plmn3,
+                                                 NAS_PlmnId p_Plmn4) :=
+  /* @status    APPROVED */
+    cs_PLMN_List({p_Plmn1, p_Plmn2, p_Plmn3, p_Plmn4});
+
+  template (value) ProtocolContainer cs_PCO_Container_PCSCFv4 (Type4Length_Type p_Length,
+                                                               octetstring p_Content) :=
+  { /* @status    APPROVED */
+    protocolID      := tsc_PCO_Id_PCSCFv4,                     /* id is always 2 octets */
+    protocolLength  := p_Length,
+    content         := p_Content
+  };
+
+  template (value) ProtocolContainer cs_PCO_Container_PCSCFv6 (Type4Length_Type p_Length,
+                                                               octetstring p_Content) :=
+  { /* @status    APPROVED */
+    protocolID      := tsc_PCO_Id_PCSCFv6,                     /* id is always 2 octets */
+    protocolLength  := p_Length,
+    content         := p_Content
+  };
+
+  template (value) ProtocolConfigOptions cs_ProtocolConfigOptions_PPP :=
+  { /* @status    APPROVED */
+    iei            := '27'O,
+    iel            := '01'O,
+    ext            := '1'B,
+    spare          := '0000'B,
+    configProtocol := '000'B,
+    pco            := omit
+  };
+
+  template ProtocolConfigOptions cr_ProtocolConfigOptionsAny :=
+  { /* @status    APPROVED */
+    iei            := '27'O,
+    iel            := ?,
+    ext            := '1'B,
+    spare          := '0000'B,
+    configProtocol := ?,
+    pco            := *  // @sic R5s100800 sic@
+  };
+
+  template (value) PTMSI_Signature cs_PTMSI_Signature(octetstring p_Ptmsi) :=
+  { /* @status    APPROVED */
+    iei             := '19'O,
+    iel             := omit,
+    signatureValue  := p_Ptmsi
+  };
+
+  template PTMSI_Signature cr_PTMSI_Signature(template (present) O3_Type p_PtmsiSig) :=
+  { /* @status    APPROVED */
+    iei             := '19'O,
+    iel             := omit,
+    signatureValue  := p_PtmsiSig
+  };
+
+  template PTMSI_Signature cr_PTMSI_SignatureAny :=
+    /* @status    APPROVED */
+    cr_PTMSI_Signature(?);
+
+  template PTMSI_Signature cr_PTMSI_Signature2Any :=  // Only used in Detach Request MO
+  { /* @status    APPROVED */
+    iei             := '19'O,
+    iel             := '03'O,
+    signatureValue  := ?
+  };
+
+  template (value) QualityOfService cs_QoS_Negotiated_1 :=
+  { /* TS 34.123-3 Table 8.10.2 */
+    /* @status    APPROVED */
+    iei := '30'O,
+    iel := '10'O,
+    spare1 := '00'B,
+    delayClass := '100'B,
+    relabilityClass := '011'B,
+    peakThroughput := '0100'B,
+    spare2 := '0'B,
+    precedenceClass := '011'B,
+    spare3 := '000'B,
+    meanThroughput := '11111'B,
+    trafficClass := '100'B,
+    deliveryOrder := '10'B,
+    deliveryErrorSDU := '010'B,
+    maxSduSize := '00100000'B,
+    maxBitRateUL := '01000000'B,
+    maxBitRateDL := '01000000'B,
+    residualBER := '0111'B,
+    sduErrorRatio := '0100'B,
+    transferDelay := '000000'B,
+    trafficHandlingPrio := '00'B,
+    guaranteedBitRateUL := '00010000'B,
+    guaranteedBitRateDL := '00010000'B,
+    spare4 := '000'B,
+    signallingInd := '0'B,
+    sourceStatisticsDescriptor := '0000'B,
+    maxBitRateDL_Ext := '00000000'B,
+    guaranteedBitRateDL_Ext := '00000000'B,
+    maxBitRateUL_Ext := '00000000'B,
+    guaranteedBitRateUL_Ext := '00000000'B
+  };
+
+  template (value) QualityOfService cds_QoS_Negotiated_2 modifies cs_QoS_Negotiated_1 :=
+  { /* TS 34.123-3 Table 8.10.2 */
+    /* @status    APPROVED */
+    maxSduSize := '10010110'B,
+    maxBitRateUL := '01001000'B,
+    maxBitRateDL := '01001000'B,
+    residualBER := '0100'B,
+    sduErrorRatio := '0011'B
+   };
+
+  template (value) QualityOfService cds_QoS_Negotiated_3 modifies cs_QoS_Negotiated_1 :=
+  { /* TS 34.123-3 Table 8.10.2 */
+    /* @status    APPROVED */
+    trafficClass := '001'B,
+    deliveryErrorSDU := '011'B,
+    maxSduSize := '10001100'B,
+    maxBitRateUL := '01101110'B,                //432 kbps
+    maxBitRateDL := '01101110'B,                //432 kbps
+    sduErrorRatio := '0010'B,
+    transferDelay := '001101'B,
+    guaranteedBitRateUL := '00000000'B,
+    guaranteedBitRateDL := '00000000'B
+  };
+
+  template (value) QualityOfService cds_QoS_Negotiated_4  (template (omit) IEI8_Type p_IEI := '30'O) modifies cs_QoS_PDP2 :=
+  { /* @status    APPROVED */
+    relabilityClass := '101'B,
+    trafficClass := '001'B,
+    maxSduSize := '00001111'B,
+    maxBitRateUL := '01101000'B,
+    maxBitRateDL := '01101000'B,
+    residualBER := '0001'B,
+    sduErrorRatio := '0001'B,
+    transferDelay := '001000'B,
+    sourceStatisticsDescriptor := '0001'B
+  };
+
+  template (value) QualityOfService cs_QoS_PDP2 (template (omit) IEI8_Type p_IEI := '30'O) :=
+  { /* TS 51.010-1 Table 40.5 */
+    // @sic R5s120218 sic@
+    /* @status    APPROVED */
+    iei := p_IEI,
+    iel := '10'O,
+    spare1 := '00'B,
+    delayClass := '100'B,
+    relabilityClass := '011'B,
+    peakThroughput := '0101'B,
+    spare2 := '0'B,
+    precedenceClass := '010'B,
+    spare3 := '000'B,
+    meanThroughput := '10000'B,
+    trafficClass := '100'B,
+    deliveryOrder := '01'B,
+    deliveryErrorSDU := '011'B,
+    maxSduSize := '10010110'B,
+    maxBitRateUL := '01001000'B,
+    maxBitRateDL := '01001000'B,
+    residualBER := '0111'B,
+    sduErrorRatio := '0100'B,
+    transferDelay := '000000'B,
+    trafficHandlingPrio := '00'B,
+    guaranteedBitRateUL := '00000000'B,
+    guaranteedBitRateDL := '00000000'B,
+    spare4 := '000'B,
+    signallingInd := '0'B,
+    sourceStatisticsDescriptor := '0000'B,
+    maxBitRateDL_Ext := '00000000'B,
+    guaranteedBitRateDL_Ext := '00000000'B,
+    maxBitRateUL_Ext := '00000000'B,
+    guaranteedBitRateUL_Ext := '00000000'B
+  };
+
+  template (value) QualityOfService cds_QoS_PDP3  (template (omit) IEI8_Type p_IEI := '30'O) modifies cs_QoS_PDP2 :=
+  { /* @status    APPROVED */
+    relabilityClass := '101'B,
+    deliveryErrorSDU := '010'B,
+    residualBER := '0100'B,
+    sduErrorRatio := '0011'B
+  };
+
+  template (value) QualityOfService cds_QoS_Converstational  (template (omit) IEI8_Type p_IEI := '30'O) modifies cs_QoS_PDP2 :=
+  { /* @status    APPROVED */
+    relabilityClass := '101'B,
+    trafficClass := '001'B,
+    maxSduSize := '00001111'B,   // @sic R5-120632 sic@
+    maxBitRateUL := '01101000'B,
+    maxBitRateDL := '01101000'B,
+    residualBER := '0001'B,
+    sduErrorRatio := '0001'B,
+    transferDelay := '001000'B
+  };
+
+  template (value) RadioPriority cs_RadioPriority (template (omit) IEI4_Type p_IEI,
+                                                   B3_Type p_Val) :=
+  { /* @status    APPROVED */
+    iei := p_IEI,
+    spare := '0'B,
+    levelValue := p_Val
+  };
+
+  template (value) RadioPriority cs_RadioPriorityHigh (template (omit) IEI4_Type p_IEI) := cs_RadioPriority (p_IEI, '001'B);  /* @status    APPROVED */
+
+  template (value) RadioPriority cs_RadioPriorityLow  (template (omit) IEI4_Type p_IEI) := cs_RadioPriority (p_IEI, '100'B);  /* @status    APPROVED */
+
+  template TMSI_Status cr_TMSI_Status(template (present) TmsiStatusValue p_TmsiStatus := ?) :=
+  { /* @status    APPROVED */
+    iei  := '9'H,
+    spare3 := tsc_Spare3,
+    flag := p_TmsiStatus
+  };
+
+  template UE_NetworkCap cr_UENetworkCap_Any (template (omit) IEI8_Type p_IEI) :=
+  { /* 24.301 cl. 9.9.3.34
+       @status    APPROVED */
+    iei := p_IEI,                     /* present in case of TLV; omit in case of LV */
+    iel := ?,                         /* present in case of LV or TLV; omit in case of V */
+    eeaCap := ?,                     // @sic R5s100135 sic@
+    eiaCap := ?,                     // @sic R5s100135 sic@
+    ueaCap := *,                     // @sic R5s100135 sic@
+    uiaCap := *,                     // @sic R5s100135 sic@
+    srvccCap := *,                   // @sic R5s100135 sic@
+    spare := *                       // @sic R5s100135 sic@
+  };
+
+  template VoiceDomainPref cr_VoiceDomainPref_Any :=
+  { /* @status    APPROVED */
+    iei := ?,              // 01111110'B
+    iel := ?,             // length
+    spareBits             := ?,
+    ueUsageSetting        := ?,
+    voiceDomainPrefEUTRA  := ?
+  };
+
+}

@@ -1,0 +1,195 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2011-09-14 14:43:51 +0200 (Wed, 14 Sep 2011) $
+// $Rev: 5577 $
+/******************************************************************************/
+
+module ICMPv6_TypeDefs {
+
+  import from CommonDefs all;
+
+  type union ICMPv6Message  {  // Rfc 4861
+    ICMPv6_RouterSolicitationMsg    routerSolMsg, // RFC 4861 clause 4.1
+    ICMPv6_RouterAdvertisementMsg   routerAdvMsg, // RFC 4861 clause 4.2
+    ICMPv6_NeighborSolicitationMsg  nbrSolMsg, // RFC 4861 clause 4.3
+    ICMPv6_NeighborAdvertisementMsg nbrAdvMsg, // RFC 4861 clause 4.4
+    ICMPv6_RedirectMsg              redirectMsg // RFC 4861 clause 4.5
+  };
+
+  type O16_Type Ipv6Address;
+
+  type O16_Type  IPv6Prefix; // As used in the IPv6 ATS, FFS
+
+  type record ICMPv6_RouterSolicitationMsg {
+    UInt8_Type          icmpType(tsc_ICMPv6_RtSolMsg),
+    UInt8_Type          icmpCode,
+    O2_Type             checksum,
+    UInt32_Type         reserved,
+    RtSolOptions        rtSolOptions optional
+  };
+
+  type record ICMPv6_RouterAdvertisementMsg {
+    UInt8_Type          icmpType(tsc_ICMPv6_RtAdvMsg),
+    UInt8_Type          icmpCode,
+    O2_Type             checksum,
+    UInt8_Type          curHopLimit,
+    B1_Type             managedConfigFlag,
+    B1_Type             otherConfigFlag,
+    B6_Type             reserved, // (differs from RFC2461, homeAgentFlag is removed)
+    UInt16_Type         routerLifetime,
+    UInt32_Type         reachableTime,
+    UInt32_Type         retransTimer,
+    RtAdvOptions        rtAdvOptions optional
+  };
+
+  type record ICMPv6_NeighborSolicitationMsg {
+    UInt8_Type          icmpType( tsc_ICMPv6_NbrSolMsg),
+    UInt8_Type          icmpCode,
+    O2_Type             checksum,
+    UInt32_Type         reserved,
+    Ipv6Address         targetAddr,
+    NbrSolOptions       nbrSolOptions optional
+  };
+
+  type record ICMPv6_NeighborAdvertisementMsg {
+    UInt8_Type          icmpType(tsc_ICMPv6_NbrAdvMsg),
+    UInt8_Type          icmpCode,
+    O2_Type             checksum,
+    B1_Type             routerFlag,
+    B1_Type             solicitedFlag,
+    B1_Type             overrideFlag,
+    B29_Type            reserved,
+    Ipv6Address         targetAddr,
+    NbrAdvOptions       nbrAdvOptions optional
+  };
+
+  type record ICMPv6_RedirectMsg {
+    UInt8_Type          icmpType(tsc_ICMPv6_RedirectMsg),
+    UInt8_Type          icmpCode,
+    O2_Type             checksum,
+    UInt32_Type         reserved,
+    Ipv6Address         targetAddr,
+    Ipv6Address         destinationAddr,
+    RedirectOptions     redirectOptions optional
+  };
+
+  type set RtSolOptions{
+    SrcLinkLayerAddress srcLinkLayerAddr optional,
+    octetstring         otherOption optional
+  };
+
+  type set RtAdvOptions {
+    SrcLinkLayerAddress     srcLinkLayerAddr optional,
+    MtuOption               mtuOption optional,
+    PrefixInfoList          prefixInfoList optional,
+    AdvertisementInterval   advertisementInterval optional,
+    HomeAgentInfo           homeAgentInfo optional,
+    octetstring             otherOption optional
+  };
+
+  type record HomeAgentInfo { //ND + MIPv6
+    UInt8_Type      icmpType (tsc_ICMPv6_HomeAgentInfo),
+    UInt8_Type      optionLength (1),
+    UInt16_Type     reserved,
+    UInt16_Type     homeAgentPreference,
+    UInt16_Type     homeAgentLifetime
+  };
+
+  type record AdvertisementInterval { //ND + MIPv6
+    UInt8_Type      icmpType (tsc_ICMPv6_AdvertisementInterval),
+    UInt8_Type      optionLength (1),
+    UInt16_Type     reserved,
+    UInt32_Type     advInterval
+  };
+
+  type record MtuOption {
+    UInt8_Type  icmpType(tsc_ICMPv6_MtuOption),
+    UInt8_Type  optionLength,
+    UInt16_Type reserved,
+    UInt32_Type mtu
+  };
+
+  type record ICMPv6_PrefixInfo {
+    UInt8_Type        icmpType(tsc_ICMPv6_PrefixInfo),
+    UInt8_Type        optionLength,
+    UInt8_Type        prefixLength,
+    B1_Type           linkFlag,
+    B1_Type           autoConfigFlag,
+    B6_Type           reserved1,
+    UInt32_Type       validLifetime,
+    UInt32_Type       preferredLifetime,
+    UInt32_Type       reserved2,
+    IPv6Prefix        prefix
+  };
+
+  type set length (1..tsc_ICMPv6_MaxNrPrefixInfo) of ICMPv6_PrefixInfo PrefixInfoList;
+
+  type set NbrSolOptions {
+    SrcLinkLayerAddress  srcLinkLayerAddr optional,
+    octetstring          otherOption optional
+  };
+
+  type set NbrAdvOptions {
+    TgtLinkLayerAddress  tgtLinkLayerAddr optional,
+    octetstring          otherOption optional
+  };
+
+  type record TgtLinkLayerAddress {
+    UInt8_Type      icmpType(tsc_ICMPv6_tgtLinkLayerAddress),
+    UInt8_Type      optionLength,
+    octetstring     linkLayerAddr // Variable length
+  };
+
+  type record SrcLinkLayerAddress {
+    UInt8_Type      icmpType(tsc_ICMPv6_srcLinkLayerAddress),
+    UInt8_Type      optionLength,
+    octetstring     linkLayerAddr // Variable length
+  };
+
+  type set RedirectOptions {
+    TgtLinkLayerAddress      tgtLinkLayerAddr optional,
+    ICMPv6_RedirectedHeader  redirectHeader optional,
+    octetstring              otherOption optional
+  };
+
+  type record ICMPv6_RedirectedHeader {
+    UInt8_Type      icmpType(tsc_ICMPv6_RedirectOption),
+    UInt8_Type      optionLength,
+    O4_Type         reserved,  // (RF2461 8 octets reserved)
+    octetstring     data // no length limit?
+  };
+
+  const UInt8_Type   tsc_ICMPv6_RtSolMsg := 133;
+
+  const UInt8_Type   tsc_ICMPv6_RtAdvMsg := 134;
+
+  const UInt8_Type   tsc_ICMPv6_NbrSolMsg := 135;
+
+  const UInt8_Type   tsc_ICMPv6_NbrAdvMsg := 136;
+
+  const UInt8_Type   tsc_ICMPv6_RedirectMsg := 137;
+
+  const UInt8_Type   tsc_ICMPv6_srcLinkLayerAddress := 1;
+
+  const UInt8_Type   tsc_ICMPv6_tgtLinkLayerAddress := 2;
+
+  const UInt8_Type   tsc_ICMPv6_PrefixInfo := 3 ;
+
+  const UInt8_Type   tsc_ICMPv6_RedirectOption := 4 ;
+
+  const UInt8_Type   tsc_ICMPv6_MtuOption := 5;
+
+  const UInt8_Type   tsc_ICMPv6_AdvertisementInterval := 7;
+
+  const UInt8_Type   tsc_ICMPv6_HomeAgentInfo := 8;
+
+  const UInt8_Type   tsc_ICMPv6_MaxNrPrefixInfo := 10;
+
+  type bitstring B29_Type length(29);
+
+}

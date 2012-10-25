@@ -1,0 +1,84 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-04-08 15:02:25 +0200 (Sun, 08 Apr 2012) $
+// $Rev: 6466 $
+/******************************************************************************/
+module RRC_ConnRel_C2K_CDMA2000 {
+
+  import from CDMA2000_CommonFunctions all;
+  import from CDMA2000_Component all;
+  import from CommonIratDefs all;
+
+  function f_TC_8_1_3_9_CDMA2000 ( ) runs on CDMA2000_PTC
+  { /* RRC connection release / Redirection from E-UTRAN to CDMA2000-HRPD */
+    
+    ///Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000 );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    // Note as cell 15 and 16 are on different frequency the
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell15, -55, -55, omit);    //Ioc =-55, Ior/Ioc=-0, Pilot offset =0
+    
+    //Send Sys info for ARFCN
+    f_CDMA2000_Send_IR_SysInfoToEUTRA (cdma2000_Cell15 );
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell15 );
+    
+    //First Trigger: to Change cell power according to T0 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    f_CDMA2000_SetCellPower( cdma2000_Cell15, -60 );  //i.e attenuation of 5, Ior =-60 , Ioc=-55, results in Pilot Ec/Io = -13
+    
+    //@siclog "Step 2" siclog@
+    //Step 2: Check if UE camps on Cell 15
+    f_CDMA2000_RegisterHRPDCell (cdma2000_Cell15);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on HRPD cell");
+    
+    f_CDMA2000_TestBody_Set ( false );
+    // send coordination message for end of test case
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_HRPD_Postamble (cdma2000_Cell15);    //UE is active and connected state
+  }
+
+  function f_TC_8_1_3_10_CDMA2000 ( ) runs on CDMA2000_PTC
+  { /* RRC connection release / Redirection from E-UTRAN to CDMA2000-1xRTT */
+
+    ///Initialise test case
+    f_CDMA2000_Init ( EUTRA_CDMA2000,type1XRTT );
+    // Set MAX reference power corresponding to Tor/Ioc =-5 and -20 for cell 15 and 16 respectively
+    f_CDMA2000_CellInfo_InitMaxReferencePower(cdma2000_Cell19, -75, -75,omit);    //Ioc =-75, Ior/Ioc=-0, Pilot offset =-7
+    
+    //Send Sys info for ARFCN
+    f_CDMA2000_Send_IR_SysInfoToEUTRA (cdma2000_Cell19 );
+    
+    //Create CDMA2000 cell15 and broadcast System Infomation
+    f_CDMA2000CreateCell ( cdma2000_Cell19 );
+    
+    //First Trigger: to Change cell power according to T0 after EUTRA Registration
+    f_IRAT_WaitForCoOrd_Trigger (EUTRA);
+    
+    f_CDMA2000_TestBody_Set( true );
+    f_CDMA2000_SetCellPower( cdma2000_Cell19, -75 );    //i.e attenuation of 0, Ior =-75 , Ioc=-75, results in Pilot Ec/Io = -10
+    
+    //@siclog "Step 2" siclog@
+    //Step 2: Check if UE camps on Cell 19
+    f_CDMA2000_RegisterRTT1XCell (cdma2000_Cell19);
+    f_CDMA2000_PreliminaryPass(__FILE__, __LINE__, "UE has sent the Access probe and registered on 1xRTT cell");
+    
+    f_CDMA2000_TestBody_Set ( false );
+    // send coordination message for end of test case
+    f_IRAT_SendCoOrd ( EUTRA, cms_IRAT_Trigger );
+    // Swith off/power off and release cells
+    
+    f_RTT1X_Postamble (cdma2000_Cell19);
+  }
+
+}

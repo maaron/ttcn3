@@ -1,0 +1,54 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-08-08 15:47:43 +0200 (Wed, 08 Aug 2012) $
+// $Rev: 7106 $
+/******************************************************************************/
+
+module EPS_NAS_SMS_Templates {
+
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_TypeDefs all;
+
+  template NAS_MessageContainer cr_NAS_MsgContainer_SMS (template (present) octetstring p_SMS_Message) :=
+  { /* @status    APPROVED */
+    iei         := omit,
+    iel         := ?,
+    smsmessage  := p_SMS_Message
+  };
+
+  template (value) NAS_MessageContainer cs_NAS_MsgContainer_SMS (template (value) octetstring p_SMS_Message) :=
+  { /* @status    APPROVED */
+    iei         := omit,
+    iel         := int2oct(lengthof (p_SMS_Message), 1),
+    smsmessage  := p_SMS_Message
+  };
+
+  template NAS_UL_Message_Type cr_SMS_UL_NAS_Transport (SecurityHeaderType p_SecurityHeader,
+                                                        template NAS_MessageContainer p_NasMessage) :=
+  { /* @status    APPROVED */
+    ul_NAS_TRANSPORT := {
+      securityHeaderType             := p_SecurityHeader,
+      protocolDiscriminator          := tsc_PD_EMM,
+      messageType                    := tsc_MT_UL_NASTransport,
+      nasMessage                     := p_NasMessage
+    }
+  };
+
+  template (value) NAS_DL_Message_Type cs_SMS_DL_NAS_Transport (SecurityHeaderType p_SecurityHeader,
+                                                                template (value) NAS_MessageContainer p_NasMessage) :=
+  { /* @status    APPROVED */
+    dl_NAS_TRANSPORT := {
+      securityHeaderType             := p_SecurityHeader,
+      protocolDiscriminator          := tsc_PD_EMM,
+      messageType                    := tsc_MT_DL_NASTransport,
+      nasMessage                     := p_NasMessage
+    }
+  };
+
+}

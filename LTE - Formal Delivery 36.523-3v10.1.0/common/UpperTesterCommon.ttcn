@@ -1,0 +1,83 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-06-12 10:32:40 +0200 (Tue, 12 Jun 2012) $
+// $Rev: 6840 $
+/******************************************************************************/
+
+module UpperTesterCommon {
+
+
+  group TypeDefs_Common {
+
+  type record Ut_Parameter_Type {               /* @status    APPROVED */
+    charstring Name,            // name of the parameter/attribute
+    charstring Value            // value (may need to be converted e.g. to integer)
+  };
+
+  type record of Ut_Parameter_Type Ut_ParameterList_Type;       /* @status    APPROVED */
+
+  type enumerated Ut_CnfReq_Type {              /* @status    APPROVED */
+    NO_CNF_REQUIRED,
+    CNF_REQUIRED,               /* to request CNF as got from the UE */
+    LOCAL_CNF_REQUIRED          /* to request immediate CNF after SS has submitted the command to the UE (SS shall not wait for the UE is responding)
+                                   @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  type record UT_COMMON_CNF {                   /* Common confirmation triggered by the UE;
+                                                   used at the system interface as well as at the inter PTC interface;
+                                                   @status    APPROVED */
+    boolean         Result,                     // true: success; false: failure
+    charstring      ResultString  optional      // contains response from the UE (if there is any)
+  };
+
+  } // end of group TypeDefs_Common
+
+  group TypeDefs_UT_System {
+
+  type record MMI_Cmd_Type {                            /* @status    APPROVED */
+    charstring Cmd,                                     /* commands corresponding to Ut_Common_Req_Type (e.g. "SelectPLMN");
+                                                           it is a charstring rather than a enumerated to allow generic implementation in the system adaptor */
+    Ut_ParameterList_Type ParameterList optional        /* additional information to perform the MMI:
+                                                           e.g. for "SelectPLMN" this is {"MCC" <MCC value>}, {"MNC" <MNC value>} */
+
+  };
+
+  type union Ut_System_Cmd_Type {                       /* @status    APPROVED */
+    charstring    AT,                                   /* to carry mandatory and optional AT commands */
+    MMI_Cmd_Type  MMI                                   /* to carry MMI commands and optional AT commands */
+  };
+
+  type record UT_SYSTEM_REQ {                           /* @status    APPROVED */
+    Ut_System_Cmd_Type  Cmd,
+    Ut_CnfReq_Type      CnfRequired                     /* Notes: a confirmation shall only be requested in cases when there is no signalling
+                                                         *        from the UE being triggered by the MMI/AT command
+                                                         * @sic R5s110176 BASELINE MOVING 2011 sic@ */
+  };
+
+  } // end of group TypeDefs_UT_System
+
+  type port MTC_System_Ut message {     /* Upper Tester: Port at MTC to be connected with system
+                                           @status    APPROVED */
+    out UT_SYSTEM_REQ;
+    in  UT_COMMON_CNF;
+  };
+
+  template UT_COMMON_CNF car_UT_CnfAny :=
+  { /* @status    APPROVED */
+    Result          := ?,
+    ResultString    := *
+  };
+
+  template (value) Ut_Parameter_Type cs_Ut_Parameter_Common(charstring p_Name,
+                                                            template (value) charstring p_Value) :=
+  { /* @status    APPROVED */
+    Name := p_Name,
+    Value := p_Value
+  };
+
+}

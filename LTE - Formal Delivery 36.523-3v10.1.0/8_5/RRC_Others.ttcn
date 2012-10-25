@@ -1,0 +1,1118 @@
+/******************************************************************************/
+// @copyright   Copyright Notification
+//   No part may be reproduced except as authorized by written permission.
+//   The copyright and the foregoing restriction extend to reproduction in all media.
+//   Trademark 2012, 3GPP Organizational Partners (ARIB, ATIS, CCSA, ETSI, TTA, TTC).
+//   All rights reserved.
+// @version: 36.523-3v10.1.0
+// $Date: 2012-09-04 16:46:27 +0200 (Tue, 04 Sep 2012) $
+// $Rev: 7316 $
+/******************************************************************************/
+
+module RRC_Others {
+
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from CommonDefs all;
+  import from CommonIratDefs all;
+  import from EPS_NAS_Constants all;
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  import from EUTRA_AspCommon_Templates all;
+  import from EUTRA_AuxiliaryCapCheckFunctions all;
+  import from EUTRA_AuxiliaryFunctions all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_CommonProcedures all;
+  import from EUTRA_Component all;
+  import from EUTRA_ConfigurationSteps all;
+  import from EUTRA_IRATFunctions all;
+  import from EUTRA_NASSteps all;
+  import from EUTRA_Parameters all;
+  import from EUTRA_RRCSteps all;
+  import from EUTRA_RRC_Templates all;
+  import from EUTRA_SRB_Templates all;
+  import from EUTRA_SecurityFunctions all;
+  import from EUTRA_SecuritySteps all;
+  import from GERAN_CapabilityFunctions all;
+  import from NAS_CommonTypeDefs all;
+  import from Parameters all;
+  import from UTRAN_CapabilityFunctions all;
+
+  template UE_EUTRA_Capability cr_UeCapabilitiesRAT_Container :=
+  { /* @status    APPROVED */
+    accessStratumRelease := ?, //@sic R5s110565 & R5-115622 sic@
+    ue_Category := ?, //@sic R5-123325 sic@
+    pdcp_Parameters := ?,
+    phyLayerParameters := {
+      ue_TxAntennaSelectionSupported := ?,
+      ue_SpecificRefSigsSupported := ?
+    },
+    rf_Parameters := {
+      supportedBandListEUTRA := ?
+    },
+    measParameters := {
+      bandListEUTRA := ?
+    },
+    featureGroupIndicators := fl_DeriveFeatrGrpCapFromPics(),
+    interRAT_Parameters := {
+      utraFDD := *,
+      utraTDD128 := *,
+      utraTDD384 := *,
+      utraTDD768 := *,
+      geran := *,
+      cdma2000_HRPD := *,
+      cdma2000_1xRTT := *
+    },
+    nonCriticalExtension := *
+  };
+
+  template UE_CapabilityRAT_Container cr_CDMA2K_UE_CapabilityRAT_Container :=
+  { /* @status    APPROVED */
+    rat_Type := cdma2000_1XRTT,
+    ueCapabilityRAT_Container := ?
+  };
+
+  template UE_CapabilityRAT_Container cr_UE_CapabilityRAT_Container (RAT_Type p_RAT_Type) :=
+  { /* @status    APPROVED */
+    rat_Type := p_RAT_Type,
+    ueCapabilityRAT_Container := ?
+  };
+
+  template UECapabilityInformation_r8_IEs cr_UECapabilityInformation (template (present) UE_CapabilityRAT_ContainerList p_UE_CapabilityRAT_ContainerList) :=
+  { /* @status    APPROVED */
+    ue_CapabilityRAT_ContainerList := p_UE_CapabilityRAT_ContainerList,
+    nonCriticalExtension := *
+  };
+
+  function fl_DeriveFeatrGrpCapFromPics () return B32_Type
+  {
+    var B32_Type v_FeatureGroupIndicators := f_ConvertBoolToBit(pc_FeatrGrp_1) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_2) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_3) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_4) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_5) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_6) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_7) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_8) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_9) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_10) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_11) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_12) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_13) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_14) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_15) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_16) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_17) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_18) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_19) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_20) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_21) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_22) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_23) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_24) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_25) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_26) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_27) & // @sic R5-103621 sic@
+                                             f_ConvertBoolToBit(pc_FeatrGrp_28) & // @sic R5-113674 sic@
+                                             f_ConvertBoolToBit(pc_FeatrGrp_29) & // @sic R5-113674 sic@
+                                             f_ConvertBoolToBit(pc_FeatrGrp_30) & // @sic R5-120748 sic@
+                                             '00'B;
+    return v_FeatureGroupIndicators;
+  }
+
+  function fl_DeriveFeatrGrpCapFromPics_r9_FDD () return B32_Type
+  {
+    var B32_Type v_FeatureGroupIndicators := f_ConvertBoolToBit(pc_FeatrGrp_1_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_2_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_3_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_4_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_5_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_6_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_7_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_8_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_9_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_10_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_11_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_12_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_13_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_14_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_15_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_16_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_17_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_18_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_19_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_20_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_21_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_22_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_23_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_24_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_25_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_26_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_27_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_28_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_29_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_30_F) &
+                                             '00'B;
+    return v_FeatureGroupIndicators;
+  }
+
+  function fl_DeriveFeatrGrpCapFromPics_r9_TDD () return B32_Type
+  {
+    var B32_Type v_FeatureGroupIndicators := f_ConvertBoolToBit(pc_FeatrGrp_1_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_2_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_3_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_4_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_5_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_6_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_7_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_8_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_9_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_10_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_11_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_12_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_13_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_14_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_15_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_16_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_17_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_18_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_19_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_20_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_21_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_22_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_23_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_24_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_25_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_26_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_27_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_28_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_29_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_30_T) &
+                                             '00'B;
+    return v_FeatureGroupIndicators;
+  }
+
+  function fl_DeriveFeatrGrpCapFromPics_r9Add () return B32_Type
+  {
+    var B32_Type v_FeatureGroupIndicators := f_ConvertBoolToBit(pc_FeatrGrp_33) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_34) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_35) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_36) &
+                                             '0000000000000000000000000000'B;
+    return v_FeatureGroupIndicators;
+  }
+
+  function fl_DeriveFeatrGrpCapFromPics_r9Add_FDD () return B32_Type
+  {
+    var B32_Type v_FeatureGroupIndicators := f_ConvertBoolToBit(pc_FeatrGrp_33_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_34_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_35_F) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_36_F) &
+                                             '0000000000000000000000000000'B;
+    return v_FeatureGroupIndicators;
+  }
+
+  function fl_DeriveFeatrGrpCapFromPics_r9Add_TDD () return B32_Type
+  {
+    var B32_Type v_FeatureGroupIndicators := f_ConvertBoolToBit(pc_FeatrGrp_33_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_34_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_35_T) &
+                                             f_ConvertBoolToBit(pc_FeatrGrp_36_T) &
+                                             '0000000000000000000000000000'B;
+    return v_FeatureGroupIndicators;
+  }
+
+  function fl_CheckFeatrGrpCapFromPics_r8 ()
+  { // @sic R5-120748 sic@
+    
+    // 1. mandatory PICS - none
+    // 2. relationship between PICS
+    // 2.1 relationships between FGIs
+    if (pc_FeatrGrp_3 and not pc_FeatrGrp_7)                  {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 3 set incorrectly");}
+    if (pc_FeatrGrp_4 and not pc_FeatrGrp_5)                  {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 4 set incorrectly");}
+    // - can only be set to 0 if the UE does not support voice; for the time being VoLTE is used
+    if (pc_FeatrGrp_8 and not pc_FeatrGrp_22)                 {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 8 set incorrectly");}
+    if (pc_FeatrGrp_9 and not pc_FeatrGrp_23)                 {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 9 set incorrectly");}
+    if (pc_FeatrGrp_11 and not pc_FeatrGrp_24)                {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 11 set incorrectly");}
+    if (pc_FeatrGrp_12 and not pc_FeatrGrp_26)                {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 12 set incorrectly");}
+    if (pc_FeatrGrp_13 and not pc_FeatrGrp_25)                {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 13 set incorrectly");}
+    if (pc_FeatrGrp_15 and not pc_FeatrGrp_22 and not pc_FeatrGrp_23 and not pc_FeatrGrp_24 and not pc_FeatrGrp_26)  {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 15 set incorrectly");}
+    if (pc_FeatrGrp_17 and not pc_FeatrGrp_5)                 {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 17 set incorrectly");}
+    if (pc_FeatrGrp_18 and not pc_FeatrGrp_5)                 {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 18 set incorrectly");}
+    if (pc_FeatrGrp_19 and not pc_FeatrGrp_22 and not pc_FeatrGrp_23 and not pc_FeatrGrp_24 and not pc_FeatrGrp_26)  {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 19 set incorrectly");}
+    // - Regardless of what bit number 7 and bit number 20 is set to, UE shall support at least SRB1 and SRB2 for DCCH + 4x AM DRB
+    // - Regardless of what bit number 20 is set to, if bit number 7 is set to '1', UE shall support at least SRB1 and SRB2 for DCCH + 4x AM DRB + 1x UM DRB
+    // if  (pc_FeatrGrp_20 == ? and '???')  {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 20 set incorrectly");}
+    if (pc_FeatrGrp_27 and not pc_FeatrGrp_8)                 {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 27 set incorrectly");}
+    if (pc_FeatrGrp_30 and not pc_FeatrGrp_13)                {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 30 set incorrectly");}
+    // 2.2 other relationships
+    if (pc_FeatrGrp_3 and not pc_Semi_Persistence_Scheduling) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_Semi_Persistence_Scheduling set incorrectly(R8)");}
+    if (pc_FeatrGrp_3 and not pc_TTI_Bundling)                {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_TTI_Bundling set incorrectly(R8)");} // @sic R5-121548 sic@ @sic R5s120514 sic@ @sic R5-123637 sic@
+  } // fl_CheckFeatrGrpCapFromPics_r8
+
+  function fl_CheckFeatrGrpCapFromPics_r9 ()
+  { // @sic R5-120748 sic@ @sic R5-121224 sic@
+    var boolean v_Band13OnlySupported := pc_eBand13_Supp and
+      not pc_eBand1_Supp  and not pc_eBand2_Supp  and not pc_eBand3_Supp  and not pc_eBand4_Supp  and not pc_eBand5_Supp and
+      not pc_eBand6_Supp  and not pc_eBand7_Supp  and not pc_eBand8_Supp  and not pc_eBand9_Supp  and not pc_eBand10_Supp and
+      not pc_eBand11_Supp and not pc_eBand12_Supp and not pc_eBand14_Supp and not pc_eBand17_Supp and not pc_eBand18_Supp and not pc_eBand19_Supp and
+      not pc_eBand20_Supp and not pc_eBand21_Supp and not pc_eBand22_Supp and not pc_eBand23_Supp and not pc_eBand24_Supp and not pc_eBand25_Supp and not pc_eBand26_Supp and
+      not pc_eBand33_Supp and not pc_eBand34_Supp and not pc_eBand35_Supp and not pc_eBand36_Supp and not pc_eBand37_Supp and not pc_eBand38_Supp and not pc_eBand39_Supp and
+      not pc_eBand40_Supp and not pc_eBand41_Supp and not pc_eBand42_Supp and not pc_eBand43_Supp;
+    
+    // 1. mandatory PICS
+    // 1.1 FGIs
+    if (not pc_FeatrGrp_5)  {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 5 set incorrectly(R9)");}
+    if (not pc_FeatrGrp_6)  {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 6 set incorrectly(R9)");}
+    if (not pc_FeatrGrp_16) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 16 set incorrectly(R9)");}
+    if (not pc_FeatrGrp_17) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 17 set incorrectly(R9)");}
+    if (not pc_FeatrGrp_20) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 20 set incorrectly(R9)");}
+    // 1.2 other PICS
+    //    if (not pc_Allowed_CSG_list)                                {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_Allowed_CSG_list set incorrectly(R9)");}
+    //    if (not pc_Manual_CSG_Selection)                            {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_Manual_CSG_Selection set incorrectly(R9)");}
+    // commented out for the time being, clarification needed, prose change required
+    // 2. relationship between PICS
+    // 2.1 relationships between FGIs - none
+    // 2.2 other relationships
+    if  (not pc_FeatrGrp_8 and (pc_eFDD and pc_UTRA))           {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 8 set incorrectly(R9)");} // @sic R5-122118 sic@ @sic R5s120514 sic@ @sic R5-123637 sic@
+    if  (pc_FeatrGrp_13 and v_Band13OnlySupported)              {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 13 set incorrectly(R9)");}
+    if  (pc_FeatrGrp_18 and v_Band13OnlySupported)              {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 18 set incorrectly(R9)");}
+    if  (not pc_FeatrGrp_22 and (pc_eFDD and pc_UTRA))          {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 22 set incorrectly(R9)");} // @sic R5-122118 sic@ @sic R5s120514 sic@
+    if  (not pc_FeatrGrp_24 and pc_Enhanced_1xCSfallback)       {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 24 set incorrectly(R9)");} // @sic R5s120514 sic@
+    if  (pc_FeatrGrp_25 and v_Band13OnlySupported)              {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 25 set incorrectly(R9)");}
+    if  (not pc_FeatrGrp_26 and pc_HRPD)                        {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI 26 set incorrectly(R9)");}
+    if  (pc_FeatrGrp_28 and not pc_TTI_Bundling)                {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_TTI_Bundling set incorrectly(R9)");}
+    if  (pc_FeatrGrp_29 and not pc_Semi_Persistence_Scheduling) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_Semi_Persistence_Scheduling set incorrectly(R9)");}
+    } // fl_CheckFeatrGrpCapFromPics_r9
+
+  function fl_CheckFeatrGrpCapFromPics_r10()
+  {
+    
+    // 1. mandatory PICS
+    // 1.1 FGIs
+    // 1.2 other PICS
+    // 2. relationship between PICS
+    // 2.1 relationships between FGIs - none
+    // 2.2 other relationships
+
+    // Empty for the time being. PICS needs to be defined first, eg UE Category 8
+  } // fl_CheckFeatrGrpCapFromPics_r10
+
+  function fl_CheckFeatrGrpCapSplit (B32_Type p_FGI_Set1,
+                                     B32_Type p_FGI_Set2)
+  { // @sic R5s120250 sic@
+    var IntegerList_Type v_FGI_List := {3, 5, 6, 7, 13, 14, 16, 17, 18, 20, 21, 25, 30};
+    var integer v_FGI;
+    var integer v_Index;
+    var integer i;
+
+    for (i:=0; i < lengthof(v_FGI_List); i:=i+1) {
+      v_FGI := v_FGI_List[i];  // FGI starting with 1
+      v_Index := v_FGI - 1;    // bit position, starting with 0
+      if (f_Bitstring_BitIsSet(p_FGI_Set1, v_Index) != f_Bitstring_BitIsSet(p_FGI_Set2, v_Index)) {
+        f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "FGI " & int2str(v_FGI) & " split erroneously");
+      }
+    }
+  }
+
+  function fl_CheckUE_Category (UE_EUTRA_Capability p_ReceivedCapabilityMsg)
+  { // @sic R5-123325 sic@
+    var UE_EUTRA_Capability v_ReceivedCapabilityMsg;
+
+    v_ReceivedCapabilityMsg := p_ReceivedCapabilityMsg;
+
+    select (v_ReceivedCapabilityMsg.ue_Category) {
+      case (1) {if (not pc_ue_Category_1) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "UE_Category reported inconsistent with PICS");}}
+      case (2) {if (not pc_ue_Category_2) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "UE_Category reported inconsistent with PICS");}}
+      case (3) {if (not pc_ue_Category_3) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "UE_Category reported inconsistent with PICS");}}
+      case (4) {if (not pc_ue_Category_4) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "UE_Category reported inconsistent with PICS");}}
+      case (5) {if (not pc_ue_Category_5) {f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "UE_Category reported inconsistent with PICS");}}
+      case else  {
+        FatalError (__FILE__, __LINE__, "Invalid UE Category received from the UE");
+      }
+    }
+  }
+
+  function fl_Check_ConditionROHC (UE_EUTRA_Capability p_ReceivedCapabilityMsg)
+  {
+    var UE_EUTRA_Capability v_ReceivedCapabilityMsg:=p_ReceivedCapabilityMsg;
+
+    if (pc_ROHC_profile0x0001 != v_ReceivedCapabilityMsg.pdcp_Parameters.supportedROHC_Profiles.profile0x0001) {
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "ROHC profile0x0001 not correctly configured"); // @sic R5-123349 sic@
+    }
+    if (pc_ROHC_profile0x0002 != v_ReceivedCapabilityMsg.pdcp_Parameters.supportedROHC_Profiles.profile0x0002) {
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "ROHC profile0x0002 not correctly configured"); // @sic R5-123349 sic@
+    }
+  }
+
+  function fl_CheckAttachTypesInPics ()
+  { // @sic R5-122118 sic@
+    if ((pc_PS_voice_centric or pc_PS_data_centric) and not pc_Attach) {
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_Attach set incorrectly");
+    }
+    if ((((pc_UTRA or pc_GERAN) and pc_CS) or // @sic R5s120488 sic@
+         pc_CS_Fallback or
+         pc_SMS_SGs or
+         pc_IMSI_Detach or
+         pc_CS_Em_Call_in_UTRA or
+         pc_CS_Em_Call_in_GERAN or
+         pc_CS_PS_voice_centric or pc_CS_PS_data_centric)
+        and not pc_Combined_Attach) {
+      f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "pc_Combined_Attach set incorrectly");
+    }
+  }
+
+  function fl_EUTRA_SetExpectedUeEutraCap(template UE_EUTRA_Capability p_UE_EUTRA_Capability) return template UE_EUTRA_Capability
+  {
+    var template UE_EUTRA_Capability v_UeCapabilityTemplate := p_UE_EUTRA_Capability;
+    var template UE_EUTRA_Capability.interRAT_Parameters v_InterRAT_Parameters := v_UeCapabilityTemplate.interRAT_Parameters;
+
+    if (pc_FDD)      { v_InterRAT_Parameters.utraFDD := ?; }
+    if (pc_TDD_LCR)  { v_InterRAT_Parameters.utraTDD128 := ?; }
+    if (pc_TDD_HCR)  { v_InterRAT_Parameters.utraTDD384 := ?; }
+    if (pc_TDD_VHCR) { v_InterRAT_Parameters.utraTDD768 := ?; }
+    if (pc_GERAN)    { v_InterRAT_Parameters.geran := ?; }
+    if (pc_HRPD)     { v_InterRAT_Parameters.cdma2000_HRPD := ?; }
+    if (pc_1xRTT)    { v_InterRAT_Parameters.cdma2000_1xRTT := ?; } // @sic R5s100302 Change 9 sic@
+    v_UeCapabilityTemplate.interRAT_Parameters := v_InterRAT_Parameters;
+
+    return v_UeCapabilityTemplate;
+  }
+
+  function fl_SetUeOtherSupRatCap() return template UECapabilityInformation_r8_IEs
+  {
+    var template (present) UE_CapabilityRAT_ContainerList v_UE_CapabilityRAT_ContainerList;
+    var integer i:=0;
+
+    if (pc_GERAN and pc_CS) {  // @sic R5s120250 sic@
+      v_UE_CapabilityRAT_ContainerList[i] := cr_UE_CapabilityRAT_Container(geran_cs);
+      i := i + 1;
+    }
+    if (pc_GERAN and pc_PS) {  // @sic R5s120250 sic@
+      v_UE_CapabilityRAT_ContainerList[i] := cr_UE_CapabilityRAT_Container(geran_ps);
+      i := i + 1;
+    }
+    if (pc_FDD or pc_TDD_LCR or pc_TDD_HCR or pc_TDD_VHCR) {
+      v_UE_CapabilityRAT_ContainerList[i] := cr_UE_CapabilityRAT_Container(utra);
+      i := i + 1;
+    }
+    if (pc_HRPD or pc_1xRTT) {
+      v_UE_CapabilityRAT_ContainerList[i] := cr_UE_CapabilityRAT_Container(cdma2000_1XRTT);
+      i := i + 1;
+    }
+
+    select (i) {
+      case (1) {
+        // do nothing
+      }
+      case (2) {
+        v_UE_CapabilityRAT_ContainerList := {
+          permutation(v_UE_CapabilityRAT_ContainerList[0], v_UE_CapabilityRAT_ContainerList[1])
+        };
+      }
+      case (3) {
+        v_UE_CapabilityRAT_ContainerList := {
+          permutation(v_UE_CapabilityRAT_ContainerList[0], v_UE_CapabilityRAT_ContainerList[1], v_UE_CapabilityRAT_ContainerList[2])
+        };
+      }
+      case (4) {
+        v_UE_CapabilityRAT_ContainerList := {
+          permutation(v_UE_CapabilityRAT_ContainerList[0], v_UE_CapabilityRAT_ContainerList[1], v_UE_CapabilityRAT_ContainerList[2], v_UE_CapabilityRAT_ContainerList[3])
+        };
+      }
+      case else {
+        FatalError(__FILE__, __LINE__, "invalid PICS configuration");
+      }
+    }
+    return cr_UECapabilityInformation(v_UE_CapabilityRAT_ContainerList);
+  }
+
+  function fl_Count_Supported_interRAT_Bands(UE_EUTRA_Capability p_UECaps) return integer
+  {
+    var integer v_NrOfSuppIratBands := 0;
+ 
+    if (ispresent (p_UECaps.interRAT_Parameters.utraFDD)){
+      v_NrOfSuppIratBands := v_NrOfSuppIratBands + lengthof(p_UECaps.interRAT_Parameters.utraFDD.supportedBandListUTRA_FDD);
+    };
+    if (ispresent (p_UECaps.interRAT_Parameters.utraTDD128)){
+      v_NrOfSuppIratBands := v_NrOfSuppIratBands + lengthof(p_UECaps.interRAT_Parameters.utraTDD128.supportedBandListUTRA_TDD128);
+    };
+    if (ispresent (p_UECaps.interRAT_Parameters.utraTDD384)){
+      v_NrOfSuppIratBands := v_NrOfSuppIratBands + lengthof(p_UECaps.interRAT_Parameters.utraTDD384.supportedBandListUTRA_TDD384);
+    };
+    if (ispresent (p_UECaps.interRAT_Parameters.utraTDD768)){
+      v_NrOfSuppIratBands := v_NrOfSuppIratBands + lengthof(p_UECaps.interRAT_Parameters.utraTDD768.supportedBandListUTRA_TDD768);
+    };
+    if (ispresent (p_UECaps.interRAT_Parameters.geran)){
+      v_NrOfSuppIratBands := v_NrOfSuppIratBands + lengthof(p_UECaps.interRAT_Parameters.geran.supportedBandListGERAN);
+    }
+    if (ispresent (p_UECaps.interRAT_Parameters.cdma2000_HRPD)){
+      v_NrOfSuppIratBands := v_NrOfSuppIratBands + lengthof(p_UECaps.interRAT_Parameters.cdma2000_HRPD.supportedBandListHRPD);
+    }
+    if (ispresent (p_UECaps.interRAT_Parameters.cdma2000_1xRTT)){
+      v_NrOfSuppIratBands := v_NrOfSuppIratBands + lengthof(p_UECaps.interRAT_Parameters.cdma2000_1xRTT.supportedBandList1XRTT);
+    }
+    
+    return v_NrOfSuppIratBands;
+  }
+
+  function fl_EUTRA_Check_r8(UE_EUTRA_Capability p_ReceivedCapabilityMsg) runs on EUTRA_PTC
+  { // @sic R5s120250 sic@
+
+    var UE_EUTRA_Capability v_ReceivedCapabilityMsg;
+    var integer i;
+    var integer v_BandEUTRA;
+    var integer v_BitStringIndex;
+    var bitstring v_SuppEutraBandsAccToPICS := f_DeriveSuppEutraBandsFromPics();
+    var bitstring v_SuppEutraBandsReported := int2bit(0, lengthof(v_SuppEutraBandsAccToPICS));
+    
+    v_ReceivedCapabilityMsg := p_ReceivedCapabilityMsg;
+
+    // check the reported UE Category vs. UE Category PICS items
+    fl_CheckUE_Category (v_ReceivedCapabilityMsg); // @sic R5-123325 sic@
+
+    // Check that number of supported EUTRA bands match the set PICS parameters (pc_eBanda_Supp)
+    if (lengthof(v_ReceivedCapabilityMsg.rf_Parameters.supportedBandListEUTRA) != f_GetNrOfSuppEutraBands(v_SuppEutraBandsAccToPICS)) {
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Mismatch between the number of bands acc. to PICS setting and the number of bands reported by the UE");
+    }
+
+    // Check that any value B such that pc_eBandB_Supp is TRUE and different from all eutra-Band[k] where k = 1 to a - 1
+    // Go through the received supportedBandListEUTRA and match against the supported bands according to the PICS
+    for (i := 0; i < lengthof(v_ReceivedCapabilityMsg.rf_Parameters.supportedBandListEUTRA); i := i + 1) {
+
+      v_BandEUTRA := v_ReceivedCapabilityMsg.rf_Parameters.supportedBandListEUTRA[i].bandEUTRA;
+      v_BitStringIndex := v_BandEUTRA - 1;
+      
+      if (not f_Bitstring_BitIsSet(v_SuppEutraBandsAccToPICS, v_BitStringIndex)) {
+        f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "PICS does not match reported capability for band nr. " & int2str(v_BandEUTRA));
+
+      } else {
+        if (f_Bitstring_BitIsSet(v_SuppEutraBandsReported, v_BitStringIndex)) {
+          f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "support of band nr. " & int2str(v_BandEUTRA) &  " is reported more than once");
+        }
+        v_SuppEutraBandsReported[v_BitStringIndex] := '1'B;
+      }
+      // NOTE:  number of bands reported by the UE and number of bands acc. to PICS setting are equal AND none of the bands is reported twice by the UE
+      //        => bands reported by the UE are the same as acc. to PICS setting (i.e. we don't need to check explicitly the PICS against the bands being reported)
+    }
+
+    // interFreqEUTRA-BandList SEQUENCE (SIZE (1..maxBands)) OF SEQUENCE {
+    //* same number of entries like in supportedEUTRA-BandList
+    //* Match number of entries in interFreqEUTRA-BandList with number of entries in supportedEUTRA-BandList
+    for (i := 0; i < lengthof(v_ReceivedCapabilityMsg.measParameters.bandListEUTRA); i := i + 1) {
+      if (lengthof(v_ReceivedCapabilityMsg.rf_Parameters.supportedBandListEUTRA) != lengthof(v_ReceivedCapabilityMsg.measParameters.bandListEUTRA[i].interFreqBandList)) {
+        f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 10/18 - Number of interFreqEUTRA-BandList does not match nr. of supportedEUTRA-BandList");
+      }
+    }
+
+    //@sic R5s100302 Change 6 : Correction of check of supported interRat bands sic@
+    // Check that number of bands in interRAT-Parameters matches number of entries in interRAT-BandList
+    // According to 36.331:
+    // interRAT-BandList - One entry corresponding to each supported band of another RAT
+    //                     listed in the same order as in the interRAT-Parameters.
+    for (i := 0; i < lengthof(v_ReceivedCapabilityMsg.measParameters.bandListEUTRA); i := i + 1) {
+      if (ispresent(v_ReceivedCapabilityMsg.measParameters.bandListEUTRA[i].interRAT_BandList)) {
+        if (lengthof(v_ReceivedCapabilityMsg.measParameters.bandListEUTRA[i].interRAT_BandList) != fl_Count_Supported_interRAT_Bands(v_ReceivedCapabilityMsg)) {
+          f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 10/18 - Number of listed bands in interRAT-Parameters does not match number of entires in interRAT-BandList");
+        }
+      }
+    }
+  } // fl_EUTRA_Check_r8
+
+  function fl_EUTRA_MatchEutraCapMsgs_r8(UE_EUTRA_Capability p_ReceivedCapabilityMsg,
+                                         template UE_EUTRA_Capability p_Expected_Ue_Eutra_Capability) runs on EUTRA_PTC
+  { // @sic R5s120250 sic@
+    fl_EUTRA_Check_r8(p_ReceivedCapabilityMsg);
+
+    // Match the received decoded template with the expected template
+    if (not match(p_ReceivedCapabilityMsg, p_Expected_Ue_Eutra_Capability)) {
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 10/18 - Received decoded template does not match with the expected template");
+    }
+  }
+
+  function fl_EUTRA_MatchEutraCapMsgs_r9(UE_EUTRA_Capability p_ReceivedCapabilityMsg,
+                                         template UE_EUTRA_Capability p_Expected_Ue_Eutra_Capability) runs on EUTRA_PTC
+  { // @sic R5s120250 sic@
+    var UE_EUTRA_Capability v_ReceivedCapabilityMsg;
+    var UE_EUTRA_Capability_v9a0_IEs v_Ue_EUTRA_Capability_v9a0_IEs;
+    var bitstring v_Ue_EUTRA_Capability_v9a0_IEsContainer;
+    var integer v_Result;
+    var B32_Type v_FGIsFromPICS, v_FGIsRcvd, v_CommonFGIs, v_SplitFGIsFDD, v_SplitFGIsTDD;
+    var template UE_EUTRA_Capability v_Expected_Ue_Eutra_Capability;
+    
+    v_ReceivedCapabilityMsg := p_ReceivedCapabilityMsg;
+    v_Expected_Ue_Eutra_Capability := p_Expected_Ue_Eutra_Capability;
+
+    // to check some Rel 8 UE capabilities
+    fl_EUTRA_Check_r8(p_ReceivedCapabilityMsg);
+
+    // ROHC condition not checked for Rel 8, but needs to be checked here
+    fl_Check_ConditionROHC (p_ReceivedCapabilityMsg);
+
+    if (isvalue(v_ReceivedCapabilityMsg.nonCriticalExtension.nonCriticalExtension)) { // @sic R5s120623 sic@
+      // Rel 9 (UE-EUTRA-Capability-v940-IEs) IEs  provided
+      // the value is checked as per 36.331 cl. 5.6.3.3 !!!
+      // decoding of the UE_EUTRA_Capability_v9a0_IEs CONTAINER
+      v_Ue_EUTRA_Capability_v9a0_IEsContainer := oct2bit(v_ReceivedCapabilityMsg.nonCriticalExtension.nonCriticalExtension.lateNonCriticalExtension);
+      v_Result := decvalue (v_Ue_EUTRA_Capability_v9a0_IEsContainer, v_Ue_EUTRA_Capability_v9a0_IEs);
+
+      if (v_Result != 0) {
+        FatalError(__FILE__, __LINE__, "UE_EUTRA_Capability_v9a0_IEs cannot be decoded");
+      }
+
+      // check FGIs 33-36 featureGroupIndRel9Add-r9 if present
+      if (isvalue (v_Ue_EUTRA_Capability_v9a0_IEs.featureGroupIndRel9Add_r9)) {
+        // check match between PICS settings and received value
+        v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9Add();
+        v_FGIsRcvd := v_Ue_EUTRA_Capability_v9a0_IEs.featureGroupIndRel9Add_r9;
+        if (v_FGIsFromPICS != v_FGIsRcvd) {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "featureGroupIndRel9Add_r9 not consistent with PICS");
+        }
+      }
+      else {
+        // FGIs not reported: error in Rel9, all 1s in future releases assumed  (36.331 Annex B1)
+        f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "featureGroupIndRel9Add_r9 must be provided in Rel 9");
+      }
+
+      // check RAT specific FGIs, if present or not
+      // FGIs and Add FGIs contain common values,
+      // RAT specific FGIs and Add FGIs contain potentially different RAT specific values
+      // RAT specific FGIs may be omitted if they contain only values equal to the common ones
+      // - FGIs 1-30 will be checked when matching
+      // - FGIs 33-36 checked just before - mandatory in Rel 9
+      // - if add capabilities are absent => FGIs same as the common ones
+      // - if add capabilities are present => FGIs as indicated in the PICS
+      // - if some add capabilities are present => mix of both
+      if (pc_FDD and (pc_TDD_LCR or pc_TDD_HCR or pc_TDD_VHCR)) {
+        // 1. fdd_Add_UE_EUTRA_Capabilities_r9
+        if (isvalue (v_Ue_EUTRA_Capability_v9a0_IEs.fdd_Add_UE_EUTRA_Capabilities_r9)) {
+          // 1.1 check consistency between Received Add FGIs and the Add PICS settings
+          // 1.1.1 FGIs 1-30
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9_FDD();
+          v_FGIsRcvd := v_Ue_EUTRA_Capability_v9a0_IEs.fdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndicators_r9;
+          if (v_FGIsFromPICS != v_FGIsRcvd) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "fdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndicators_r9 not consistent with PICS");
+          }
+          v_SplitFGIsFDD := v_FGIsRcvd; // save to later check FDD/TDD splitting
+          // 1.1.2 FGIs 33-36
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9Add_FDD();
+          v_FGIsRcvd := v_Ue_EUTRA_Capability_v9a0_IEs.fdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndRel9Add_r9;
+          if (v_FGIsFromPICS != v_FGIsRcvd) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "fdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndRel9Add_r9 not consistent with PICS");
+          }
+        }
+        else {
+          // 1.2 check consistency of RAT specific FGIs with the Common PICS settings
+          // 1.2.1 FGIs 1-30
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9_FDD();
+          v_CommonFGIs := fl_DeriveFeatrGrpCapFromPics();
+          if (v_FGIsFromPICS != v_CommonFGIs) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Common FGIs and FDD FGIs inconsistent");
+          }
+          v_SplitFGIsFDD := v_FGIsFromPICS; // save to later check FDD/TDD splitting
+          // 1.2.2 FGIs 33-36
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9Add_FDD();
+          v_CommonFGIs := fl_DeriveFeatrGrpCapFromPics_r9Add ();
+          if (v_FGIsFromPICS != v_CommonFGIs) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Common Add FGIs and FDD Add FGIs inconsistent");
+          }
+        }
+
+        // 2. tdd_Add_UE_EUTRA_Capabilities_r9
+        if (isvalue (v_Ue_EUTRA_Capability_v9a0_IEs.tdd_Add_UE_EUTRA_Capabilities_r9)) {
+          // 2.1 check consistency between Received Add FGIs and the Add PICS settings
+          // 2.1.1 FGIs 1-30
+          // check match between PICS settings and received value
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9_TDD();
+          v_FGIsRcvd := v_Ue_EUTRA_Capability_v9a0_IEs.tdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndicators_r9;
+          if (v_FGIsFromPICS != v_FGIsRcvd) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "tdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndicators_r9 not consistent with PICS");
+          }
+          v_SplitFGIsTDD := v_FGIsRcvd; // save to later check FDD/TDD splitting
+          // 2.1.2 FGIs 33-36
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9Add_TDD();
+          v_FGIsRcvd := v_Ue_EUTRA_Capability_v9a0_IEs.tdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndRel9Add_r9;
+          if (v_FGIsFromPICS != v_FGIsRcvd) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "tdd_Add_UE_EUTRA_Capabilities_r9.featureGroupIndRel9Add_r9 not consistent with PICS");
+          }
+        }
+        else {
+          // 2.2 check consistency of RAT specific FGIs with the Common PICS settings
+          // 2.2.1. FGIs 1-30
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9_TDD();
+          v_CommonFGIs := fl_DeriveFeatrGrpCapFromPics();
+          if (v_FGIsFromPICS != v_CommonFGIs) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Common FGIs and TDD FGIs inconsistent");
+          }
+          v_SplitFGIsTDD := v_FGIsFromPICS; // save to later check FDD/TDD splitting
+          // 2.2.2 FGIs 33-36
+          v_FGIsFromPICS := fl_DeriveFeatrGrpCapFromPics_r9Add_TDD();
+          v_CommonFGIs := fl_DeriveFeatrGrpCapFromPics_r9Add();
+          if (v_FGIsFromPICS != v_CommonFGIs) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Common Add FGIs and TDD Add FGIs inconsistent");
+          }
+        }
+        // 3. Check FGI splitting: the UE does not split where it is not allowed to signal different values for FDD and TDD
+        fl_CheckFeatrGrpCapSplit (v_SplitFGIsFDD, v_SplitFGIsTDD);
+      }
+      // not both RATs active !!
+      else { // featureGroupIndRel9Add-r9 must be provided for Rel9, RAT specific FGI information must not be provided
+        // check fdd_Add_UE_EUTRA_Capabilities_r9 are absent
+        if (isvalue (v_Ue_EUTRA_Capability_v9a0_IEs.fdd_Add_UE_EUTRA_Capabilities_r9)) {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "fdd_Add_UE_EUTRA_Capabilities_r9 must not be provided");
+        }
+        // check tdd_Add_UE_EUTRA_Capabilities_r9 are absent
+        if (isvalue (v_Ue_EUTRA_Capability_v9a0_IEs.tdd_Add_UE_EUTRA_Capabilities_r9)) {
+          f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "tdd_Add_UE_EUTRA_Capabilities_r9 must not be provided");
+        }
+      }
+    } // Rel 9 (UE-EUTRA-Capability-v940-IEs) IEs  provided
+
+    // Match the received decoded template with the expected template
+    if ( not match ( v_ReceivedCapabilityMsg, v_Expected_Ue_Eutra_Capability )) {
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 10/18 - Received decoded template does not match with the expected template");
+    }
+  } // fl_EUTRA_MatchEutraCapMsgs_r9
+
+  function fl_EUTRA_MatchEutraCapMsgs_r10(UE_EUTRA_Capability p_ReceivedCapabilityMsg,
+                                          template UE_EUTRA_Capability p_Expected_Ue_Eutra_Capability) runs on EUTRA_PTC
+  { // @sic R5s120250 sic@
+    var UE_EUTRA_Capability v_ReceivedCapabilityMsg;
+    var template UE_EUTRA_Capability v_Expected_Ue_Eutra_Capability;
+    
+    v_ReceivedCapabilityMsg := p_ReceivedCapabilityMsg;
+    v_Expected_Ue_Eutra_Capability := p_Expected_Ue_Eutra_Capability;
+
+    // to check some Rel 8 UE capabilities
+    fl_EUTRA_Check_r8 (p_ReceivedCapabilityMsg);
+
+    // ROHC condition not checked for Rel 8, but needs to be checked here
+    fl_Check_ConditionROHC (p_ReceivedCapabilityMsg);
+
+    // Rel9 to be done FFS differences to Rel9 only checking !!
+    f_EUTRA_SetVerdictInconc(__FILE__, __LINE__, "Rel9 check for Rel10 UEs not yet implemented");
+    // Rel10 to be done FFS
+
+    if (v_ReceivedCapabilityMsg.accessStratumRelease == rel10) {
+      if (isvalue (v_ReceivedCapabilityMsg.nonCriticalExtension.nonCriticalExtension.nonCriticalExtension)) {
+        v_Expected_Ue_Eutra_Capability.nonCriticalExtension := omit;
+      }
+      else {
+        v_Expected_Ue_Eutra_Capability.nonCriticalExtension.nonCriticalExtension.nonCriticalExtension := ?;
+      }
+    }
+
+    // Match the received decoded template with the expected template
+    if ( not match ( v_ReceivedCapabilityMsg, v_Expected_Ue_Eutra_Capability )){
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 10/18 - Received decoded template does not match with the expected template");
+    }
+  } // fl_EUTRA_MatchEutraCapMsgs_r10
+
+  function fl_EUTRA_CheckOtherRatCap(UECapabilityInformation p_ReceivedUeCapInfo) runs on EUTRA_PTC
+  {
+    var UE_CapabilityRAT_ContainerList v_UeCapContainerForOtherRats := p_ReceivedUeCapInfo.criticalExtensions.c1.ueCapabilityInformation_r8.ue_CapabilityRAT_ContainerList;
+    var integer v_SrcLength := lengthof(v_UeCapContainerForOtherRats);
+    var integer i := 0;
+    var boolean v_GeranPsFound := false;
+    var boolean v_GeranCsFound := false;
+    var boolean v_UtraFound := false;
+    var boolean v_Cdma2kFound := false;
+    var B2_Type v_GeranCsResult := '00'B; // @sic R5s110244 sic@
+    
+    if (v_SrcLength == 0){
+      //* @verdict fail UE does incorrectly not report any other supported Rat
+      f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - No other supported Rats reported");
+    }
+    // When UE according to PICS supports GERAN_PS check for presence of rat type GERAN_PS and match capabilities with template based on PICS/PIXITS.
+    if (pc_GERAN and pc_PS) {
+      for (i := 0; i < v_SrcLength; i := i + 1) {
+        if (v_UeCapContainerForOtherRats[i].rat_Type == geran_ps) {
+          v_GeranPsFound := true;
+          if (not f_DecodeAndCheckMsRadioAccessCap(v_UeCapContainerForOtherRats[i].ueCapabilityRAT_Container)) {
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - Geran PS capabilities are not correct");
+          }
+        }
+      }
+      if (not v_GeranPsFound) {
+        f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - Geran PS support and PICS mismatch");
+      }
+    }
+    
+    // When UE according to PICS supports GERAN_CS check for presence of rat type GERAN_CS and match capabilities with template based on PICS/PIXITS.
+    if (pc_GERAN and pc_CS) {
+      for (i := 0; i < v_SrcLength; i := i + 1) {
+        if (v_UeCapContainerForOtherRats[i].rat_Type == geran_cs) {
+          v_GeranCsFound := true;
+          v_GeranCsResult := f_DecodeAndCheckMsClassmark(v_UeCapContainerForOtherRats[i].ueCapabilityRAT_Container);
+          if (v_GeranCsResult == '10'B) { // @sic R5s110244 sic@
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - UE does not report correct Classmark 3 Capabilities");
+          }
+          else if (v_GeranCsResult == '01'B) {  // @sic R5s110244 sic@
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - UE does not report correct Classmark 2 Capabilities");
+          }
+          else if ( v_GeranCsResult == '00'B ) { // @sic R5s110244 sic@
+            f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - UE does not report correct Classmark 2 & 3 Capabilities");
+          }
+        }
+      }
+      if (not v_GeranCsFound) {
+        f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - Geran CS support and PICS mismatch");
+      }
+    }
+    
+    // When UE according to PICS supports UTRAN, check for presence of rat type UTRAN and match capabilities with template based on PICS/PIXITS
+    if (pc_FDD or pc_TDD_LCR or pc_TDD_HCR or pc_TDD_VHCR) {
+      for (i := 0; i < v_SrcLength; i := i + 1) {
+        if (v_UeCapContainerForOtherRats[i].rat_Type == utra) {
+          v_UtraFound := true;
+          if (not f_U_DecodeAndCheckInterRatHandoverInfo(v_UeCapContainerForOtherRats[i].ueCapabilityRAT_Container)) {
+            f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - Utran capabilities mismatch");
+          }
+        }
+      }
+      if (not v_UtraFound) {
+        f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - Utran support and PICS mismatch");
+      }
+    }
+    
+    // When UE according to PICS supports CDMA2K, check for presence of rat typeCDMA2K container
+    if (pc_HRPD or pc_1xRTT) {
+      for (i := 0; i < v_SrcLength; i := i + 1) {
+        if (v_UeCapContainerForOtherRats[i].rat_Type == cdma2000_1XRTT) {
+          v_Cdma2kFound := true;
+          if (not match(v_UeCapContainerForOtherRats[i], cr_CDMA2K_UE_CapabilityRAT_Container)) {
+            f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - CDMA200-1XRTT capabilities mismatch");
+          }
+        }
+      }
+      if (not v_Cdma2kFound) {
+        f_EUTRA_SetVerdictFailOrInconc (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19a2 - Utran support and PICS mismatch");
+      }
+    }
+  }
+
+  function fl_EUTRA_FullCapabilityCheck(EUTRA_CellId_Type p_CellId,
+                                        RRC_TransactionIdentifier p_RRC_TI) runs on EUTRA_PTC
+  {
+    var SRB_COMMON_IND v_ReceivedAspForUeCapabilityInfo;
+    var UE_EUTRA_Capability v_ReceivedCapabilityMsg;
+    // Fill the IE interRAT-Parameters with expected contents based on set PICS parameters
+    var template UE_EUTRA_Capability v_EutraCapability := fl_EUTRA_SetExpectedUeEutraCap(cr_UeCapabilitiesRAT_Container);
+
+    // Transmit UE Capability Enquiry message to ask for EUTRA Capability information
+    SRB.send(cas_SRB1_RrcPdu_REQ(p_CellId, cs_TimingInfo_Now, cs_508_UeCapabilityEnquiry(p_RRC_TI)));
+
+    // Receive UE Capability Information message for EUTRA capabilities and decode
+    SRB.receive(car_SRB1_RrcPdu_IND(p_CellId, cr_508_UeCapabilityInformation(p_RRC_TI, cr_EutraCapInfo))) -> value v_ReceivedAspForUeCapabilityInfo;
+
+    v_ReceivedCapabilityMsg := f_EUTRA_DecodeEutraCapMsg(v_ReceivedAspForUeCapabilityInfo.Signalling.Rrc.Dcch.message_.c1.ueCapabilityInformation.criticalExtensions.c1.ueCapabilityInformation_r8.ue_CapabilityRAT_ContainerList[0].ueCapabilityRAT_Container);
+
+    select (v_ReceivedCapabilityMsg.accessStratumRelease) { // @sic R5s120250 sic@
+      case (rel8) {
+        // Check Rel 8 vs. IEs provided
+        if (isvalue(v_ReceivedCapabilityMsg.nonCriticalExtension)) { // @sic R5-123750 sic@
+          // if mixed releases then Rel 9 IEs may be povided
+          v_EutraCapability.nonCriticalExtension := ?;
+        }
+        else {
+          v_EutraCapability.nonCriticalExtension := omit;
+        }
+        // Match the ueCapabilitiesRAT-Container
+        fl_EUTRA_MatchEutraCapMsgs_r8(v_ReceivedCapabilityMsg, v_EutraCapability);
+        // Check consistency of attach type setting in PICS // @sic R5-120748 sic@
+        fl_CheckAttachTypesInPics (); // @sic R5-122118 sic@
+        // Check consistency of FGI usage vs. release version as per 36.523-2 // @sic R5-120748 sic@
+        // Rel 8 consistency checked unconditionally.
+        fl_CheckFeatrGrpCapFromPics_r8();
+      }
+      
+      case (rel9) {
+        if (not isvalue(v_ReceivedCapabilityMsg.nonCriticalExtension.nonCriticalExtension)) {
+          // no Rel 9 (UE-EUTRA-Capability-v940-IEs) IEs  and thus no additional Rel 9 FGIs provided
+          v_EutraCapability.nonCriticalExtension.nonCriticalExtension := omit; // @sic R5s120623 sic@
+        }
+        else {
+          // Rel 9 (UE-EUTRA-Capability-v940-IEs) IEs provided !!
+          if (isvalue (v_ReceivedCapabilityMsg.nonCriticalExtension.nonCriticalExtension.lateNonCriticalExtension)) {
+          // Rel 9 (UE-EUTRA-Capability-v9a0-IEs) IEs provided !!
+            v_EutraCapability.nonCriticalExtension.nonCriticalExtension.lateNonCriticalExtension := ?;
+          }
+          else {
+            v_EutraCapability.nonCriticalExtension.nonCriticalExtension.lateNonCriticalExtension := omit;
+          }
+          if (isvalue (v_ReceivedCapabilityMsg.nonCriticalExtension.nonCriticalExtension.nonCriticalExtension)) {
+            // Rel 10 (UE-EUTRA-Capability-v1020-IEs) IEs provided !!
+            f_EUTRA_SetVerdictFailOrInconc(__FILE__, __LINE__, "UE-EUTRA-Capability-v1020-IEs must not be provided by Rel 9 UE");
+          }
+          else {
+            v_EutraCapability.nonCriticalExtension.nonCriticalExtension.nonCriticalExtension := omit;
+          }
+        }
+        // Match the ueCapabilitiesRAT-Container
+        fl_EUTRA_MatchEutraCapMsgs_r9 ( v_ReceivedCapabilityMsg, v_EutraCapability );
+        // Check consistency of attach type setting in PICS // @sic R5-120748 sic@
+        fl_CheckAttachTypesInPics (); // @sic R5-122118 sic@
+        // Check consistency of FGI usage vs. release version as per 36.523-2 // @sic R5-120748 sic@
+        // Rel 9 consistency checked unconditionally.
+        fl_CheckFeatrGrpCapFromPics_r9 ();
+      }
+      
+      case (rel10) {
+        // Rel 9 IEs may not be provided ... FFS
+        if (isvalue (v_ReceivedCapabilityMsg.nonCriticalExtension.nonCriticalExtension.nonCriticalExtension)) {
+          // no Rel 10 IEs provided
+          v_EutraCapability.nonCriticalExtension.nonCriticalExtension.nonCriticalExtension := omit;
+        }
+        else {
+          v_EutraCapability.nonCriticalExtension.nonCriticalExtension.nonCriticalExtension := ?;
+        }
+        // Match the ueCapabilitiesRAT-Container
+        fl_EUTRA_MatchEutraCapMsgs_r10 ( v_ReceivedCapabilityMsg, v_EutraCapability );
+        // Check consistency of attach type setting in PICS // @sic R5-120748 sic@
+        fl_CheckAttachTypesInPics (); // @sic R5-122118 sic@
+        // Check consistency of FGI usage vs. release version as per 36.523-2
+        // Rel 10 consistency checked unconditionally. Result not exploited further yet.
+        fl_CheckFeatrGrpCapFromPics_r10 ();
+      }
+      case else  {
+        FatalError (__FILE__, __LINE__, "Invalid AccessStratumRelease");
+      }
+    }
+  } // fl_EUTRA_FullCapabilityCheck
+
+  function fl_AllRatCapabilityCheck(EUTRA_CellId_Type p_CellId,
+                                    RRC_TransactionIdentifier p_RRC_TI) runs on EUTRA_PTC
+  {
+    var SRB_COMMON_IND v_ReceivedAspForUeCapabilityInfo;
+    var UE_CapabilityRequest v_SuppOtherRatCapReq;
+    var template UECapabilityInformation_r8_IEs v_OtherSupRatCapability := fl_SetUeOtherSupRatCap(); // Fill the UECapabilityInformation_r8_IEs with expected RAT-containers based on set PICS parameters
+    var integer i:=0;
+    
+    // Fill the UECapabilityRequest IEs with requested RAT-containers based on set PICS parameters
+    if (pc_GERAN and pc_CS) {
+      v_SuppOtherRatCapReq[i] := geran_cs;
+      i:=i+1;
+    }
+    if (pc_GERAN and pc_PS) {
+      v_SuppOtherRatCapReq[i] := geran_ps;
+      i:=i+1;
+    }
+    if (pc_FDD or pc_TDD_LCR or pc_TDD_HCR or pc_TDD_VHCR) {
+      v_SuppOtherRatCapReq[i] := utra;
+      i:=i+1;
+    }
+    if (pc_HRPD or pc_1xRTT) {
+      v_SuppOtherRatCapReq[i] := cdma2000_1XRTT;
+      i:=i+1;
+    }
+    
+    // Transmit UE Capability Enquiry message for every other RAT
+    SRB.send(cas_SRB1_RrcPdu_REQ(p_CellId,
+                                 cs_TimingInfo_Now,
+                                 cs_508_UeCapabilityEnquiry(p_RRC_TI, v_SuppOtherRatCapReq)));
+    
+    // Receive UE Capability Information message for every other supported RAT
+    SRB.receive(car_SRB1_RrcPdu_IND(p_CellId, cr_508_UeCapabilityInformation(p_RRC_TI, v_OtherSupRatCapability))) -> value v_ReceivedAspForUeCapabilityInfo;
+    
+    // Decode and check the ueCapabilitiesRAT-Containers for every other supported RAT
+    fl_EUTRA_CheckOtherRatCap(v_ReceivedAspForUeCapabilityInfo.Signalling.Rrc.Dcch.message_.c1.ueCapabilityInformation);
+  }
+
+  function f_TC_8_5_2_1_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var boolean v_CSInOtherRAT := false;
+    var IRAT_Coordination_MSG v_IRAT_Coordination_MSG;
+
+    f_EUTRA_Init (c4);
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def (eutra_Cell1);
+
+    //Send Cell information to UTRA PTC
+    f_IRAT_Send_EUTRA_SysInfoToOtherPort(UTRAN,
+                                         f_EUTRA_CellInfo_GetEARFCN_DL(eutra_Cell1),
+                                         f_ConvertDL_BandwidthToInteger (f_EUTRA_CellInfo_GetDL_ChBandwidth (eutra_Cell1)));
+    
+    //Receive new athentication parameters and set inital cell power level according to T0
+    v_CSInOtherRAT := f_EUTRA_InterRAT_InitialiseAuthParams(UTRAN);
+    f_EUTRA_SetCellPower (eutra_Cell1, tsc_SuitableCellRS_EPRE);
+    UTRAN.receive (cmr_IRAT_OctetData) -> value v_IRAT_Coordination_MSG; // @sic R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set (true);
+    
+    //@siclog "Step 4" siclog@
+    //Does the test result of generic test procedure in TS 36.508 table 6.4.2.7A-2 indicate that the UE is camped on E-UTRAN Cell 1?
+    f_IRAT_WaitForCoOrd_Trigger (UTRAN);
+    f_EUTRA_508CheckCampOnNewEutraCellUponMobilityFromAnotherRAT (eutra_Cell1, v_CSInOtherRAT, false, false, v_IRAT_Coordination_MSG.OctetData, NORMAL); // @sic R5s110176, R5-123734 sic@
+    
+    f_EUTRA_TestBody_Set (false);
+    
+    //Tell the UTRAN PTC that test case is over
+    f_IRAT_SendCoOrd (UTRAN, cms_IRAT_Trigger);
+    
+    //Switch/power off UE
+    f_EUTRA_Postamble (eutra_Cell1, E1_IDLE);
+  }
+
+  function f_TC_8_5_4_1_EUTRA ( ) runs on EUTRA_PTC
+  {
+    var HalfOctet_Type v_EpsBearerId := tsc_EpsDefaultBearerId;
+    var RRC_TransactionIdentifier v_RRC_TI := tsc_RRC_TI_Def;
+    var ProcedureTransactionIdentifier v_EPS_TI := '00'O;
+    var NAS_AttDetValue_Type v_AttachType;
+    var B3_Type v_PDNType;
+    var NAS_MSG_Indication_Type v_NasInd;
+    var NAS_UL_Message_Type v_PdnConnectivityRequest;
+    var template (present) SecurityHeaderType v_AttReqSecurityHeader := tsc_SHT_IntegrityProtected;  //Integrity protected since UE has gone through preamble
+    var GutiParameters_Type v_GutiParams;
+    var NAS_Lac v_LAC;
+    var NAS_PlmnId v_PLMN;
+    var template (omit) LocAreaId v_LAI;
+    var template (omit) MobileIdentity v_MSId;
+    var NasCount_Type v_NasCountUL;
+    var EUTRA_SecurityParams_Type v_AuthParams;
+    var template (value) MobileIdentity v_Guti;
+    var boolean v_IPallocationViaNasFlag;
+    var template (value) PDN_Address v_PDN_Address;
+    var TrackingAreaCode v_TAC;
+    var template AdditionalUpdateType v_AdditionalUpdateType := f_GetAdditionalUpdateType ();  //used to follow TTCN3 v411 standard
+    var template (omit) AccessPointName v_APN := omit;
+    var template (omit) ProtocolConfigOptions v_Pco := omit;
+    var template (omit) ESM_Cause v_ESM_Cause := omit; // @sic R5-104703 sic@
+
+    f_EUTRA_Init ( c1 );
+
+    //Get cell dependant parameters
+    v_GutiParams := f_EUTRA_CellInfo_GetGuti ( eutra_Cell1 );
+    v_PLMN := f_Asn2Nas_PlmnId (v_GutiParams.PLMN_Identity);
+    v_LAC := f_EUTRA_CellInfo_GetLocationAreaCode ( eutra_Cell1 );
+    v_TAC := f_EUTRA_CellInfo_GetTAC ( eutra_Cell1 );
+
+    //Set Attachtype, PDN Type, LAI, MsId & EMM cause
+    v_AttachType := f_GetEAttachType (NORMAL); // @sic R5s110176 sic@
+    v_PDNType := f_GetPdnType ( );
+    
+    // @sic R5-103673 : Implemented in functions f_GetLAI, f_GetMSId & f_GetEMMCause sic@
+    v_LAI := f_GetLAI ( v_PLMN, v_LAC, NORMAL); // @sic R5s110176 sic@
+    v_MSId := f_GetMSId (NORMAL); // @sic R5s110176 sic@
+
+    //Create and configure all cells
+    f_EUTRA_CellConfig_Def ( eutra_Cell1 );
+
+    //Preamble to ensure USIM is updated
+    f_EUTRA_Preamble ( eutra_Cell1, STATE2_IDLEUPDATE );
+    f_EUTRA_UE_Detach_SwitchOffUe ( eutra_Cell1, RRC_IDLE );
+
+    //Get security parameters
+    v_AuthParams := f_EUTRA_Security_Get ( );
+
+    f_EUTRA_TestBody_Set ( true );
+
+    //@siclog "Step 1" siclog@
+    //Switch on UE
+    f_EUTRA_SwitchOnUEandStartIP(eutra_Cell1); // @sic R5s120065 sic@
+
+    //@siclog "Step 2 - 4" siclog@
+    //RRC connection establishment
+    v_NasInd := f_EUTRA_RRC_ConnEst_DefWithNas ( eutra_Cell1,
+                                                  v_RRC_TI,
+                                                  cr_EstablishmentCause_Any,
+                                                  cr_NAS_IndicationWithPiggybacking ( v_AttReqSecurityHeader,
+                                                                                      cr_508_ATTACH_REQUEST ( v_AttachType,
+                                                                                                              v_AdditionalUpdateType), // @sic R5-103681 sic@
+                                                                                      cr_508_PDN_CONNECTIVITY_REQUEST( tsc_PdnRequest_InitialAttach,
+                                                                                                                       v_PDNType )));
+
+    //Set UE network capabilities as sent by the UE to be used later (see TS 24.301 clause 5.4.3.3)
+    v_AuthParams.NAS_SecurityCap := f_EUTRA_FillNAS_SecurityCapability(v_NasInd.Pdu.Msg.aTTACH_REQUEST);  // @sic R5s100135 sic@
+
+    f_EUTRA_Security_Set(v_AuthParams);
+    v_PdnConnectivityRequest := v_NasInd.Pdu.PiggybackedPduList[0].Msg;
+    v_EPS_TI := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.procedureTransactionIdentifier; // Use this value in SS responses
+    // Get the PCO to be used later (TS 36.508 v.8.2.2 Table 4.7.3-6)
+    if (ispresent( v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions)) {
+      v_Pco := v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST.protocolConfigurationOptions;
+    }
+
+    //@siclog "Step 5 - 6" siclog@
+    //NAS Authentication procedure
+    v_AuthParams := f_EUTRA_NAS_Authentication ( eutra_Cell1,
+                                                 tsc_SRB1,
+                                                 v_AuthParams,
+                                                 tsc_SHT_IntegrityProtected_Ciphered,//Security Header to use in Authentication Request   // @sic R5s100049 sic@
+                                                 tsc_SHT_IntegrityProtected_Ciphered,//Security Header to use in Authentication Response  // @sic R5s100049 sic@
+                                                 v_PLMN );
+
+    //@siclog "Step 7 - 8" siclog@
+    //NAS Security mode control procedure
+    v_NasCountUL := f_EUTRA_NAS_ActivateSecurity ( eutra_Cell1, v_AuthParams );
+    f_EUTRA_Security_Set ( v_AuthParams );
+
+    //@siclog "Step 9 - 10" siclog@
+    //UE Capability check for EUTRA capabilities only
+    fl_EUTRA_FullCapabilityCheck ( eutra_Cell1, v_RRC_TI );
+    //* @verdict pass EUTRA capability check passed
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 10");
+
+    //@siclog "Step 11 - 12" siclog@
+    //AS security activation
+    v_AuthParams := f_EUTRA_Authentication_InitAS ( v_AuthParams, v_NasCountUL );
+    v_AuthParams := f_EUTRA_RRC_ActivateSecurity ( eutra_Cell1, v_AuthParams, v_NasCountUL );
+    f_EUTRA_Security_Set ( v_AuthParams );
+
+    //@siclog "Step 13" siclog@
+    //Optional ESM Information transfer
+    v_APN := f_ESM_InitAPN ( eutra_Cell1, f_CheckEsmInfoTransferFlag(v_PdnConnectivityRequest.pDN_CONNECTIVITY_REQUEST), v_EPS_TI); // @sic R5-110708 sic@
+
+    v_Guti := f_GutiParameters2MobileIdentity ( tsc_IEI_Guti,
+                                                f_EUTRA_CellInfo_GetGuti ( eutra_Cell1 ) );
+    v_IPallocationViaNasFlag :=  f_CheckPCOforIPallocationViaNas ( v_Pco ); // See TS 36.508 v.8.2.2 Table 4.7.3-6
+    v_PDN_Address := f_EUTRA_GetPDNAddress (v_IPallocationViaNasFlag);
+
+    //@siclog "Step 14 - 15" siclog@
+    //RRC connection reconfiguration
+    f_EUTRA_RRCConnectionReconfigurationWithAttachAcceptAllParams( eutra_Cell1,
+                                                                   v_EpsBearerId,
+                                                                   v_RRC_TI,
+                                                                   v_EPS_TI,
+                                                                   v_AttachType,
+                                                                   v_PDN_Address,
+                                                                   v_Guti,
+                                                                   cs_TAIListNonConsecutive_lv (v_PLMN, {bit2oct(v_TAC)}),
+                                                                   v_LAI,
+                                                                   v_MSId,
+                                                                   v_ESM_Cause,
+                                                                   v_APN,
+                                                                   f_GetDefPCOforPCSCFAddress (v_Pco), // @sic R5-104703 sic@
+                                                                   f_GetAdditionalUpdateResult(v_NasInd.Pdu.Msg.aTTACH_REQUEST.addUpdateType,  // @sic R5s100084, R5-103681 sic@
+                                                                                               NORMAL)); // @sic R5s110176 sic@
+
+    //@siclog "Step 16" siclog@
+    //Receive Attach complete
+    f_EUTRA_NAS_AttachComplete ( eutra_Cell1, v_EpsBearerId );
+
+    //@siclog "Step 17 - 18" siclog@
+    //UE Capability check for EUTRA capabilities only
+    fl_EUTRA_FullCapabilityCheck ( eutra_Cell1, v_RRC_TI );
+    //* @verdict pass EUTRA capability check passed
+    f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 18");
+
+    //EU Capability check for every other supported RAT
+    //Only perform if UE supports any other RAT
+    if ( pc_FDD or pc_TDD_LCR or pc_TDD_HCR or pc_TDD_VHCR or pc_GERAN or pc_HRPD or pc_1xRTT )
+    {
+      //@siclog "Step 19a1 - 19a2" siclog@
+      //UE Capability check for every other supported RAT
+      fl_AllRatCapabilityCheck ( eutra_Cell1, v_RRC_TI );
+      //* @verdict pass Capability check for other supported RATs passed
+      f_EUTRA_PreliminaryPass (__FILE__, __LINE__, "Test Case 8.5.4.1 Step 19");
+    }
+
+    f_EUTRA_TestBody_Set ( false );
+
+    f_EUTRA_Postamble ( eutra_Cell1, E2_CONNECTED ); // @sic R5-103847 sic@
+  }
+
+}
