@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// $ANTLR 3.4 C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g 2012-10-24 22:06:48
+// $ANTLR 3.4 C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g 2012-10-29 13:43:56
 
 // The variable 'variable' is assigned but its value is never used.
 #pragma warning disable 219
@@ -29,29 +29,86 @@ using Antlr.Runtime.Misc;
 public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 {
 	public const int EOF=-1;
-	public const int T__26=26;
-	public const int BITSTRING=4;
-	public const int BOOLEAN=5;
-	public const int CHAR=6;
-	public const int CHARSTRING=7;
-	public const int COMMENT=8;
-	public const int ESC_QUOTE=9;
-	public const int EXPONENT=10;
-	public const int FLOAT=11;
-	public const int HEX_DIGIT=12;
-	public const int ID=13;
-	public const int INT=14;
-	public const int INTEGER=15;
-	public const int LBRACKET=16;
-	public const int OCTAL_ESC=17;
-	public const int OCTETSTRING=18;
-	public const int OPTIONAL=19;
-	public const int RBRACKET=20;
-	public const int RECORD=21;
-	public const int STRING=22;
-	public const int TYPE=23;
-	public const int UNICODE_ESC=24;
-	public const int WS=25;
+	public const int T__61=61;
+	public const int T__62=62;
+	public const int T__63=63;
+	public const int T__64=64;
+	public const int T__65=65;
+	public const int T__66=66;
+	public const int T__67=67;
+	public const int T__68=68;
+	public const int T__69=69;
+	public const int T__70=70;
+	public const int T__71=71;
+	public const int T__72=72;
+	public const int T__73=73;
+	public const int T__74=74;
+	public const int T__75=75;
+	public const int T__76=76;
+	public const int T__77=77;
+	public const int T__78=78;
+	public const int T__79=79;
+	public const int T__80=80;
+	public const int T__81=81;
+	public const int T__82=82;
+	public const int T__83=83;
+	public const int ALL=4;
+	public const int ALLOWEDVALUES=5;
+	public const int AND=6;
+	public const int ASSIGNCHAR=7;
+	public const int BANG=8;
+	public const int BIN_DIGIT=9;
+	public const int BITSTRING=10;
+	public const int BOOLEAN=11;
+	public const int CHAR=12;
+	public const int CHARSTRING=13;
+	public const int COMMENT=14;
+	public const int CONST=15;
+	public const int DOTDOT=16;
+	public const int ENUMDEF=17;
+	public const int ENUMERATED=18;
+	public const int ESC_QUOTE=19;
+	public const int EXPONENT=20;
+	public const int FIELDDEF=21;
+	public const int FRIEND=22;
+	public const int GROUP=23;
+	public const int GROUPDEF=24;
+	public const int HEX_DIGIT=25;
+	public const int ID=26;
+	public const int IMPORT=27;
+	public const int IMPORTDEF=28;
+	public const int IN=29;
+	public const int INFINITY=30;
+	public const int INTEGER=31;
+	public const int LBRACKET=32;
+	public const int LENGTH=33;
+	public const int LPAREN=34;
+	public const int MESSAGE=35;
+	public const int MINUS=36;
+	public const int MODULE=37;
+	public const int MODULEDEF=38;
+	public const int NON_ZERO_NUM=39;
+	public const int NOT=40;
+	public const int NUM=41;
+	public const int NUMBER=42;
+	public const int OCTETSTRING=43;
+	public const int OPTIONAL=44;
+	public const int OR=45;
+	public const int OUT=46;
+	public const int PORT=47;
+	public const int PRIVATE=48;
+	public const int PUBLIC=49;
+	public const int RBRACKET=50;
+	public const int RECORD=51;
+	public const int RPAREN=52;
+	public const int SEMICOLON=53;
+	public const int STRING=54;
+	public const int TYPE=55;
+	public const int TYPEDEF=56;
+	public const int TYPEDEFS=57;
+	public const int UNION=58;
+	public const int WS=59;
+	public const int XOR=60;
 
     // delegates
     // delegators
@@ -72,32 +129,173 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 
 		OnCreated();
 	}
-	public override string GrammarFileName { get { return "C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g"; } }
+	public override string GrammarFileName { get { return "C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g"; } }
 
 
 	partial void OnCreated();
 	partial void EnterRule(string ruleName, int ruleIndex);
 	partial void LeaveRule(string ruleName, int ruleIndex);
 
-	partial void EnterRule_T__26();
-	partial void LeaveRule_T__26();
+	partial void EnterRule_T__61();
+	partial void LeaveRule_T__61();
 
-	// $ANTLR start "T__26"
-	[GrammarRule("T__26")]
-	private void mT__26()
+	// $ANTLR start "T__61"
+	[GrammarRule("T__61")]
+	private void mT__61()
 	{
-		EnterRule_T__26();
-		EnterRule("T__26", 1);
-		TraceIn("T__26", 1);
+		EnterRule_T__61();
+		EnterRule("T__61", 1);
+		TraceIn("T__61", 1);
 		try
 		{
-			int _type = T__26;
+			int _type = T__61;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:7:7: ( ',' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:7:7: ( '!=' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:7:9: ','
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:7:9: '!='
 			{
 			DebugLocation(7, 9);
+			Match("!="); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__61", 1);
+			LeaveRule("T__61", 1);
+			LeaveRule_T__61();
+		}
+	}
+	// $ANTLR end "T__61"
+
+	partial void EnterRule_T__62();
+	partial void LeaveRule_T__62();
+
+	// $ANTLR start "T__62"
+	[GrammarRule("T__62")]
+	private void mT__62()
+	{
+		EnterRule_T__62();
+		EnterRule("T__62", 2);
+		TraceIn("T__62", 2);
+		try
+		{
+			int _type = T__62;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:8:7: ( '&' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:8:9: '&'
+			{
+			DebugLocation(8, 9);
+			Match('&'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__62", 2);
+			LeaveRule("T__62", 2);
+			LeaveRule_T__62();
+		}
+	}
+	// $ANTLR end "T__62"
+
+	partial void EnterRule_T__63();
+	partial void LeaveRule_T__63();
+
+	// $ANTLR start "T__63"
+	[GrammarRule("T__63")]
+	private void mT__63()
+	{
+		EnterRule_T__63();
+		EnterRule("T__63", 3);
+		TraceIn("T__63", 3);
+		try
+		{
+			int _type = T__63;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:9:7: ( '*' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:9:9: '*'
+			{
+			DebugLocation(9, 9);
+			Match('*'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__63", 3);
+			LeaveRule("T__63", 3);
+			LeaveRule_T__63();
+		}
+	}
+	// $ANTLR end "T__63"
+
+	partial void EnterRule_T__64();
+	partial void LeaveRule_T__64();
+
+	// $ANTLR start "T__64"
+	[GrammarRule("T__64")]
+	private void mT__64()
+	{
+		EnterRule_T__64();
+		EnterRule("T__64", 4);
+		TraceIn("T__64", 4);
+		try
+		{
+			int _type = T__64;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:10:7: ( '+' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:10:9: '+'
+			{
+			DebugLocation(10, 9);
+			Match('+'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__64", 4);
+			LeaveRule("T__64", 4);
+			LeaveRule_T__64();
+		}
+	}
+	// $ANTLR end "T__64"
+
+	partial void EnterRule_T__65();
+	partial void LeaveRule_T__65();
+
+	// $ANTLR start "T__65"
+	[GrammarRule("T__65")]
+	private void mT__65()
+	{
+		EnterRule_T__65();
+		EnterRule("T__65", 5);
+		TraceIn("T__65", 5);
+		try
+		{
+			int _type = T__65;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:11:7: ( ',' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:11:9: ','
+			{
+			DebugLocation(11, 9);
 			Match(','); 
 
 			}
@@ -107,12 +305,1016 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("T__26", 1);
-			LeaveRule("T__26", 1);
-			LeaveRule_T__26();
+			TraceOut("T__65", 5);
+			LeaveRule("T__65", 5);
+			LeaveRule_T__65();
 		}
 	}
-	// $ANTLR end "T__26"
+	// $ANTLR end "T__65"
+
+	partial void EnterRule_T__66();
+	partial void LeaveRule_T__66();
+
+	// $ANTLR start "T__66"
+	[GrammarRule("T__66")]
+	private void mT__66()
+	{
+		EnterRule_T__66();
+		EnterRule("T__66", 6);
+		TraceIn("T__66", 6);
+		try
+		{
+			int _type = T__66;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:12:7: ( '.' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:12:9: '.'
+			{
+			DebugLocation(12, 9);
+			Match('.'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__66", 6);
+			LeaveRule("T__66", 6);
+			LeaveRule_T__66();
+		}
+	}
+	// $ANTLR end "T__66"
+
+	partial void EnterRule_T__67();
+	partial void LeaveRule_T__67();
+
+	// $ANTLR start "T__67"
+	[GrammarRule("T__67")]
+	private void mT__67()
+	{
+		EnterRule_T__67();
+		EnterRule("T__67", 7);
+		TraceIn("T__67", 7);
+		try
+		{
+			int _type = T__67;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:13:7: ( '/' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:13:9: '/'
+			{
+			DebugLocation(13, 9);
+			Match('/'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__67", 7);
+			LeaveRule("T__67", 7);
+			LeaveRule_T__67();
+		}
+	}
+	// $ANTLR end "T__67"
+
+	partial void EnterRule_T__68();
+	partial void LeaveRule_T__68();
+
+	// $ANTLR start "T__68"
+	[GrammarRule("T__68")]
+	private void mT__68()
+	{
+		EnterRule_T__68();
+		EnterRule("T__68", 8);
+		TraceIn("T__68", 8);
+		try
+		{
+			int _type = T__68;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:14:7: ( '<' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:14:9: '<'
+			{
+			DebugLocation(14, 9);
+			Match('<'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__68", 8);
+			LeaveRule("T__68", 8);
+			LeaveRule_T__68();
+		}
+	}
+	// $ANTLR end "T__68"
+
+	partial void EnterRule_T__69();
+	partial void LeaveRule_T__69();
+
+	// $ANTLR start "T__69"
+	[GrammarRule("T__69")]
+	private void mT__69()
+	{
+		EnterRule_T__69();
+		EnterRule("T__69", 9);
+		TraceIn("T__69", 9);
+		try
+		{
+			int _type = T__69;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:15:7: ( '<<' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:15:9: '<<'
+			{
+			DebugLocation(15, 9);
+			Match("<<"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__69", 9);
+			LeaveRule("T__69", 9);
+			LeaveRule_T__69();
+		}
+	}
+	// $ANTLR end "T__69"
+
+	partial void EnterRule_T__70();
+	partial void LeaveRule_T__70();
+
+	// $ANTLR start "T__70"
+	[GrammarRule("T__70")]
+	private void mT__70()
+	{
+		EnterRule_T__70();
+		EnterRule("T__70", 10);
+		TraceIn("T__70", 10);
+		try
+		{
+			int _type = T__70;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:16:7: ( '<=' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:16:9: '<='
+			{
+			DebugLocation(16, 9);
+			Match("<="); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__70", 10);
+			LeaveRule("T__70", 10);
+			LeaveRule_T__70();
+		}
+	}
+	// $ANTLR end "T__70"
+
+	partial void EnterRule_T__71();
+	partial void LeaveRule_T__71();
+
+	// $ANTLR start "T__71"
+	[GrammarRule("T__71")]
+	private void mT__71()
+	{
+		EnterRule_T__71();
+		EnterRule("T__71", 11);
+		TraceIn("T__71", 11);
+		try
+		{
+			int _type = T__71;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:17:7: ( '<@' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:17:9: '<@'
+			{
+			DebugLocation(17, 9);
+			Match("<@"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__71", 11);
+			LeaveRule("T__71", 11);
+			LeaveRule_T__71();
+		}
+	}
+	// $ANTLR end "T__71"
+
+	partial void EnterRule_T__72();
+	partial void LeaveRule_T__72();
+
+	// $ANTLR start "T__72"
+	[GrammarRule("T__72")]
+	private void mT__72()
+	{
+		EnterRule_T__72();
+		EnterRule("T__72", 12);
+		TraceIn("T__72", 12);
+		try
+		{
+			int _type = T__72;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:18:7: ( '==' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:18:9: '=='
+			{
+			DebugLocation(18, 9);
+			Match("=="); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__72", 12);
+			LeaveRule("T__72", 12);
+			LeaveRule_T__72();
+		}
+	}
+	// $ANTLR end "T__72"
+
+	partial void EnterRule_T__73();
+	partial void LeaveRule_T__73();
+
+	// $ANTLR start "T__73"
+	[GrammarRule("T__73")]
+	private void mT__73()
+	{
+		EnterRule_T__73();
+		EnterRule("T__73", 13);
+		TraceIn("T__73", 13);
+		try
+		{
+			int _type = T__73;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:19:7: ( '>' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:19:9: '>'
+			{
+			DebugLocation(19, 9);
+			Match('>'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__73", 13);
+			LeaveRule("T__73", 13);
+			LeaveRule_T__73();
+		}
+	}
+	// $ANTLR end "T__73"
+
+	partial void EnterRule_T__74();
+	partial void LeaveRule_T__74();
+
+	// $ANTLR start "T__74"
+	[GrammarRule("T__74")]
+	private void mT__74()
+	{
+		EnterRule_T__74();
+		EnterRule("T__74", 14);
+		TraceIn("T__74", 14);
+		try
+		{
+			int _type = T__74;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:20:7: ( '>=' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:20:9: '>='
+			{
+			DebugLocation(20, 9);
+			Match(">="); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__74", 14);
+			LeaveRule("T__74", 14);
+			LeaveRule_T__74();
+		}
+	}
+	// $ANTLR end "T__74"
+
+	partial void EnterRule_T__75();
+	partial void LeaveRule_T__75();
+
+	// $ANTLR start "T__75"
+	[GrammarRule("T__75")]
+	private void mT__75()
+	{
+		EnterRule_T__75();
+		EnterRule("T__75", 15);
+		TraceIn("T__75", 15);
+		try
+		{
+			int _type = T__75;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:21:7: ( '>>' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:21:9: '>>'
+			{
+			DebugLocation(21, 9);
+			Match(">>"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__75", 15);
+			LeaveRule("T__75", 15);
+			LeaveRule_T__75();
+		}
+	}
+	// $ANTLR end "T__75"
+
+	partial void EnterRule_T__76();
+	partial void LeaveRule_T__76();
+
+	// $ANTLR start "T__76"
+	[GrammarRule("T__76")]
+	private void mT__76()
+	{
+		EnterRule_T__76();
+		EnterRule("T__76", 16);
+		TraceIn("T__76", 16);
+		try
+		{
+			int _type = T__76;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:22:7: ( '@>' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:22:9: '@>'
+			{
+			DebugLocation(22, 9);
+			Match("@>"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__76", 16);
+			LeaveRule("T__76", 16);
+			LeaveRule_T__76();
+		}
+	}
+	// $ANTLR end "T__76"
+
+	partial void EnterRule_T__77();
+	partial void LeaveRule_T__77();
+
+	// $ANTLR start "T__77"
+	[GrammarRule("T__77")]
+	private void mT__77()
+	{
+		EnterRule_T__77();
+		EnterRule("T__77", 17);
+		TraceIn("T__77", 17);
+		try
+		{
+			int _type = T__77;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:23:7: ( 'and4b' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:23:9: 'and4b'
+			{
+			DebugLocation(23, 9);
+			Match("and4b"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__77", 17);
+			LeaveRule("T__77", 17);
+			LeaveRule_T__77();
+		}
+	}
+	// $ANTLR end "T__77"
+
+	partial void EnterRule_T__78();
+	partial void LeaveRule_T__78();
+
+	// $ANTLR start "T__78"
+	[GrammarRule("T__78")]
+	private void mT__78()
+	{
+		EnterRule_T__78();
+		EnterRule("T__78", 18);
+		TraceIn("T__78", 18);
+		try
+		{
+			int _type = T__78;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:24:7: ( 'from' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:24:9: 'from'
+			{
+			DebugLocation(24, 9);
+			Match("from"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__78", 18);
+			LeaveRule("T__78", 18);
+			LeaveRule_T__78();
+		}
+	}
+	// $ANTLR end "T__78"
+
+	partial void EnterRule_T__79();
+	partial void LeaveRule_T__79();
+
+	// $ANTLR start "T__79"
+	[GrammarRule("T__79")]
+	private void mT__79()
+	{
+		EnterRule_T__79();
+		EnterRule("T__79", 19);
+		TraceIn("T__79", 19);
+		try
+		{
+			int _type = T__79;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:25:7: ( 'mod' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:25:9: 'mod'
+			{
+			DebugLocation(25, 9);
+			Match("mod"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__79", 19);
+			LeaveRule("T__79", 19);
+			LeaveRule_T__79();
+		}
+	}
+	// $ANTLR end "T__79"
+
+	partial void EnterRule_T__80();
+	partial void LeaveRule_T__80();
+
+	// $ANTLR start "T__80"
+	[GrammarRule("T__80")]
+	private void mT__80()
+	{
+		EnterRule_T__80();
+		EnterRule("T__80", 20);
+		TraceIn("T__80", 20);
+		try
+		{
+			int _type = T__80;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:26:7: ( 'not4b' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:26:9: 'not4b'
+			{
+			DebugLocation(26, 9);
+			Match("not4b"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__80", 20);
+			LeaveRule("T__80", 20);
+			LeaveRule_T__80();
+		}
+	}
+	// $ANTLR end "T__80"
+
+	partial void EnterRule_T__81();
+	partial void LeaveRule_T__81();
+
+	// $ANTLR start "T__81"
+	[GrammarRule("T__81")]
+	private void mT__81()
+	{
+		EnterRule_T__81();
+		EnterRule("T__81", 21);
+		TraceIn("T__81", 21);
+		try
+		{
+			int _type = T__81;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:27:7: ( 'or4b' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:27:9: 'or4b'
+			{
+			DebugLocation(27, 9);
+			Match("or4b"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__81", 21);
+			LeaveRule("T__81", 21);
+			LeaveRule_T__81();
+		}
+	}
+	// $ANTLR end "T__81"
+
+	partial void EnterRule_T__82();
+	partial void LeaveRule_T__82();
+
+	// $ANTLR start "T__82"
+	[GrammarRule("T__82")]
+	private void mT__82()
+	{
+		EnterRule_T__82();
+		EnterRule("T__82", 22);
+		TraceIn("T__82", 22);
+		try
+		{
+			int _type = T__82;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:28:7: ( 'rem' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:28:9: 'rem'
+			{
+			DebugLocation(28, 9);
+			Match("rem"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__82", 22);
+			LeaveRule("T__82", 22);
+			LeaveRule_T__82();
+		}
+	}
+	// $ANTLR end "T__82"
+
+	partial void EnterRule_T__83();
+	partial void LeaveRule_T__83();
+
+	// $ANTLR start "T__83"
+	[GrammarRule("T__83")]
+	private void mT__83()
+	{
+		EnterRule_T__83();
+		EnterRule("T__83", 23);
+		TraceIn("T__83", 23);
+		try
+		{
+			int _type = T__83;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:29:7: ( 'xor4b' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:29:9: 'xor4b'
+			{
+			DebugLocation(29, 9);
+			Match("xor4b"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("T__83", 23);
+			LeaveRule("T__83", 23);
+			LeaveRule_T__83();
+		}
+	}
+	// $ANTLR end "T__83"
+
+	partial void EnterRule_OR();
+	partial void LeaveRule_OR();
+
+	// $ANTLR start "OR"
+	[GrammarRule("OR")]
+	private void mOR()
+	{
+		EnterRule_OR();
+		EnterRule("OR", 24);
+		TraceIn("OR", 24);
+		try
+		{
+			int _type = OR;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:267:4: ( 'or' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:267:6: 'or'
+			{
+			DebugLocation(267, 6);
+			Match("or"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("OR", 24);
+			LeaveRule("OR", 24);
+			LeaveRule_OR();
+		}
+	}
+	// $ANTLR end "OR"
+
+	partial void EnterRule_XOR();
+	partial void LeaveRule_XOR();
+
+	// $ANTLR start "XOR"
+	[GrammarRule("XOR")]
+	private void mXOR()
+	{
+		EnterRule_XOR();
+		EnterRule("XOR", 25);
+		TraceIn("XOR", 25);
+		try
+		{
+			int _type = XOR;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:268:5: ( 'xor' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:268:7: 'xor'
+			{
+			DebugLocation(268, 7);
+			Match("xor"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("XOR", 25);
+			LeaveRule("XOR", 25);
+			LeaveRule_XOR();
+		}
+	}
+	// $ANTLR end "XOR"
+
+	partial void EnterRule_AND();
+	partial void LeaveRule_AND();
+
+	// $ANTLR start "AND"
+	[GrammarRule("AND")]
+	private void mAND()
+	{
+		EnterRule_AND();
+		EnterRule("AND", 26);
+		TraceIn("AND", 26);
+		try
+		{
+			int _type = AND;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:269:5: ( 'and' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:269:7: 'and'
+			{
+			DebugLocation(269, 7);
+			Match("and"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("AND", 26);
+			LeaveRule("AND", 26);
+			LeaveRule_AND();
+		}
+	}
+	// $ANTLR end "AND"
+
+	partial void EnterRule_NOT();
+	partial void LeaveRule_NOT();
+
+	// $ANTLR start "NOT"
+	[GrammarRule("NOT")]
+	private void mNOT()
+	{
+		EnterRule_NOT();
+		EnterRule("NOT", 27);
+		TraceIn("NOT", 27);
+		try
+		{
+			int _type = NOT;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:270:5: ( 'not' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:270:7: 'not'
+			{
+			DebugLocation(270, 7);
+			Match("not"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("NOT", 27);
+			LeaveRule("NOT", 27);
+			LeaveRule_NOT();
+		}
+	}
+	// $ANTLR end "NOT"
+
+	partial void EnterRule_MODULE();
+	partial void LeaveRule_MODULE();
+
+	// $ANTLR start "MODULE"
+	[GrammarRule("MODULE")]
+	private void mMODULE()
+	{
+		EnterRule_MODULE();
+		EnterRule("MODULE", 28);
+		TraceIn("MODULE", 28);
+		try
+		{
+			int _type = MODULE;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:272:8: ( 'module' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:272:10: 'module'
+			{
+			DebugLocation(272, 10);
+			Match("module"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("MODULE", 28);
+			LeaveRule("MODULE", 28);
+			LeaveRule_MODULE();
+		}
+	}
+	// $ANTLR end "MODULE"
+
+	partial void EnterRule_PUBLIC();
+	partial void LeaveRule_PUBLIC();
+
+	// $ANTLR start "PUBLIC"
+	[GrammarRule("PUBLIC")]
+	private void mPUBLIC()
+	{
+		EnterRule_PUBLIC();
+		EnterRule("PUBLIC", 29);
+		TraceIn("PUBLIC", 29);
+		try
+		{
+			int _type = PUBLIC;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:273:8: ( 'public' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:273:10: 'public'
+			{
+			DebugLocation(273, 10);
+			Match("public"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("PUBLIC", 29);
+			LeaveRule("PUBLIC", 29);
+			LeaveRule_PUBLIC();
+		}
+	}
+	// $ANTLR end "PUBLIC"
+
+	partial void EnterRule_PRIVATE();
+	partial void LeaveRule_PRIVATE();
+
+	// $ANTLR start "PRIVATE"
+	[GrammarRule("PRIVATE")]
+	private void mPRIVATE()
+	{
+		EnterRule_PRIVATE();
+		EnterRule("PRIVATE", 30);
+		TraceIn("PRIVATE", 30);
+		try
+		{
+			int _type = PRIVATE;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:274:9: ( 'private' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:274:11: 'private'
+			{
+			DebugLocation(274, 11);
+			Match("private"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("PRIVATE", 30);
+			LeaveRule("PRIVATE", 30);
+			LeaveRule_PRIVATE();
+		}
+	}
+	// $ANTLR end "PRIVATE"
+
+	partial void EnterRule_FRIEND();
+	partial void LeaveRule_FRIEND();
+
+	// $ANTLR start "FRIEND"
+	[GrammarRule("FRIEND")]
+	private void mFRIEND()
+	{
+		EnterRule_FRIEND();
+		EnterRule("FRIEND", 31);
+		TraceIn("FRIEND", 31);
+		try
+		{
+			int _type = FRIEND;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:275:8: ( 'friend' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:275:10: 'friend'
+			{
+			DebugLocation(275, 10);
+			Match("friend"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("FRIEND", 31);
+			LeaveRule("FRIEND", 31);
+			LeaveRule_FRIEND();
+		}
+	}
+	// $ANTLR end "FRIEND"
+
+	partial void EnterRule_IMPORT();
+	partial void LeaveRule_IMPORT();
+
+	// $ANTLR start "IMPORT"
+	[GrammarRule("IMPORT")]
+	private void mIMPORT()
+	{
+		EnterRule_IMPORT();
+		EnterRule("IMPORT", 32);
+		TraceIn("IMPORT", 32);
+		try
+		{
+			int _type = IMPORT;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:276:8: ( 'import' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:276:10: 'import'
+			{
+			DebugLocation(276, 10);
+			Match("import"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("IMPORT", 32);
+			LeaveRule("IMPORT", 32);
+			LeaveRule_IMPORT();
+		}
+	}
+	// $ANTLR end "IMPORT"
+
+	partial void EnterRule_GROUP();
+	partial void LeaveRule_GROUP();
+
+	// $ANTLR start "GROUP"
+	[GrammarRule("GROUP")]
+	private void mGROUP()
+	{
+		EnterRule_GROUP();
+		EnterRule("GROUP", 33);
+		TraceIn("GROUP", 33);
+		try
+		{
+			int _type = GROUP;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:277:7: ( 'group' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:277:9: 'group'
+			{
+			DebugLocation(277, 9);
+			Match("group"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("GROUP", 33);
+			LeaveRule("GROUP", 33);
+			LeaveRule_GROUP();
+		}
+	}
+	// $ANTLR end "GROUP"
 
 	partial void EnterRule_OPTIONAL();
 	partial void LeaveRule_OPTIONAL();
@@ -122,17 +1324,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mOPTIONAL()
 	{
 		EnterRule_OPTIONAL();
-		EnterRule("OPTIONAL", 2);
-		TraceIn("OPTIONAL", 2);
+		EnterRule("OPTIONAL", 34);
+		TraceIn("OPTIONAL", 34);
 		try
 		{
 			int _type = OPTIONAL;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:66:9: ( 'optional' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:278:9: ( 'optional' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:66:11: 'optional'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:278:11: 'optional'
 			{
-			DebugLocation(66, 11);
+			DebugLocation(278, 11);
 			Match("optional"); 
 
 
@@ -143,8 +1345,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("OPTIONAL", 2);
-			LeaveRule("OPTIONAL", 2);
+			TraceOut("OPTIONAL", 34);
+			LeaveRule("OPTIONAL", 34);
 			LeaveRule_OPTIONAL();
 		}
 	}
@@ -158,17 +1360,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mBITSTRING()
 	{
 		EnterRule_BITSTRING();
-		EnterRule("BITSTRING", 3);
-		TraceIn("BITSTRING", 3);
+		EnterRule("BITSTRING", 35);
+		TraceIn("BITSTRING", 35);
 		try
 		{
 			int _type = BITSTRING;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:68:2: ( 'bitstring' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:280:2: ( 'bitstring' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:68:4: 'bitstring'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:280:4: 'bitstring'
 			{
-			DebugLocation(68, 4);
+			DebugLocation(280, 4);
 			Match("bitstring"); 
 
 
@@ -179,8 +1381,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("BITSTRING", 3);
-			LeaveRule("BITSTRING", 3);
+			TraceOut("BITSTRING", 35);
+			LeaveRule("BITSTRING", 35);
 			LeaveRule_BITSTRING();
 		}
 	}
@@ -194,17 +1396,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mBOOLEAN()
 	{
 		EnterRule_BOOLEAN();
-		EnterRule("BOOLEAN", 4);
-		TraceIn("BOOLEAN", 4);
+		EnterRule("BOOLEAN", 36);
+		TraceIn("BOOLEAN", 36);
 		try
 		{
 			int _type = BOOLEAN;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:69:9: ( 'boolean' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:281:9: ( 'boolean' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:69:11: 'boolean'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:281:11: 'boolean'
 			{
-			DebugLocation(69, 11);
+			DebugLocation(281, 11);
 			Match("boolean"); 
 
 
@@ -215,8 +1417,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("BOOLEAN", 4);
-			LeaveRule("BOOLEAN", 4);
+			TraceOut("BOOLEAN", 36);
+			LeaveRule("BOOLEAN", 36);
 			LeaveRule_BOOLEAN();
 		}
 	}
@@ -230,17 +1432,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mCHARSTRING()
 	{
 		EnterRule_CHARSTRING();
-		EnterRule("CHARSTRING", 5);
-		TraceIn("CHARSTRING", 5);
+		EnterRule("CHARSTRING", 37);
+		TraceIn("CHARSTRING", 37);
 		try
 		{
 			int _type = CHARSTRING;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:71:2: ( 'charstring' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:283:2: ( 'charstring' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:71:4: 'charstring'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:283:4: 'charstring'
 			{
-			DebugLocation(71, 4);
+			DebugLocation(283, 4);
 			Match("charstring"); 
 
 
@@ -251,8 +1453,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("CHARSTRING", 5);
-			LeaveRule("CHARSTRING", 5);
+			TraceOut("CHARSTRING", 37);
+			LeaveRule("CHARSTRING", 37);
 			LeaveRule_CHARSTRING();
 		}
 	}
@@ -266,17 +1468,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mCHAR()
 	{
 		EnterRule_CHAR();
-		EnterRule("CHAR", 6);
-		TraceIn("CHAR", 6);
+		EnterRule("CHAR", 38);
+		TraceIn("CHAR", 38);
 		try
 		{
 			int _type = CHAR;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:72:6: ( 'char' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:284:6: ( 'char' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:72:8: 'char'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:284:8: 'char'
 			{
-			DebugLocation(72, 8);
+			DebugLocation(284, 8);
 			Match("char"); 
 
 
@@ -287,8 +1489,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("CHAR", 6);
-			LeaveRule("CHAR", 6);
+			TraceOut("CHAR", 38);
+			LeaveRule("CHAR", 38);
 			LeaveRule_CHAR();
 		}
 	}
@@ -302,17 +1504,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mINTEGER()
 	{
 		EnterRule_INTEGER();
-		EnterRule("INTEGER", 7);
-		TraceIn("INTEGER", 7);
+		EnterRule("INTEGER", 39);
+		TraceIn("INTEGER", 39);
 		try
 		{
 			int _type = INTEGER;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:73:9: ( 'integer' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:285:9: ( 'integer' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:73:11: 'integer'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:285:11: 'integer'
 			{
-			DebugLocation(73, 11);
+			DebugLocation(285, 11);
 			Match("integer"); 
 
 
@@ -323,8 +1525,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("INTEGER", 7);
-			LeaveRule("INTEGER", 7);
+			TraceOut("INTEGER", 39);
+			LeaveRule("INTEGER", 39);
 			LeaveRule_INTEGER();
 		}
 	}
@@ -338,17 +1540,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mOCTETSTRING()
 	{
 		EnterRule_OCTETSTRING();
-		EnterRule("OCTETSTRING", 8);
-		TraceIn("OCTETSTRING", 8);
+		EnterRule("OCTETSTRING", 40);
+		TraceIn("OCTETSTRING", 40);
 		try
 		{
 			int _type = OCTETSTRING;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:75:2: ( 'octetstring' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:287:2: ( 'octetstring' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:75:4: 'octetstring'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:287:4: 'octetstring'
 			{
-			DebugLocation(75, 4);
+			DebugLocation(287, 4);
 			Match("octetstring"); 
 
 
@@ -359,8 +1561,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("OCTETSTRING", 8);
-			LeaveRule("OCTETSTRING", 8);
+			TraceOut("OCTETSTRING", 40);
+			LeaveRule("OCTETSTRING", 40);
 			LeaveRule_OCTETSTRING();
 		}
 	}
@@ -374,17 +1576,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mRECORD()
 	{
 		EnterRule_RECORD();
-		EnterRule("RECORD", 9);
-		TraceIn("RECORD", 9);
+		EnterRule("RECORD", 41);
+		TraceIn("RECORD", 41);
 		try
 		{
 			int _type = RECORD;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:76:8: ( 'record' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:288:8: ( 'record' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:76:10: 'record'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:288:10: 'record'
 			{
-			DebugLocation(76, 10);
+			DebugLocation(288, 10);
 			Match("record"); 
 
 
@@ -395,12 +1597,84 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("RECORD", 9);
-			LeaveRule("RECORD", 9);
+			TraceOut("RECORD", 41);
+			LeaveRule("RECORD", 41);
 			LeaveRule_RECORD();
 		}
 	}
 	// $ANTLR end "RECORD"
+
+	partial void EnterRule_UNION();
+	partial void LeaveRule_UNION();
+
+	// $ANTLR start "UNION"
+	[GrammarRule("UNION")]
+	private void mUNION()
+	{
+		EnterRule_UNION();
+		EnterRule("UNION", 42);
+		TraceIn("UNION", 42);
+		try
+		{
+			int _type = UNION;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:289:7: ( 'union' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:289:9: 'union'
+			{
+			DebugLocation(289, 9);
+			Match("union"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("UNION", 42);
+			LeaveRule("UNION", 42);
+			LeaveRule_UNION();
+		}
+	}
+	// $ANTLR end "UNION"
+
+	partial void EnterRule_ENUMERATED();
+	partial void LeaveRule_ENUMERATED();
+
+	// $ANTLR start "ENUMERATED"
+	[GrammarRule("ENUMERATED")]
+	private void mENUMERATED()
+	{
+		EnterRule_ENUMERATED();
+		EnterRule("ENUMERATED", 43);
+		TraceIn("ENUMERATED", 43);
+		try
+		{
+			int _type = ENUMERATED;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:291:2: ( 'enumerated' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:291:4: 'enumerated'
+			{
+			DebugLocation(291, 4);
+			Match("enumerated"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("ENUMERATED", 43);
+			LeaveRule("ENUMERATED", 43);
+			LeaveRule_ENUMERATED();
+		}
+	}
+	// $ANTLR end "ENUMERATED"
 
 	partial void EnterRule_TYPE();
 	partial void LeaveRule_TYPE();
@@ -410,17 +1684,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mTYPE()
 	{
 		EnterRule_TYPE();
-		EnterRule("TYPE", 10);
-		TraceIn("TYPE", 10);
+		EnterRule("TYPE", 44);
+		TraceIn("TYPE", 44);
 		try
 		{
 			int _type = TYPE;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:77:7: ( 'type' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:292:7: ( 'type' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:77:9: 'type'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:292:9: 'type'
 			{
-			DebugLocation(77, 9);
+			DebugLocation(292, 9);
 			Match("type"); 
 
 
@@ -431,8 +1705,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("TYPE", 10);
-			LeaveRule("TYPE", 10);
+			TraceOut("TYPE", 44);
+			LeaveRule("TYPE", 44);
 			LeaveRule_TYPE();
 		}
 	}
@@ -446,17 +1720,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mLBRACKET()
 	{
 		EnterRule_LBRACKET();
-		EnterRule("LBRACKET", 11);
-		TraceIn("LBRACKET", 11);
+		EnterRule("LBRACKET", 45);
+		TraceIn("LBRACKET", 45);
 		try
 		{
 			int _type = LBRACKET;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:78:9: ( '{' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:293:9: ( '{' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:78:11: '{'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:293:11: '{'
 			{
-			DebugLocation(78, 11);
+			DebugLocation(293, 11);
 			Match('{'); 
 
 			}
@@ -466,8 +1740,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("LBRACKET", 11);
-			LeaveRule("LBRACKET", 11);
+			TraceOut("LBRACKET", 45);
+			LeaveRule("LBRACKET", 45);
 			LeaveRule_LBRACKET();
 		}
 	}
@@ -481,17 +1755,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mRBRACKET()
 	{
 		EnterRule_RBRACKET();
-		EnterRule("RBRACKET", 12);
-		TraceIn("RBRACKET", 12);
+		EnterRule("RBRACKET", 46);
+		TraceIn("RBRACKET", 46);
 		try
 		{
 			int _type = RBRACKET;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:79:9: ( '}' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:294:9: ( '}' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:79:11: '}'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:294:11: '}'
 			{
-			DebugLocation(79, 11);
+			DebugLocation(294, 11);
 			Match('}'); 
 
 			}
@@ -501,12 +1775,547 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("RBRACKET", 12);
-			LeaveRule("RBRACKET", 12);
+			TraceOut("RBRACKET", 46);
+			LeaveRule("RBRACKET", 46);
 			LeaveRule_RBRACKET();
 		}
 	}
 	// $ANTLR end "RBRACKET"
+
+	partial void EnterRule_SEMICOLON();
+	partial void LeaveRule_SEMICOLON();
+
+	// $ANTLR start "SEMICOLON"
+	[GrammarRule("SEMICOLON")]
+	private void mSEMICOLON()
+	{
+		EnterRule_SEMICOLON();
+		EnterRule("SEMICOLON", 47);
+		TraceIn("SEMICOLON", 47);
+		try
+		{
+			int _type = SEMICOLON;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:296:2: ( ';' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:296:4: ';'
+			{
+			DebugLocation(296, 4);
+			Match(';'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("SEMICOLON", 47);
+			LeaveRule("SEMICOLON", 47);
+			LeaveRule_SEMICOLON();
+		}
+	}
+	// $ANTLR end "SEMICOLON"
+
+	partial void EnterRule_LPAREN();
+	partial void LeaveRule_LPAREN();
+
+	// $ANTLR start "LPAREN"
+	[GrammarRule("LPAREN")]
+	private void mLPAREN()
+	{
+		EnterRule_LPAREN();
+		EnterRule("LPAREN", 48);
+		TraceIn("LPAREN", 48);
+		try
+		{
+			int _type = LPAREN;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:297:8: ( '(' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:297:10: '('
+			{
+			DebugLocation(297, 10);
+			Match('('); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("LPAREN", 48);
+			LeaveRule("LPAREN", 48);
+			LeaveRule_LPAREN();
+		}
+	}
+	// $ANTLR end "LPAREN"
+
+	partial void EnterRule_RPAREN();
+	partial void LeaveRule_RPAREN();
+
+	// $ANTLR start "RPAREN"
+	[GrammarRule("RPAREN")]
+	private void mRPAREN()
+	{
+		EnterRule_RPAREN();
+		EnterRule("RPAREN", 49);
+		TraceIn("RPAREN", 49);
+		try
+		{
+			int _type = RPAREN;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:298:8: ( ')' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:298:10: ')'
+			{
+			DebugLocation(298, 10);
+			Match(')'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("RPAREN", 49);
+			LeaveRule("RPAREN", 49);
+			LeaveRule_RPAREN();
+		}
+	}
+	// $ANTLR end "RPAREN"
+
+	partial void EnterRule_MINUS();
+	partial void LeaveRule_MINUS();
+
+	// $ANTLR start "MINUS"
+	[GrammarRule("MINUS")]
+	private void mMINUS()
+	{
+		EnterRule_MINUS();
+		EnterRule("MINUS", 50);
+		TraceIn("MINUS", 50);
+		try
+		{
+			int _type = MINUS;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:299:7: ( '-' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:299:9: '-'
+			{
+			DebugLocation(299, 9);
+			Match('-'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("MINUS", 50);
+			LeaveRule("MINUS", 50);
+			LeaveRule_MINUS();
+		}
+	}
+	// $ANTLR end "MINUS"
+
+	partial void EnterRule_ASSIGNCHAR();
+	partial void LeaveRule_ASSIGNCHAR();
+
+	// $ANTLR start "ASSIGNCHAR"
+	[GrammarRule("ASSIGNCHAR")]
+	private void mASSIGNCHAR()
+	{
+		EnterRule_ASSIGNCHAR();
+		EnterRule("ASSIGNCHAR", 51);
+		TraceIn("ASSIGNCHAR", 51);
+		try
+		{
+			int _type = ASSIGNCHAR;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:301:2: ( ':=' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:301:4: ':='
+			{
+			DebugLocation(301, 4);
+			Match(":="); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("ASSIGNCHAR", 51);
+			LeaveRule("ASSIGNCHAR", 51);
+			LeaveRule_ASSIGNCHAR();
+		}
+	}
+	// $ANTLR end "ASSIGNCHAR"
+
+	partial void EnterRule_BANG();
+	partial void LeaveRule_BANG();
+
+	// $ANTLR start "BANG"
+	[GrammarRule("BANG")]
+	private void mBANG()
+	{
+		EnterRule_BANG();
+		EnterRule("BANG", 52);
+		TraceIn("BANG", 52);
+		try
+		{
+			int _type = BANG;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:302:6: ( '!' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:302:8: '!'
+			{
+			DebugLocation(302, 8);
+			Match('!'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("BANG", 52);
+			LeaveRule("BANG", 52);
+			LeaveRule_BANG();
+		}
+	}
+	// $ANTLR end "BANG"
+
+	partial void EnterRule_CONST();
+	partial void LeaveRule_CONST();
+
+	// $ANTLR start "CONST"
+	[GrammarRule("CONST")]
+	private void mCONST()
+	{
+		EnterRule_CONST();
+		EnterRule("CONST", 53);
+		TraceIn("CONST", 53);
+		try
+		{
+			int _type = CONST;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:303:7: ( 'const' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:303:9: 'const'
+			{
+			DebugLocation(303, 9);
+			Match("const"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("CONST", 53);
+			LeaveRule("CONST", 53);
+			LeaveRule_CONST();
+		}
+	}
+	// $ANTLR end "CONST"
+
+	partial void EnterRule_INFINITY();
+	partial void LeaveRule_INFINITY();
+
+	// $ANTLR start "INFINITY"
+	[GrammarRule("INFINITY")]
+	private void mINFINITY()
+	{
+		EnterRule_INFINITY();
+		EnterRule("INFINITY", 54);
+		TraceIn("INFINITY", 54);
+		try
+		{
+			int _type = INFINITY;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:304:9: ( 'infinity' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:304:11: 'infinity'
+			{
+			DebugLocation(304, 11);
+			Match("infinity"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("INFINITY", 54);
+			LeaveRule("INFINITY", 54);
+			LeaveRule_INFINITY();
+		}
+	}
+	// $ANTLR end "INFINITY"
+
+	partial void EnterRule_DOTDOT();
+	partial void LeaveRule_DOTDOT();
+
+	// $ANTLR start "DOTDOT"
+	[GrammarRule("DOTDOT")]
+	private void mDOTDOT()
+	{
+		EnterRule_DOTDOT();
+		EnterRule("DOTDOT", 55);
+		TraceIn("DOTDOT", 55);
+		try
+		{
+			int _type = DOTDOT;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:305:8: ( '..' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:305:10: '..'
+			{
+			DebugLocation(305, 10);
+			Match(".."); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("DOTDOT", 55);
+			LeaveRule("DOTDOT", 55);
+			LeaveRule_DOTDOT();
+		}
+	}
+	// $ANTLR end "DOTDOT"
+
+	partial void EnterRule_LENGTH();
+	partial void LeaveRule_LENGTH();
+
+	// $ANTLR start "LENGTH"
+	[GrammarRule("LENGTH")]
+	private void mLENGTH()
+	{
+		EnterRule_LENGTH();
+		EnterRule("LENGTH", 56);
+		TraceIn("LENGTH", 56);
+		try
+		{
+			int _type = LENGTH;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:306:8: ( 'length' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:306:10: 'length'
+			{
+			DebugLocation(306, 10);
+			Match("length"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("LENGTH", 56);
+			LeaveRule("LENGTH", 56);
+			LeaveRule_LENGTH();
+		}
+	}
+	// $ANTLR end "LENGTH"
+
+	partial void EnterRule_IN();
+	partial void LeaveRule_IN();
+
+	// $ANTLR start "IN"
+	[GrammarRule("IN")]
+	private void mIN()
+	{
+		EnterRule_IN();
+		EnterRule("IN", 57);
+		TraceIn("IN", 57);
+		try
+		{
+			int _type = IN;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:307:4: ( 'in' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:307:6: 'in'
+			{
+			DebugLocation(307, 6);
+			Match("in"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("IN", 57);
+			LeaveRule("IN", 57);
+			LeaveRule_IN();
+		}
+	}
+	// $ANTLR end "IN"
+
+	partial void EnterRule_OUT();
+	partial void LeaveRule_OUT();
+
+	// $ANTLR start "OUT"
+	[GrammarRule("OUT")]
+	private void mOUT()
+	{
+		EnterRule_OUT();
+		EnterRule("OUT", 58);
+		TraceIn("OUT", 58);
+		try
+		{
+			int _type = OUT;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:308:5: ( 'out' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:308:7: 'out'
+			{
+			DebugLocation(308, 7);
+			Match("out"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("OUT", 58);
+			LeaveRule("OUT", 58);
+			LeaveRule_OUT();
+		}
+	}
+	// $ANTLR end "OUT"
+
+	partial void EnterRule_ALL();
+	partial void LeaveRule_ALL();
+
+	// $ANTLR start "ALL"
+	[GrammarRule("ALL")]
+	private void mALL()
+	{
+		EnterRule_ALL();
+		EnterRule("ALL", 59);
+		TraceIn("ALL", 59);
+		try
+		{
+			int _type = ALL;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:309:5: ( 'all' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:309:7: 'all'
+			{
+			DebugLocation(309, 7);
+			Match("all"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("ALL", 59);
+			LeaveRule("ALL", 59);
+			LeaveRule_ALL();
+		}
+	}
+	// $ANTLR end "ALL"
+
+	partial void EnterRule_PORT();
+	partial void LeaveRule_PORT();
+
+	// $ANTLR start "PORT"
+	[GrammarRule("PORT")]
+	private void mPORT()
+	{
+		EnterRule_PORT();
+		EnterRule("PORT", 60);
+		TraceIn("PORT", 60);
+		try
+		{
+			int _type = PORT;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:310:6: ( 'port' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:310:8: 'port'
+			{
+			DebugLocation(310, 8);
+			Match("port"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("PORT", 60);
+			LeaveRule("PORT", 60);
+			LeaveRule_PORT();
+		}
+	}
+	// $ANTLR end "PORT"
+
+	partial void EnterRule_MESSAGE();
+	partial void LeaveRule_MESSAGE();
+
+	// $ANTLR start "MESSAGE"
+	[GrammarRule("MESSAGE")]
+	private void mMESSAGE()
+	{
+		EnterRule_MESSAGE();
+		EnterRule("MESSAGE", 61);
+		TraceIn("MESSAGE", 61);
+		try
+		{
+			int _type = MESSAGE;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:311:9: ( 'message' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:311:11: 'message'
+			{
+			DebugLocation(311, 11);
+			Match("message"); 
+
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("MESSAGE", 61);
+			LeaveRule("MESSAGE", 61);
+			LeaveRule_MESSAGE();
+		}
+	}
+	// $ANTLR end "MESSAGE"
 
 	partial void EnterRule_ID();
 	partial void LeaveRule_ID();
@@ -516,17 +2325,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mID()
 	{
 		EnterRule_ID();
-		EnterRule("ID", 13);
-		TraceIn("ID", 13);
+		EnterRule("ID", 62);
+		TraceIn("ID", 62);
 		try
 		{
 			int _type = ID;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:81:5: ( ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )* )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:313:5: ( ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )* )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:81:7: ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )*
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:313:7: ( 'a' .. 'z' | 'A' .. 'Z' | '_' ) ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )*
 			{
-			DebugLocation(81, 7);
+			DebugLocation(313, 7);
 			if ((input.LA(1)>='A' && input.LA(1)<='Z')||input.LA(1)=='_'||(input.LA(1)>='a' && input.LA(1)<='z'))
 			{
 				input.Consume();
@@ -539,8 +2348,8 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 				throw mse;
 			}
 
-			DebugLocation(81, 31);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:81:31: ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )*
+			DebugLocation(313, 31);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:313:31: ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )*
 			try { DebugEnterSubRule(1);
 			while (true)
 			{
@@ -559,9 +2368,9 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 				{
 				case 1:
 					DebugEnterAlt(1);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
 					{
-					DebugLocation(81, 31);
+					DebugLocation(313, 31);
 					input.Consume();
 
 
@@ -586,466 +2395,84 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("ID", 13);
-			LeaveRule("ID", 13);
+			TraceOut("ID", 62);
+			LeaveRule("ID", 62);
 			LeaveRule_ID();
 		}
 	}
 	// $ANTLR end "ID"
 
-	partial void EnterRule_INT();
-	partial void LeaveRule_INT();
+	partial void EnterRule_NUMBER();
+	partial void LeaveRule_NUMBER();
 
-	// $ANTLR start "INT"
-	[GrammarRule("INT")]
-	private void mINT()
+	// $ANTLR start "NUMBER"
+	[GrammarRule("NUMBER")]
+	private void mNUMBER()
 	{
-		EnterRule_INT();
-		EnterRule("INT", 14);
-		TraceIn("INT", 14);
+		EnterRule_NUMBER();
+		EnterRule("NUMBER", 63);
+		TraceIn("NUMBER", 63);
 		try
 		{
-			int _type = INT;
+			int _type = NUMBER;
 			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:84:5: ( ( '0' .. '9' )+ )
-			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:84:7: ( '0' .. '9' )+
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:321:8: ( ( NON_ZERO_NUM ( NUM )+ ) | '0' )
+			int alt3=2;
+			try { DebugEnterDecision(3, false);
+			int LA3_0 = input.LA(1);
+
+			if (((LA3_0>='1' && LA3_0<='9')))
 			{
-			DebugLocation(84, 7);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:84:7: ( '0' .. '9' )+
-			int cnt2=0;
-			try { DebugEnterSubRule(2);
-			while (true)
-			{
-				int alt2=2;
-				try { DebugEnterDecision(2, false);
-				int LA2_0 = input.LA(1);
-
-				if (((LA2_0>='0' && LA2_0<='9')))
-				{
-					alt2 = 1;
-				}
-
-
-				} finally { DebugExitDecision(2); }
-				switch (alt2)
-				{
-				case 1:
-					DebugEnterAlt(1);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
-					{
-					DebugLocation(84, 7);
-					input.Consume();
-
-
-					}
-					break;
-
-				default:
-					if (cnt2 >= 1)
-						goto loop2;
-
-					EarlyExitException eee2 = new EarlyExitException( 2, input );
-					DebugRecognitionException(eee2);
-					throw eee2;
-				}
-				cnt2++;
+				alt3 = 1;
 			}
-			loop2:
-				;
-
-			} finally { DebugExitSubRule(2); }
-
-
-			}
-
-			state.type = _type;
-			state.channel = _channel;
-		}
-		finally
-		{
-			TraceOut("INT", 14);
-			LeaveRule("INT", 14);
-			LeaveRule_INT();
-		}
-	}
-	// $ANTLR end "INT"
-
-	partial void EnterRule_FLOAT();
-	partial void LeaveRule_FLOAT();
-
-	// $ANTLR start "FLOAT"
-	[GrammarRule("FLOAT")]
-	private void mFLOAT()
-	{
-		EnterRule_FLOAT();
-		EnterRule("FLOAT", 15);
-		TraceIn("FLOAT", 15);
-		try
-		{
-			int _type = FLOAT;
-			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:88:5: ( ( '0' .. '9' )+ '.' ( '0' .. '9' )* ( EXPONENT )? | '.' ( '0' .. '9' )+ ( EXPONENT )? | ( '0' .. '9' )+ EXPONENT )
-			int alt9=3;
-			try { DebugEnterDecision(9, false);
-			try
+			else if ((LA3_0=='0'))
 			{
-				alt9 = dfa9.Predict(input);
-			}
-			catch (NoViableAltException nvae)
-			{
-				DebugRecognitionException(nvae);
-				throw;
-			}
-			} finally { DebugExitDecision(9); }
-			switch (alt9)
-			{
-			case 1:
-				DebugEnterAlt(1);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:88:9: ( '0' .. '9' )+ '.' ( '0' .. '9' )* ( EXPONENT )?
-				{
-				DebugLocation(88, 9);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:88:9: ( '0' .. '9' )+
-				int cnt3=0;
-				try { DebugEnterSubRule(3);
-				while (true)
-				{
-					int alt3=2;
-					try { DebugEnterDecision(3, false);
-					int LA3_0 = input.LA(1);
-
-					if (((LA3_0>='0' && LA3_0<='9')))
-					{
-						alt3 = 1;
-					}
-
-
-					} finally { DebugExitDecision(3); }
-					switch (alt3)
-					{
-					case 1:
-						DebugEnterAlt(1);
-						// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
-						{
-						DebugLocation(88, 9);
-						input.Consume();
-
-
-						}
-						break;
-
-					default:
-						if (cnt3 >= 1)
-							goto loop3;
-
-						EarlyExitException eee3 = new EarlyExitException( 3, input );
-						DebugRecognitionException(eee3);
-						throw eee3;
-					}
-					cnt3++;
-				}
-				loop3:
-					;
-
-				} finally { DebugExitSubRule(3); }
-
-				DebugLocation(88, 21);
-				Match('.'); 
-				DebugLocation(88, 25);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:88:25: ( '0' .. '9' )*
-				try { DebugEnterSubRule(4);
-				while (true)
-				{
-					int alt4=2;
-					try { DebugEnterDecision(4, false);
-					int LA4_0 = input.LA(1);
-
-					if (((LA4_0>='0' && LA4_0<='9')))
-					{
-						alt4 = 1;
-					}
-
-
-					} finally { DebugExitDecision(4); }
-					switch ( alt4 )
-					{
-					case 1:
-						DebugEnterAlt(1);
-						// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
-						{
-						DebugLocation(88, 25);
-						input.Consume();
-
-
-						}
-						break;
-
-					default:
-						goto loop4;
-					}
-				}
-
-				loop4:
-					;
-
-				} finally { DebugExitSubRule(4); }
-
-				DebugLocation(88, 37);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:88:37: ( EXPONENT )?
-				int alt5=2;
-				try { DebugEnterSubRule(5);
-				try { DebugEnterDecision(5, false);
-				int LA5_0 = input.LA(1);
-
-				if ((LA5_0=='E'||LA5_0=='e'))
-				{
-					alt5 = 1;
-				}
-				} finally { DebugExitDecision(5); }
-				switch (alt5)
-				{
-				case 1:
-					DebugEnterAlt(1);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:88:37: EXPONENT
-					{
-					DebugLocation(88, 37);
-					mEXPONENT(); 
-
-					}
-					break;
-
-				}
-				} finally { DebugExitSubRule(5); }
-
-
-				}
-				break;
-			case 2:
-				DebugEnterAlt(2);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:89:9: '.' ( '0' .. '9' )+ ( EXPONENT )?
-				{
-				DebugLocation(89, 9);
-				Match('.'); 
-				DebugLocation(89, 13);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:89:13: ( '0' .. '9' )+
-				int cnt6=0;
-				try { DebugEnterSubRule(6);
-				while (true)
-				{
-					int alt6=2;
-					try { DebugEnterDecision(6, false);
-					int LA6_0 = input.LA(1);
-
-					if (((LA6_0>='0' && LA6_0<='9')))
-					{
-						alt6 = 1;
-					}
-
-
-					} finally { DebugExitDecision(6); }
-					switch (alt6)
-					{
-					case 1:
-						DebugEnterAlt(1);
-						// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
-						{
-						DebugLocation(89, 13);
-						input.Consume();
-
-
-						}
-						break;
-
-					default:
-						if (cnt6 >= 1)
-							goto loop6;
-
-						EarlyExitException eee6 = new EarlyExitException( 6, input );
-						DebugRecognitionException(eee6);
-						throw eee6;
-					}
-					cnt6++;
-				}
-				loop6:
-					;
-
-				} finally { DebugExitSubRule(6); }
-
-				DebugLocation(89, 25);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:89:25: ( EXPONENT )?
-				int alt7=2;
-				try { DebugEnterSubRule(7);
-				try { DebugEnterDecision(7, false);
-				int LA7_0 = input.LA(1);
-
-				if ((LA7_0=='E'||LA7_0=='e'))
-				{
-					alt7 = 1;
-				}
-				} finally { DebugExitDecision(7); }
-				switch (alt7)
-				{
-				case 1:
-					DebugEnterAlt(1);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:89:25: EXPONENT
-					{
-					DebugLocation(89, 25);
-					mEXPONENT(); 
-
-					}
-					break;
-
-				}
-				} finally { DebugExitSubRule(7); }
-
-
-				}
-				break;
-			case 3:
-				DebugEnterAlt(3);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:90:9: ( '0' .. '9' )+ EXPONENT
-				{
-				DebugLocation(90, 9);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:90:9: ( '0' .. '9' )+
-				int cnt8=0;
-				try { DebugEnterSubRule(8);
-				while (true)
-				{
-					int alt8=2;
-					try { DebugEnterDecision(8, false);
-					int LA8_0 = input.LA(1);
-
-					if (((LA8_0>='0' && LA8_0<='9')))
-					{
-						alt8 = 1;
-					}
-
-
-					} finally { DebugExitDecision(8); }
-					switch (alt8)
-					{
-					case 1:
-						DebugEnterAlt(1);
-						// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
-						{
-						DebugLocation(90, 9);
-						input.Consume();
-
-
-						}
-						break;
-
-					default:
-						if (cnt8 >= 1)
-							goto loop8;
-
-						EarlyExitException eee8 = new EarlyExitException( 8, input );
-						DebugRecognitionException(eee8);
-						throw eee8;
-					}
-					cnt8++;
-				}
-				loop8:
-					;
-
-				} finally { DebugExitSubRule(8); }
-
-				DebugLocation(90, 21);
-				mEXPONENT(); 
-
-				}
-				break;
-
-			}
-			state.type = _type;
-			state.channel = _channel;
-		}
-		finally
-		{
-			TraceOut("FLOAT", 15);
-			LeaveRule("FLOAT", 15);
-			LeaveRule_FLOAT();
-		}
-	}
-	// $ANTLR end "FLOAT"
-
-	partial void EnterRule_COMMENT();
-	partial void LeaveRule_COMMENT();
-
-	// $ANTLR start "COMMENT"
-	[GrammarRule("COMMENT")]
-	private void mCOMMENT()
-	{
-		EnterRule_COMMENT();
-		EnterRule("COMMENT", 16);
-		TraceIn("COMMENT", 16);
-		try
-		{
-			int _type = COMMENT;
-			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:94:5: ( '//' (~ ( '\\n' | '\\r' ) )* ( '\\r' )? '\\n' | '/*' ( options {greedy=false; } : . )* '*/' )
-			int alt13=2;
-			try { DebugEnterDecision(13, false);
-			int LA13_0 = input.LA(1);
-
-			if ((LA13_0=='/'))
-			{
-				int LA13_1 = input.LA(2);
-
-				if ((LA13_1=='/'))
-				{
-					alt13 = 1;
-				}
-				else if ((LA13_1=='*'))
-				{
-					alt13 = 2;
-				}
-				else
-				{
-					NoViableAltException nvae = new NoViableAltException("", 13, 1, input);
-					DebugRecognitionException(nvae);
-					throw nvae;
-				}
+				alt3 = 2;
 			}
 			else
 			{
-				NoViableAltException nvae = new NoViableAltException("", 13, 0, input);
+				NoViableAltException nvae = new NoViableAltException("", 3, 0, input);
 				DebugRecognitionException(nvae);
 				throw nvae;
 			}
-			} finally { DebugExitDecision(13); }
-			switch (alt13)
+			} finally { DebugExitDecision(3); }
+			switch (alt3)
 			{
 			case 1:
 				DebugEnterAlt(1);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:94:9: '//' (~ ( '\\n' | '\\r' ) )* ( '\\r' )? '\\n'
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:321:10: ( NON_ZERO_NUM ( NUM )+ )
 				{
-				DebugLocation(94, 9);
-				Match("//"); 
-
-				DebugLocation(94, 14);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:94:14: (~ ( '\\n' | '\\r' ) )*
-				try { DebugEnterSubRule(10);
+				DebugLocation(321, 10);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:321:10: ( NON_ZERO_NUM ( NUM )+ )
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:321:11: NON_ZERO_NUM ( NUM )+
+				{
+				DebugLocation(321, 11);
+				mNON_ZERO_NUM(); 
+				DebugLocation(321, 24);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:321:24: ( NUM )+
+				int cnt2=0;
+				try { DebugEnterSubRule(2);
 				while (true)
 				{
-					int alt10=2;
-					try { DebugEnterDecision(10, false);
-					int LA10_0 = input.LA(1);
+					int alt2=2;
+					try { DebugEnterDecision(2, false);
+					int LA2_0 = input.LA(1);
 
-					if (((LA10_0>='\u0000' && LA10_0<='\t')||(LA10_0>='\u000B' && LA10_0<='\f')||(LA10_0>='\u000E' && LA10_0<='\uFFFF')))
+					if (((LA2_0>='0' && LA2_0<='9')))
 					{
-						alt10 = 1;
+						alt2 = 1;
 					}
 
 
-					} finally { DebugExitDecision(10); }
-					switch ( alt10 )
+					} finally { DebugExitDecision(2); }
+					switch (alt2)
 					{
 					case 1:
 						DebugEnterAlt(1);
-						// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
+						// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
 						{
-						DebugLocation(94, 14);
+						DebugLocation(321, 24);
 						input.Consume();
 
 
@@ -1053,114 +2480,32 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 						break;
 
 					default:
-						goto loop10;
-					}
-				}
+						if (cnt2 >= 1)
+							goto loop2;
 
-				loop10:
+						EarlyExitException eee2 = new EarlyExitException( 2, input );
+						DebugRecognitionException(eee2);
+						throw eee2;
+					}
+					cnt2++;
+				}
+				loop2:
 					;
 
-				} finally { DebugExitSubRule(10); }
+				} finally { DebugExitSubRule(2); }
 
-				DebugLocation(94, 28);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:94:28: ( '\\r' )?
-				int alt11=2;
-				try { DebugEnterSubRule(11);
-				try { DebugEnterDecision(11, false);
-				int LA11_0 = input.LA(1);
-
-				if ((LA11_0=='\r'))
-				{
-					alt11 = 1;
-				}
-				} finally { DebugExitDecision(11); }
-				switch (alt11)
-				{
-				case 1:
-					DebugEnterAlt(1);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:94:28: '\\r'
-					{
-					DebugLocation(94, 28);
-					Match('\r'); 
-
-					}
-					break;
 
 				}
-				} finally { DebugExitSubRule(11); }
 
-				DebugLocation(94, 34);
-				Match('\n'); 
-				DebugLocation(94, 39);
-				_channel=Hidden;
 
 				}
 				break;
 			case 2:
 				DebugEnterAlt(2);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:95:9: '/*' ( options {greedy=false; } : . )* '*/'
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:321:32: '0'
 				{
-				DebugLocation(95, 9);
-				Match("/*"); 
-
-				DebugLocation(95, 14);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:95:14: ( options {greedy=false; } : . )*
-				try { DebugEnterSubRule(12);
-				while (true)
-				{
-					int alt12=2;
-					try { DebugEnterDecision(12, false);
-					int LA12_0 = input.LA(1);
-
-					if ((LA12_0=='*'))
-					{
-						int LA12_1 = input.LA(2);
-
-						if ((LA12_1=='/'))
-						{
-							alt12 = 2;
-						}
-						else if (((LA12_1>='\u0000' && LA12_1<='.')||(LA12_1>='0' && LA12_1<='\uFFFF')))
-						{
-							alt12 = 1;
-						}
-
-
-					}
-					else if (((LA12_0>='\u0000' && LA12_0<=')')||(LA12_0>='+' && LA12_0<='\uFFFF')))
-					{
-						alt12 = 1;
-					}
-
-
-					} finally { DebugExitDecision(12); }
-					switch ( alt12 )
-					{
-					case 1:
-						DebugEnterAlt(1);
-						// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:95:42: .
-						{
-						DebugLocation(95, 42);
-						MatchAny(); 
-
-						}
-						break;
-
-					default:
-						goto loop12;
-					}
-				}
-
-				loop12:
-					;
-
-				} finally { DebugExitSubRule(12); }
-
-				DebugLocation(95, 47);
-				Match("*/"); 
-
-				DebugLocation(95, 52);
-				_channel=Hidden;
+				DebugLocation(321, 32);
+				Match('0'); 
 
 				}
 				break;
@@ -1171,33 +2516,31 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("COMMENT", 16);
-			LeaveRule("COMMENT", 16);
-			LeaveRule_COMMENT();
+			TraceOut("NUMBER", 63);
+			LeaveRule("NUMBER", 63);
+			LeaveRule_NUMBER();
 		}
 	}
-	// $ANTLR end "COMMENT"
+	// $ANTLR end "NUMBER"
 
-	partial void EnterRule_WS();
-	partial void LeaveRule_WS();
+	partial void EnterRule_NON_ZERO_NUM();
+	partial void LeaveRule_NON_ZERO_NUM();
 
-	// $ANTLR start "WS"
-	[GrammarRule("WS")]
-	private void mWS()
+	// $ANTLR start "NON_ZERO_NUM"
+	[GrammarRule("NON_ZERO_NUM")]
+	private void mNON_ZERO_NUM()
 	{
-		EnterRule_WS();
-		EnterRule("WS", 17);
-		TraceIn("WS", 17);
+		EnterRule_NON_ZERO_NUM();
+		EnterRule("NON_ZERO_NUM", 64);
+		TraceIn("NON_ZERO_NUM", 64);
 		try
 		{
-			int _type = WS;
-			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:98:5: ( ( ' ' | '\\t' | '\\r' | '\\n' ) )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:326:2: ( '1' .. '9' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:98:9: ( ' ' | '\\t' | '\\r' | '\\n' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
 			{
-			DebugLocation(98, 9);
-			if ((input.LA(1)>='\t' && input.LA(1)<='\n')||input.LA(1)=='\r'||input.LA(1)==' ')
+			DebugLocation(326, 2);
+			if ((input.LA(1)>='1' && input.LA(1)<='9'))
 			{
 				input.Consume();
 			}
@@ -1209,137 +2552,37 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 				throw mse;
 			}
 
-			DebugLocation(102, 11);
-			_channel=Hidden;
 
 			}
 
-			state.type = _type;
-			state.channel = _channel;
 		}
 		finally
 		{
-			TraceOut("WS", 17);
-			LeaveRule("WS", 17);
-			LeaveRule_WS();
+			TraceOut("NON_ZERO_NUM", 64);
+			LeaveRule("NON_ZERO_NUM", 64);
+			LeaveRule_NON_ZERO_NUM();
 		}
 	}
-	// $ANTLR end "WS"
+	// $ANTLR end "NON_ZERO_NUM"
 
-	partial void EnterRule_STRING();
-	partial void LeaveRule_STRING();
+	partial void EnterRule_NUM();
+	partial void LeaveRule_NUM();
 
-	// $ANTLR start "STRING"
-	[GrammarRule("STRING")]
-	private void mSTRING()
+	// $ANTLR start "NUM"
+	[GrammarRule("NUM")]
+	private void mNUM()
 	{
-		EnterRule_STRING();
-		EnterRule("STRING", 18);
-		TraceIn("STRING", 18);
+		EnterRule_NUM();
+		EnterRule("NUM", 65);
+		TraceIn("NUM", 65);
 		try
 		{
-			int _type = STRING;
-			int _channel = DefaultTokenChannel;
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:106:5: ( '\"' ( ESC_QUOTE |~ ( '\\\\' | '\"' ) )* '\"' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:329:5: ( '0' | NON_ZERO_NUM )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:106:8: '\"' ( ESC_QUOTE |~ ( '\\\\' | '\"' ) )* '\"'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
 			{
-			DebugLocation(106, 8);
-			Match('\"'); 
-			DebugLocation(106, 12);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:106:12: ( ESC_QUOTE |~ ( '\\\\' | '\"' ) )*
-			try { DebugEnterSubRule(14);
-			while (true)
-			{
-				int alt14=3;
-				try { DebugEnterDecision(14, false);
-				int LA14_0 = input.LA(1);
-
-				if ((LA14_0=='\"'))
-				{
-					int LA14_1 = input.LA(2);
-
-					if ((LA14_1=='\"'))
-					{
-						alt14 = 1;
-					}
-
-
-				}
-				else if (((LA14_0>='\u0000' && LA14_0<='!')||(LA14_0>='#' && LA14_0<='[')||(LA14_0>=']' && LA14_0<='\uFFFF')))
-				{
-					alt14 = 2;
-				}
-
-
-				} finally { DebugExitDecision(14); }
-				switch ( alt14 )
-				{
-				case 1:
-					DebugEnterAlt(1);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:106:14: ESC_QUOTE
-					{
-					DebugLocation(106, 14);
-					mESC_QUOTE(); 
-
-					}
-					break;
-				case 2:
-					DebugEnterAlt(2);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:106:26: ~ ( '\\\\' | '\"' )
-					{
-					DebugLocation(106, 26);
-					input.Consume();
-
-
-					}
-					break;
-
-				default:
-					goto loop14;
-				}
-			}
-
-			loop14:
-				;
-
-			} finally { DebugExitSubRule(14); }
-
-			DebugLocation(106, 41);
-			Match('\"'); 
-
-			}
-
-			state.type = _type;
-			state.channel = _channel;
-		}
-		finally
-		{
-			TraceOut("STRING", 18);
-			LeaveRule("STRING", 18);
-			LeaveRule_STRING();
-		}
-	}
-	// $ANTLR end "STRING"
-
-	partial void EnterRule_EXPONENT();
-	partial void LeaveRule_EXPONENT();
-
-	// $ANTLR start "EXPONENT"
-	[GrammarRule("EXPONENT")]
-	private void mEXPONENT()
-	{
-		EnterRule_EXPONENT();
-		EnterRule("EXPONENT", 19);
-		TraceIn("EXPONENT", 19);
-		try
-		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:111:10: ( ( 'e' | 'E' ) ( '+' | '-' )? ( '0' .. '9' )+ )
-			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:111:12: ( 'e' | 'E' ) ( '+' | '-' )? ( '0' .. '9' )+
-			{
-			DebugLocation(111, 12);
-			if (input.LA(1)=='E'||input.LA(1)=='e')
+			DebugLocation(329, 5);
+			if ((input.LA(1)>='0' && input.LA(1)<='9'))
 			{
 				input.Consume();
 			}
@@ -1351,78 +2594,47 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 				throw mse;
 			}
 
-			DebugLocation(111, 22);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:111:22: ( '+' | '-' )?
-			int alt15=2;
-			try { DebugEnterSubRule(15);
-			try { DebugEnterDecision(15, false);
-			int LA15_0 = input.LA(1);
 
-			if ((LA15_0=='+'||LA15_0=='-'))
-			{
-				alt15 = 1;
 			}
-			} finally { DebugExitDecision(15); }
-			switch (alt15)
+
+		}
+		finally
+		{
+			TraceOut("NUM", 65);
+			LeaveRule("NUM", 65);
+			LeaveRule_NUM();
+		}
+	}
+	// $ANTLR end "NUM"
+
+	partial void EnterRule_BIN_DIGIT();
+	partial void LeaveRule_BIN_DIGIT();
+
+	// $ANTLR start "BIN_DIGIT"
+	[GrammarRule("BIN_DIGIT")]
+	private void mBIN_DIGIT()
+	{
+		EnterRule_BIN_DIGIT();
+		EnterRule("BIN_DIGIT", 66);
+		TraceIn("BIN_DIGIT", 66);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:333:2: ( '0' | '1' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
 			{
-			case 1:
-				DebugEnterAlt(1);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
-				{
-				DebugLocation(111, 22);
+			DebugLocation(333, 2);
+			if ((input.LA(1)>='0' && input.LA(1)<='1'))
+			{
 				input.Consume();
-
-
-				}
-				break;
-
 			}
-			} finally { DebugExitSubRule(15); }
-
-			DebugLocation(111, 33);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:111:33: ( '0' .. '9' )+
-			int cnt16=0;
-			try { DebugEnterSubRule(16);
-			while (true)
+			else
 			{
-				int alt16=2;
-				try { DebugEnterDecision(16, false);
-				int LA16_0 = input.LA(1);
-
-				if (((LA16_0>='0' && LA16_0<='9')))
-				{
-					alt16 = 1;
-				}
-
-
-				} finally { DebugExitDecision(16); }
-				switch (alt16)
-				{
-				case 1:
-					DebugEnterAlt(1);
-					// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
-					{
-					DebugLocation(111, 33);
-					input.Consume();
-
-
-					}
-					break;
-
-				default:
-					if (cnt16 >= 1)
-						goto loop16;
-
-					EarlyExitException eee16 = new EarlyExitException( 16, input );
-					DebugRecognitionException(eee16);
-					throw eee16;
-				}
-				cnt16++;
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				Recover(mse);
+				throw mse;
 			}
-			loop16:
-				;
-
-			} finally { DebugExitSubRule(16); }
 
 
 			}
@@ -1430,12 +2642,12 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("EXPONENT", 19);
-			LeaveRule("EXPONENT", 19);
-			LeaveRule_EXPONENT();
+			TraceOut("BIN_DIGIT", 66);
+			LeaveRule("BIN_DIGIT", 66);
+			LeaveRule_BIN_DIGIT();
 		}
 	}
-	// $ANTLR end "EXPONENT"
+	// $ANTLR end "BIN_DIGIT"
 
 	partial void EnterRule_HEX_DIGIT();
 	partial void LeaveRule_HEX_DIGIT();
@@ -1445,15 +2657,15 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mHEX_DIGIT()
 	{
 		EnterRule_HEX_DIGIT();
-		EnterRule("HEX_DIGIT", 20);
-		TraceIn("HEX_DIGIT", 20);
+		EnterRule("HEX_DIGIT", 67);
+		TraceIn("HEX_DIGIT", 67);
 		try
 		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:114:11: ( ( '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' ) )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:336:11: ( ( '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' ) )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
 			{
-			DebugLocation(114, 11);
+			DebugLocation(336, 11);
 			if ((input.LA(1)>='0' && input.LA(1)<='9')||(input.LA(1)>='A' && input.LA(1)<='F')||(input.LA(1)>='a' && input.LA(1)<='f'))
 			{
 				input.Consume();
@@ -1472,12 +2684,480 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("HEX_DIGIT", 20);
-			LeaveRule("HEX_DIGIT", 20);
+			TraceOut("HEX_DIGIT", 67);
+			LeaveRule("HEX_DIGIT", 67);
 			LeaveRule_HEX_DIGIT();
 		}
 	}
 	// $ANTLR end "HEX_DIGIT"
+
+	partial void EnterRule_COMMENT();
+	partial void LeaveRule_COMMENT();
+
+	// $ANTLR start "COMMENT"
+	[GrammarRule("COMMENT")]
+	private void mCOMMENT()
+	{
+		EnterRule_COMMENT();
+		EnterRule("COMMENT", 68);
+		TraceIn("COMMENT", 68);
+		try
+		{
+			int _type = COMMENT;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:353:5: ( '//' (~ ( '\\n' | '\\r' ) )* ( '\\r' )? '\\n' | '/*' ( options {greedy=false; } : . )* '*/' )
+			int alt7=2;
+			try { DebugEnterDecision(7, false);
+			int LA7_0 = input.LA(1);
+
+			if ((LA7_0=='/'))
+			{
+				int LA7_1 = input.LA(2);
+
+				if ((LA7_1=='/'))
+				{
+					alt7 = 1;
+				}
+				else if ((LA7_1=='*'))
+				{
+					alt7 = 2;
+				}
+				else
+				{
+					NoViableAltException nvae = new NoViableAltException("", 7, 1, input);
+					DebugRecognitionException(nvae);
+					throw nvae;
+				}
+			}
+			else
+			{
+				NoViableAltException nvae = new NoViableAltException("", 7, 0, input);
+				DebugRecognitionException(nvae);
+				throw nvae;
+			}
+			} finally { DebugExitDecision(7); }
+			switch (alt7)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:353:9: '//' (~ ( '\\n' | '\\r' ) )* ( '\\r' )? '\\n'
+				{
+				DebugLocation(353, 9);
+				Match("//"); 
+
+				DebugLocation(353, 14);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:353:14: (~ ( '\\n' | '\\r' ) )*
+				try { DebugEnterSubRule(4);
+				while (true)
+				{
+					int alt4=2;
+					try { DebugEnterDecision(4, false);
+					int LA4_0 = input.LA(1);
+
+					if (((LA4_0>='\u0000' && LA4_0<='\t')||(LA4_0>='\u000B' && LA4_0<='\f')||(LA4_0>='\u000E' && LA4_0<='\uFFFF')))
+					{
+						alt4 = 1;
+					}
+
+
+					} finally { DebugExitDecision(4); }
+					switch ( alt4 )
+					{
+					case 1:
+						DebugEnterAlt(1);
+						// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+						{
+						DebugLocation(353, 14);
+						input.Consume();
+
+
+						}
+						break;
+
+					default:
+						goto loop4;
+					}
+				}
+
+				loop4:
+					;
+
+				} finally { DebugExitSubRule(4); }
+
+				DebugLocation(353, 28);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:353:28: ( '\\r' )?
+				int alt5=2;
+				try { DebugEnterSubRule(5);
+				try { DebugEnterDecision(5, false);
+				int LA5_0 = input.LA(1);
+
+				if ((LA5_0=='\r'))
+				{
+					alt5 = 1;
+				}
+				} finally { DebugExitDecision(5); }
+				switch (alt5)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:353:28: '\\r'
+					{
+					DebugLocation(353, 28);
+					Match('\r'); 
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(5); }
+
+				DebugLocation(353, 34);
+				Match('\n'); 
+				DebugLocation(353, 39);
+				_channel=Hidden;
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:354:9: '/*' ( options {greedy=false; } : . )* '*/'
+				{
+				DebugLocation(354, 9);
+				Match("/*"); 
+
+				DebugLocation(354, 14);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:354:14: ( options {greedy=false; } : . )*
+				try { DebugEnterSubRule(6);
+				while (true)
+				{
+					int alt6=2;
+					try { DebugEnterDecision(6, false);
+					int LA6_0 = input.LA(1);
+
+					if ((LA6_0=='*'))
+					{
+						int LA6_1 = input.LA(2);
+
+						if ((LA6_1=='/'))
+						{
+							alt6 = 2;
+						}
+						else if (((LA6_1>='\u0000' && LA6_1<='.')||(LA6_1>='0' && LA6_1<='\uFFFF')))
+						{
+							alt6 = 1;
+						}
+
+
+					}
+					else if (((LA6_0>='\u0000' && LA6_0<=')')||(LA6_0>='+' && LA6_0<='\uFFFF')))
+					{
+						alt6 = 1;
+					}
+
+
+					} finally { DebugExitDecision(6); }
+					switch ( alt6 )
+					{
+					case 1:
+						DebugEnterAlt(1);
+						// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:354:42: .
+						{
+						DebugLocation(354, 42);
+						MatchAny(); 
+
+						}
+						break;
+
+					default:
+						goto loop6;
+					}
+				}
+
+				loop6:
+					;
+
+				} finally { DebugExitSubRule(6); }
+
+				DebugLocation(354, 47);
+				Match("*/"); 
+
+				DebugLocation(354, 52);
+				_channel=Hidden;
+
+				}
+				break;
+
+			}
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("COMMENT", 68);
+			LeaveRule("COMMENT", 68);
+			LeaveRule_COMMENT();
+		}
+	}
+	// $ANTLR end "COMMENT"
+
+	partial void EnterRule_WS();
+	partial void LeaveRule_WS();
+
+	// $ANTLR start "WS"
+	[GrammarRule("WS")]
+	private void mWS()
+	{
+		EnterRule_WS();
+		EnterRule("WS", 69);
+		TraceIn("WS", 69);
+		try
+		{
+			int _type = WS;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:357:5: ( ( ' ' | '\\t' | '\\r' | '\\n' ) )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:357:9: ( ' ' | '\\t' | '\\r' | '\\n' )
+			{
+			DebugLocation(357, 9);
+			if ((input.LA(1)>='\t' && input.LA(1)<='\n')||input.LA(1)=='\r'||input.LA(1)==' ')
+			{
+				input.Consume();
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				Recover(mse);
+				throw mse;
+			}
+
+			DebugLocation(361, 11);
+			_channel=Hidden;
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("WS", 69);
+			LeaveRule("WS", 69);
+			LeaveRule_WS();
+		}
+	}
+	// $ANTLR end "WS"
+
+	partial void EnterRule_STRING();
+	partial void LeaveRule_STRING();
+
+	// $ANTLR start "STRING"
+	[GrammarRule("STRING")]
+	private void mSTRING()
+	{
+		EnterRule_STRING();
+		EnterRule("STRING", 70);
+		TraceIn("STRING", 70);
+		try
+		{
+			int _type = STRING;
+			int _channel = DefaultTokenChannel;
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:365:5: ( '\"' ( ESC_QUOTE |~ ( '\\\\' | '\"' ) )* '\"' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:365:8: '\"' ( ESC_QUOTE |~ ( '\\\\' | '\"' ) )* '\"'
+			{
+			DebugLocation(365, 8);
+			Match('\"'); 
+			DebugLocation(365, 12);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:365:12: ( ESC_QUOTE |~ ( '\\\\' | '\"' ) )*
+			try { DebugEnterSubRule(8);
+			while (true)
+			{
+				int alt8=3;
+				try { DebugEnterDecision(8, false);
+				int LA8_0 = input.LA(1);
+
+				if ((LA8_0=='\"'))
+				{
+					int LA8_1 = input.LA(2);
+
+					if ((LA8_1=='\"'))
+					{
+						alt8 = 1;
+					}
+
+
+				}
+				else if (((LA8_0>='\u0000' && LA8_0<='!')||(LA8_0>='#' && LA8_0<='[')||(LA8_0>=']' && LA8_0<='\uFFFF')))
+				{
+					alt8 = 2;
+				}
+
+
+				} finally { DebugExitDecision(8); }
+				switch ( alt8 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:365:14: ESC_QUOTE
+					{
+					DebugLocation(365, 14);
+					mESC_QUOTE(); 
+
+					}
+					break;
+				case 2:
+					DebugEnterAlt(2);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:365:26: ~ ( '\\\\' | '\"' )
+					{
+					DebugLocation(365, 26);
+					input.Consume();
+
+
+					}
+					break;
+
+				default:
+					goto loop8;
+				}
+			}
+
+			loop8:
+				;
+
+			} finally { DebugExitSubRule(8); }
+
+			DebugLocation(365, 41);
+			Match('\"'); 
+
+			}
+
+			state.type = _type;
+			state.channel = _channel;
+		}
+		finally
+		{
+			TraceOut("STRING", 70);
+			LeaveRule("STRING", 70);
+			LeaveRule_STRING();
+		}
+	}
+	// $ANTLR end "STRING"
+
+	partial void EnterRule_EXPONENT();
+	partial void LeaveRule_EXPONENT();
+
+	// $ANTLR start "EXPONENT"
+	[GrammarRule("EXPONENT")]
+	private void mEXPONENT()
+	{
+		EnterRule_EXPONENT();
+		EnterRule("EXPONENT", 71);
+		TraceIn("EXPONENT", 71);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:370:10: ( ( 'e' | 'E' ) ( '+' | '-' )? ( '0' .. '9' )+ )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:370:12: ( 'e' | 'E' ) ( '+' | '-' )? ( '0' .. '9' )+
+			{
+			DebugLocation(370, 12);
+			if (input.LA(1)=='E'||input.LA(1)=='e')
+			{
+				input.Consume();
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				Recover(mse);
+				throw mse;
+			}
+
+			DebugLocation(370, 22);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:370:22: ( '+' | '-' )?
+			int alt9=2;
+			try { DebugEnterSubRule(9);
+			try { DebugEnterDecision(9, false);
+			int LA9_0 = input.LA(1);
+
+			if ((LA9_0=='+'||LA9_0=='-'))
+			{
+				alt9 = 1;
+			}
+			} finally { DebugExitDecision(9); }
+			switch (alt9)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+				{
+				DebugLocation(370, 22);
+				input.Consume();
+
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(9); }
+
+			DebugLocation(370, 33);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:370:33: ( '0' .. '9' )+
+			int cnt10=0;
+			try { DebugEnterSubRule(10);
+			while (true)
+			{
+				int alt10=2;
+				try { DebugEnterDecision(10, false);
+				int LA10_0 = input.LA(1);
+
+				if (((LA10_0>='0' && LA10_0<='9')))
+				{
+					alt10 = 1;
+				}
+
+
+				} finally { DebugExitDecision(10); }
+				switch (alt10)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+					{
+					DebugLocation(370, 33);
+					input.Consume();
+
+
+					}
+					break;
+
+				default:
+					if (cnt10 >= 1)
+						goto loop10;
+
+					EarlyExitException eee10 = new EarlyExitException( 10, input );
+					DebugRecognitionException(eee10);
+					throw eee10;
+				}
+				cnt10++;
+			}
+			loop10:
+				;
+
+			} finally { DebugExitSubRule(10); }
+
+
+			}
+
+		}
+		finally
+		{
+			TraceOut("EXPONENT", 71);
+			LeaveRule("EXPONENT", 71);
+			LeaveRule_EXPONENT();
+		}
+	}
+	// $ANTLR end "EXPONENT"
 
 	partial void EnterRule_ESC_QUOTE();
 	partial void LeaveRule_ESC_QUOTE();
@@ -1487,17 +3167,17 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 	private void mESC_QUOTE()
 	{
 		EnterRule_ESC_QUOTE();
-		EnterRule("ESC_QUOTE", 21);
-		TraceIn("ESC_QUOTE", 21);
+		EnterRule("ESC_QUOTE", 72);
+		TraceIn("ESC_QUOTE", 72);
 		try
 		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:118:5: ( '\"' '\"' )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:374:5: ( '\"' '\"' )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:118:9: '\"' '\"'
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:374:9: '\"' '\"'
 			{
-			DebugLocation(118, 9);
+			DebugLocation(374, 9);
 			Match('\"'); 
-			DebugLocation(118, 13);
+			DebugLocation(374, 13);
 			Match('\"'); 
 
 			}
@@ -1505,358 +3185,620 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 		}
 		finally
 		{
-			TraceOut("ESC_QUOTE", 21);
-			LeaveRule("ESC_QUOTE", 21);
+			TraceOut("ESC_QUOTE", 72);
+			LeaveRule("ESC_QUOTE", 72);
 			LeaveRule_ESC_QUOTE();
 		}
 	}
 	// $ANTLR end "ESC_QUOTE"
 
-	partial void EnterRule_OCTAL_ESC();
-	partial void LeaveRule_OCTAL_ESC();
-
-	// $ANTLR start "OCTAL_ESC"
-	[GrammarRule("OCTAL_ESC")]
-	private void mOCTAL_ESC()
-	{
-		EnterRule_OCTAL_ESC();
-		EnterRule("OCTAL_ESC", 22);
-		TraceIn("OCTAL_ESC", 22);
-		try
-		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:123:5: ( '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) ( '0' .. '7' ) | '\\\\' ( '0' .. '7' ) )
-			int alt17=3;
-			try { DebugEnterDecision(17, false);
-			int LA17_0 = input.LA(1);
-
-			if ((LA17_0=='\\'))
-			{
-				int LA17_1 = input.LA(2);
-
-				if (((LA17_1>='0' && LA17_1<='3')))
-				{
-					int LA17_2 = input.LA(3);
-
-					if (((LA17_2>='0' && LA17_2<='7')))
-					{
-						int LA17_4 = input.LA(4);
-
-						if (((LA17_4>='0' && LA17_4<='7')))
-						{
-							alt17 = 1;
-						}
-						else
-						{
-							alt17 = 2;
-						}
-					}
-					else
-					{
-						alt17 = 3;
-					}
-				}
-				else if (((LA17_1>='4' && LA17_1<='7')))
-				{
-					int LA17_3 = input.LA(3);
-
-					if (((LA17_3>='0' && LA17_3<='7')))
-					{
-						alt17 = 2;
-					}
-					else
-					{
-						alt17 = 3;
-					}
-				}
-				else
-				{
-					NoViableAltException nvae = new NoViableAltException("", 17, 1, input);
-					DebugRecognitionException(nvae);
-					throw nvae;
-				}
-			}
-			else
-			{
-				NoViableAltException nvae = new NoViableAltException("", 17, 0, input);
-				DebugRecognitionException(nvae);
-				throw nvae;
-			}
-			} finally { DebugExitDecision(17); }
-			switch (alt17)
-			{
-			case 1:
-				DebugEnterAlt(1);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:123:9: '\\\\' ( '0' .. '3' ) ( '0' .. '7' ) ( '0' .. '7' )
-				{
-				DebugLocation(123, 9);
-				Match('\\'); 
-				DebugLocation(123, 14);
-				input.Consume();
-
-				DebugLocation(123, 25);
-				input.Consume();
-
-				DebugLocation(123, 36);
-				input.Consume();
-
-
-				}
-				break;
-			case 2:
-				DebugEnterAlt(2);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:124:9: '\\\\' ( '0' .. '7' ) ( '0' .. '7' )
-				{
-				DebugLocation(124, 9);
-				Match('\\'); 
-				DebugLocation(124, 14);
-				input.Consume();
-
-				DebugLocation(124, 25);
-				input.Consume();
-
-
-				}
-				break;
-			case 3:
-				DebugEnterAlt(3);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:125:9: '\\\\' ( '0' .. '7' )
-				{
-				DebugLocation(125, 9);
-				Match('\\'); 
-				DebugLocation(125, 14);
-				input.Consume();
-
-
-				}
-				break;
-
-			}
-		}
-		finally
-		{
-			TraceOut("OCTAL_ESC", 22);
-			LeaveRule("OCTAL_ESC", 22);
-			LeaveRule_OCTAL_ESC();
-		}
-	}
-	// $ANTLR end "OCTAL_ESC"
-
-	partial void EnterRule_UNICODE_ESC();
-	partial void LeaveRule_UNICODE_ESC();
-
-	// $ANTLR start "UNICODE_ESC"
-	[GrammarRule("UNICODE_ESC")]
-	private void mUNICODE_ESC()
-	{
-		EnterRule_UNICODE_ESC();
-		EnterRule("UNICODE_ESC", 23);
-		TraceIn("UNICODE_ESC", 23);
-		try
-		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:130:5: ( '\\\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT )
-			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:130:9: '\\\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
-			{
-			DebugLocation(130, 9);
-			Match('\\'); 
-			DebugLocation(130, 14);
-			Match('u'); 
-			DebugLocation(130, 18);
-			mHEX_DIGIT(); 
-			DebugLocation(130, 28);
-			mHEX_DIGIT(); 
-			DebugLocation(130, 38);
-			mHEX_DIGIT(); 
-			DebugLocation(130, 48);
-			mHEX_DIGIT(); 
-
-			}
-
-		}
-		finally
-		{
-			TraceOut("UNICODE_ESC", 23);
-			LeaveRule("UNICODE_ESC", 23);
-			LeaveRule_UNICODE_ESC();
-		}
-	}
-	// $ANTLR end "UNICODE_ESC"
-
 	public override void mTokens()
 	{
-		// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:8: ( T__26 | OPTIONAL | BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING | RECORD | TYPE | LBRACKET | RBRACKET | ID | INT | FLOAT | COMMENT | WS | STRING )
-		int alt18=18;
-		try { DebugEnterDecision(18, false);
+		// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:8: ( T__61 | T__62 | T__63 | T__64 | T__65 | T__66 | T__67 | T__68 | T__69 | T__70 | T__71 | T__72 | T__73 | T__74 | T__75 | T__76 | T__77 | T__78 | T__79 | T__80 | T__81 | T__82 | T__83 | OR | XOR | AND | NOT | MODULE | PUBLIC | PRIVATE | FRIEND | IMPORT | GROUP | OPTIONAL | BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING | RECORD | UNION | ENUMERATED | TYPE | LBRACKET | RBRACKET | SEMICOLON | LPAREN | RPAREN | MINUS | ASSIGNCHAR | BANG | CONST | INFINITY | DOTDOT | LENGTH | IN | OUT | ALL | PORT | MESSAGE | ID | NUMBER | COMMENT | WS | STRING )
+		int alt11=66;
+		try { DebugEnterDecision(11, false);
 		try
 		{
-			alt18 = dfa18.Predict(input);
+			alt11 = dfa11.Predict(input);
 		}
 		catch (NoViableAltException nvae)
 		{
 			DebugRecognitionException(nvae);
 			throw;
 		}
-		} finally { DebugExitDecision(18); }
-		switch (alt18)
+		} finally { DebugExitDecision(11); }
+		switch (alt11)
 		{
 		case 1:
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:10: T__26
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:10: T__61
 			{
 			DebugLocation(1, 10);
-			mT__26(); 
+			mT__61(); 
 
 			}
 			break;
 		case 2:
 			DebugEnterAlt(2);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:16: OPTIONAL
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:16: T__62
 			{
 			DebugLocation(1, 16);
-			mOPTIONAL(); 
+			mT__62(); 
 
 			}
 			break;
 		case 3:
 			DebugEnterAlt(3);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:25: BITSTRING
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:22: T__63
 			{
-			DebugLocation(1, 25);
-			mBITSTRING(); 
+			DebugLocation(1, 22);
+			mT__63(); 
 
 			}
 			break;
 		case 4:
 			DebugEnterAlt(4);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:35: BOOLEAN
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:28: T__64
 			{
-			DebugLocation(1, 35);
-			mBOOLEAN(); 
+			DebugLocation(1, 28);
+			mT__64(); 
 
 			}
 			break;
 		case 5:
 			DebugEnterAlt(5);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:43: CHARSTRING
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:34: T__65
 			{
-			DebugLocation(1, 43);
-			mCHARSTRING(); 
+			DebugLocation(1, 34);
+			mT__65(); 
 
 			}
 			break;
 		case 6:
 			DebugEnterAlt(6);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:54: CHAR
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:40: T__66
 			{
-			DebugLocation(1, 54);
-			mCHAR(); 
+			DebugLocation(1, 40);
+			mT__66(); 
 
 			}
 			break;
 		case 7:
 			DebugEnterAlt(7);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:59: INTEGER
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:46: T__67
 			{
-			DebugLocation(1, 59);
-			mINTEGER(); 
+			DebugLocation(1, 46);
+			mT__67(); 
 
 			}
 			break;
 		case 8:
 			DebugEnterAlt(8);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:67: OCTETSTRING
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:52: T__68
 			{
-			DebugLocation(1, 67);
-			mOCTETSTRING(); 
+			DebugLocation(1, 52);
+			mT__68(); 
 
 			}
 			break;
 		case 9:
 			DebugEnterAlt(9);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:79: RECORD
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:58: T__69
 			{
-			DebugLocation(1, 79);
-			mRECORD(); 
+			DebugLocation(1, 58);
+			mT__69(); 
 
 			}
 			break;
 		case 10:
 			DebugEnterAlt(10);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:86: TYPE
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:64: T__70
 			{
-			DebugLocation(1, 86);
-			mTYPE(); 
+			DebugLocation(1, 64);
+			mT__70(); 
 
 			}
 			break;
 		case 11:
 			DebugEnterAlt(11);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:91: LBRACKET
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:70: T__71
 			{
-			DebugLocation(1, 91);
-			mLBRACKET(); 
+			DebugLocation(1, 70);
+			mT__71(); 
 
 			}
 			break;
 		case 12:
 			DebugEnterAlt(12);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:100: RBRACKET
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:76: T__72
 			{
-			DebugLocation(1, 100);
-			mRBRACKET(); 
+			DebugLocation(1, 76);
+			mT__72(); 
 
 			}
 			break;
 		case 13:
 			DebugEnterAlt(13);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:109: ID
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:82: T__73
 			{
-			DebugLocation(1, 109);
-			mID(); 
+			DebugLocation(1, 82);
+			mT__73(); 
 
 			}
 			break;
 		case 14:
 			DebugEnterAlt(14);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:112: INT
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:88: T__74
 			{
-			DebugLocation(1, 112);
-			mINT(); 
+			DebugLocation(1, 88);
+			mT__74(); 
 
 			}
 			break;
 		case 15:
 			DebugEnterAlt(15);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:116: FLOAT
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:94: T__75
 			{
-			DebugLocation(1, 116);
-			mFLOAT(); 
+			DebugLocation(1, 94);
+			mT__75(); 
 
 			}
 			break;
 		case 16:
 			DebugEnterAlt(16);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:122: COMMENT
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:100: T__76
 			{
-			DebugLocation(1, 122);
-			mCOMMENT(); 
+			DebugLocation(1, 100);
+			mT__76(); 
 
 			}
 			break;
 		case 17:
 			DebugEnterAlt(17);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:130: WS
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:106: T__77
 			{
-			DebugLocation(1, 130);
-			mWS(); 
+			DebugLocation(1, 106);
+			mT__77(); 
 
 			}
 			break;
 		case 18:
 			DebugEnterAlt(18);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:1:133: STRING
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:112: T__78
 			{
-			DebugLocation(1, 133);
+			DebugLocation(1, 112);
+			mT__78(); 
+
+			}
+			break;
+		case 19:
+			DebugEnterAlt(19);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:118: T__79
+			{
+			DebugLocation(1, 118);
+			mT__79(); 
+
+			}
+			break;
+		case 20:
+			DebugEnterAlt(20);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:124: T__80
+			{
+			DebugLocation(1, 124);
+			mT__80(); 
+
+			}
+			break;
+		case 21:
+			DebugEnterAlt(21);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:130: T__81
+			{
+			DebugLocation(1, 130);
+			mT__81(); 
+
+			}
+			break;
+		case 22:
+			DebugEnterAlt(22);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:136: T__82
+			{
+			DebugLocation(1, 136);
+			mT__82(); 
+
+			}
+			break;
+		case 23:
+			DebugEnterAlt(23);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:142: T__83
+			{
+			DebugLocation(1, 142);
+			mT__83(); 
+
+			}
+			break;
+		case 24:
+			DebugEnterAlt(24);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:148: OR
+			{
+			DebugLocation(1, 148);
+			mOR(); 
+
+			}
+			break;
+		case 25:
+			DebugEnterAlt(25);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:151: XOR
+			{
+			DebugLocation(1, 151);
+			mXOR(); 
+
+			}
+			break;
+		case 26:
+			DebugEnterAlt(26);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:155: AND
+			{
+			DebugLocation(1, 155);
+			mAND(); 
+
+			}
+			break;
+		case 27:
+			DebugEnterAlt(27);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:159: NOT
+			{
+			DebugLocation(1, 159);
+			mNOT(); 
+
+			}
+			break;
+		case 28:
+			DebugEnterAlt(28);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:163: MODULE
+			{
+			DebugLocation(1, 163);
+			mMODULE(); 
+
+			}
+			break;
+		case 29:
+			DebugEnterAlt(29);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:170: PUBLIC
+			{
+			DebugLocation(1, 170);
+			mPUBLIC(); 
+
+			}
+			break;
+		case 30:
+			DebugEnterAlt(30);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:177: PRIVATE
+			{
+			DebugLocation(1, 177);
+			mPRIVATE(); 
+
+			}
+			break;
+		case 31:
+			DebugEnterAlt(31);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:185: FRIEND
+			{
+			DebugLocation(1, 185);
+			mFRIEND(); 
+
+			}
+			break;
+		case 32:
+			DebugEnterAlt(32);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:192: IMPORT
+			{
+			DebugLocation(1, 192);
+			mIMPORT(); 
+
+			}
+			break;
+		case 33:
+			DebugEnterAlt(33);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:199: GROUP
+			{
+			DebugLocation(1, 199);
+			mGROUP(); 
+
+			}
+			break;
+		case 34:
+			DebugEnterAlt(34);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:205: OPTIONAL
+			{
+			DebugLocation(1, 205);
+			mOPTIONAL(); 
+
+			}
+			break;
+		case 35:
+			DebugEnterAlt(35);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:214: BITSTRING
+			{
+			DebugLocation(1, 214);
+			mBITSTRING(); 
+
+			}
+			break;
+		case 36:
+			DebugEnterAlt(36);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:224: BOOLEAN
+			{
+			DebugLocation(1, 224);
+			mBOOLEAN(); 
+
+			}
+			break;
+		case 37:
+			DebugEnterAlt(37);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:232: CHARSTRING
+			{
+			DebugLocation(1, 232);
+			mCHARSTRING(); 
+
+			}
+			break;
+		case 38:
+			DebugEnterAlt(38);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:243: CHAR
+			{
+			DebugLocation(1, 243);
+			mCHAR(); 
+
+			}
+			break;
+		case 39:
+			DebugEnterAlt(39);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:248: INTEGER
+			{
+			DebugLocation(1, 248);
+			mINTEGER(); 
+
+			}
+			break;
+		case 40:
+			DebugEnterAlt(40);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:256: OCTETSTRING
+			{
+			DebugLocation(1, 256);
+			mOCTETSTRING(); 
+
+			}
+			break;
+		case 41:
+			DebugEnterAlt(41);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:268: RECORD
+			{
+			DebugLocation(1, 268);
+			mRECORD(); 
+
+			}
+			break;
+		case 42:
+			DebugEnterAlt(42);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:275: UNION
+			{
+			DebugLocation(1, 275);
+			mUNION(); 
+
+			}
+			break;
+		case 43:
+			DebugEnterAlt(43);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:281: ENUMERATED
+			{
+			DebugLocation(1, 281);
+			mENUMERATED(); 
+
+			}
+			break;
+		case 44:
+			DebugEnterAlt(44);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:292: TYPE
+			{
+			DebugLocation(1, 292);
+			mTYPE(); 
+
+			}
+			break;
+		case 45:
+			DebugEnterAlt(45);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:297: LBRACKET
+			{
+			DebugLocation(1, 297);
+			mLBRACKET(); 
+
+			}
+			break;
+		case 46:
+			DebugEnterAlt(46);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:306: RBRACKET
+			{
+			DebugLocation(1, 306);
+			mRBRACKET(); 
+
+			}
+			break;
+		case 47:
+			DebugEnterAlt(47);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:315: SEMICOLON
+			{
+			DebugLocation(1, 315);
+			mSEMICOLON(); 
+
+			}
+			break;
+		case 48:
+			DebugEnterAlt(48);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:325: LPAREN
+			{
+			DebugLocation(1, 325);
+			mLPAREN(); 
+
+			}
+			break;
+		case 49:
+			DebugEnterAlt(49);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:332: RPAREN
+			{
+			DebugLocation(1, 332);
+			mRPAREN(); 
+
+			}
+			break;
+		case 50:
+			DebugEnterAlt(50);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:339: MINUS
+			{
+			DebugLocation(1, 339);
+			mMINUS(); 
+
+			}
+			break;
+		case 51:
+			DebugEnterAlt(51);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:345: ASSIGNCHAR
+			{
+			DebugLocation(1, 345);
+			mASSIGNCHAR(); 
+
+			}
+			break;
+		case 52:
+			DebugEnterAlt(52);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:356: BANG
+			{
+			DebugLocation(1, 356);
+			mBANG(); 
+
+			}
+			break;
+		case 53:
+			DebugEnterAlt(53);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:361: CONST
+			{
+			DebugLocation(1, 361);
+			mCONST(); 
+
+			}
+			break;
+		case 54:
+			DebugEnterAlt(54);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:367: INFINITY
+			{
+			DebugLocation(1, 367);
+			mINFINITY(); 
+
+			}
+			break;
+		case 55:
+			DebugEnterAlt(55);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:376: DOTDOT
+			{
+			DebugLocation(1, 376);
+			mDOTDOT(); 
+
+			}
+			break;
+		case 56:
+			DebugEnterAlt(56);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:383: LENGTH
+			{
+			DebugLocation(1, 383);
+			mLENGTH(); 
+
+			}
+			break;
+		case 57:
+			DebugEnterAlt(57);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:390: IN
+			{
+			DebugLocation(1, 390);
+			mIN(); 
+
+			}
+			break;
+		case 58:
+			DebugEnterAlt(58);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:393: OUT
+			{
+			DebugLocation(1, 393);
+			mOUT(); 
+
+			}
+			break;
+		case 59:
+			DebugEnterAlt(59);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:397: ALL
+			{
+			DebugLocation(1, 397);
+			mALL(); 
+
+			}
+			break;
+		case 60:
+			DebugEnterAlt(60);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:401: PORT
+			{
+			DebugLocation(1, 401);
+			mPORT(); 
+
+			}
+			break;
+		case 61:
+			DebugEnterAlt(61);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:406: MESSAGE
+			{
+			DebugLocation(1, 406);
+			mMESSAGE(); 
+
+			}
+			break;
+		case 62:
+			DebugEnterAlt(62);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:414: ID
+			{
+			DebugLocation(1, 414);
+			mID(); 
+
+			}
+			break;
+		case 63:
+			DebugEnterAlt(63);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:417: NUMBER
+			{
+			DebugLocation(1, 417);
+			mNUMBER(); 
+
+			}
+			break;
+		case 64:
+			DebugEnterAlt(64);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:424: COMMENT
+			{
+			DebugLocation(1, 424);
+			mCOMMENT(); 
+
+			}
+			break;
+		case 65:
+			DebugEnterAlt(65);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:432: WS
+			{
+			DebugLocation(1, 432);
+			mWS(); 
+
+			}
+			break;
+		case 66:
+			DebugEnterAlt(66);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:1:435: STRING
+			{
+			DebugLocation(1, 435);
 			mSTRING(); 
 
 			}
@@ -1868,229 +3810,367 @@ public partial class TTCN3Lexer : Antlr.Runtime.Lexer
 
 
 	#region DFA
-	DFA9 dfa9;
-	DFA18 dfa18;
+	DFA11 dfa11;
 
 	protected override void InitDFAs()
 	{
 		base.InitDFAs();
-		dfa9 = new DFA9(this);
-		dfa18 = new DFA18(this);
+		dfa11 = new DFA11(this);
 	}
 
-	private class DFA9 : DFA
+	private class DFA11 : DFA
 	{
-		private const string DFA9_eotS =
-			"\x5\xFFFF";
-		private const string DFA9_eofS =
-			"\x5\xFFFF";
-		private const string DFA9_minS =
-			"\x2\x2E\x3\xFFFF";
-		private const string DFA9_maxS =
-			"\x1\x39\x1\x65\x3\xFFFF";
-		private const string DFA9_acceptS =
-			"\x2\xFFFF\x1\x2\x1\x1\x1\x3";
-		private const string DFA9_specialS =
-			"\x5\xFFFF}>";
-		private static readonly string[] DFA9_transitionS =
+		private const string DFA11_eotS =
+			"\x1\xFFFF\x1\x28\x4\xFFFF\x1\x2A\x1\x2C\x1\x30\x1\xFFFF\x1\x33\x1\xFFFF"+
+			"\xF\x23\x7\xFFFF\x1\x23\x11\xFFFF\x6\x23\x1\x56\x9\x23\x1\x63\x9\x23"+
+			"\x1\x6E\x1\x6F\x2\x23\x1\x73\x1\x23\x1\x76\x1\x23\x1\xFFFF\x2\x23\x1"+
+			"\x7A\x1\x7B\x1\x23\x1\x7E\x6\x23\x1\xFFFF\xA\x23\x2\xFFFF\x1\x8F\x2\x23"+
+			"\x1\xFFFF\x2\x23\x1\xFFFF\x1\x94\x2\x23\x2\xFFFF\x2\x23\x1\xFFFF\x2\x23"+
+			"\x1\x9B\x6\x23\x1\xA3\x3\x23\x1\xA7\x1\x23\x1\xA9\x1\xFFFF\x3\x23\x1"+
+			"\xAD\x1\xFFFF\x3\x23\x1\xB1\x2\x23\x1\xFFFF\x3\x23\x1\xB7\x3\x23\x1\xFFFF"+
+			"\x1\xBB\x1\xBC\x1\x23\x1\xFFFF\x1\x23\x1\xFFFF\x1\xBF\x1\xC0\x1\x23\x1"+
+			"\xFFFF\x2\x23\x1\xC4\x1\xFFFF\x1\xC5\x1\x23\x1\xC7\x2\x23\x1\xFFFF\x3"+
+			"\x23\x2\xFFFF\x1\x23\x1\xCE\x2\xFFFF\x1\xCF\x2\x23\x2\xFFFF\x1\xD2\x1"+
+			"\xFFFF\x1\xD3\x2\x23\x1\xD6\x2\x23\x2\xFFFF\x1\xD9\x1\x23\x2\xFFFF\x1"+
+			"\xDB\x1\x23\x1\xFFFF\x2\x23\x1\xFFFF\x1\x23\x1\xFFFF\x1\xE0\x3\x23\x1"+
+			"\xFFFF\x1\xE4\x1\xE5\x1\xE6\x3\xFFFF";
+		private const string DFA11_eofS =
+			"\xE7\xFFFF";
+		private const string DFA11_minS =
+			"\x1\x9\x1\x3D\x4\xFFFF\x1\x2E\x1\x2A\x1\x3C\x1\xFFFF\x1\x3D\x1\xFFFF"+
+			"\x1\x6C\x1\x72\x1\x65\x1\x6F\x1\x63\x1\x65\x2\x6F\x1\x6D\x1\x72\x1\x69"+
+			"\x1\x68\x2\x6E\x1\x79\x7\xFFFF\x1\x65\x11\xFFFF\x1\x64\x1\x6C\x1\x69"+
+			"\x1\x64\x1\x73\x1\x74\x1\x30\x3\x74\x1\x63\x1\x72\x1\x62\x1\x69\x1\x72"+
+			"\x1\x70\x1\x30\x1\x6F\x1\x74\x1\x6F\x1\x61\x1\x6E\x1\x69\x1\x75\x1\x70"+
+			"\x1\x6E\x2\x30\x1\x6D\x1\x65\x1\x30\x1\x73\x1\x30\x1\x62\x1\xFFFF\x1"+
+			"\x69\x1\x65\x2\x30\x1\x6F\x1\x30\x1\x6C\x1\x76\x1\x74\x1\x6F\x1\x65\x1"+
+			"\x69\x1\xFFFF\x1\x75\x1\x73\x1\x6C\x1\x72\x1\x73\x1\x6F\x1\x6D\x1\x65"+
+			"\x1\x67\x1\x62\x2\xFFFF\x1\x30\x1\x6E\x1\x6C\x1\xFFFF\x1\x61\x1\x62\x1"+
+			"\xFFFF\x1\x30\x1\x6F\x1\x74\x2\xFFFF\x1\x72\x1\x62\x1\xFFFF\x1\x69\x1"+
+			"\x61\x1\x30\x1\x72\x1\x67\x1\x6E\x1\x70\x1\x74\x1\x65\x1\x30\x1\x74\x1"+
+			"\x6E\x1\x65\x1\x30\x1\x74\x1\x30\x1\xFFFF\x1\x64\x1\x65\x1\x67\x1\x30"+
+			"\x1\xFFFF\x1\x6E\x1\x73\x1\x64\x1\x30\x1\x63\x1\x74\x1\xFFFF\x1\x74\x1"+
+			"\x65\x1\x69\x1\x30\x1\x72\x1\x61\x1\x74\x1\xFFFF\x2\x30\x1\x72\x1\xFFFF"+
+			"\x1\x68\x1\xFFFF\x2\x30\x1\x65\x1\xFFFF\x1\x61\x1\x74\x1\x30\x1\xFFFF"+
+			"\x1\x30\x1\x65\x1\x30\x1\x72\x1\x74\x1\xFFFF\x1\x69\x1\x6E\x1\x72\x2"+
+			"\xFFFF\x1\x61\x1\x30\x2\xFFFF\x1\x30\x1\x6C\x1\x72\x2\xFFFF\x1\x30\x1"+
+			"\xFFFF\x1\x30\x1\x79\x1\x6E\x1\x30\x1\x69\x1\x74\x2\xFFFF\x1\x30\x1\x69"+
+			"\x2\xFFFF\x1\x30\x1\x67\x1\xFFFF\x1\x6E\x1\x65\x1\xFFFF\x1\x6E\x1\xFFFF"+
+			"\x1\x30\x1\x67\x1\x64\x1\x67\x1\xFFFF\x3\x30\x3\xFFFF";
+		private const string DFA11_maxS =
+			"\x1\x7D\x1\x3D\x4\xFFFF\x1\x2E\x1\x2F\x1\x40\x1\xFFFF\x1\x3E\x1\xFFFF"+
+			"\x1\x6E\x1\x72\x2\x6F\x1\x75\x1\x65\x1\x6F\x1\x75\x1\x6E\x1\x72\x2\x6F"+
+			"\x2\x6E\x1\x79\x7\xFFFF\x1\x65\x11\xFFFF\x1\x64\x1\x6C\x1\x6F\x1\x64"+
+			"\x1\x73\x1\x74\x1\x7A\x3\x74\x1\x6D\x1\x72\x1\x62\x1\x69\x1\x72\x1\x70"+
+			"\x1\x7A\x1\x6F\x1\x74\x1\x6F\x1\x61\x1\x6E\x1\x69\x1\x75\x1\x70\x1\x6E"+
+			"\x2\x7A\x1\x6D\x1\x65\x1\x7A\x1\x73\x1\x7A\x1\x62\x1\xFFFF\x1\x69\x1"+
+			"\x65\x2\x7A\x1\x6F\x1\x7A\x1\x6C\x1\x76\x1\x74\x1\x6F\x1\x65\x1\x69\x1"+
+			"\xFFFF\x1\x75\x1\x73\x1\x6C\x1\x72\x1\x73\x1\x6F\x1\x6D\x1\x65\x1\x67"+
+			"\x1\x62\x2\xFFFF\x1\x7A\x1\x6E\x1\x6C\x1\xFFFF\x1\x61\x1\x62\x1\xFFFF"+
+			"\x1\x7A\x1\x6F\x1\x74\x2\xFFFF\x1\x72\x1\x62\x1\xFFFF\x1\x69\x1\x61\x1"+
+			"\x7A\x1\x72\x1\x67\x1\x6E\x1\x70\x1\x74\x1\x65\x1\x7A\x1\x74\x1\x6E\x1"+
+			"\x65\x1\x7A\x1\x74\x1\x7A\x1\xFFFF\x1\x64\x1\x65\x1\x67\x1\x7A\x1\xFFFF"+
+			"\x1\x6E\x1\x73\x1\x64\x1\x7A\x1\x63\x1\x74\x1\xFFFF\x1\x74\x1\x65\x1"+
+			"\x69\x1\x7A\x1\x72\x1\x61\x1\x74\x1\xFFFF\x2\x7A\x1\x72\x1\xFFFF\x1\x68"+
+			"\x1\xFFFF\x2\x7A\x1\x65\x1\xFFFF\x1\x61\x1\x74\x1\x7A\x1\xFFFF\x1\x7A"+
+			"\x1\x65\x1\x7A\x1\x72\x1\x74\x1\xFFFF\x1\x69\x1\x6E\x1\x72\x2\xFFFF\x1"+
+			"\x61\x1\x7A\x2\xFFFF\x1\x7A\x1\x6C\x1\x72\x2\xFFFF\x1\x7A\x1\xFFFF\x1"+
+			"\x7A\x1\x79\x1\x6E\x1\x7A\x1\x69\x1\x74\x2\xFFFF\x1\x7A\x1\x69\x2\xFFFF"+
+			"\x1\x7A\x1\x67\x1\xFFFF\x1\x6E\x1\x65\x1\xFFFF\x1\x6E\x1\xFFFF\x1\x7A"+
+			"\x1\x67\x1\x64\x1\x67\x1\xFFFF\x3\x7A\x3\xFFFF";
+		private const string DFA11_acceptS =
+			"\x2\xFFFF\x1\x2\x1\x3\x1\x4\x1\x5\x3\xFFFF\x1\xC\x1\xFFFF\x1\x10\xF\xFFFF"+
+			"\x1\x2D\x1\x2E\x1\x2F\x1\x30\x1\x31\x1\x32\x1\x33\x1\xFFFF\x1\x3E\x1"+
+			"\x3F\x1\x41\x1\x42\x1\x1\x1\x34\x1\x37\x1\x6\x1\x40\x1\x7\x1\x9\x1\xA"+
+			"\x1\xB\x1\x8\x1\xE\x1\xF\x1\xD\x22\xFFFF\x1\x18\xC\xFFFF\x1\x39\xA\xFFFF"+
+			"\x1\x1A\x1\x3B\x3\xFFFF\x1\x13\x2\xFFFF\x1\x1B\x3\xFFFF\x1\x3A\x1\x16"+
+			"\x2\xFFFF\x1\x19\x10\xFFFF\x1\x12\x4\xFFFF\x1\x15\x6\xFFFF\x1\x3C\x7"+
+			"\xFFFF\x1\x26\x3\xFFFF\x1\x2C\x1\xFFFF\x1\x11\x3\xFFFF\x1\x14\x3\xFFFF"+
+			"\x1\x17\x5\xFFFF\x1\x21\x3\xFFFF\x1\x35\x1\x2A\x2\xFFFF\x1\x1F\x1\x1C"+
+			"\x3\xFFFF\x1\x29\x1\x1D\x1\xFFFF\x1\x20\x6\xFFFF\x1\x38\x1\x3D\x2\xFFFF"+
+			"\x1\x1E\x1\x27\x2\xFFFF\x1\x24\x2\xFFFF\x1\x22\x1\xFFFF\x1\x36\x4\xFFFF"+
+			"\x1\x23\x3\xFFFF\x1\x25\x1\x2B\x1\x28";
+		private const string DFA11_specialS =
+			"\xE7\xFFFF}>";
+		private static readonly string[] DFA11_transitionS =
 			{
-				"\x1\x2\x1\xFFFF\xA\x1",
-				"\x1\x3\x1\xFFFF\xA\x1\xB\xFFFF\x1\x4\x1F\xFFFF\x1\x4",
-				"",
-				"",
-				""
-			};
-
-		private static readonly short[] DFA9_eot = DFA.UnpackEncodedString(DFA9_eotS);
-		private static readonly short[] DFA9_eof = DFA.UnpackEncodedString(DFA9_eofS);
-		private static readonly char[] DFA9_min = DFA.UnpackEncodedStringToUnsignedChars(DFA9_minS);
-		private static readonly char[] DFA9_max = DFA.UnpackEncodedStringToUnsignedChars(DFA9_maxS);
-		private static readonly short[] DFA9_accept = DFA.UnpackEncodedString(DFA9_acceptS);
-		private static readonly short[] DFA9_special = DFA.UnpackEncodedString(DFA9_specialS);
-		private static readonly short[][] DFA9_transition;
-
-		static DFA9()
-		{
-			int numStates = DFA9_transitionS.Length;
-			DFA9_transition = new short[numStates][];
-			for ( int i=0; i < numStates; i++ )
-			{
-				DFA9_transition[i] = DFA.UnpackEncodedString(DFA9_transitionS[i]);
-			}
-		}
-
-		public DFA9( BaseRecognizer recognizer )
-		{
-			this.recognizer = recognizer;
-			this.decisionNumber = 9;
-			this.eot = DFA9_eot;
-			this.eof = DFA9_eof;
-			this.min = DFA9_min;
-			this.max = DFA9_max;
-			this.accept = DFA9_accept;
-			this.special = DFA9_special;
-			this.transition = DFA9_transition;
-		}
-
-		public override string Description { get { return "87:1: FLOAT : ( ( '0' .. '9' )+ '.' ( '0' .. '9' )* ( EXPONENT )? | '.' ( '0' .. '9' )+ ( EXPONENT )? | ( '0' .. '9' )+ EXPONENT );"; } }
-
-		public override void Error(NoViableAltException nvae)
-		{
-			DebugRecognitionException(nvae);
-		}
-	}
-
-	private class DFA18 : DFA
-	{
-		private const string DFA18_eotS =
-			"\x2\xFFFF\x6\xA\x3\xFFFF\x1\x18\x4\xFFFF\x8\xA\x1\xFFFF\xC\xA\x1\x2E"+
-			"\x2\xA\x1\x31\x5\xA\x1\xFFFF\x2\xA\x1\xFFFF\x6\xA\x1\x3F\x3\xA\x1\x43"+
-			"\x1\xA\x1\x45\x1\xFFFF\x1\x46\x2\xA\x1\xFFFF\x1\xA\x2\xFFFF\x1\xA\x1"+
-			"\x4B\x2\xA\x1\xFFFF\x1\x4E\x1\x4F\x2\xFFFF";
-		private const string DFA18_eofS =
-			"\x50\xFFFF";
-		private const string DFA18_minS =
-			"\x1\x9\x1\xFFFF\x1\x63\x1\x69\x1\x68\x1\x6E\x1\x65\x1\x79\x3\xFFFF\x1"+
-			"\x2E\x4\xFFFF\x3\x74\x1\x6F\x1\x61\x1\x74\x1\x63\x1\x70\x1\xFFFF\x1\x69"+
-			"\x1\x65\x1\x73\x1\x6C\x1\x72\x1\x65\x1\x6F\x1\x65\x1\x6F\x2\x74\x1\x65"+
-			"\x1\x30\x1\x67\x1\x72\x1\x30\x1\x6E\x1\x73\x1\x72\x1\x61\x1\x74\x1\xFFFF"+
-			"\x1\x65\x1\x64\x1\xFFFF\x1\x61\x1\x74\x1\x69\x1\x6E\x2\x72\x1\x30\x1"+
-			"\x6C\x1\x72\x1\x6E\x1\x30\x1\x69\x1\x30\x1\xFFFF\x1\x30\x1\x69\x1\x67"+
-			"\x1\xFFFF\x1\x6E\x2\xFFFF\x1\x6E\x1\x30\x2\x67\x1\xFFFF\x2\x30\x2\xFFFF";
-		private const string DFA18_maxS =
-			"\x1\x7D\x1\xFFFF\x1\x70\x1\x6F\x1\x68\x1\x6E\x1\x65\x1\x79\x3\xFFFF\x1"+
-			"\x65\x4\xFFFF\x3\x74\x1\x6F\x1\x61\x1\x74\x1\x63\x1\x70\x1\xFFFF\x1\x69"+
-			"\x1\x65\x1\x73\x1\x6C\x1\x72\x1\x65\x1\x6F\x1\x65\x1\x6F\x2\x74\x1\x65"+
-			"\x1\x7A\x1\x67\x1\x72\x1\x7A\x1\x6E\x1\x73\x1\x72\x1\x61\x1\x74\x1\xFFFF"+
-			"\x1\x65\x1\x64\x1\xFFFF\x1\x61\x1\x74\x1\x69\x1\x6E\x2\x72\x1\x7A\x1"+
-			"\x6C\x1\x72\x1\x6E\x1\x7A\x1\x69\x1\x7A\x1\xFFFF\x1\x7A\x1\x69\x1\x67"+
-			"\x1\xFFFF\x1\x6E\x2\xFFFF\x1\x6E\x1\x7A\x2\x67\x1\xFFFF\x2\x7A\x2\xFFFF";
-		private const string DFA18_acceptS =
-			"\x1\xFFFF\x1\x1\x6\xFFFF\x1\xB\x1\xC\x1\xD\x1\xFFFF\x1\xF\x1\x10\x1\x11"+
-			"\x1\x12\x8\xFFFF\x1\xE\x15\xFFFF\x1\x6\x2\xFFFF\x1\xA\xD\xFFFF\x1\x9"+
-			"\x3\xFFFF\x1\x4\x1\xFFFF\x1\x7\x1\x2\x4\xFFFF\x1\x3\x2\xFFFF\x1\x5\x1"+
-			"\x8";
-		private const string DFA18_specialS =
-			"\x50\xFFFF}>";
-		private static readonly string[] DFA18_transitionS =
-			{
-				"\x2\xE\x2\xFFFF\x1\xE\x12\xFFFF\x1\xE\x1\xFFFF\x1\xF\x9\xFFFF\x1\x1"+
-				"\x1\xFFFF\x1\xC\x1\xD\xA\xB\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF"+
-				"\x1\xA\x1\x3\x1\x4\x5\xA\x1\x5\x5\xA\x1\x2\x2\xA\x1\x6\x1\xA\x1\x7\x6"+
-				"\xA\x1\x8\x1\xFFFF\x1\x9",
-				"",
-				"\x1\x11\xC\xFFFF\x1\x10",
-				"\x1\x12\x5\xFFFF\x1\x13",
-				"\x1\x14",
-				"\x1\x15",
-				"\x1\x16",
-				"\x1\x17",
-				"",
-				"",
-				"",
-				"\x1\xC\x1\xFFFF\xA\xB\xB\xFFFF\x1\xC\x1F\xFFFF\x1\xC",
-				"",
-				"",
-				"",
-				"",
-				"\x1\x19",
-				"\x1\x1A",
-				"\x1\x1B",
-				"\x1\x1C",
-				"\x1\x1D",
-				"\x1\x1E",
-				"\x1\x1F",
-				"\x1\x20",
-				"",
-				"\x1\x21",
-				"\x1\x22",
-				"\x1\x23",
-				"\x1\x24",
-				"\x1\x25",
-				"\x1\x26",
+				"\x2\x25\x2\xFFFF\x1\x25\x12\xFFFF\x1\x25\x1\x1\x1\x26\x3\xFFFF\x1\x2"+
+				"\x1\xFFFF\x1\x1E\x1\x1F\x1\x3\x1\x4\x1\x5\x1\x20\x1\x6\x1\x7\xA\x24"+
+				"\x1\x21\x1\x1D\x1\x8\x1\x9\x1\xA\x1\xFFFF\x1\xB\x1A\x23\x4\xFFFF\x1"+
+				"\x23\x1\xFFFF\x1\xC\x1\x16\x1\x17\x1\x23\x1\x19\x1\xD\x1\x15\x1\x23"+
+				"\x1\x14\x2\x23\x1\x22\x1\xE\x1\xF\x1\x10\x1\x13\x1\x23\x1\x11\x1\x23"+
+				"\x1\x1A\x1\x18\x2\x23\x1\x12\x2\x23\x1\x1B\x1\xFFFF\x1\x1C",
 				"\x1\x27",
-				"\x1\x28",
+				"",
+				"",
+				"",
+				"",
 				"\x1\x29",
-				"\x1\x2A",
-				"\x1\x2B",
-				"\x1\x2C",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x12\xA\x1\x2D\x7\xA",
-				"\x1\x2F",
-				"\x1\x30",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
-				"\x1\x32",
-				"\x1\x33",
-				"\x1\x34",
-				"\x1\x35",
+				"\x1\x2B\x4\xFFFF\x1\x2B",
+				"\x1\x2D\x1\x2E\x2\xFFFF\x1\x2F",
+				"",
+				"\x1\x31\x1\x32",
+				"",
+				"\x1\x35\x1\xFFFF\x1\x34",
 				"\x1\x36",
-				"",
-				"\x1\x37",
-				"\x1\x38",
-				"",
+				"\x1\x38\x9\xFFFF\x1\x37",
 				"\x1\x39",
-				"\x1\x3A",
-				"\x1\x3B",
-				"\x1\x3C",
-				"\x1\x3D",
+				"\x1\x3C\xC\xFFFF\x1\x3B\x1\xFFFF\x1\x3A\x2\xFFFF\x1\x3D",
 				"\x1\x3E",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
-				"\x1\x40",
-				"\x1\x41",
-				"\x1\x42",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
-				"\x1\x44",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
-				"",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
-				"\x1\x47",
-				"\x1\x48",
-				"",
-				"\x1\x49",
-				"",
-				"",
+				"\x1\x3F",
+				"\x1\x42\x2\xFFFF\x1\x41\x2\xFFFF\x1\x40",
+				"\x1\x43\x1\x44",
+				"\x1\x45",
+				"\x1\x46\x5\xFFFF\x1\x47",
+				"\x1\x48\x6\xFFFF\x1\x49",
 				"\x1\x4A",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
+				"\x1\x4B",
 				"\x1\x4C",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
 				"\x1\x4D",
 				"",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
-				"\xA\xA\x7\xFFFF\x1A\xA\x4\xFFFF\x1\xA\x1\xFFFF\x1A\xA",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"",
+				"\x1\x4E",
+				"\x1\x4F",
+				"\x1\x51\x5\xFFFF\x1\x50",
+				"\x1\x52",
+				"\x1\x53",
+				"\x1\x54",
+				"\x4\x23\x1\x55\x5\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A"+
+				"\x23",
+				"\x1\x57",
+				"\x1\x58",
+				"\x1\x59",
+				"\x1\x5B\x9\xFFFF\x1\x5A",
+				"\x1\x5C",
+				"\x1\x5D",
+				"\x1\x5E",
+				"\x1\x5F",
+				"\x1\x60",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x5\x23\x1\x62\xD"+
+				"\x23\x1\x61\x6\x23",
+				"\x1\x64",
+				"\x1\x65",
+				"\x1\x66",
+				"\x1\x67",
+				"\x1\x68",
+				"\x1\x69",
+				"\x1\x6A",
+				"\x1\x6B",
+				"\x1\x6C",
+				"\x4\x23\x1\x6D\x5\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A"+
+				"\x23",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\x70",
+				"\x1\x71",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x14\x23\x1\x72\x5"+
+				"\x23",
+				"\x1\x74",
+				"\x4\x23\x1\x75\x5\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A"+
+				"\x23",
+				"\x1\x77",
+				"",
+				"\x1\x78",
+				"\x1\x79",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\x7C",
+				"\x4\x23\x1\x7D\x5\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A"+
+				"\x23",
+				"\x1\x7F",
+				"\x1\x80",
+				"\x1\x81",
+				"\x1\x82",
+				"\x1\x83",
+				"\x1\x84",
+				"",
+				"\x1\x85",
+				"\x1\x86",
+				"\x1\x87",
+				"\x1\x88",
+				"\x1\x89",
+				"\x1\x8A",
+				"\x1\x8B",
+				"\x1\x8C",
+				"\x1\x8D",
+				"\x1\x8E",
+				"",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\x90",
+				"\x1\x91",
+				"",
+				"\x1\x92",
+				"\x1\x93",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\x95",
+				"\x1\x96",
+				"",
+				"",
+				"\x1\x97",
+				"\x1\x98",
+				"",
+				"\x1\x99",
+				"\x1\x9A",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\x9C",
+				"\x1\x9D",
+				"\x1\x9E",
+				"\x1\x9F",
+				"\x1\xA0",
+				"\x1\xA1",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x12\x23\x1\xA2\x7"+
+				"\x23",
+				"\x1\xA4",
+				"\x1\xA5",
+				"\x1\xA6",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xA8",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"",
+				"\x1\xAA",
+				"\x1\xAB",
+				"\x1\xAC",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"",
+				"\x1\xAE",
+				"\x1\xAF",
+				"\x1\xB0",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xB2",
+				"\x1\xB3",
+				"",
+				"\x1\xB4",
+				"\x1\xB5",
+				"\x1\xB6",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xB8",
+				"\x1\xB9",
+				"\x1\xBA",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xBD",
+				"",
+				"\x1\xBE",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xC1",
+				"",
+				"\x1\xC2",
+				"\x1\xC3",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xC6",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xC8",
+				"\x1\xC9",
+				"",
+				"\x1\xCA",
+				"\x1\xCB",
+				"\x1\xCC",
+				"",
+				"",
+				"\x1\xCD",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xD0",
+				"\x1\xD1",
+				"",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xD4",
+				"\x1\xD5",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xD7",
+				"\x1\xD8",
+				"",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xDA",
+				"",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xDC",
+				"",
+				"\x1\xDD",
+				"\x1\xDE",
+				"",
+				"\x1\xDF",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\x1\xE1",
+				"\x1\xE2",
+				"\x1\xE3",
+				"",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"\xA\x23\x7\xFFFF\x1A\x23\x4\xFFFF\x1\x23\x1\xFFFF\x1A\x23",
+				"",
 				"",
 				""
 			};
 
-		private static readonly short[] DFA18_eot = DFA.UnpackEncodedString(DFA18_eotS);
-		private static readonly short[] DFA18_eof = DFA.UnpackEncodedString(DFA18_eofS);
-		private static readonly char[] DFA18_min = DFA.UnpackEncodedStringToUnsignedChars(DFA18_minS);
-		private static readonly char[] DFA18_max = DFA.UnpackEncodedStringToUnsignedChars(DFA18_maxS);
-		private static readonly short[] DFA18_accept = DFA.UnpackEncodedString(DFA18_acceptS);
-		private static readonly short[] DFA18_special = DFA.UnpackEncodedString(DFA18_specialS);
-		private static readonly short[][] DFA18_transition;
+		private static readonly short[] DFA11_eot = DFA.UnpackEncodedString(DFA11_eotS);
+		private static readonly short[] DFA11_eof = DFA.UnpackEncodedString(DFA11_eofS);
+		private static readonly char[] DFA11_min = DFA.UnpackEncodedStringToUnsignedChars(DFA11_minS);
+		private static readonly char[] DFA11_max = DFA.UnpackEncodedStringToUnsignedChars(DFA11_maxS);
+		private static readonly short[] DFA11_accept = DFA.UnpackEncodedString(DFA11_acceptS);
+		private static readonly short[] DFA11_special = DFA.UnpackEncodedString(DFA11_specialS);
+		private static readonly short[][] DFA11_transition;
 
-		static DFA18()
+		static DFA11()
 		{
-			int numStates = DFA18_transitionS.Length;
-			DFA18_transition = new short[numStates][];
+			int numStates = DFA11_transitionS.Length;
+			DFA11_transition = new short[numStates][];
 			for ( int i=0; i < numStates; i++ )
 			{
-				DFA18_transition[i] = DFA.UnpackEncodedString(DFA18_transitionS[i]);
+				DFA11_transition[i] = DFA.UnpackEncodedString(DFA11_transitionS[i]);
 			}
 		}
 
-		public DFA18( BaseRecognizer recognizer )
+		public DFA11( BaseRecognizer recognizer )
 		{
 			this.recognizer = recognizer;
-			this.decisionNumber = 18;
-			this.eot = DFA18_eot;
-			this.eof = DFA18_eof;
-			this.min = DFA18_min;
-			this.max = DFA18_max;
-			this.accept = DFA18_accept;
-			this.special = DFA18_special;
-			this.transition = DFA18_transition;
+			this.decisionNumber = 11;
+			this.eot = DFA11_eot;
+			this.eof = DFA11_eof;
+			this.min = DFA11_min;
+			this.max = DFA11_max;
+			this.accept = DFA11_accept;
+			this.special = DFA11_special;
+			this.transition = DFA11_transition;
 		}
 
-		public override string Description { get { return "1:1: Tokens : ( T__26 | OPTIONAL | BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING | RECORD | TYPE | LBRACKET | RBRACKET | ID | INT | FLOAT | COMMENT | WS | STRING );"; } }
+		public override string Description { get { return "1:1: Tokens : ( T__61 | T__62 | T__63 | T__64 | T__65 | T__66 | T__67 | T__68 | T__69 | T__70 | T__71 | T__72 | T__73 | T__74 | T__75 | T__76 | T__77 | T__78 | T__79 | T__80 | T__81 | T__82 | T__83 | OR | XOR | AND | NOT | MODULE | PUBLIC | PRIVATE | FRIEND | IMPORT | GROUP | OPTIONAL | BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING | RECORD | UNION | ENUMERATED | TYPE | LBRACKET | RBRACKET | SEMICOLON | LPAREN | RPAREN | MINUS | ASSIGNCHAR | BANG | CONST | INFINITY | DOTDOT | LENGTH | IN | OUT | ALL | PORT | MESSAGE | ID | NUMBER | COMMENT | WS | STRING );"; } }
 
 		public override void Error(NoViableAltException nvae)
 		{

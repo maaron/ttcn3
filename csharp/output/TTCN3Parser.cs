@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// $ANTLR 3.4 C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g 2012-10-24 22:06:47
+// $ANTLR 3.4 C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g 2012-10-29 13:43:55
 
 // The variable 'variable' is assigned but its value is never used.
 #pragma warning disable 219
@@ -36,32 +36,89 @@ using RewriteRuleITokenStream = Antlr.Runtime.Tree.RewriteRuleTokenStream;
 public partial class TTCN3Parser : Antlr.Runtime.Parser
 {
 	internal static readonly string[] tokenNames = new string[] {
-		"<invalid>", "<EOR>", "<DOWN>", "<UP>", "BITSTRING", "BOOLEAN", "CHAR", "CHARSTRING", "COMMENT", "ESC_QUOTE", "EXPONENT", "FLOAT", "HEX_DIGIT", "ID", "INT", "INTEGER", "LBRACKET", "OCTAL_ESC", "OCTETSTRING", "OPTIONAL", "RBRACKET", "RECORD", "STRING", "TYPE", "UNICODE_ESC", "WS", "','"
+		"<invalid>", "<EOR>", "<DOWN>", "<UP>", "ALL", "ALLOWEDVALUES", "AND", "ASSIGNCHAR", "BANG", "BIN_DIGIT", "BITSTRING", "BOOLEAN", "CHAR", "CHARSTRING", "COMMENT", "CONST", "DOTDOT", "ENUMDEF", "ENUMERATED", "ESC_QUOTE", "EXPONENT", "FIELDDEF", "FRIEND", "GROUP", "GROUPDEF", "HEX_DIGIT", "ID", "IMPORT", "IMPORTDEF", "IN", "INFINITY", "INTEGER", "LBRACKET", "LENGTH", "LPAREN", "MESSAGE", "MINUS", "MODULE", "MODULEDEF", "NON_ZERO_NUM", "NOT", "NUM", "NUMBER", "OCTETSTRING", "OPTIONAL", "OR", "OUT", "PORT", "PRIVATE", "PUBLIC", "RBRACKET", "RECORD", "RPAREN", "SEMICOLON", "STRING", "TYPE", "TYPEDEF", "TYPEDEFS", "UNION", "WS", "XOR", "'!='", "'&'", "'*'", "'+'", "','", "'.'", "'/'", "'<'", "'<<'", "'<='", "'<@'", "'=='", "'>'", "'>='", "'>>'", "'@>'", "'and4b'", "'from'", "'mod'", "'not4b'", "'or4b'", "'rem'", "'xor4b'"
 	};
 	public const int EOF=-1;
-	public const int T__26=26;
-	public const int BITSTRING=4;
-	public const int BOOLEAN=5;
-	public const int CHAR=6;
-	public const int CHARSTRING=7;
-	public const int COMMENT=8;
-	public const int ESC_QUOTE=9;
-	public const int EXPONENT=10;
-	public const int FLOAT=11;
-	public const int HEX_DIGIT=12;
-	public const int ID=13;
-	public const int INT=14;
-	public const int INTEGER=15;
-	public const int LBRACKET=16;
-	public const int OCTAL_ESC=17;
-	public const int OCTETSTRING=18;
-	public const int OPTIONAL=19;
-	public const int RBRACKET=20;
-	public const int RECORD=21;
-	public const int STRING=22;
-	public const int TYPE=23;
-	public const int UNICODE_ESC=24;
-	public const int WS=25;
+	public const int T__61=61;
+	public const int T__62=62;
+	public const int T__63=63;
+	public const int T__64=64;
+	public const int T__65=65;
+	public const int T__66=66;
+	public const int T__67=67;
+	public const int T__68=68;
+	public const int T__69=69;
+	public const int T__70=70;
+	public const int T__71=71;
+	public const int T__72=72;
+	public const int T__73=73;
+	public const int T__74=74;
+	public const int T__75=75;
+	public const int T__76=76;
+	public const int T__77=77;
+	public const int T__78=78;
+	public const int T__79=79;
+	public const int T__80=80;
+	public const int T__81=81;
+	public const int T__82=82;
+	public const int T__83=83;
+	public const int ALL=4;
+	public const int ALLOWEDVALUES=5;
+	public const int AND=6;
+	public const int ASSIGNCHAR=7;
+	public const int BANG=8;
+	public const int BIN_DIGIT=9;
+	public const int BITSTRING=10;
+	public const int BOOLEAN=11;
+	public const int CHAR=12;
+	public const int CHARSTRING=13;
+	public const int COMMENT=14;
+	public const int CONST=15;
+	public const int DOTDOT=16;
+	public const int ENUMDEF=17;
+	public const int ENUMERATED=18;
+	public const int ESC_QUOTE=19;
+	public const int EXPONENT=20;
+	public const int FIELDDEF=21;
+	public const int FRIEND=22;
+	public const int GROUP=23;
+	public const int GROUPDEF=24;
+	public const int HEX_DIGIT=25;
+	public const int ID=26;
+	public const int IMPORT=27;
+	public const int IMPORTDEF=28;
+	public const int IN=29;
+	public const int INFINITY=30;
+	public const int INTEGER=31;
+	public const int LBRACKET=32;
+	public const int LENGTH=33;
+	public const int LPAREN=34;
+	public const int MESSAGE=35;
+	public const int MINUS=36;
+	public const int MODULE=37;
+	public const int MODULEDEF=38;
+	public const int NON_ZERO_NUM=39;
+	public const int NOT=40;
+	public const int NUM=41;
+	public const int NUMBER=42;
+	public const int OCTETSTRING=43;
+	public const int OPTIONAL=44;
+	public const int OR=45;
+	public const int OUT=46;
+	public const int PORT=47;
+	public const int PRIVATE=48;
+	public const int PUBLIC=49;
+	public const int RBRACKET=50;
+	public const int RECORD=51;
+	public const int RPAREN=52;
+	public const int SEMICOLON=53;
+	public const int STRING=54;
+	public const int TYPE=55;
+	public const int TYPEDEF=56;
+	public const int TYPEDEFS=57;
+	public const int UNION=58;
+	public const int WS=59;
+	public const int XOR=60;
 
 	public TTCN3Parser(ITokenStream input)
 		: this(input, new RecognizerSharedState())
@@ -94,30 +151,44 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 	}
 
 	public override string[] TokenNames { get { return TTCN3Parser.tokenNames; } }
-	public override string GrammarFileName { get { return "C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g"; } }
+	public override string GrammarFileName { get { return "C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g"; } }
 
 
+	    public static void PrintTree(ITree tree, string indent)
+	    {
+	      for (int i = 0; i < tree.ChildCount; i++)
+	      {
+	        Console.WriteLine("{0}{1}", indent, tree.GetChild(i));
+	        PrintTree(tree.GetChild(i), indent + "  ");
+	      }
+	    }
+	    
 	    public static void Main(string[] args) {
 	        var fileStream = new ANTLRFileStream(args[0]);
 	        var lexer = new TTCN3Lexer(fileStream);
 	        var parser = new TTCN3Parser(new CommonTokenStream(lexer));
-	        
+	        parser.TreeAdaptor = new CommonTreeAdaptor();
+
+	        /* Uncomment this to test the lexer */
 	        /*
-	        try {
-	            while (fileStream.LA(1) != CharStreamConstants.EndOfFile)
+	        while (fileStream.LA(1) != CharStreamConstants.EndOfFile)
+		{
+		    var token = lexer.NextToken();
+	            if (token.Channel != 99)
 	            {
-	              var token = lexer.NextToken();
-	              Console.WriteLine("token: {0}", token);
+	              Console.WriteLine("token {0}/{1}/{2}", token.Type, tokenNames[token.Type], token.Text);
 	            }
-	        } catch (Exception e)  {
-	            Console.Error.WriteLine(e.StackTrace);
-	        }
+		}
 	        */
-	 
+	        
 	        try {
-	            var result = parser.typeDef();
-	            Console.WriteLine("result {0}", result.Tree);
+	            var result = parser.moduleDef();
+	            Console.WriteLine("AST:");
+	            Console.WriteLine("{0}", ((CommonTree)result.Tree));
+	            PrintTree((CommonTree)result.Tree, " ");
+	 
 	        } catch (Exception e)  {
+	            Console.WriteLine("Parsing exception: {0}", e.Message);
 	            Console.Error.WriteLine(e.StackTrace);
 	        }
 	    }
@@ -128,48 +199,115 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 	partial void LeaveRule(string ruleName, int ruleIndex);
 
 	#region Rules
-	partial void EnterRule_typeDef();
-	partial void LeaveRule_typeDef();
+	partial void EnterRule_typeDefs();
+	partial void LeaveRule_typeDefs();
 
-	// $ANTLR start "typeDef"
-	// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:40:1: typeDef : TYPE structuredTypeDef ;
-	[GrammarRule("typeDef")]
-	private AstParserRuleReturnScope<object, IToken> typeDef()
+	// $ANTLR start "typeDefs"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:81:1: typeDefs : ( typeDef )* -> ^( TYPEDEFS ( typeDef )* ) ;
+	[GrammarRule("typeDefs")]
+	private AstParserRuleReturnScope<object, IToken> typeDefs()
 	{
-		EnterRule_typeDef();
-		EnterRule("typeDef", 1);
-		TraceIn("typeDef", 1);
+		EnterRule_typeDefs();
+		EnterRule("typeDefs", 1);
+		TraceIn("typeDefs", 1);
 		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
 		retval.Start = (IToken)input.LT(1);
 
 		object root_0 = default(object);
 
-		IToken TYPE1 = default(IToken);
-		AstParserRuleReturnScope<object, IToken> structuredTypeDef2 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> typeDef1 = default(AstParserRuleReturnScope<object, IToken>);
 
-		object TYPE1_tree = default(object);
-		try { DebugEnterRule(GrammarFileName, "typeDef");
-		DebugLocation(40, 1);
+		RewriteRuleSubtreeStream stream_typeDef=new RewriteRuleSubtreeStream(adaptor,"rule typeDef");
+		try { DebugEnterRule(GrammarFileName, "typeDefs");
+		DebugLocation(81, 1);
 		try
 		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:40:9: ( TYPE structuredTypeDef )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:81:9: ( ( typeDef )* -> ^( TYPEDEFS ( typeDef )* ) )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:40:11: TYPE structuredTypeDef
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:81:11: ( typeDef )*
 			{
+			DebugLocation(81, 11);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:81:11: ( typeDef )*
+			try { DebugEnterSubRule(1);
+			while (true)
+			{
+				int alt1=2;
+				try { DebugEnterDecision(1, false);
+				int LA1_0 = input.LA(1);
+
+				if ((LA1_0==TYPE))
+				{
+					alt1 = 1;
+				}
+
+
+				} finally { DebugExitDecision(1); }
+				switch ( alt1 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:81:11: typeDef
+					{
+					DebugLocation(81, 11);
+					PushFollow(Follow._typeDef_in_typeDefs78);
+					typeDef1=typeDef();
+					PopFollow();
+
+					stream_typeDef.Add(typeDef1.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop1;
+				}
+			}
+
+			loop1:
+				;
+
+			} finally { DebugExitSubRule(1); }
+
+
+
+			{
+			// AST REWRITE
+			// elements: typeDef
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
 			root_0 = (object)adaptor.Nil();
+			// 81:20: -> ^( TYPEDEFS ( typeDef )* )
+			{
+				DebugLocation(81, 23);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:81:23: ^( TYPEDEFS ( typeDef )* )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(81, 25);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(TYPEDEFS, "TYPEDEFS"), root_1);
 
-			DebugLocation(40, 11);
-			TYPE1=(IToken)Match(input,TYPE,Follow._TYPE_in_typeDef41); 
-			TYPE1_tree = (object)adaptor.Create(TYPE1);
-			adaptor.AddChild(root_0, TYPE1_tree);
-			DebugLocation(40, 16);
-			PushFollow(Follow._structuredTypeDef_in_typeDef43);
-			structuredTypeDef2=structuredTypeDef();
-			PopFollow();
+				DebugLocation(81, 34);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:81:34: ( typeDef )*
+				while ( stream_typeDef.HasNext )
+				{
+					DebugLocation(81, 34);
+					adaptor.AddChild(root_1, stream_typeDef.NextTree());
 
-			adaptor.AddChild(root_0, structuredTypeDef2.Tree);
-			DebugLocation(40, 34);
-			Console.WriteLine("Found typeDef");
+				}
+				stream_typeDef.Reset();
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
 
 			}
 
@@ -188,202 +326,79 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 		}
 		finally
 		{
-			TraceOut("typeDef", 1);
-			LeaveRule("typeDef", 1);
-			LeaveRule_typeDef();
+			TraceOut("typeDefs", 1);
+			LeaveRule("typeDefs", 1);
+			LeaveRule_typeDefs();
 		}
-		DebugLocation(41, 1);
-		} finally { DebugExitRule(GrammarFileName, "typeDef"); }
+		DebugLocation(82, 1);
+		} finally { DebugExitRule(GrammarFileName, "typeDefs"); }
 		return retval;
 
 	}
-	// $ANTLR end "typeDef"
+	// $ANTLR end "typeDefs"
 
-	partial void EnterRule_structuredTypeDef();
-	partial void LeaveRule_structuredTypeDef();
+	partial void EnterRule_moduleDef();
+	partial void LeaveRule_moduleDef();
 
-	// $ANTLR start "structuredTypeDef"
-	// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:43:1: structuredTypeDef : recordDef ;
-	[GrammarRule("structuredTypeDef")]
-	private AstParserRuleReturnScope<object, IToken> structuredTypeDef()
+	// $ANTLR start "moduleDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:84:1: moduleDef : MODULE ID LBRACKET ( moduleDefinitionsList )? RBRACKET ( SEMICOLON )? -> ^( MODULEDEF ID ( moduleDefinitionsList )? ) ;
+	[GrammarRule("moduleDef")]
+	private AstParserRuleReturnScope<object, IToken> moduleDef()
 	{
-		EnterRule_structuredTypeDef();
-		EnterRule("structuredTypeDef", 2);
-		TraceIn("structuredTypeDef", 2);
+		EnterRule_moduleDef();
+		EnterRule("moduleDef", 2);
+		TraceIn("moduleDef", 2);
 		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
 		retval.Start = (IToken)input.LT(1);
 
 		object root_0 = default(object);
 
-		AstParserRuleReturnScope<object, IToken> recordDef3 = default(AstParserRuleReturnScope<object, IToken>);
+		IToken MODULE2 = default(IToken);
+		IToken ID3 = default(IToken);
+		IToken LBRACKET4 = default(IToken);
+		IToken RBRACKET6 = default(IToken);
+		IToken SEMICOLON7 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> moduleDefinitionsList5 = default(AstParserRuleReturnScope<object, IToken>);
 
-		try { DebugEnterRule(GrammarFileName, "structuredTypeDef");
-		DebugLocation(43, 1);
+		object MODULE2_tree = default(object);
+		object ID3_tree = default(object);
+		object LBRACKET4_tree = default(object);
+		object RBRACKET6_tree = default(object);
+		object SEMICOLON7_tree = default(object);
+		RewriteRuleITokenStream stream_LBRACKET=new RewriteRuleITokenStream(adaptor,"token LBRACKET");
+		RewriteRuleITokenStream stream_SEMICOLON=new RewriteRuleITokenStream(adaptor,"token SEMICOLON");
+		RewriteRuleITokenStream stream_RBRACKET=new RewriteRuleITokenStream(adaptor,"token RBRACKET");
+		RewriteRuleITokenStream stream_MODULE=new RewriteRuleITokenStream(adaptor,"token MODULE");
+		RewriteRuleITokenStream stream_ID=new RewriteRuleITokenStream(adaptor,"token ID");
+		RewriteRuleSubtreeStream stream_moduleDefinitionsList=new RewriteRuleSubtreeStream(adaptor,"rule moduleDefinitionsList");
+		try { DebugEnterRule(GrammarFileName, "moduleDef");
+		DebugLocation(84, 1);
 		try
 		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:44:2: ( recordDef )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:2: ( MODULE ID LBRACKET ( moduleDefinitionsList )? RBRACKET ( SEMICOLON )? -> ^( MODULEDEF ID ( moduleDefinitionsList )? ) )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:44:4: recordDef
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:4: MODULE ID LBRACKET ( moduleDefinitionsList )? RBRACKET ( SEMICOLON )?
 			{
-			root_0 = (object)adaptor.Nil();
+			DebugLocation(85, 4);
+			MODULE2=(IToken)Match(input,MODULE,Follow._MODULE_in_moduleDef99);  
+			stream_MODULE.Add(MODULE2);
 
-			DebugLocation(44, 4);
-			PushFollow(Follow._recordDef_in_structuredTypeDef56);
-			recordDef3=recordDef();
-			PopFollow();
+			DebugLocation(85, 11);
+			ID3=(IToken)Match(input,ID,Follow._ID_in_moduleDef101);  
+			stream_ID.Add(ID3);
 
-			adaptor.AddChild(root_0, recordDef3.Tree);
+			DebugLocation(85, 14);
+			LBRACKET4=(IToken)Match(input,LBRACKET,Follow._LBRACKET_in_moduleDef103);  
+			stream_LBRACKET.Add(LBRACKET4);
 
-			}
-
-			retval.Stop = (IToken)input.LT(-1);
-
-			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
-			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
-
-		}
-		catch (RecognitionException re)
-		{
-			ReportError(re);
-			Recover(input,re);
-		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
-
-		}
-		finally
-		{
-			TraceOut("structuredTypeDef", 2);
-			LeaveRule("structuredTypeDef", 2);
-			LeaveRule_structuredTypeDef();
-		}
-		DebugLocation(45, 1);
-		} finally { DebugExitRule(GrammarFileName, "structuredTypeDef"); }
-		return retval;
-
-	}
-	// $ANTLR end "structuredTypeDef"
-
-	partial void EnterRule_recordDef();
-	partial void LeaveRule_recordDef();
-
-	// $ANTLR start "recordDef"
-	// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:47:1: recordDef : RECORD structDefBody ;
-	[GrammarRule("recordDef")]
-	private AstParserRuleReturnScope<object, IToken> recordDef()
-	{
-		EnterRule_recordDef();
-		EnterRule("recordDef", 3);
-		TraceIn("recordDef", 3);
-		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
-		retval.Start = (IToken)input.LT(1);
-
-		object root_0 = default(object);
-
-		IToken RECORD4 = default(IToken);
-		AstParserRuleReturnScope<object, IToken> structDefBody5 = default(AstParserRuleReturnScope<object, IToken>);
-
-		object RECORD4_tree = default(object);
-		try { DebugEnterRule(GrammarFileName, "recordDef");
-		DebugLocation(47, 1);
-		try
-		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:48:2: ( RECORD structDefBody )
-			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:48:4: RECORD structDefBody
-			{
-			root_0 = (object)adaptor.Nil();
-
-			DebugLocation(48, 4);
-			RECORD4=(IToken)Match(input,RECORD,Follow._RECORD_in_recordDef68); 
-			RECORD4_tree = (object)adaptor.Create(RECORD4);
-			adaptor.AddChild(root_0, RECORD4_tree);
-			DebugLocation(48, 11);
-			PushFollow(Follow._structDefBody_in_recordDef70);
-			structDefBody5=structDefBody();
-			PopFollow();
-
-			adaptor.AddChild(root_0, structDefBody5.Tree);
-
-			}
-
-			retval.Stop = (IToken)input.LT(-1);
-
-			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
-			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
-
-		}
-		catch (RecognitionException re)
-		{
-			ReportError(re);
-			Recover(input,re);
-		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
-
-		}
-		finally
-		{
-			TraceOut("recordDef", 3);
-			LeaveRule("recordDef", 3);
-			LeaveRule_recordDef();
-		}
-		DebugLocation(49, 1);
-		} finally { DebugExitRule(GrammarFileName, "recordDef"); }
-		return retval;
-
-	}
-	// $ANTLR end "recordDef"
-
-	partial void EnterRule_structDefBody();
-	partial void LeaveRule_structDefBody();
-
-	// $ANTLR start "structDefBody"
-	// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:51:1: structDefBody : ID LBRACKET ( structFieldDef ( ',' structFieldDef )* )? RBRACKET ;
-	[GrammarRule("structDefBody")]
-	private AstParserRuleReturnScope<object, IToken> structDefBody()
-	{
-		EnterRule_structDefBody();
-		EnterRule("structDefBody", 4);
-		TraceIn("structDefBody", 4);
-		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
-		retval.Start = (IToken)input.LT(1);
-
-		object root_0 = default(object);
-
-		IToken ID6 = default(IToken);
-		IToken LBRACKET7 = default(IToken);
-		IToken char_literal9 = default(IToken);
-		IToken RBRACKET11 = default(IToken);
-		AstParserRuleReturnScope<object, IToken> structFieldDef8 = default(AstParserRuleReturnScope<object, IToken>);
-		AstParserRuleReturnScope<object, IToken> structFieldDef10 = default(AstParserRuleReturnScope<object, IToken>);
-
-		object ID6_tree = default(object);
-		object LBRACKET7_tree = default(object);
-		object char_literal9_tree = default(object);
-		object RBRACKET11_tree = default(object);
-		try { DebugEnterRule(GrammarFileName, "structDefBody");
-		DebugLocation(51, 1);
-		try
-		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:52:2: ( ID LBRACKET ( structFieldDef ( ',' structFieldDef )* )? RBRACKET )
-			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:52:4: ID LBRACKET ( structFieldDef ( ',' structFieldDef )* )? RBRACKET
-			{
-			root_0 = (object)adaptor.Nil();
-
-			DebugLocation(52, 4);
-			ID6=(IToken)Match(input,ID,Follow._ID_in_structDefBody81); 
-			ID6_tree = (object)adaptor.Create(ID6);
-			adaptor.AddChild(root_0, ID6_tree);
-			DebugLocation(52, 7);
-			LBRACKET7=(IToken)Match(input,LBRACKET,Follow._LBRACKET_in_structDefBody83); 
-			LBRACKET7_tree = (object)adaptor.Create(LBRACKET7);
-			adaptor.AddChild(root_0, LBRACKET7_tree);
-			DebugLocation(52, 16);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:52:16: ( structFieldDef ( ',' structFieldDef )* )?
+			DebugLocation(85, 23);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:23: ( moduleDefinitionsList )?
 			int alt2=2;
 			try { DebugEnterSubRule(2);
 			try { DebugEnterDecision(2, false);
 			int LA2_0 = input.LA(1);
 
-			if (((LA2_0>=BITSTRING && LA2_0<=CHARSTRING)||LA2_0==INTEGER||LA2_0==OCTETSTRING))
+			if ((LA2_0==CONST||(LA2_0>=FRIEND && LA2_0<=GROUP)||LA2_0==IMPORT||(LA2_0>=PRIVATE && LA2_0<=PUBLIC)||LA2_0==TYPE))
 			{
 				alt2 = 1;
 			}
@@ -392,60 +407,14 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 			{
 			case 1:
 				DebugEnterAlt(1);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:52:17: structFieldDef ( ',' structFieldDef )*
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:23: moduleDefinitionsList
 				{
-				DebugLocation(52, 17);
-				PushFollow(Follow._structFieldDef_in_structDefBody86);
-				structFieldDef8=structFieldDef();
+				DebugLocation(85, 23);
+				PushFollow(Follow._moduleDefinitionsList_in_moduleDef105);
+				moduleDefinitionsList5=moduleDefinitionsList();
 				PopFollow();
 
-				adaptor.AddChild(root_0, structFieldDef8.Tree);
-				DebugLocation(52, 32);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:52:32: ( ',' structFieldDef )*
-				try { DebugEnterSubRule(1);
-				while (true)
-				{
-					int alt1=2;
-					try { DebugEnterDecision(1, false);
-					int LA1_0 = input.LA(1);
-
-					if ((LA1_0==26))
-					{
-						alt1 = 1;
-					}
-
-
-					} finally { DebugExitDecision(1); }
-					switch ( alt1 )
-					{
-					case 1:
-						DebugEnterAlt(1);
-						// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:52:33: ',' structFieldDef
-						{
-						DebugLocation(52, 33);
-						char_literal9=(IToken)Match(input,26,Follow._26_in_structDefBody89); 
-						char_literal9_tree = (object)adaptor.Create(char_literal9);
-						adaptor.AddChild(root_0, char_literal9_tree);
-						DebugLocation(52, 37);
-						PushFollow(Follow._structFieldDef_in_structDefBody91);
-						structFieldDef10=structFieldDef();
-						PopFollow();
-
-						adaptor.AddChild(root_0, structFieldDef10.Tree);
-
-						}
-						break;
-
-					default:
-						goto loop1;
-					}
-				}
-
-				loop1:
-					;
-
-				} finally { DebugExitSubRule(1); }
-
+				stream_moduleDefinitionsList.Add(moduleDefinitionsList5.Tree);
 
 				}
 				break;
@@ -453,89 +422,18 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 			}
 			} finally { DebugExitSubRule(2); }
 
-			DebugLocation(52, 56);
-			RBRACKET11=(IToken)Match(input,RBRACKET,Follow._RBRACKET_in_structDefBody97); 
-			RBRACKET11_tree = (object)adaptor.Create(RBRACKET11);
-			adaptor.AddChild(root_0, RBRACKET11_tree);
+			DebugLocation(85, 46);
+			RBRACKET6=(IToken)Match(input,RBRACKET,Follow._RBRACKET_in_moduleDef108);  
+			stream_RBRACKET.Add(RBRACKET6);
 
-			}
-
-			retval.Stop = (IToken)input.LT(-1);
-
-			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
-			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
-
-		}
-		catch (RecognitionException re)
-		{
-			ReportError(re);
-			Recover(input,re);
-		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
-
-		}
-		finally
-		{
-			TraceOut("structDefBody", 4);
-			LeaveRule("structDefBody", 4);
-			LeaveRule_structDefBody();
-		}
-		DebugLocation(53, 1);
-		} finally { DebugExitRule(GrammarFileName, "structDefBody"); }
-		return retval;
-
-	}
-	// $ANTLR end "structDefBody"
-
-	partial void EnterRule_structFieldDef();
-	partial void LeaveRule_structFieldDef();
-
-	// $ANTLR start "structFieldDef"
-	// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:55:1: structFieldDef : type ID ( OPTIONAL )? ;
-	[GrammarRule("structFieldDef")]
-	private AstParserRuleReturnScope<object, IToken> structFieldDef()
-	{
-		EnterRule_structFieldDef();
-		EnterRule("structFieldDef", 5);
-		TraceIn("structFieldDef", 5);
-		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
-		retval.Start = (IToken)input.LT(1);
-
-		object root_0 = default(object);
-
-		IToken ID13 = default(IToken);
-		IToken OPTIONAL14 = default(IToken);
-		AstParserRuleReturnScope<object, IToken> type12 = default(AstParserRuleReturnScope<object, IToken>);
-
-		object ID13_tree = default(object);
-		object OPTIONAL14_tree = default(object);
-		try { DebugEnterRule(GrammarFileName, "structFieldDef");
-		DebugLocation(55, 1);
-		try
-		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:56:2: ( type ID ( OPTIONAL )? )
-			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:56:4: type ID ( OPTIONAL )?
-			{
-			root_0 = (object)adaptor.Nil();
-
-			DebugLocation(56, 4);
-			PushFollow(Follow._type_in_structFieldDef108);
-			type12=type();
-			PopFollow();
-
-			adaptor.AddChild(root_0, type12.Tree);
-			DebugLocation(56, 9);
-			ID13=(IToken)Match(input,ID,Follow._ID_in_structFieldDef110); 
-			ID13_tree = (object)adaptor.Create(ID13);
-			adaptor.AddChild(root_0, ID13_tree);
-			DebugLocation(56, 12);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:56:12: ( OPTIONAL )?
+			DebugLocation(85, 55);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:55: ( SEMICOLON )?
 			int alt3=2;
 			try { DebugEnterSubRule(3);
 			try { DebugEnterDecision(3, false);
 			int LA3_0 = input.LA(1);
 
-			if ((LA3_0==OPTIONAL))
+			if ((LA3_0==SEMICOLON))
 			{
 				alt3 = 1;
 			}
@@ -544,12 +442,12 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 			{
 			case 1:
 				DebugEnterAlt(1);
-				// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:56:12: OPTIONAL
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:55: SEMICOLON
 				{
-				DebugLocation(56, 12);
-				OPTIONAL14=(IToken)Match(input,OPTIONAL,Follow._OPTIONAL_in_structFieldDef112); 
-				OPTIONAL14_tree = (object)adaptor.Create(OPTIONAL14);
-				adaptor.AddChild(root_0, OPTIONAL14_tree);
+				DebugLocation(85, 55);
+				SEMICOLON7=(IToken)Match(input,SEMICOLON,Follow._SEMICOLON_in_moduleDef110);  
+				stream_SEMICOLON.Add(SEMICOLON7);
+
 
 				}
 				break;
@@ -558,6 +456,48 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 			} finally { DebugExitSubRule(3); }
 
 
+
+			{
+			// AST REWRITE
+			// elements: ID, moduleDefinitionsList
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 85:66: -> ^( MODULEDEF ID ( moduleDefinitionsList )? )
+			{
+				DebugLocation(85, 69);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:69: ^( MODULEDEF ID ( moduleDefinitionsList )? )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(85, 71);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(MODULEDEF, "MODULEDEF"), root_1);
+
+				DebugLocation(85, 81);
+				adaptor.AddChild(root_1, stream_ID.NextNode());
+				DebugLocation(85, 84);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:85:84: ( moduleDefinitionsList )?
+				if (stream_moduleDefinitionsList.HasNext)
+				{
+					DebugLocation(85, 84);
+					adaptor.AddChild(root_1, stream_moduleDefinitionsList.NextTree());
+
+				}
+				stream_moduleDefinitionsList.Reset();
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
+
 			}
 
 			retval.Stop = (IToken)input.LT(-1);
@@ -575,53 +515,521 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 		}
 		finally
 		{
-			TraceOut("structFieldDef", 5);
-			LeaveRule("structFieldDef", 5);
-			LeaveRule_structFieldDef();
+			TraceOut("moduleDef", 2);
+			LeaveRule("moduleDef", 2);
+			LeaveRule_moduleDef();
 		}
-		DebugLocation(57, 1);
-		} finally { DebugExitRule(GrammarFileName, "structFieldDef"); }
+		DebugLocation(86, 1);
+		} finally { DebugExitRule(GrammarFileName, "moduleDef"); }
 		return retval;
 
 	}
-	// $ANTLR end "structFieldDef"
+	// $ANTLR end "moduleDef"
 
-	partial void EnterRule_type();
-	partial void LeaveRule_type();
+	partial void EnterRule_moduleDefinitionsList();
+	partial void LeaveRule_moduleDefinitionsList();
 
-	// $ANTLR start "type"
-	// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:59:1: type : predefinedType ;
-	[GrammarRule("type")]
-	private AstParserRuleReturnScope<object, IToken> type()
+	// $ANTLR start "moduleDefinitionsList"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:88:1: moduleDefinitionsList : ( moduleDefinition ( SEMICOLON )? )+ -> ( moduleDefinition )+ ;
+	[GrammarRule("moduleDefinitionsList")]
+	private AstParserRuleReturnScope<object, IToken> moduleDefinitionsList()
 	{
-		EnterRule_type();
-		EnterRule("type", 6);
-		TraceIn("type", 6);
+		EnterRule_moduleDefinitionsList();
+		EnterRule("moduleDefinitionsList", 3);
+		TraceIn("moduleDefinitionsList", 3);
 		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
 		retval.Start = (IToken)input.LT(1);
 
 		object root_0 = default(object);
 
-		AstParserRuleReturnScope<object, IToken> predefinedType15 = default(AstParserRuleReturnScope<object, IToken>);
+		IToken SEMICOLON9 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> moduleDefinition8 = default(AstParserRuleReturnScope<object, IToken>);
 
-		try { DebugEnterRule(GrammarFileName, "type");
-		DebugLocation(59, 1);
+		object SEMICOLON9_tree = default(object);
+		RewriteRuleITokenStream stream_SEMICOLON=new RewriteRuleITokenStream(adaptor,"token SEMICOLON");
+		RewriteRuleSubtreeStream stream_moduleDefinition=new RewriteRuleSubtreeStream(adaptor,"rule moduleDefinition");
+		try { DebugEnterRule(GrammarFileName, "moduleDefinitionsList");
+		DebugLocation(88, 1);
 		try
 		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:59:7: ( predefinedType )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:89:2: ( ( moduleDefinition ( SEMICOLON )? )+ -> ( moduleDefinition )+ )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:59:9: predefinedType
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:89:4: ( moduleDefinition ( SEMICOLON )? )+
+			{
+			DebugLocation(89, 4);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:89:4: ( moduleDefinition ( SEMICOLON )? )+
+			int cnt5=0;
+			try { DebugEnterSubRule(5);
+			while (true)
+			{
+				int alt5=2;
+				try { DebugEnterDecision(5, false);
+				int LA5_0 = input.LA(1);
+
+				if ((LA5_0==CONST||(LA5_0>=FRIEND && LA5_0<=GROUP)||LA5_0==IMPORT||(LA5_0>=PRIVATE && LA5_0<=PUBLIC)||LA5_0==TYPE))
+				{
+					alt5 = 1;
+				}
+
+
+				} finally { DebugExitDecision(5); }
+				switch (alt5)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:89:5: moduleDefinition ( SEMICOLON )?
+					{
+					DebugLocation(89, 5);
+					PushFollow(Follow._moduleDefinition_in_moduleDefinitionsList134);
+					moduleDefinition8=moduleDefinition();
+					PopFollow();
+
+					stream_moduleDefinition.Add(moduleDefinition8.Tree);
+					DebugLocation(89, 22);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:89:22: ( SEMICOLON )?
+					int alt4=2;
+					try { DebugEnterSubRule(4);
+					try { DebugEnterDecision(4, false);
+					int LA4_0 = input.LA(1);
+
+					if ((LA4_0==SEMICOLON))
+					{
+						alt4 = 1;
+					}
+					} finally { DebugExitDecision(4); }
+					switch (alt4)
+					{
+					case 1:
+						DebugEnterAlt(1);
+						// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:89:22: SEMICOLON
+						{
+						DebugLocation(89, 22);
+						SEMICOLON9=(IToken)Match(input,SEMICOLON,Follow._SEMICOLON_in_moduleDefinitionsList136);  
+						stream_SEMICOLON.Add(SEMICOLON9);
+
+
+						}
+						break;
+
+					}
+					} finally { DebugExitSubRule(4); }
+
+
+					}
+					break;
+
+				default:
+					if (cnt5 >= 1)
+						goto loop5;
+
+					EarlyExitException eee5 = new EarlyExitException( 5, input );
+					DebugRecognitionException(eee5);
+					throw eee5;
+				}
+				cnt5++;
+			}
+			loop5:
+				;
+
+			} finally { DebugExitSubRule(5); }
+
+
+
+			{
+			// AST REWRITE
+			// elements: moduleDefinition
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 89:35: -> ( moduleDefinition )+
+			{
+				DebugLocation(89, 38);
+				if (!(stream_moduleDefinition.HasNext))
+				{
+					throw new RewriteEarlyExitException();
+				}
+				while ( stream_moduleDefinition.HasNext )
+				{
+					DebugLocation(89, 38);
+					adaptor.AddChild(root_0, stream_moduleDefinition.NextTree());
+
+				}
+				stream_moduleDefinition.Reset();
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("moduleDefinitionsList", 3);
+			LeaveRule("moduleDefinitionsList", 3);
+			LeaveRule_moduleDefinitionsList();
+		}
+		DebugLocation(90, 1);
+		} finally { DebugExitRule(GrammarFileName, "moduleDefinitionsList"); }
+		return retval;
+
+	}
+	// $ANTLR end "moduleDefinitionsList"
+
+	partial void EnterRule_moduleDefinition();
+	partial void LeaveRule_moduleDefinition();
+
+	// $ANTLR start "moduleDefinition"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:92:1: moduleDefinition : ( ( ( visibility )? ( typeDef | importDef | constDef ) ) | ( ( PUBLIC )? groupDef ) );
+	[GrammarRule("moduleDefinition")]
+	private AstParserRuleReturnScope<object, IToken> moduleDefinition()
+	{
+		EnterRule_moduleDefinition();
+		EnterRule("moduleDefinition", 4);
+		TraceIn("moduleDefinition", 4);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken PUBLIC14 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> visibility10 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> typeDef11 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> importDef12 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> constDef13 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> groupDef15 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object PUBLIC14_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "moduleDefinition");
+		DebugLocation(92, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:2: ( ( ( visibility )? ( typeDef | importDef | constDef ) ) | ( ( PUBLIC )? groupDef ) )
+			int alt9=2;
+			try { DebugEnterDecision(9, false);
+			switch (input.LA(1))
+			{
+			case PUBLIC:
+				{
+				int LA9_1 = input.LA(2);
+
+				if ((LA9_1==CONST||LA9_1==IMPORT||LA9_1==TYPE))
+				{
+					alt9 = 1;
+				}
+				else if ((LA9_1==GROUP))
+				{
+					alt9 = 2;
+				}
+				else
+				{
+					NoViableAltException nvae = new NoViableAltException("", 9, 1, input);
+					DebugRecognitionException(nvae);
+					throw nvae;
+				}
+				}
+				break;
+			case CONST:
+			case FRIEND:
+			case IMPORT:
+			case PRIVATE:
+			case TYPE:
+				{
+				alt9 = 1;
+				}
+				break;
+			case GROUP:
+				{
+				alt9 = 2;
+				}
+				break;
+			default:
+				{
+					NoViableAltException nvae = new NoViableAltException("", 9, 0, input);
+					DebugRecognitionException(nvae);
+					throw nvae;
+				}
+			}
+
+			} finally { DebugExitDecision(9); }
+			switch (alt9)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:4: ( ( visibility )? ( typeDef | importDef | constDef ) )
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(93, 4);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:4: ( ( visibility )? ( typeDef | importDef | constDef ) )
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:5: ( visibility )? ( typeDef | importDef | constDef )
+				{
+				DebugLocation(93, 5);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:5: ( visibility )?
+				int alt6=2;
+				try { DebugEnterSubRule(6);
+				try { DebugEnterDecision(6, false);
+				int LA6_0 = input.LA(1);
+
+				if ((LA6_0==FRIEND||(LA6_0>=PRIVATE && LA6_0<=PUBLIC)))
+				{
+					alt6 = 1;
+				}
+				} finally { DebugExitDecision(6); }
+				switch (alt6)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:5: visibility
+					{
+					DebugLocation(93, 5);
+					PushFollow(Follow._visibility_in_moduleDefinition157);
+					visibility10=visibility();
+					PopFollow();
+
+					adaptor.AddChild(root_0, visibility10.Tree);
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(6); }
+
+				DebugLocation(93, 17);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:17: ( typeDef | importDef | constDef )
+				int alt7=3;
+				try { DebugEnterSubRule(7);
+				try { DebugEnterDecision(7, false);
+				switch (input.LA(1))
+				{
+				case TYPE:
+					{
+					alt7 = 1;
+					}
+					break;
+				case IMPORT:
+					{
+					alt7 = 2;
+					}
+					break;
+				case CONST:
+					{
+					alt7 = 3;
+					}
+					break;
+				default:
+					{
+						NoViableAltException nvae = new NoViableAltException("", 7, 0, input);
+						DebugRecognitionException(nvae);
+						throw nvae;
+					}
+				}
+
+				} finally { DebugExitDecision(7); }
+				switch (alt7)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:18: typeDef
+					{
+					DebugLocation(93, 18);
+					PushFollow(Follow._typeDef_in_moduleDefinition161);
+					typeDef11=typeDef();
+					PopFollow();
+
+					adaptor.AddChild(root_0, typeDef11.Tree);
+
+					}
+					break;
+				case 2:
+					DebugEnterAlt(2);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:28: importDef
+					{
+					DebugLocation(93, 28);
+					PushFollow(Follow._importDef_in_moduleDefinition165);
+					importDef12=importDef();
+					PopFollow();
+
+					adaptor.AddChild(root_0, importDef12.Tree);
+
+					}
+					break;
+				case 3:
+					DebugEnterAlt(3);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:40: constDef
+					{
+					DebugLocation(93, 40);
+					PushFollow(Follow._constDef_in_moduleDefinition169);
+					constDef13=constDef();
+					PopFollow();
+
+					adaptor.AddChild(root_0, constDef13.Tree);
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(7); }
+
+
+				}
+
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:54: ( ( PUBLIC )? groupDef )
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(93, 54);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:54: ( ( PUBLIC )? groupDef )
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:55: ( PUBLIC )? groupDef
+				{
+				DebugLocation(93, 55);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:55: ( PUBLIC )?
+				int alt8=2;
+				try { DebugEnterSubRule(8);
+				try { DebugEnterDecision(8, false);
+				int LA8_0 = input.LA(1);
+
+				if ((LA8_0==PUBLIC))
+				{
+					alt8 = 1;
+				}
+				} finally { DebugExitDecision(8); }
+				switch (alt8)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:93:55: PUBLIC
+					{
+					DebugLocation(93, 55);
+					PUBLIC14=(IToken)Match(input,PUBLIC,Follow._PUBLIC_in_moduleDefinition177); 
+					PUBLIC14_tree = (object)adaptor.Create(PUBLIC14);
+					adaptor.AddChild(root_0, PUBLIC14_tree);
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(8); }
+
+				DebugLocation(93, 63);
+				PushFollow(Follow._groupDef_in_moduleDefinition180);
+				groupDef15=groupDef();
+				PopFollow();
+
+				adaptor.AddChild(root_0, groupDef15.Tree);
+
+				}
+
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("moduleDefinition", 4);
+			LeaveRule("moduleDefinition", 4);
+			LeaveRule_moduleDefinition();
+		}
+		DebugLocation(94, 1);
+		} finally { DebugExitRule(GrammarFileName, "moduleDefinition"); }
+		return retval;
+
+	}
+	// $ANTLR end "moduleDefinition"
+
+	partial void EnterRule_constDef();
+	partial void LeaveRule_constDef();
+
+	// $ANTLR start "constDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:96:1: constDef : CONST type constList SEMICOLON ;
+	[GrammarRule("constDef")]
+	private AstParserRuleReturnScope<object, IToken> constDef()
+	{
+		EnterRule_constDef();
+		EnterRule("constDef", 5);
+		TraceIn("constDef", 5);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken CONST16 = default(IToken);
+		IToken SEMICOLON19 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> type17 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> constList18 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object CONST16_tree = default(object);
+		object SEMICOLON19_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "constDef");
+		DebugLocation(96, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:96:9: ( CONST type constList SEMICOLON )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:96:11: CONST type constList SEMICOLON
 			{
 			root_0 = (object)adaptor.Nil();
 
-			DebugLocation(59, 9);
-			PushFollow(Follow._predefinedType_in_type125);
-			predefinedType15=predefinedType();
+			DebugLocation(96, 11);
+			CONST16=(IToken)Match(input,CONST,Follow._CONST_in_constDef190); 
+			CONST16_tree = (object)adaptor.Create(CONST16);
+			adaptor.AddChild(root_0, CONST16_tree);
+			DebugLocation(96, 17);
+			PushFollow(Follow._type_in_constDef192);
+			type17=type();
 			PopFollow();
 
-			adaptor.AddChild(root_0, predefinedType15.Tree);
-			DebugLocation(59, 24);
-			Console.WriteLine("Found typedef start");
+			adaptor.AddChild(root_0, type17.Tree);
+			DebugLocation(96, 22);
+			PushFollow(Follow._constList_in_constDef194);
+			constList18=constList();
+			PopFollow();
+
+			adaptor.AddChild(root_0, constList18.Tree);
+			DebugLocation(96, 32);
+			SEMICOLON19=(IToken)Match(input,SEMICOLON,Follow._SEMICOLON_in_constDef196); 
+			SEMICOLON19_tree = (object)adaptor.Create(SEMICOLON19);
+			adaptor.AddChild(root_0, SEMICOLON19_tree);
 
 			}
 
@@ -640,53 +1048,616 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 		}
 		finally
 		{
-			TraceOut("type", 6);
-			LeaveRule("type", 6);
-			LeaveRule_type();
+			TraceOut("constDef", 5);
+			LeaveRule("constDef", 5);
+			LeaveRule_constDef();
 		}
-		DebugLocation(60, 1);
-		} finally { DebugExitRule(GrammarFileName, "type"); }
+		DebugLocation(97, 1);
+		} finally { DebugExitRule(GrammarFileName, "constDef"); }
 		return retval;
 
 	}
-	// $ANTLR end "type"
+	// $ANTLR end "constDef"
 
-	partial void EnterRule_predefinedType();
-	partial void LeaveRule_predefinedType();
+	partial void EnterRule_constList();
+	partial void LeaveRule_constList();
 
-	// $ANTLR start "predefinedType"
-	// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:62:1: predefinedType : ( BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING );
-	[GrammarRule("predefinedType")]
-	private AstParserRuleReturnScope<object, IToken> predefinedType()
+	// $ANTLR start "constList"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:99:1: constList : singleConstDef ( ',' singleConstDef )* ;
+	[GrammarRule("constList")]
+	private AstParserRuleReturnScope<object, IToken> constList()
 	{
-		EnterRule_predefinedType();
-		EnterRule("predefinedType", 7);
-		TraceIn("predefinedType", 7);
+		EnterRule_constList();
+		EnterRule("constList", 6);
+		TraceIn("constList", 6);
 		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
 		retval.Start = (IToken)input.LT(1);
 
 		object root_0 = default(object);
 
-		IToken set16 = default(IToken);
+		IToken char_literal21 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> singleConstDef20 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> singleConstDef22 = default(AstParserRuleReturnScope<object, IToken>);
 
-		object set16_tree = default(object);
-		try { DebugEnterRule(GrammarFileName, "predefinedType");
-		DebugLocation(62, 1);
+		object char_literal21_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "constList");
+		DebugLocation(99, 1);
 		try
 		{
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:63:2: ( BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING )
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:100:2: ( singleConstDef ( ',' singleConstDef )* )
 			DebugEnterAlt(1);
-			// C:\\Users\\aaron\\projects\\ttcn3\\csharp\\TTCN3.g:
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:100:4: singleConstDef ( ',' singleConstDef )*
 			{
 			root_0 = (object)adaptor.Nil();
 
-			DebugLocation(63, 2);
+			DebugLocation(100, 4);
+			PushFollow(Follow._singleConstDef_in_constList208);
+			singleConstDef20=singleConstDef();
+			PopFollow();
 
-			set16=(IToken)input.LT(1);
-			if ((input.LA(1)>=BITSTRING && input.LA(1)<=CHARSTRING)||input.LA(1)==INTEGER||input.LA(1)==OCTETSTRING)
+			adaptor.AddChild(root_0, singleConstDef20.Tree);
+			DebugLocation(100, 19);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:100:19: ( ',' singleConstDef )*
+			try { DebugEnterSubRule(10);
+			while (true)
+			{
+				int alt10=2;
+				try { DebugEnterDecision(10, false);
+				int LA10_0 = input.LA(1);
+
+				if ((LA10_0==65))
+				{
+					alt10 = 1;
+				}
+
+
+				} finally { DebugExitDecision(10); }
+				switch ( alt10 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:100:20: ',' singleConstDef
+					{
+					DebugLocation(100, 20);
+					char_literal21=(IToken)Match(input,65,Follow._65_in_constList211); 
+					char_literal21_tree = (object)adaptor.Create(char_literal21);
+					adaptor.AddChild(root_0, char_literal21_tree);
+					DebugLocation(100, 24);
+					PushFollow(Follow._singleConstDef_in_constList213);
+					singleConstDef22=singleConstDef();
+					PopFollow();
+
+					adaptor.AddChild(root_0, singleConstDef22.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop10;
+				}
+			}
+
+			loop10:
+				;
+
+			} finally { DebugExitSubRule(10); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("constList", 6);
+			LeaveRule("constList", 6);
+			LeaveRule_constList();
+		}
+		DebugLocation(101, 1);
+		} finally { DebugExitRule(GrammarFileName, "constList"); }
+		return retval;
+
+	}
+	// $ANTLR end "constList"
+
+	partial void EnterRule_singleConstDef();
+	partial void LeaveRule_singleConstDef();
+
+	// $ANTLR start "singleConstDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:103:1: singleConstDef : ID ASSIGNCHAR constantExpression ;
+	[GrammarRule("singleConstDef")]
+	private AstParserRuleReturnScope<object, IToken> singleConstDef()
+	{
+		EnterRule_singleConstDef();
+		EnterRule("singleConstDef", 7);
+		TraceIn("singleConstDef", 7);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ID23 = default(IToken);
+		IToken ASSIGNCHAR24 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> constantExpression25 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object ID23_tree = default(object);
+		object ASSIGNCHAR24_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "singleConstDef");
+		DebugLocation(103, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:104:2: ( ID ASSIGNCHAR constantExpression )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:104:4: ID ASSIGNCHAR constantExpression
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(104, 4);
+			ID23=(IToken)Match(input,ID,Follow._ID_in_singleConstDef227); 
+			ID23_tree = (object)adaptor.Create(ID23);
+			adaptor.AddChild(root_0, ID23_tree);
+			DebugLocation(104, 7);
+			ASSIGNCHAR24=(IToken)Match(input,ASSIGNCHAR,Follow._ASSIGNCHAR_in_singleConstDef229); 
+			ASSIGNCHAR24_tree = (object)adaptor.Create(ASSIGNCHAR24);
+			adaptor.AddChild(root_0, ASSIGNCHAR24_tree);
+			DebugLocation(104, 18);
+			PushFollow(Follow._constantExpression_in_singleConstDef231);
+			constantExpression25=constantExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, constantExpression25.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("singleConstDef", 7);
+			LeaveRule("singleConstDef", 7);
+			LeaveRule_singleConstDef();
+		}
+		DebugLocation(105, 1);
+		} finally { DebugExitRule(GrammarFileName, "singleConstDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "singleConstDef"
+
+	partial void EnterRule_constantExpression();
+	partial void LeaveRule_constantExpression();
+
+	// $ANTLR start "constantExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:107:1: constantExpression : singleExpression ;
+	[GrammarRule("constantExpression")]
+	private AstParserRuleReturnScope<object, IToken> constantExpression()
+	{
+		EnterRule_constantExpression();
+		EnterRule("constantExpression", 8);
+		TraceIn("constantExpression", 8);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> singleExpression26 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "constantExpression");
+		DebugLocation(107, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:108:2: ( singleExpression )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:108:4: singleExpression
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(108, 4);
+			PushFollow(Follow._singleExpression_in_constantExpression242);
+			singleExpression26=singleExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, singleExpression26.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("constantExpression", 8);
+			LeaveRule("constantExpression", 8);
+			LeaveRule_constantExpression();
+		}
+		DebugLocation(109, 1);
+		} finally { DebugExitRule(GrammarFileName, "constantExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "constantExpression"
+
+	partial void EnterRule_groupDef();
+	partial void LeaveRule_groupDef();
+
+	// $ANTLR start "groupDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:111:1: groupDef : GROUP ID LBRACKET ( moduleDefinitionsList )? RBRACKET -> ^( GROUPDEF ID ( moduleDefinitionsList )? ) ;
+	[GrammarRule("groupDef")]
+	private AstParserRuleReturnScope<object, IToken> groupDef()
+	{
+		EnterRule_groupDef();
+		EnterRule("groupDef", 9);
+		TraceIn("groupDef", 9);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken GROUP27 = default(IToken);
+		IToken ID28 = default(IToken);
+		IToken LBRACKET29 = default(IToken);
+		IToken RBRACKET31 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> moduleDefinitionsList30 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object GROUP27_tree = default(object);
+		object ID28_tree = default(object);
+		object LBRACKET29_tree = default(object);
+		object RBRACKET31_tree = default(object);
+		RewriteRuleITokenStream stream_LBRACKET=new RewriteRuleITokenStream(adaptor,"token LBRACKET");
+		RewriteRuleITokenStream stream_GROUP=new RewriteRuleITokenStream(adaptor,"token GROUP");
+		RewriteRuleITokenStream stream_RBRACKET=new RewriteRuleITokenStream(adaptor,"token RBRACKET");
+		RewriteRuleITokenStream stream_ID=new RewriteRuleITokenStream(adaptor,"token ID");
+		RewriteRuleSubtreeStream stream_moduleDefinitionsList=new RewriteRuleSubtreeStream(adaptor,"rule moduleDefinitionsList");
+		try { DebugEnterRule(GrammarFileName, "groupDef");
+		DebugLocation(111, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:111:9: ( GROUP ID LBRACKET ( moduleDefinitionsList )? RBRACKET -> ^( GROUPDEF ID ( moduleDefinitionsList )? ) )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:111:11: GROUP ID LBRACKET ( moduleDefinitionsList )? RBRACKET
+			{
+			DebugLocation(111, 11);
+			GROUP27=(IToken)Match(input,GROUP,Follow._GROUP_in_groupDef251);  
+			stream_GROUP.Add(GROUP27);
+
+			DebugLocation(111, 17);
+			ID28=(IToken)Match(input,ID,Follow._ID_in_groupDef253);  
+			stream_ID.Add(ID28);
+
+			DebugLocation(111, 20);
+			LBRACKET29=(IToken)Match(input,LBRACKET,Follow._LBRACKET_in_groupDef255);  
+			stream_LBRACKET.Add(LBRACKET29);
+
+			DebugLocation(111, 29);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:111:29: ( moduleDefinitionsList )?
+			int alt11=2;
+			try { DebugEnterSubRule(11);
+			try { DebugEnterDecision(11, false);
+			int LA11_0 = input.LA(1);
+
+			if ((LA11_0==CONST||(LA11_0>=FRIEND && LA11_0<=GROUP)||LA11_0==IMPORT||(LA11_0>=PRIVATE && LA11_0<=PUBLIC)||LA11_0==TYPE))
+			{
+				alt11 = 1;
+			}
+			} finally { DebugExitDecision(11); }
+			switch (alt11)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:111:29: moduleDefinitionsList
+				{
+				DebugLocation(111, 29);
+				PushFollow(Follow._moduleDefinitionsList_in_groupDef257);
+				moduleDefinitionsList30=moduleDefinitionsList();
+				PopFollow();
+
+				stream_moduleDefinitionsList.Add(moduleDefinitionsList30.Tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(11); }
+
+			DebugLocation(111, 52);
+			RBRACKET31=(IToken)Match(input,RBRACKET,Follow._RBRACKET_in_groupDef260);  
+			stream_RBRACKET.Add(RBRACKET31);
+
+
+
+			{
+			// AST REWRITE
+			// elements: moduleDefinitionsList, ID
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 111:61: -> ^( GROUPDEF ID ( moduleDefinitionsList )? )
+			{
+				DebugLocation(111, 64);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:111:64: ^( GROUPDEF ID ( moduleDefinitionsList )? )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(111, 66);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(GROUPDEF, "GROUPDEF"), root_1);
+
+				DebugLocation(111, 75);
+				adaptor.AddChild(root_1, stream_ID.NextNode());
+				DebugLocation(111, 78);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:111:78: ( moduleDefinitionsList )?
+				if (stream_moduleDefinitionsList.HasNext)
+				{
+					DebugLocation(111, 78);
+					adaptor.AddChild(root_1, stream_moduleDefinitionsList.NextTree());
+
+				}
+				stream_moduleDefinitionsList.Reset();
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("groupDef", 9);
+			LeaveRule("groupDef", 9);
+			LeaveRule_groupDef();
+		}
+		DebugLocation(112, 1);
+		} finally { DebugExitRule(GrammarFileName, "groupDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "groupDef"
+
+	partial void EnterRule_importDef();
+	partial void LeaveRule_importDef();
+
+	// $ANTLR start "importDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:114:1: importDef : IMPORT 'from' ID ( 'all' )? SEMICOLON -> ^( IMPORTDEF ID ( 'all' )? ) ;
+	[GrammarRule("importDef")]
+	private AstParserRuleReturnScope<object, IToken> importDef()
+	{
+		EnterRule_importDef();
+		EnterRule("importDef", 10);
+		TraceIn("importDef", 10);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken IMPORT32 = default(IToken);
+		IToken string_literal33 = default(IToken);
+		IToken ID34 = default(IToken);
+		IToken string_literal35 = default(IToken);
+		IToken SEMICOLON36 = default(IToken);
+
+		object IMPORT32_tree = default(object);
+		object string_literal33_tree = default(object);
+		object ID34_tree = default(object);
+		object string_literal35_tree = default(object);
+		object SEMICOLON36_tree = default(object);
+		RewriteRuleITokenStream stream_78=new RewriteRuleITokenStream(adaptor,"token 78");
+		RewriteRuleITokenStream stream_IMPORT=new RewriteRuleITokenStream(adaptor,"token IMPORT");
+		RewriteRuleITokenStream stream_SEMICOLON=new RewriteRuleITokenStream(adaptor,"token SEMICOLON");
+		RewriteRuleITokenStream stream_ID=new RewriteRuleITokenStream(adaptor,"token ID");
+		RewriteRuleITokenStream stream_ALL=new RewriteRuleITokenStream(adaptor,"token ALL");
+		try { DebugEnterRule(GrammarFileName, "importDef");
+		DebugLocation(114, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:115:2: ( IMPORT 'from' ID ( 'all' )? SEMICOLON -> ^( IMPORTDEF ID ( 'all' )? ) )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:115:4: IMPORT 'from' ID ( 'all' )? SEMICOLON
+			{
+			DebugLocation(115, 4);
+			IMPORT32=(IToken)Match(input,IMPORT,Follow._IMPORT_in_importDef282);  
+			stream_IMPORT.Add(IMPORT32);
+
+			DebugLocation(115, 11);
+			string_literal33=(IToken)Match(input,78,Follow._78_in_importDef284);  
+			stream_78.Add(string_literal33);
+
+			DebugLocation(115, 18);
+			ID34=(IToken)Match(input,ID,Follow._ID_in_importDef286);  
+			stream_ID.Add(ID34);
+
+			DebugLocation(115, 21);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:115:21: ( 'all' )?
+			int alt12=2;
+			try { DebugEnterSubRule(12);
+			try { DebugEnterDecision(12, false);
+			int LA12_0 = input.LA(1);
+
+			if ((LA12_0==ALL))
+			{
+				alt12 = 1;
+			}
+			} finally { DebugExitDecision(12); }
+			switch (alt12)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:115:21: 'all'
+				{
+				DebugLocation(115, 21);
+				string_literal35=(IToken)Match(input,ALL,Follow._ALL_in_importDef288);  
+				stream_ALL.Add(string_literal35);
+
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(12); }
+
+			DebugLocation(115, 28);
+			SEMICOLON36=(IToken)Match(input,SEMICOLON,Follow._SEMICOLON_in_importDef291);  
+			stream_SEMICOLON.Add(SEMICOLON36);
+
+
+
+			{
+			// AST REWRITE
+			// elements: ALL, ID
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 115:38: -> ^( IMPORTDEF ID ( 'all' )? )
+			{
+				DebugLocation(115, 41);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:115:41: ^( IMPORTDEF ID ( 'all' )? )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(115, 43);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(IMPORTDEF, "IMPORTDEF"), root_1);
+
+				DebugLocation(115, 53);
+				adaptor.AddChild(root_1, stream_ID.NextNode());
+				DebugLocation(115, 56);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:115:56: ( 'all' )?
+				if (stream_ALL.HasNext)
+				{
+					DebugLocation(115, 56);
+					adaptor.AddChild(root_1, stream_ALL.NextNode());
+
+				}
+				stream_ALL.Reset();
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("importDef", 10);
+			LeaveRule("importDef", 10);
+			LeaveRule_importDef();
+		}
+		DebugLocation(116, 1);
+		} finally { DebugExitRule(GrammarFileName, "importDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "importDef"
+
+	partial void EnterRule_visibility();
+	partial void LeaveRule_visibility();
+
+	// $ANTLR start "visibility"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:118:1: visibility : ( PUBLIC | PRIVATE | FRIEND );
+	[GrammarRule("visibility")]
+	private AstParserRuleReturnScope<object, IToken> visibility()
+	{
+		EnterRule_visibility();
+		EnterRule("visibility", 11);
+		TraceIn("visibility", 11);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set37 = default(IToken);
+
+		object set37_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "visibility");
+		DebugLocation(118, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:119:2: ( PUBLIC | PRIVATE | FRIEND )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(119, 2);
+
+			set37=(IToken)input.LT(1);
+			if (input.LA(1)==FRIEND||(input.LA(1)>=PRIVATE && input.LA(1)<=PUBLIC))
 			{
 				input.Consume();
-				adaptor.AddChild(root_0, (object)adaptor.Create(set16));
+				adaptor.AddChild(root_0, (object)adaptor.Create(set37));
 				state.errorRecovery=false;
 			}
 			else
@@ -714,37 +1685,5784 @@ public partial class TTCN3Parser : Antlr.Runtime.Parser
 		}
 		finally
 		{
-			TraceOut("predefinedType", 7);
-			LeaveRule("predefinedType", 7);
+			TraceOut("visibility", 11);
+			LeaveRule("visibility", 11);
+			LeaveRule_visibility();
+		}
+		DebugLocation(120, 1);
+		} finally { DebugExitRule(GrammarFileName, "visibility"); }
+		return retval;
+
+	}
+	// $ANTLR end "visibility"
+
+	partial void EnterRule_typeDef();
+	partial void LeaveRule_typeDef();
+
+	// $ANTLR start "typeDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:122:1: typeDef : TYPE typeDefBody -> ^( TYPEDEF typeDefBody ) ;
+	[GrammarRule("typeDef")]
+	private AstParserRuleReturnScope<object, IToken> typeDef()
+	{
+		EnterRule_typeDef();
+		EnterRule("typeDef", 12);
+		TraceIn("typeDef", 12);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken TYPE38 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> typeDefBody39 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object TYPE38_tree = default(object);
+		RewriteRuleITokenStream stream_TYPE=new RewriteRuleITokenStream(adaptor,"token TYPE");
+		RewriteRuleSubtreeStream stream_typeDefBody=new RewriteRuleSubtreeStream(adaptor,"rule typeDefBody");
+		try { DebugEnterRule(GrammarFileName, "typeDef");
+		DebugLocation(122, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:122:9: ( TYPE typeDefBody -> ^( TYPEDEF typeDefBody ) )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:122:11: TYPE typeDefBody
+			{
+			DebugLocation(122, 11);
+			TYPE38=(IToken)Match(input,TYPE,Follow._TYPE_in_typeDef331);  
+			stream_TYPE.Add(TYPE38);
+
+			DebugLocation(122, 16);
+			PushFollow(Follow._typeDefBody_in_typeDef333);
+			typeDefBody39=typeDefBody();
+			PopFollow();
+
+			stream_typeDefBody.Add(typeDefBody39.Tree);
+
+
+			{
+			// AST REWRITE
+			// elements: typeDefBody
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 122:28: -> ^( TYPEDEF typeDefBody )
+			{
+				DebugLocation(122, 31);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:122:31: ^( TYPEDEF typeDefBody )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(122, 33);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(TYPEDEF, "TYPEDEF"), root_1);
+
+				DebugLocation(122, 41);
+				adaptor.AddChild(root_1, stream_typeDefBody.NextTree());
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("typeDef", 12);
+			LeaveRule("typeDef", 12);
+			LeaveRule_typeDef();
+		}
+		DebugLocation(123, 1);
+		} finally { DebugExitRule(GrammarFileName, "typeDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "typeDef"
+
+	partial void EnterRule_typeDefBody();
+	partial void LeaveRule_typeDefBody();
+
+	// $ANTLR start "typeDefBody"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:125:1: typeDefBody : ( structuredTypeDef | subTypeDef );
+	[GrammarRule("typeDefBody")]
+	private AstParserRuleReturnScope<object, IToken> typeDefBody()
+	{
+		EnterRule_typeDefBody();
+		EnterRule("typeDefBody", 13);
+		TraceIn("typeDefBody", 13);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> structuredTypeDef40 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> subTypeDef41 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "typeDefBody");
+		DebugLocation(125, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:126:2: ( structuredTypeDef | subTypeDef )
+			int alt13=2;
+			try { DebugEnterDecision(13, false);
+			int LA13_0 = input.LA(1);
+
+			if ((LA13_0==ENUMERATED||LA13_0==PORT||LA13_0==RECORD||LA13_0==UNION))
+			{
+				alt13 = 1;
+			}
+			else if (((LA13_0>=BITSTRING && LA13_0<=CHARSTRING)||LA13_0==ID||LA13_0==INTEGER||LA13_0==OCTETSTRING))
+			{
+				alt13 = 2;
+			}
+			else
+			{
+				NoViableAltException nvae = new NoViableAltException("", 13, 0, input);
+				DebugRecognitionException(nvae);
+				throw nvae;
+			}
+			} finally { DebugExitDecision(13); }
+			switch (alt13)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:126:4: structuredTypeDef
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(126, 4);
+				PushFollow(Follow._structuredTypeDef_in_typeDefBody352);
+				structuredTypeDef40=structuredTypeDef();
+				PopFollow();
+
+				adaptor.AddChild(root_0, structuredTypeDef40.Tree);
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:126:24: subTypeDef
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(126, 24);
+				PushFollow(Follow._subTypeDef_in_typeDefBody356);
+				subTypeDef41=subTypeDef();
+				PopFollow();
+
+				adaptor.AddChild(root_0, subTypeDef41.Tree);
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("typeDefBody", 13);
+			LeaveRule("typeDefBody", 13);
+			LeaveRule_typeDefBody();
+		}
+		DebugLocation(127, 1);
+		} finally { DebugExitRule(GrammarFileName, "typeDefBody"); }
+		return retval;
+
+	}
+	// $ANTLR end "typeDefBody"
+
+	partial void EnterRule_structuredTypeDef();
+	partial void LeaveRule_structuredTypeDef();
+
+	// $ANTLR start "structuredTypeDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:129:1: structuredTypeDef : ( recordDef | unionDef | enumDef | portDef );
+	[GrammarRule("structuredTypeDef")]
+	private AstParserRuleReturnScope<object, IToken> structuredTypeDef()
+	{
+		EnterRule_structuredTypeDef();
+		EnterRule("structuredTypeDef", 14);
+		TraceIn("structuredTypeDef", 14);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> recordDef42 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> unionDef43 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> enumDef44 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> portDef45 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "structuredTypeDef");
+		DebugLocation(129, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:130:2: ( recordDef | unionDef | enumDef | portDef )
+			int alt14=4;
+			try { DebugEnterDecision(14, false);
+			switch (input.LA(1))
+			{
+			case RECORD:
+				{
+				alt14 = 1;
+				}
+				break;
+			case UNION:
+				{
+				alt14 = 2;
+				}
+				break;
+			case ENUMERATED:
+				{
+				alt14 = 3;
+				}
+				break;
+			case PORT:
+				{
+				alt14 = 4;
+				}
+				break;
+			default:
+				{
+					NoViableAltException nvae = new NoViableAltException("", 14, 0, input);
+					DebugRecognitionException(nvae);
+					throw nvae;
+				}
+			}
+
+			} finally { DebugExitDecision(14); }
+			switch (alt14)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:130:4: recordDef
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(130, 4);
+				PushFollow(Follow._recordDef_in_structuredTypeDef367);
+				recordDef42=recordDef();
+				PopFollow();
+
+				adaptor.AddChild(root_0, recordDef42.Tree);
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:130:16: unionDef
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(130, 16);
+				PushFollow(Follow._unionDef_in_structuredTypeDef371);
+				unionDef43=unionDef();
+				PopFollow();
+
+				adaptor.AddChild(root_0, unionDef43.Tree);
+
+				}
+				break;
+			case 3:
+				DebugEnterAlt(3);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:130:27: enumDef
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(130, 27);
+				PushFollow(Follow._enumDef_in_structuredTypeDef375);
+				enumDef44=enumDef();
+				PopFollow();
+
+				adaptor.AddChild(root_0, enumDef44.Tree);
+
+				}
+				break;
+			case 4:
+				DebugEnterAlt(4);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:130:37: portDef
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(130, 37);
+				PushFollow(Follow._portDef_in_structuredTypeDef379);
+				portDef45=portDef();
+				PopFollow();
+
+				adaptor.AddChild(root_0, portDef45.Tree);
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("structuredTypeDef", 14);
+			LeaveRule("structuredTypeDef", 14);
+			LeaveRule_structuredTypeDef();
+		}
+		DebugLocation(131, 1);
+		} finally { DebugExitRule(GrammarFileName, "structuredTypeDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "structuredTypeDef"
+
+	partial void EnterRule_portDef();
+	partial void LeaveRule_portDef();
+
+	// $ANTLR start "portDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:133:1: portDef : PORT portDefBody ;
+	[GrammarRule("portDef")]
+	private AstParserRuleReturnScope<object, IToken> portDef()
+	{
+		EnterRule_portDef();
+		EnterRule("portDef", 15);
+		TraceIn("portDef", 15);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken PORT46 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> portDefBody47 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object PORT46_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "portDef");
+		DebugLocation(133, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:133:9: ( PORT portDefBody )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:133:11: PORT portDefBody
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(133, 11);
+			PORT46=(IToken)Match(input,PORT,Follow._PORT_in_portDef389); 
+			PORT46_tree = (object)adaptor.Create(PORT46);
+			adaptor.AddChild(root_0, PORT46_tree);
+			DebugLocation(133, 16);
+			PushFollow(Follow._portDefBody_in_portDef391);
+			portDefBody47=portDefBody();
+			PopFollow();
+
+			adaptor.AddChild(root_0, portDefBody47.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("portDef", 15);
+			LeaveRule("portDef", 15);
+			LeaveRule_portDef();
+		}
+		DebugLocation(134, 1);
+		} finally { DebugExitRule(GrammarFileName, "portDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "portDef"
+
+	partial void EnterRule_portDefBody();
+	partial void LeaveRule_portDefBody();
+
+	// $ANTLR start "portDefBody"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:136:1: portDefBody : ID portDefAttribs ;
+	[GrammarRule("portDefBody")]
+	private AstParserRuleReturnScope<object, IToken> portDefBody()
+	{
+		EnterRule_portDefBody();
+		EnterRule("portDefBody", 16);
+		TraceIn("portDefBody", 16);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ID48 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> portDefAttribs49 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object ID48_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "portDefBody");
+		DebugLocation(136, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:137:2: ( ID portDefAttribs )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:137:4: ID portDefAttribs
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(137, 4);
+			ID48=(IToken)Match(input,ID,Follow._ID_in_portDefBody402); 
+			ID48_tree = (object)adaptor.Create(ID48);
+			adaptor.AddChild(root_0, ID48_tree);
+			DebugLocation(137, 7);
+			PushFollow(Follow._portDefAttribs_in_portDefBody404);
+			portDefAttribs49=portDefAttribs();
+			PopFollow();
+
+			adaptor.AddChild(root_0, portDefAttribs49.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("portDefBody", 16);
+			LeaveRule("portDefBody", 16);
+			LeaveRule_portDefBody();
+		}
+		DebugLocation(138, 1);
+		} finally { DebugExitRule(GrammarFileName, "portDefBody"); }
+		return retval;
+
+	}
+	// $ANTLR end "portDefBody"
+
+	partial void EnterRule_portDefAttribs();
+	partial void LeaveRule_portDefAttribs();
+
+	// $ANTLR start "portDefAttribs"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:140:1: portDefAttribs : messageAttribs ;
+	[GrammarRule("portDefAttribs")]
+	private AstParserRuleReturnScope<object, IToken> portDefAttribs()
+	{
+		EnterRule_portDefAttribs();
+		EnterRule("portDefAttribs", 17);
+		TraceIn("portDefAttribs", 17);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> messageAttribs50 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "portDefAttribs");
+		DebugLocation(140, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:141:2: ( messageAttribs )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:141:4: messageAttribs
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(141, 4);
+			PushFollow(Follow._messageAttribs_in_portDefAttribs416);
+			messageAttribs50=messageAttribs();
+			PopFollow();
+
+			adaptor.AddChild(root_0, messageAttribs50.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("portDefAttribs", 17);
+			LeaveRule("portDefAttribs", 17);
+			LeaveRule_portDefAttribs();
+		}
+		DebugLocation(142, 1);
+		} finally { DebugExitRule(GrammarFileName, "portDefAttribs"); }
+		return retval;
+
+	}
+	// $ANTLR end "portDefAttribs"
+
+	partial void EnterRule_messageAttribs();
+	partial void LeaveRule_messageAttribs();
+
+	// $ANTLR start "messageAttribs"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:144:1: messageAttribs : MESSAGE LBRACKET ( ( messageList ) ( SEMICOLON )? )+ RBRACKET ;
+	[GrammarRule("messageAttribs")]
+	private AstParserRuleReturnScope<object, IToken> messageAttribs()
+	{
+		EnterRule_messageAttribs();
+		EnterRule("messageAttribs", 18);
+		TraceIn("messageAttribs", 18);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken MESSAGE51 = default(IToken);
+		IToken LBRACKET52 = default(IToken);
+		IToken SEMICOLON54 = default(IToken);
+		IToken RBRACKET55 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> messageList53 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object MESSAGE51_tree = default(object);
+		object LBRACKET52_tree = default(object);
+		object SEMICOLON54_tree = default(object);
+		object RBRACKET55_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "messageAttribs");
+		DebugLocation(144, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:2: ( MESSAGE LBRACKET ( ( messageList ) ( SEMICOLON )? )+ RBRACKET )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:4: MESSAGE LBRACKET ( ( messageList ) ( SEMICOLON )? )+ RBRACKET
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(145, 4);
+			MESSAGE51=(IToken)Match(input,MESSAGE,Follow._MESSAGE_in_messageAttribs428); 
+			MESSAGE51_tree = (object)adaptor.Create(MESSAGE51);
+			adaptor.AddChild(root_0, MESSAGE51_tree);
+			DebugLocation(145, 12);
+			LBRACKET52=(IToken)Match(input,LBRACKET,Follow._LBRACKET_in_messageAttribs430); 
+			LBRACKET52_tree = (object)adaptor.Create(LBRACKET52);
+			adaptor.AddChild(root_0, LBRACKET52_tree);
+			DebugLocation(145, 21);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:21: ( ( messageList ) ( SEMICOLON )? )+
+			int cnt16=0;
+			try { DebugEnterSubRule(16);
+			while (true)
+			{
+				int alt16=2;
+				try { DebugEnterDecision(16, false);
+				int LA16_0 = input.LA(1);
+
+				if ((LA16_0==IN||LA16_0==OUT))
+				{
+					alt16 = 1;
+				}
+
+
+				} finally { DebugExitDecision(16); }
+				switch (alt16)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:22: ( messageList ) ( SEMICOLON )?
+					{
+					DebugLocation(145, 22);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:22: ( messageList )
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:23: messageList
+					{
+					DebugLocation(145, 23);
+					PushFollow(Follow._messageList_in_messageAttribs434);
+					messageList53=messageList();
+					PopFollow();
+
+					adaptor.AddChild(root_0, messageList53.Tree);
+
+					}
+
+					DebugLocation(145, 36);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:36: ( SEMICOLON )?
+					int alt15=2;
+					try { DebugEnterSubRule(15);
+					try { DebugEnterDecision(15, false);
+					int LA15_0 = input.LA(1);
+
+					if ((LA15_0==SEMICOLON))
+					{
+						alt15 = 1;
+					}
+					} finally { DebugExitDecision(15); }
+					switch (alt15)
+					{
+					case 1:
+						DebugEnterAlt(1);
+						// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:145:36: SEMICOLON
+						{
+						DebugLocation(145, 36);
+						SEMICOLON54=(IToken)Match(input,SEMICOLON,Follow._SEMICOLON_in_messageAttribs437); 
+						SEMICOLON54_tree = (object)adaptor.Create(SEMICOLON54);
+						adaptor.AddChild(root_0, SEMICOLON54_tree);
+
+						}
+						break;
+
+					}
+					} finally { DebugExitSubRule(15); }
+
+
+					}
+					break;
+
+				default:
+					if (cnt16 >= 1)
+						goto loop16;
+
+					EarlyExitException eee16 = new EarlyExitException( 16, input );
+					DebugRecognitionException(eee16);
+					throw eee16;
+				}
+				cnt16++;
+			}
+			loop16:
+				;
+
+			} finally { DebugExitSubRule(16); }
+
+			DebugLocation(145, 50);
+			RBRACKET55=(IToken)Match(input,RBRACKET,Follow._RBRACKET_in_messageAttribs443); 
+			RBRACKET55_tree = (object)adaptor.Create(RBRACKET55);
+			adaptor.AddChild(root_0, RBRACKET55_tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("messageAttribs", 18);
+			LeaveRule("messageAttribs", 18);
+			LeaveRule_messageAttribs();
+		}
+		DebugLocation(146, 1);
+		} finally { DebugExitRule(GrammarFileName, "messageAttribs"); }
+		return retval;
+
+	}
+	// $ANTLR end "messageAttribs"
+
+	partial void EnterRule_messageList();
+	partial void LeaveRule_messageList();
+
+	// $ANTLR start "messageList"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:148:1: messageList : direction allOrTypeList ;
+	[GrammarRule("messageList")]
+	private AstParserRuleReturnScope<object, IToken> messageList()
+	{
+		EnterRule_messageList();
+		EnterRule("messageList", 19);
+		TraceIn("messageList", 19);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> direction56 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> allOrTypeList57 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "messageList");
+		DebugLocation(148, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:149:2: ( direction allOrTypeList )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:149:4: direction allOrTypeList
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(149, 4);
+			PushFollow(Follow._direction_in_messageList455);
+			direction56=direction();
+			PopFollow();
+
+			adaptor.AddChild(root_0, direction56.Tree);
+			DebugLocation(149, 14);
+			PushFollow(Follow._allOrTypeList_in_messageList457);
+			allOrTypeList57=allOrTypeList();
+			PopFollow();
+
+			adaptor.AddChild(root_0, allOrTypeList57.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("messageList", 19);
+			LeaveRule("messageList", 19);
+			LeaveRule_messageList();
+		}
+		DebugLocation(150, 1);
+		} finally { DebugExitRule(GrammarFileName, "messageList"); }
+		return retval;
+
+	}
+	// $ANTLR end "messageList"
+
+	partial void EnterRule_direction();
+	partial void LeaveRule_direction();
+
+	// $ANTLR start "direction"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:152:1: direction : ( IN | OUT );
+	[GrammarRule("direction")]
+	private AstParserRuleReturnScope<object, IToken> direction()
+	{
+		EnterRule_direction();
+		EnterRule("direction", 20);
+		TraceIn("direction", 20);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set58 = default(IToken);
+
+		object set58_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "direction");
+		DebugLocation(152, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:153:2: ( IN | OUT )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(153, 2);
+
+			set58=(IToken)input.LT(1);
+			if (input.LA(1)==IN||input.LA(1)==OUT)
+			{
+				input.Consume();
+				adaptor.AddChild(root_0, (object)adaptor.Create(set58));
+				state.errorRecovery=false;
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				throw mse;
+			}
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("direction", 20);
+			LeaveRule("direction", 20);
+			LeaveRule_direction();
+		}
+		DebugLocation(154, 1);
+		} finally { DebugExitRule(GrammarFileName, "direction"); }
+		return retval;
+
+	}
+	// $ANTLR end "direction"
+
+	partial void EnterRule_allOrTypeList();
+	partial void LeaveRule_allOrTypeList();
+
+	// $ANTLR start "allOrTypeList"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:156:1: allOrTypeList : ( ALL | typeList );
+	[GrammarRule("allOrTypeList")]
+	private AstParserRuleReturnScope<object, IToken> allOrTypeList()
+	{
+		EnterRule_allOrTypeList();
+		EnterRule("allOrTypeList", 21);
+		TraceIn("allOrTypeList", 21);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ALL59 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> typeList60 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object ALL59_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "allOrTypeList");
+		DebugLocation(156, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:157:2: ( ALL | typeList )
+			int alt17=2;
+			try { DebugEnterDecision(17, false);
+			int LA17_0 = input.LA(1);
+
+			if ((LA17_0==ALL))
+			{
+				alt17 = 1;
+			}
+			else if (((LA17_0>=BITSTRING && LA17_0<=CHARSTRING)||LA17_0==ID||LA17_0==INTEGER||LA17_0==OCTETSTRING))
+			{
+				alt17 = 2;
+			}
+			else
+			{
+				NoViableAltException nvae = new NoViableAltException("", 17, 0, input);
+				DebugRecognitionException(nvae);
+				throw nvae;
+			}
+			} finally { DebugExitDecision(17); }
+			switch (alt17)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:157:4: ALL
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(157, 4);
+				ALL59=(IToken)Match(input,ALL,Follow._ALL_in_allOrTypeList485); 
+				ALL59_tree = (object)adaptor.Create(ALL59);
+				adaptor.AddChild(root_0, ALL59_tree);
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:157:10: typeList
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(157, 10);
+				PushFollow(Follow._typeList_in_allOrTypeList489);
+				typeList60=typeList();
+				PopFollow();
+
+				adaptor.AddChild(root_0, typeList60.Tree);
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("allOrTypeList", 21);
+			LeaveRule("allOrTypeList", 21);
+			LeaveRule_allOrTypeList();
+		}
+		DebugLocation(158, 1);
+		} finally { DebugExitRule(GrammarFileName, "allOrTypeList"); }
+		return retval;
+
+	}
+	// $ANTLR end "allOrTypeList"
+
+	partial void EnterRule_typeList();
+	partial void LeaveRule_typeList();
+
+	// $ANTLR start "typeList"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:160:1: typeList : type ( ',' type )* ;
+	[GrammarRule("typeList")]
+	private AstParserRuleReturnScope<object, IToken> typeList()
+	{
+		EnterRule_typeList();
+		EnterRule("typeList", 22);
+		TraceIn("typeList", 22);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken char_literal62 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> type61 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> type63 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object char_literal62_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "typeList");
+		DebugLocation(160, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:160:9: ( type ( ',' type )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:160:11: type ( ',' type )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(160, 11);
+			PushFollow(Follow._type_in_typeList498);
+			type61=type();
+			PopFollow();
+
+			adaptor.AddChild(root_0, type61.Tree);
+			DebugLocation(160, 16);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:160:16: ( ',' type )*
+			try { DebugEnterSubRule(18);
+			while (true)
+			{
+				int alt18=2;
+				try { DebugEnterDecision(18, false);
+				int LA18_0 = input.LA(1);
+
+				if ((LA18_0==65))
+				{
+					alt18 = 1;
+				}
+
+
+				} finally { DebugExitDecision(18); }
+				switch ( alt18 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:160:17: ',' type
+					{
+					DebugLocation(160, 17);
+					char_literal62=(IToken)Match(input,65,Follow._65_in_typeList501); 
+					char_literal62_tree = (object)adaptor.Create(char_literal62);
+					adaptor.AddChild(root_0, char_literal62_tree);
+					DebugLocation(160, 21);
+					PushFollow(Follow._type_in_typeList503);
+					type63=type();
+					PopFollow();
+
+					adaptor.AddChild(root_0, type63.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop18;
+				}
+			}
+
+			loop18:
+				;
+
+			} finally { DebugExitSubRule(18); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("typeList", 22);
+			LeaveRule("typeList", 22);
+			LeaveRule_typeList();
+		}
+		DebugLocation(161, 1);
+		} finally { DebugExitRule(GrammarFileName, "typeList"); }
+		return retval;
+
+	}
+	// $ANTLR end "typeList"
+
+	partial void EnterRule_subTypeDef();
+	partial void LeaveRule_subTypeDef();
+
+	// $ANTLR start "subTypeDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:162:2: subTypeDef : type ID ( subTypeSpec )? ;
+	[GrammarRule("subTypeDef")]
+	private AstParserRuleReturnScope<object, IToken> subTypeDef()
+	{
+		EnterRule_subTypeDef();
+		EnterRule("subTypeDef", 23);
+		TraceIn("subTypeDef", 23);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ID65 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> type64 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> subTypeSpec66 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object ID65_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "subTypeDef");
+		DebugLocation(162, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:163:2: ( type ID ( subTypeSpec )? )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:163:4: type ID ( subTypeSpec )?
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(163, 4);
+			PushFollow(Follow._type_in_subTypeDef516);
+			type64=type();
+			PopFollow();
+
+			adaptor.AddChild(root_0, type64.Tree);
+			DebugLocation(163, 9);
+			ID65=(IToken)Match(input,ID,Follow._ID_in_subTypeDef518); 
+			ID65_tree = (object)adaptor.Create(ID65);
+			adaptor.AddChild(root_0, ID65_tree);
+			DebugLocation(163, 12);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:163:12: ( subTypeSpec )?
+			int alt19=2;
+			try { DebugEnterSubRule(19);
+			try { DebugEnterDecision(19, false);
+			int LA19_0 = input.LA(1);
+
+			if (((LA19_0>=LENGTH && LA19_0<=LPAREN)))
+			{
+				alt19 = 1;
+			}
+			} finally { DebugExitDecision(19); }
+			switch (alt19)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:163:12: subTypeSpec
+				{
+				DebugLocation(163, 12);
+				PushFollow(Follow._subTypeSpec_in_subTypeDef520);
+				subTypeSpec66=subTypeSpec();
+				PopFollow();
+
+				adaptor.AddChild(root_0, subTypeSpec66.Tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(19); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("subTypeDef", 23);
+			LeaveRule("subTypeDef", 23);
+			LeaveRule_subTypeDef();
+		}
+		DebugLocation(164, 1);
+		} finally { DebugExitRule(GrammarFileName, "subTypeDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "subTypeDef"
+
+	partial void EnterRule_subTypeSpec();
+	partial void LeaveRule_subTypeSpec();
+
+	// $ANTLR start "subTypeSpec"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:166:1: subTypeSpec : ( ( allowedValuesSpec ( stringLength )? ) | stringLength );
+	[GrammarRule("subTypeSpec")]
+	private AstParserRuleReturnScope<object, IToken> subTypeSpec()
+	{
+		EnterRule_subTypeSpec();
+		EnterRule("subTypeSpec", 24);
+		TraceIn("subTypeSpec", 24);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> allowedValuesSpec67 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> stringLength68 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> stringLength69 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "subTypeSpec");
+		DebugLocation(166, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:167:2: ( ( allowedValuesSpec ( stringLength )? ) | stringLength )
+			int alt21=2;
+			try { DebugEnterDecision(21, false);
+			int LA21_0 = input.LA(1);
+
+			if ((LA21_0==LPAREN))
+			{
+				alt21 = 1;
+			}
+			else if ((LA21_0==LENGTH))
+			{
+				alt21 = 2;
+			}
+			else
+			{
+				NoViableAltException nvae = new NoViableAltException("", 21, 0, input);
+				DebugRecognitionException(nvae);
+				throw nvae;
+			}
+			} finally { DebugExitDecision(21); }
+			switch (alt21)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:167:4: ( allowedValuesSpec ( stringLength )? )
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(167, 4);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:167:4: ( allowedValuesSpec ( stringLength )? )
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:167:5: allowedValuesSpec ( stringLength )?
+				{
+				DebugLocation(167, 5);
+				PushFollow(Follow._allowedValuesSpec_in_subTypeSpec534);
+				allowedValuesSpec67=allowedValuesSpec();
+				PopFollow();
+
+				adaptor.AddChild(root_0, allowedValuesSpec67.Tree);
+				DebugLocation(167, 23);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:167:23: ( stringLength )?
+				int alt20=2;
+				try { DebugEnterSubRule(20);
+				try { DebugEnterDecision(20, false);
+				int LA20_0 = input.LA(1);
+
+				if ((LA20_0==LENGTH))
+				{
+					alt20 = 1;
+				}
+				} finally { DebugExitDecision(20); }
+				switch (alt20)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:167:23: stringLength
+					{
+					DebugLocation(167, 23);
+					PushFollow(Follow._stringLength_in_subTypeSpec536);
+					stringLength68=stringLength();
+					PopFollow();
+
+					adaptor.AddChild(root_0, stringLength68.Tree);
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(20); }
+
+
+				}
+
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:167:40: stringLength
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(167, 40);
+				PushFollow(Follow._stringLength_in_subTypeSpec542);
+				stringLength69=stringLength();
+				PopFollow();
+
+				adaptor.AddChild(root_0, stringLength69.Tree);
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("subTypeSpec", 24);
+			LeaveRule("subTypeSpec", 24);
+			LeaveRule_subTypeSpec();
+		}
+		DebugLocation(168, 1);
+		} finally { DebugExitRule(GrammarFileName, "subTypeSpec"); }
+		return retval;
+
+	}
+	// $ANTLR end "subTypeSpec"
+
+	partial void EnterRule_stringLength();
+	partial void LeaveRule_stringLength();
+
+	// $ANTLR start "stringLength"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:170:1: stringLength : LENGTH LPAREN singleExpression ( DOTDOT bound )? RPAREN ;
+	[GrammarRule("stringLength")]
+	private AstParserRuleReturnScope<object, IToken> stringLength()
+	{
+		EnterRule_stringLength();
+		EnterRule("stringLength", 25);
+		TraceIn("stringLength", 25);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken LENGTH70 = default(IToken);
+		IToken LPAREN71 = default(IToken);
+		IToken DOTDOT73 = default(IToken);
+		IToken RPAREN75 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> singleExpression72 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> bound74 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object LENGTH70_tree = default(object);
+		object LPAREN71_tree = default(object);
+		object DOTDOT73_tree = default(object);
+		object RPAREN75_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "stringLength");
+		DebugLocation(170, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:171:2: ( LENGTH LPAREN singleExpression ( DOTDOT bound )? RPAREN )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:171:4: LENGTH LPAREN singleExpression ( DOTDOT bound )? RPAREN
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(171, 4);
+			LENGTH70=(IToken)Match(input,LENGTH,Follow._LENGTH_in_stringLength554); 
+			LENGTH70_tree = (object)adaptor.Create(LENGTH70);
+			adaptor.AddChild(root_0, LENGTH70_tree);
+			DebugLocation(171, 11);
+			LPAREN71=(IToken)Match(input,LPAREN,Follow._LPAREN_in_stringLength556); 
+			LPAREN71_tree = (object)adaptor.Create(LPAREN71);
+			adaptor.AddChild(root_0, LPAREN71_tree);
+			DebugLocation(171, 18);
+			PushFollow(Follow._singleExpression_in_stringLength558);
+			singleExpression72=singleExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, singleExpression72.Tree);
+			DebugLocation(171, 35);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:171:35: ( DOTDOT bound )?
+			int alt22=2;
+			try { DebugEnterSubRule(22);
+			try { DebugEnterDecision(22, false);
+			int LA22_0 = input.LA(1);
+
+			if ((LA22_0==DOTDOT))
+			{
+				alt22 = 1;
+			}
+			} finally { DebugExitDecision(22); }
+			switch (alt22)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:171:36: DOTDOT bound
+				{
+				DebugLocation(171, 36);
+				DOTDOT73=(IToken)Match(input,DOTDOT,Follow._DOTDOT_in_stringLength561); 
+				DOTDOT73_tree = (object)adaptor.Create(DOTDOT73);
+				adaptor.AddChild(root_0, DOTDOT73_tree);
+				DebugLocation(171, 43);
+				PushFollow(Follow._bound_in_stringLength563);
+				bound74=bound();
+				PopFollow();
+
+				adaptor.AddChild(root_0, bound74.Tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(22); }
+
+			DebugLocation(171, 51);
+			RPAREN75=(IToken)Match(input,RPAREN,Follow._RPAREN_in_stringLength567); 
+			RPAREN75_tree = (object)adaptor.Create(RPAREN75);
+			adaptor.AddChild(root_0, RPAREN75_tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("stringLength", 25);
+			LeaveRule("stringLength", 25);
+			LeaveRule_stringLength();
+		}
+		DebugLocation(172, 1);
+		} finally { DebugExitRule(GrammarFileName, "stringLength"); }
+		return retval;
+
+	}
+	// $ANTLR end "stringLength"
+
+	partial void EnterRule_allowedValuesSpec();
+	partial void LeaveRule_allowedValuesSpec();
+
+	// $ANTLR start "allowedValuesSpec"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:174:1: allowedValuesSpec : LPAREN rangeDef RPAREN -> ^( ALLOWEDVALUES rangeDef ) ;
+	[GrammarRule("allowedValuesSpec")]
+	private AstParserRuleReturnScope<object, IToken> allowedValuesSpec()
+	{
+		EnterRule_allowedValuesSpec();
+		EnterRule("allowedValuesSpec", 26);
+		TraceIn("allowedValuesSpec", 26);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken LPAREN76 = default(IToken);
+		IToken RPAREN78 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> rangeDef77 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object LPAREN76_tree = default(object);
+		object RPAREN78_tree = default(object);
+		RewriteRuleITokenStream stream_RPAREN=new RewriteRuleITokenStream(adaptor,"token RPAREN");
+		RewriteRuleITokenStream stream_LPAREN=new RewriteRuleITokenStream(adaptor,"token LPAREN");
+		RewriteRuleSubtreeStream stream_rangeDef=new RewriteRuleSubtreeStream(adaptor,"rule rangeDef");
+		try { DebugEnterRule(GrammarFileName, "allowedValuesSpec");
+		DebugLocation(174, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:175:2: ( LPAREN rangeDef RPAREN -> ^( ALLOWEDVALUES rangeDef ) )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:175:4: LPAREN rangeDef RPAREN
+			{
+			DebugLocation(175, 4);
+			LPAREN76=(IToken)Match(input,LPAREN,Follow._LPAREN_in_allowedValuesSpec579);  
+			stream_LPAREN.Add(LPAREN76);
+
+			DebugLocation(175, 11);
+			PushFollow(Follow._rangeDef_in_allowedValuesSpec581);
+			rangeDef77=rangeDef();
+			PopFollow();
+
+			stream_rangeDef.Add(rangeDef77.Tree);
+			DebugLocation(175, 20);
+			RPAREN78=(IToken)Match(input,RPAREN,Follow._RPAREN_in_allowedValuesSpec583);  
+			stream_RPAREN.Add(RPAREN78);
+
+
+
+			{
+			// AST REWRITE
+			// elements: rangeDef
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 175:27: -> ^( ALLOWEDVALUES rangeDef )
+			{
+				DebugLocation(175, 30);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:175:30: ^( ALLOWEDVALUES rangeDef )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(175, 32);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(ALLOWEDVALUES, "ALLOWEDVALUES"), root_1);
+
+				DebugLocation(175, 46);
+				adaptor.AddChild(root_1, stream_rangeDef.NextTree());
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("allowedValuesSpec", 26);
+			LeaveRule("allowedValuesSpec", 26);
+			LeaveRule_allowedValuesSpec();
+		}
+		DebugLocation(176, 1);
+		} finally { DebugExitRule(GrammarFileName, "allowedValuesSpec"); }
+		return retval;
+
+	}
+	// $ANTLR end "allowedValuesSpec"
+
+	partial void EnterRule_rangeDef();
+	partial void LeaveRule_rangeDef();
+
+	// $ANTLR start "rangeDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:178:1: rangeDef : bound '..' bound -> bound bound ;
+	[GrammarRule("rangeDef")]
+	private AstParserRuleReturnScope<object, IToken> rangeDef()
+	{
+		EnterRule_rangeDef();
+		EnterRule("rangeDef", 27);
+		TraceIn("rangeDef", 27);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken string_literal80 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> bound79 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> bound81 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object string_literal80_tree = default(object);
+		RewriteRuleITokenStream stream_DOTDOT=new RewriteRuleITokenStream(adaptor,"token DOTDOT");
+		RewriteRuleSubtreeStream stream_bound=new RewriteRuleSubtreeStream(adaptor,"rule bound");
+		try { DebugEnterRule(GrammarFileName, "rangeDef");
+		DebugLocation(178, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:178:9: ( bound '..' bound -> bound bound )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:178:11: bound '..' bound
+			{
+			DebugLocation(178, 11);
+			PushFollow(Follow._bound_in_rangeDef601);
+			bound79=bound();
+			PopFollow();
+
+			stream_bound.Add(bound79.Tree);
+			DebugLocation(178, 17);
+			string_literal80=(IToken)Match(input,DOTDOT,Follow._DOTDOT_in_rangeDef603);  
+			stream_DOTDOT.Add(string_literal80);
+
+			DebugLocation(178, 22);
+			PushFollow(Follow._bound_in_rangeDef605);
+			bound81=bound();
+			PopFollow();
+
+			stream_bound.Add(bound81.Tree);
+
+
+			{
+			// AST REWRITE
+			// elements: bound, bound
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 178:28: -> bound bound
+			{
+				DebugLocation(178, 31);
+				adaptor.AddChild(root_0, stream_bound.NextTree());
+				DebugLocation(178, 37);
+				adaptor.AddChild(root_0, stream_bound.NextTree());
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("rangeDef", 27);
+			LeaveRule("rangeDef", 27);
+			LeaveRule_rangeDef();
+		}
+		DebugLocation(179, 1);
+		} finally { DebugExitRule(GrammarFileName, "rangeDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "rangeDef"
+
+	partial void EnterRule_bound();
+	partial void LeaveRule_bound();
+
+	// $ANTLR start "bound"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:1: bound : ( ( ( BANG )? singleExpression ) | ( ( MINUS )? INFINITY ) );
+	[GrammarRule("bound")]
+	private AstParserRuleReturnScope<object, IToken> bound()
+	{
+		EnterRule_bound();
+		EnterRule("bound", 28);
+		TraceIn("bound", 28);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken BANG82 = default(IToken);
+		IToken MINUS84 = default(IToken);
+		IToken INFINITY85 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> singleExpression83 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object BANG82_tree = default(object);
+		object MINUS84_tree = default(object);
+		object INFINITY85_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "bound");
+		DebugLocation(181, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:7: ( ( ( BANG )? singleExpression ) | ( ( MINUS )? INFINITY ) )
+			int alt25=2;
+			try { DebugEnterDecision(25, false);
+			switch (input.LA(1))
+			{
+			case BANG:
+			case ID:
+			case LPAREN:
+			case NOT:
+			case NUMBER:
+			case 64:
+			case 80:
+				{
+				alt25 = 1;
+				}
+				break;
+			case MINUS:
+				{
+				int LA25_2 = input.LA(2);
+
+				if ((LA25_2==ID||LA25_2==LPAREN||LA25_2==NUMBER))
+				{
+					alt25 = 1;
+				}
+				else if ((LA25_2==INFINITY))
+				{
+					alt25 = 2;
+				}
+				else
+				{
+					NoViableAltException nvae = new NoViableAltException("", 25, 2, input);
+					DebugRecognitionException(nvae);
+					throw nvae;
+				}
+				}
+				break;
+			case INFINITY:
+				{
+				alt25 = 2;
+				}
+				break;
+			default:
+				{
+					NoViableAltException nvae = new NoViableAltException("", 25, 0, input);
+					DebugRecognitionException(nvae);
+					throw nvae;
+				}
+			}
+
+			} finally { DebugExitDecision(25); }
+			switch (alt25)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:9: ( ( BANG )? singleExpression )
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(181, 9);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:9: ( ( BANG )? singleExpression )
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:10: ( BANG )? singleExpression
+				{
+				DebugLocation(181, 10);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:10: ( BANG )?
+				int alt23=2;
+				try { DebugEnterSubRule(23);
+				try { DebugEnterDecision(23, false);
+				int LA23_0 = input.LA(1);
+
+				if ((LA23_0==BANG))
+				{
+					alt23 = 1;
+				}
+				} finally { DebugExitDecision(23); }
+				switch (alt23)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:10: BANG
+					{
+					DebugLocation(181, 10);
+					BANG82=(IToken)Match(input,BANG,Follow._BANG_in_bound623); 
+					BANG82_tree = (object)adaptor.Create(BANG82);
+					adaptor.AddChild(root_0, BANG82_tree);
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(23); }
+
+				DebugLocation(181, 16);
+				PushFollow(Follow._singleExpression_in_bound626);
+				singleExpression83=singleExpression();
+				PopFollow();
+
+				adaptor.AddChild(root_0, singleExpression83.Tree);
+
+				}
+
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:36: ( ( MINUS )? INFINITY )
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(181, 36);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:36: ( ( MINUS )? INFINITY )
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:37: ( MINUS )? INFINITY
+				{
+				DebugLocation(181, 37);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:37: ( MINUS )?
+				int alt24=2;
+				try { DebugEnterSubRule(24);
+				try { DebugEnterDecision(24, false);
+				int LA24_0 = input.LA(1);
+
+				if ((LA24_0==MINUS))
+				{
+					alt24 = 1;
+				}
+				} finally { DebugExitDecision(24); }
+				switch (alt24)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:181:37: MINUS
+					{
+					DebugLocation(181, 37);
+					MINUS84=(IToken)Match(input,MINUS,Follow._MINUS_in_bound632); 
+					MINUS84_tree = (object)adaptor.Create(MINUS84);
+					adaptor.AddChild(root_0, MINUS84_tree);
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(24); }
+
+				DebugLocation(181, 44);
+				INFINITY85=(IToken)Match(input,INFINITY,Follow._INFINITY_in_bound635); 
+				INFINITY85_tree = (object)adaptor.Create(INFINITY85);
+				adaptor.AddChild(root_0, INFINITY85_tree);
+
+				}
+
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("bound", 28);
+			LeaveRule("bound", 28);
+			LeaveRule_bound();
+		}
+		DebugLocation(182, 1);
+		} finally { DebugExitRule(GrammarFileName, "bound"); }
+		return retval;
+
+	}
+	// $ANTLR end "bound"
+
+	partial void EnterRule_recordDef();
+	partial void LeaveRule_recordDef();
+
+	// $ANTLR start "recordDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:184:1: recordDef : RECORD structDefBody ;
+	[GrammarRule("recordDef")]
+	private AstParserRuleReturnScope<object, IToken> recordDef()
+	{
+		EnterRule_recordDef();
+		EnterRule("recordDef", 29);
+		TraceIn("recordDef", 29);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken RECORD86 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> structDefBody87 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object RECORD86_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "recordDef");
+		DebugLocation(184, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:185:2: ( RECORD structDefBody )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:185:4: RECORD structDefBody
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(185, 4);
+			RECORD86=(IToken)Match(input,RECORD,Follow._RECORD_in_recordDef648); 
+			RECORD86_tree = (object)adaptor.Create(RECORD86);
+			adaptor.AddChild(root_0, RECORD86_tree);
+			DebugLocation(185, 11);
+			PushFollow(Follow._structDefBody_in_recordDef650);
+			structDefBody87=structDefBody();
+			PopFollow();
+
+			adaptor.AddChild(root_0, structDefBody87.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("recordDef", 29);
+			LeaveRule("recordDef", 29);
+			LeaveRule_recordDef();
+		}
+		DebugLocation(186, 1);
+		} finally { DebugExitRule(GrammarFileName, "recordDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "recordDef"
+
+	partial void EnterRule_unionDef();
+	partial void LeaveRule_unionDef();
+
+	// $ANTLR start "unionDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:188:1: unionDef : UNION structDefBody ;
+	[GrammarRule("unionDef")]
+	private AstParserRuleReturnScope<object, IToken> unionDef()
+	{
+		EnterRule_unionDef();
+		EnterRule("unionDef", 30);
+		TraceIn("unionDef", 30);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken UNION88 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> structDefBody89 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object UNION88_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "unionDef");
+		DebugLocation(188, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:188:9: ( UNION structDefBody )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:188:11: UNION structDefBody
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(188, 11);
+			UNION88=(IToken)Match(input,UNION,Follow._UNION_in_unionDef659); 
+			UNION88_tree = (object)adaptor.Create(UNION88);
+			adaptor.AddChild(root_0, UNION88_tree);
+			DebugLocation(188, 17);
+			PushFollow(Follow._structDefBody_in_unionDef661);
+			structDefBody89=structDefBody();
+			PopFollow();
+
+			adaptor.AddChild(root_0, structDefBody89.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("unionDef", 30);
+			LeaveRule("unionDef", 30);
+			LeaveRule_unionDef();
+		}
+		DebugLocation(189, 1);
+		} finally { DebugExitRule(GrammarFileName, "unionDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "unionDef"
+
+	partial void EnterRule_enumDef();
+	partial void LeaveRule_enumDef();
+
+	// $ANTLR start "enumDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:191:1: enumDef : ENUMERATED ID LBRACKET enumerationList RBRACKET -> ^( ENUMDEF ID enumerationList ) ;
+	[GrammarRule("enumDef")]
+	private AstParserRuleReturnScope<object, IToken> enumDef()
+	{
+		EnterRule_enumDef();
+		EnterRule("enumDef", 31);
+		TraceIn("enumDef", 31);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ENUMERATED90 = default(IToken);
+		IToken ID91 = default(IToken);
+		IToken LBRACKET92 = default(IToken);
+		IToken RBRACKET94 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> enumerationList93 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object ENUMERATED90_tree = default(object);
+		object ID91_tree = default(object);
+		object LBRACKET92_tree = default(object);
+		object RBRACKET94_tree = default(object);
+		RewriteRuleITokenStream stream_LBRACKET=new RewriteRuleITokenStream(adaptor,"token LBRACKET");
+		RewriteRuleITokenStream stream_ENUMERATED=new RewriteRuleITokenStream(adaptor,"token ENUMERATED");
+		RewriteRuleITokenStream stream_RBRACKET=new RewriteRuleITokenStream(adaptor,"token RBRACKET");
+		RewriteRuleITokenStream stream_ID=new RewriteRuleITokenStream(adaptor,"token ID");
+		RewriteRuleSubtreeStream stream_enumerationList=new RewriteRuleSubtreeStream(adaptor,"rule enumerationList");
+		try { DebugEnterRule(GrammarFileName, "enumDef");
+		DebugLocation(191, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:191:9: ( ENUMERATED ID LBRACKET enumerationList RBRACKET -> ^( ENUMDEF ID enumerationList ) )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:191:11: ENUMERATED ID LBRACKET enumerationList RBRACKET
+			{
+			DebugLocation(191, 11);
+			ENUMERATED90=(IToken)Match(input,ENUMERATED,Follow._ENUMERATED_in_enumDef671);  
+			stream_ENUMERATED.Add(ENUMERATED90);
+
+			DebugLocation(191, 22);
+			ID91=(IToken)Match(input,ID,Follow._ID_in_enumDef673);  
+			stream_ID.Add(ID91);
+
+			DebugLocation(191, 25);
+			LBRACKET92=(IToken)Match(input,LBRACKET,Follow._LBRACKET_in_enumDef675);  
+			stream_LBRACKET.Add(LBRACKET92);
+
+			DebugLocation(191, 34);
+			PushFollow(Follow._enumerationList_in_enumDef677);
+			enumerationList93=enumerationList();
+			PopFollow();
+
+			stream_enumerationList.Add(enumerationList93.Tree);
+			DebugLocation(191, 50);
+			RBRACKET94=(IToken)Match(input,RBRACKET,Follow._RBRACKET_in_enumDef679);  
+			stream_RBRACKET.Add(RBRACKET94);
+
+
+
+			{
+			// AST REWRITE
+			// elements: ID, enumerationList
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 191:59: -> ^( ENUMDEF ID enumerationList )
+			{
+				DebugLocation(191, 62);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:191:62: ^( ENUMDEF ID enumerationList )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(191, 64);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(ENUMDEF, "ENUMDEF"), root_1);
+
+				DebugLocation(191, 72);
+				adaptor.AddChild(root_1, stream_ID.NextNode());
+				DebugLocation(191, 75);
+				adaptor.AddChild(root_1, stream_enumerationList.NextTree());
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("enumDef", 31);
+			LeaveRule("enumDef", 31);
+			LeaveRule_enumDef();
+		}
+		DebugLocation(192, 1);
+		} finally { DebugExitRule(GrammarFileName, "enumDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "enumDef"
+
+	partial void EnterRule_enumerationList();
+	partial void LeaveRule_enumerationList();
+
+	// $ANTLR start "enumerationList"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:194:1: enumerationList : enumeration ( ',' enumeration )* -> ( enumeration )+ ;
+	[GrammarRule("enumerationList")]
+	private AstParserRuleReturnScope<object, IToken> enumerationList()
+	{
+		EnterRule_enumerationList();
+		EnterRule("enumerationList", 32);
+		TraceIn("enumerationList", 32);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken char_literal96 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> enumeration95 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> enumeration97 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object char_literal96_tree = default(object);
+		RewriteRuleITokenStream stream_65=new RewriteRuleITokenStream(adaptor,"token 65");
+		RewriteRuleSubtreeStream stream_enumeration=new RewriteRuleSubtreeStream(adaptor,"rule enumeration");
+		try { DebugEnterRule(GrammarFileName, "enumerationList");
+		DebugLocation(194, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:195:2: ( enumeration ( ',' enumeration )* -> ( enumeration )+ )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:195:4: enumeration ( ',' enumeration )*
+			{
+			DebugLocation(195, 4);
+			PushFollow(Follow._enumeration_in_enumerationList700);
+			enumeration95=enumeration();
+			PopFollow();
+
+			stream_enumeration.Add(enumeration95.Tree);
+			DebugLocation(195, 16);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:195:16: ( ',' enumeration )*
+			try { DebugEnterSubRule(26);
+			while (true)
+			{
+				int alt26=2;
+				try { DebugEnterDecision(26, false);
+				int LA26_0 = input.LA(1);
+
+				if ((LA26_0==65))
+				{
+					alt26 = 1;
+				}
+
+
+				} finally { DebugExitDecision(26); }
+				switch ( alt26 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:195:17: ',' enumeration
+					{
+					DebugLocation(195, 17);
+					char_literal96=(IToken)Match(input,65,Follow._65_in_enumerationList703);  
+					stream_65.Add(char_literal96);
+
+					DebugLocation(195, 21);
+					PushFollow(Follow._enumeration_in_enumerationList705);
+					enumeration97=enumeration();
+					PopFollow();
+
+					stream_enumeration.Add(enumeration97.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop26;
+				}
+			}
+
+			loop26:
+				;
+
+			} finally { DebugExitSubRule(26); }
+
+
+
+			{
+			// AST REWRITE
+			// elements: enumeration
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 195:35: -> ( enumeration )+
+			{
+				DebugLocation(195, 38);
+				if (!(stream_enumeration.HasNext))
+				{
+					throw new RewriteEarlyExitException();
+				}
+				while ( stream_enumeration.HasNext )
+				{
+					DebugLocation(195, 38);
+					adaptor.AddChild(root_0, stream_enumeration.NextTree());
+
+				}
+				stream_enumeration.Reset();
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("enumerationList", 32);
+			LeaveRule("enumerationList", 32);
+			LeaveRule_enumerationList();
+		}
+		DebugLocation(196, 1);
+		} finally { DebugExitRule(GrammarFileName, "enumerationList"); }
+		return retval;
+
+	}
+	// $ANTLR end "enumerationList"
+
+	partial void EnterRule_enumeration();
+	partial void LeaveRule_enumeration();
+
+	// $ANTLR start "enumeration"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:198:1: enumeration : ID ( LPAREN ( MINUS )? NUMBER RPAREN )? -> ID ( ( MINUS )? NUMBER )? ;
+	[GrammarRule("enumeration")]
+	private AstParserRuleReturnScope<object, IToken> enumeration()
+	{
+		EnterRule_enumeration();
+		EnterRule("enumeration", 33);
+		TraceIn("enumeration", 33);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ID98 = default(IToken);
+		IToken LPAREN99 = default(IToken);
+		IToken MINUS100 = default(IToken);
+		IToken NUMBER101 = default(IToken);
+		IToken RPAREN102 = default(IToken);
+
+		object ID98_tree = default(object);
+		object LPAREN99_tree = default(object);
+		object MINUS100_tree = default(object);
+		object NUMBER101_tree = default(object);
+		object RPAREN102_tree = default(object);
+		RewriteRuleITokenStream stream_RPAREN=new RewriteRuleITokenStream(adaptor,"token RPAREN");
+		RewriteRuleITokenStream stream_MINUS=new RewriteRuleITokenStream(adaptor,"token MINUS");
+		RewriteRuleITokenStream stream_ID=new RewriteRuleITokenStream(adaptor,"token ID");
+		RewriteRuleITokenStream stream_LPAREN=new RewriteRuleITokenStream(adaptor,"token LPAREN");
+		RewriteRuleITokenStream stream_NUMBER=new RewriteRuleITokenStream(adaptor,"token NUMBER");
+		try { DebugEnterRule(GrammarFileName, "enumeration");
+		DebugLocation(198, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:2: ( ID ( LPAREN ( MINUS )? NUMBER RPAREN )? -> ID ( ( MINUS )? NUMBER )? )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:4: ID ( LPAREN ( MINUS )? NUMBER RPAREN )?
+			{
+			DebugLocation(199, 4);
+			ID98=(IToken)Match(input,ID,Follow._ID_in_enumeration724);  
+			stream_ID.Add(ID98);
+
+			DebugLocation(199, 7);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:7: ( LPAREN ( MINUS )? NUMBER RPAREN )?
+			int alt28=2;
+			try { DebugEnterSubRule(28);
+			try { DebugEnterDecision(28, false);
+			int LA28_0 = input.LA(1);
+
+			if ((LA28_0==LPAREN))
+			{
+				alt28 = 1;
+			}
+			} finally { DebugExitDecision(28); }
+			switch (alt28)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:8: LPAREN ( MINUS )? NUMBER RPAREN
+				{
+				DebugLocation(199, 8);
+				LPAREN99=(IToken)Match(input,LPAREN,Follow._LPAREN_in_enumeration727);  
+				stream_LPAREN.Add(LPAREN99);
+
+				DebugLocation(199, 15);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:15: ( MINUS )?
+				int alt27=2;
+				try { DebugEnterSubRule(27);
+				try { DebugEnterDecision(27, false);
+				int LA27_0 = input.LA(1);
+
+				if ((LA27_0==MINUS))
+				{
+					alt27 = 1;
+				}
+				} finally { DebugExitDecision(27); }
+				switch (alt27)
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:15: MINUS
+					{
+					DebugLocation(199, 15);
+					MINUS100=(IToken)Match(input,MINUS,Follow._MINUS_in_enumeration729);  
+					stream_MINUS.Add(MINUS100);
+
+
+					}
+					break;
+
+				}
+				} finally { DebugExitSubRule(27); }
+
+				DebugLocation(199, 22);
+				NUMBER101=(IToken)Match(input,NUMBER,Follow._NUMBER_in_enumeration732);  
+				stream_NUMBER.Add(NUMBER101);
+
+				DebugLocation(199, 29);
+				RPAREN102=(IToken)Match(input,RPAREN,Follow._RPAREN_in_enumeration734);  
+				stream_RPAREN.Add(RPAREN102);
+
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(28); }
+
+
+
+			{
+			// AST REWRITE
+			// elements: ID, MINUS, NUMBER
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 199:38: -> ID ( ( MINUS )? NUMBER )?
+			{
+				DebugLocation(199, 41);
+				adaptor.AddChild(root_0, stream_ID.NextNode());
+				DebugLocation(199, 44);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:44: ( ( MINUS )? NUMBER )?
+				if (stream_MINUS.HasNext||stream_NUMBER.HasNext)
+				{
+					DebugLocation(199, 45);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:199:45: ( MINUS )?
+					if (stream_MINUS.HasNext)
+					{
+						DebugLocation(199, 45);
+						adaptor.AddChild(root_0, stream_MINUS.NextNode());
+
+					}
+					stream_MINUS.Reset();
+					DebugLocation(199, 52);
+					adaptor.AddChild(root_0, stream_NUMBER.NextNode());
+
+				}
+				stream_MINUS.Reset();
+				stream_NUMBER.Reset();
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("enumeration", 33);
+			LeaveRule("enumeration", 33);
+			LeaveRule_enumeration();
+		}
+		DebugLocation(200, 1);
+		} finally { DebugExitRule(GrammarFileName, "enumeration"); }
+		return retval;
+
+	}
+	// $ANTLR end "enumeration"
+
+	partial void EnterRule_structDefBody();
+	partial void LeaveRule_structDefBody();
+
+	// $ANTLR start "structDefBody"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:202:1: structDefBody : ID LBRACKET ( structFieldDef ( ',' structFieldDef )* )? RBRACKET -> ID ( structFieldDef )+ ;
+	[GrammarRule("structDefBody")]
+	private AstParserRuleReturnScope<object, IToken> structDefBody()
+	{
+		EnterRule_structDefBody();
+		EnterRule("structDefBody", 34);
+		TraceIn("structDefBody", 34);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ID103 = default(IToken);
+		IToken LBRACKET104 = default(IToken);
+		IToken char_literal106 = default(IToken);
+		IToken RBRACKET108 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> structFieldDef105 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> structFieldDef107 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object ID103_tree = default(object);
+		object LBRACKET104_tree = default(object);
+		object char_literal106_tree = default(object);
+		object RBRACKET108_tree = default(object);
+		RewriteRuleITokenStream stream_LBRACKET=new RewriteRuleITokenStream(adaptor,"token LBRACKET");
+		RewriteRuleITokenStream stream_RBRACKET=new RewriteRuleITokenStream(adaptor,"token RBRACKET");
+		RewriteRuleITokenStream stream_ID=new RewriteRuleITokenStream(adaptor,"token ID");
+		RewriteRuleITokenStream stream_65=new RewriteRuleITokenStream(adaptor,"token 65");
+		RewriteRuleSubtreeStream stream_structFieldDef=new RewriteRuleSubtreeStream(adaptor,"rule structFieldDef");
+		try { DebugEnterRule(GrammarFileName, "structDefBody");
+		DebugLocation(202, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:203:2: ( ID LBRACKET ( structFieldDef ( ',' structFieldDef )* )? RBRACKET -> ID ( structFieldDef )+ )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:203:4: ID LBRACKET ( structFieldDef ( ',' structFieldDef )* )? RBRACKET
+			{
+			DebugLocation(203, 4);
+			ID103=(IToken)Match(input,ID,Follow._ID_in_structDefBody760);  
+			stream_ID.Add(ID103);
+
+			DebugLocation(203, 7);
+			LBRACKET104=(IToken)Match(input,LBRACKET,Follow._LBRACKET_in_structDefBody762);  
+			stream_LBRACKET.Add(LBRACKET104);
+
+			DebugLocation(203, 16);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:203:16: ( structFieldDef ( ',' structFieldDef )* )?
+			int alt30=2;
+			try { DebugEnterSubRule(30);
+			try { DebugEnterDecision(30, false);
+			int LA30_0 = input.LA(1);
+
+			if (((LA30_0>=BITSTRING && LA30_0<=CHARSTRING)||LA30_0==ID||LA30_0==INTEGER||LA30_0==OCTETSTRING))
+			{
+				alt30 = 1;
+			}
+			} finally { DebugExitDecision(30); }
+			switch (alt30)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:203:17: structFieldDef ( ',' structFieldDef )*
+				{
+				DebugLocation(203, 17);
+				PushFollow(Follow._structFieldDef_in_structDefBody765);
+				structFieldDef105=structFieldDef();
+				PopFollow();
+
+				stream_structFieldDef.Add(structFieldDef105.Tree);
+				DebugLocation(203, 32);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:203:32: ( ',' structFieldDef )*
+				try { DebugEnterSubRule(29);
+				while (true)
+				{
+					int alt29=2;
+					try { DebugEnterDecision(29, false);
+					int LA29_0 = input.LA(1);
+
+					if ((LA29_0==65))
+					{
+						alt29 = 1;
+					}
+
+
+					} finally { DebugExitDecision(29); }
+					switch ( alt29 )
+					{
+					case 1:
+						DebugEnterAlt(1);
+						// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:203:33: ',' structFieldDef
+						{
+						DebugLocation(203, 33);
+						char_literal106=(IToken)Match(input,65,Follow._65_in_structDefBody768);  
+						stream_65.Add(char_literal106);
+
+						DebugLocation(203, 37);
+						PushFollow(Follow._structFieldDef_in_structDefBody770);
+						structFieldDef107=structFieldDef();
+						PopFollow();
+
+						stream_structFieldDef.Add(structFieldDef107.Tree);
+
+						}
+						break;
+
+					default:
+						goto loop29;
+					}
+				}
+
+				loop29:
+					;
+
+				} finally { DebugExitSubRule(29); }
+
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(30); }
+
+			DebugLocation(203, 56);
+			RBRACKET108=(IToken)Match(input,RBRACKET,Follow._RBRACKET_in_structDefBody776);  
+			stream_RBRACKET.Add(RBRACKET108);
+
+
+
+			{
+			// AST REWRITE
+			// elements: structFieldDef, ID
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 203:65: -> ID ( structFieldDef )+
+			{
+				DebugLocation(203, 68);
+				adaptor.AddChild(root_0, stream_ID.NextNode());
+				DebugLocation(203, 71);
+				if (!(stream_structFieldDef.HasNext))
+				{
+					throw new RewriteEarlyExitException();
+				}
+				while ( stream_structFieldDef.HasNext )
+				{
+					DebugLocation(203, 71);
+					adaptor.AddChild(root_0, stream_structFieldDef.NextTree());
+
+				}
+				stream_structFieldDef.Reset();
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("structDefBody", 34);
+			LeaveRule("structDefBody", 34);
+			LeaveRule_structDefBody();
+		}
+		DebugLocation(204, 1);
+		} finally { DebugExitRule(GrammarFileName, "structDefBody"); }
+		return retval;
+
+	}
+	// $ANTLR end "structDefBody"
+
+	partial void EnterRule_structFieldDef();
+	partial void LeaveRule_structFieldDef();
+
+	// $ANTLR start "structFieldDef"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:206:1: structFieldDef : type ID ( subTypeSpec )? ( OPTIONAL )? -> ^( FIELDDEF type ID ( subTypeSpec )? ( OPTIONAL )? ) ;
+	[GrammarRule("structFieldDef")]
+	private AstParserRuleReturnScope<object, IToken> structFieldDef()
+	{
+		EnterRule_structFieldDef();
+		EnterRule("structFieldDef", 35);
+		TraceIn("structFieldDef", 35);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ID110 = default(IToken);
+		IToken OPTIONAL112 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> type109 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> subTypeSpec111 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object ID110_tree = default(object);
+		object OPTIONAL112_tree = default(object);
+		RewriteRuleITokenStream stream_ID=new RewriteRuleITokenStream(adaptor,"token ID");
+		RewriteRuleITokenStream stream_OPTIONAL=new RewriteRuleITokenStream(adaptor,"token OPTIONAL");
+		RewriteRuleSubtreeStream stream_subTypeSpec=new RewriteRuleSubtreeStream(adaptor,"rule subTypeSpec");
+		RewriteRuleSubtreeStream stream_type=new RewriteRuleSubtreeStream(adaptor,"rule type");
+		try { DebugEnterRule(GrammarFileName, "structFieldDef");
+		DebugLocation(206, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:2: ( type ID ( subTypeSpec )? ( OPTIONAL )? -> ^( FIELDDEF type ID ( subTypeSpec )? ( OPTIONAL )? ) )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:4: type ID ( subTypeSpec )? ( OPTIONAL )?
+			{
+			DebugLocation(207, 4);
+			PushFollow(Follow._type_in_structFieldDef794);
+			type109=type();
+			PopFollow();
+
+			stream_type.Add(type109.Tree);
+			DebugLocation(207, 9);
+			ID110=(IToken)Match(input,ID,Follow._ID_in_structFieldDef796);  
+			stream_ID.Add(ID110);
+
+			DebugLocation(207, 12);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:12: ( subTypeSpec )?
+			int alt31=2;
+			try { DebugEnterSubRule(31);
+			try { DebugEnterDecision(31, false);
+			int LA31_0 = input.LA(1);
+
+			if (((LA31_0>=LENGTH && LA31_0<=LPAREN)))
+			{
+				alt31 = 1;
+			}
+			} finally { DebugExitDecision(31); }
+			switch (alt31)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:12: subTypeSpec
+				{
+				DebugLocation(207, 12);
+				PushFollow(Follow._subTypeSpec_in_structFieldDef798);
+				subTypeSpec111=subTypeSpec();
+				PopFollow();
+
+				stream_subTypeSpec.Add(subTypeSpec111.Tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(31); }
+
+			DebugLocation(207, 25);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:25: ( OPTIONAL )?
+			int alt32=2;
+			try { DebugEnterSubRule(32);
+			try { DebugEnterDecision(32, false);
+			int LA32_0 = input.LA(1);
+
+			if ((LA32_0==OPTIONAL))
+			{
+				alt32 = 1;
+			}
+			} finally { DebugExitDecision(32); }
+			switch (alt32)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:25: OPTIONAL
+				{
+				DebugLocation(207, 25);
+				OPTIONAL112=(IToken)Match(input,OPTIONAL,Follow._OPTIONAL_in_structFieldDef801);  
+				stream_OPTIONAL.Add(OPTIONAL112);
+
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(32); }
+
+
+
+			{
+			// AST REWRITE
+			// elements: ID, type, OPTIONAL, subTypeSpec
+			// token labels: 
+			// rule labels: retval
+			// token list labels: 
+			// rule list labels: 
+			// wildcard labels: 
+			retval.Tree = root_0;
+			RewriteRuleSubtreeStream stream_retval=new RewriteRuleSubtreeStream(adaptor,"rule retval",retval!=null?retval.Tree:null);
+
+			root_0 = (object)adaptor.Nil();
+			// 207:35: -> ^( FIELDDEF type ID ( subTypeSpec )? ( OPTIONAL )? )
+			{
+				DebugLocation(207, 38);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:38: ^( FIELDDEF type ID ( subTypeSpec )? ( OPTIONAL )? )
+				{
+				object root_1 = (object)adaptor.Nil();
+				DebugLocation(207, 40);
+				root_1 = (object)adaptor.BecomeRoot((object)adaptor.Create(FIELDDEF, "FIELDDEF"), root_1);
+
+				DebugLocation(207, 49);
+				adaptor.AddChild(root_1, stream_type.NextTree());
+				DebugLocation(207, 54);
+				adaptor.AddChild(root_1, stream_ID.NextNode());
+				DebugLocation(207, 57);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:57: ( subTypeSpec )?
+				if (stream_subTypeSpec.HasNext)
+				{
+					DebugLocation(207, 57);
+					adaptor.AddChild(root_1, stream_subTypeSpec.NextTree());
+
+				}
+				stream_subTypeSpec.Reset();
+				DebugLocation(207, 70);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:207:70: ( OPTIONAL )?
+				if (stream_OPTIONAL.HasNext)
+				{
+					DebugLocation(207, 70);
+					adaptor.AddChild(root_1, stream_OPTIONAL.NextNode());
+
+				}
+				stream_OPTIONAL.Reset();
+
+				adaptor.AddChild(root_0, root_1);
+				}
+
+			}
+
+			retval.Tree = root_0;
+			}
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("structFieldDef", 35);
+			LeaveRule("structFieldDef", 35);
+			LeaveRule_structFieldDef();
+		}
+		DebugLocation(208, 1);
+		} finally { DebugExitRule(GrammarFileName, "structFieldDef"); }
+		return retval;
+
+	}
+	// $ANTLR end "structFieldDef"
+
+	partial void EnterRule_type();
+	partial void LeaveRule_type();
+
+	// $ANTLR start "type"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:210:1: type : ( predefinedType | referencedType );
+	[GrammarRule("type")]
+	private AstParserRuleReturnScope<object, IToken> type()
+	{
+		EnterRule_type();
+		EnterRule("type", 36);
+		TraceIn("type", 36);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> predefinedType113 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> referencedType114 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "type");
+		DebugLocation(210, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:210:7: ( predefinedType | referencedType )
+			int alt33=2;
+			try { DebugEnterDecision(33, false);
+			int LA33_0 = input.LA(1);
+
+			if (((LA33_0>=BITSTRING && LA33_0<=CHARSTRING)||LA33_0==INTEGER||LA33_0==OCTETSTRING))
+			{
+				alt33 = 1;
+			}
+			else if ((LA33_0==ID))
+			{
+				alt33 = 2;
+			}
+			else
+			{
+				NoViableAltException nvae = new NoViableAltException("", 33, 0, input);
+				DebugRecognitionException(nvae);
+				throw nvae;
+			}
+			} finally { DebugExitDecision(33); }
+			switch (alt33)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:210:9: predefinedType
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(210, 9);
+				PushFollow(Follow._predefinedType_in_type830);
+				predefinedType113=predefinedType();
+				PopFollow();
+
+				adaptor.AddChild(root_0, predefinedType113.Tree);
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:210:26: referencedType
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(210, 26);
+				PushFollow(Follow._referencedType_in_type834);
+				referencedType114=referencedType();
+				PopFollow();
+
+				adaptor.AddChild(root_0, referencedType114.Tree);
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("type", 36);
+			LeaveRule("type", 36);
+			LeaveRule_type();
+		}
+		DebugLocation(211, 1);
+		} finally { DebugExitRule(GrammarFileName, "type"); }
+		return retval;
+
+	}
+	// $ANTLR end "type"
+
+	partial void EnterRule_referencedType();
+	partial void LeaveRule_referencedType();
+
+	// $ANTLR start "referencedType"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:213:1: referencedType : extendedIdentifier ;
+	[GrammarRule("referencedType")]
+	private AstParserRuleReturnScope<object, IToken> referencedType()
+	{
+		EnterRule_referencedType();
+		EnterRule("referencedType", 37);
+		TraceIn("referencedType", 37);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> extendedIdentifier115 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "referencedType");
+		DebugLocation(213, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:214:2: ( extendedIdentifier )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:214:4: extendedIdentifier
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(214, 4);
+			PushFollow(Follow._extendedIdentifier_in_referencedType845);
+			extendedIdentifier115=extendedIdentifier();
+			PopFollow();
+
+			adaptor.AddChild(root_0, extendedIdentifier115.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("referencedType", 37);
+			LeaveRule("referencedType", 37);
+			LeaveRule_referencedType();
+		}
+		DebugLocation(215, 1);
+		} finally { DebugExitRule(GrammarFileName, "referencedType"); }
+		return retval;
+
+	}
+	// $ANTLR end "referencedType"
+
+	partial void EnterRule_extendedIdentifier();
+	partial void LeaveRule_extendedIdentifier();
+
+	// $ANTLR start "extendedIdentifier"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:217:1: extendedIdentifier : ID ( '.' ID )* ;
+	[GrammarRule("extendedIdentifier")]
+	private AstParserRuleReturnScope<object, IToken> extendedIdentifier()
+	{
+		EnterRule_extendedIdentifier();
+		EnterRule("extendedIdentifier", 38);
+		TraceIn("extendedIdentifier", 38);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken ID116 = default(IToken);
+		IToken char_literal117 = default(IToken);
+		IToken ID118 = default(IToken);
+
+		object ID116_tree = default(object);
+		object char_literal117_tree = default(object);
+		object ID118_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "extendedIdentifier");
+		DebugLocation(217, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:218:2: ( ID ( '.' ID )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:218:4: ID ( '.' ID )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(218, 4);
+			ID116=(IToken)Match(input,ID,Follow._ID_in_extendedIdentifier857); 
+			ID116_tree = (object)adaptor.Create(ID116);
+			adaptor.AddChild(root_0, ID116_tree);
+			DebugLocation(218, 7);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:218:7: ( '.' ID )*
+			try { DebugEnterSubRule(34);
+			while (true)
+			{
+				int alt34=2;
+				try { DebugEnterDecision(34, false);
+				int LA34_0 = input.LA(1);
+
+				if ((LA34_0==66))
+				{
+					alt34 = 1;
+				}
+
+
+				} finally { DebugExitDecision(34); }
+				switch ( alt34 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:218:8: '.' ID
+					{
+					DebugLocation(218, 8);
+					char_literal117=(IToken)Match(input,66,Follow._66_in_extendedIdentifier860); 
+					char_literal117_tree = (object)adaptor.Create(char_literal117);
+					adaptor.AddChild(root_0, char_literal117_tree);
+					DebugLocation(218, 12);
+					ID118=(IToken)Match(input,ID,Follow._ID_in_extendedIdentifier862); 
+					ID118_tree = (object)adaptor.Create(ID118);
+					adaptor.AddChild(root_0, ID118_tree);
+
+					}
+					break;
+
+				default:
+					goto loop34;
+				}
+			}
+
+			loop34:
+				;
+
+			} finally { DebugExitSubRule(34); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("extendedIdentifier", 38);
+			LeaveRule("extendedIdentifier", 38);
+			LeaveRule_extendedIdentifier();
+		}
+		DebugLocation(219, 1);
+		} finally { DebugExitRule(GrammarFileName, "extendedIdentifier"); }
+		return retval;
+
+	}
+	// $ANTLR end "extendedIdentifier"
+
+	partial void EnterRule_predefinedType();
+	partial void LeaveRule_predefinedType();
+
+	// $ANTLR start "predefinedType"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:221:1: predefinedType : ( BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING );
+	[GrammarRule("predefinedType")]
+	private AstParserRuleReturnScope<object, IToken> predefinedType()
+	{
+		EnterRule_predefinedType();
+		EnterRule("predefinedType", 39);
+		TraceIn("predefinedType", 39);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set119 = default(IToken);
+
+		object set119_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "predefinedType");
+		DebugLocation(221, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:222:2: ( BITSTRING | BOOLEAN | CHARSTRING | CHAR | INTEGER | OCTETSTRING )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(222, 2);
+
+			set119=(IToken)input.LT(1);
+			if ((input.LA(1)>=BITSTRING && input.LA(1)<=CHARSTRING)||input.LA(1)==INTEGER||input.LA(1)==OCTETSTRING)
+			{
+				input.Consume();
+				adaptor.AddChild(root_0, (object)adaptor.Create(set119));
+				state.errorRecovery=false;
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				throw mse;
+			}
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("predefinedType", 39);
+			LeaveRule("predefinedType", 39);
 			LeaveRule_predefinedType();
 		}
-		DebugLocation(64, 1);
+		DebugLocation(223, 1);
 		} finally { DebugExitRule(GrammarFileName, "predefinedType"); }
 		return retval;
 
 	}
 	// $ANTLR end "predefinedType"
+
+	partial void EnterRule_singleExpression();
+	partial void LeaveRule_singleExpression();
+
+	// $ANTLR start "singleExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:226:1: singleExpression : xOrExpression ( OR xOrExpression )* ;
+	[GrammarRule("singleExpression")]
+	private AstParserRuleReturnScope<object, IToken> singleExpression()
+	{
+		EnterRule_singleExpression();
+		EnterRule("singleExpression", 40);
+		TraceIn("singleExpression", 40);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken OR121 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> xOrExpression120 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> xOrExpression122 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object OR121_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "singleExpression");
+		DebugLocation(226, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:227:2: ( xOrExpression ( OR xOrExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:227:4: xOrExpression ( OR xOrExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(227, 4);
+			PushFollow(Follow._xOrExpression_in_singleExpression908);
+			xOrExpression120=xOrExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, xOrExpression120.Tree);
+			DebugLocation(227, 18);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:227:18: ( OR xOrExpression )*
+			try { DebugEnterSubRule(35);
+			while (true)
+			{
+				int alt35=2;
+				try { DebugEnterDecision(35, false);
+				int LA35_0 = input.LA(1);
+
+				if ((LA35_0==OR))
+				{
+					alt35 = 1;
+				}
+
+
+				} finally { DebugExitDecision(35); }
+				switch ( alt35 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:227:19: OR xOrExpression
+					{
+					DebugLocation(227, 19);
+					OR121=(IToken)Match(input,OR,Follow._OR_in_singleExpression911); 
+					OR121_tree = (object)adaptor.Create(OR121);
+					adaptor.AddChild(root_0, OR121_tree);
+					DebugLocation(227, 22);
+					PushFollow(Follow._xOrExpression_in_singleExpression913);
+					xOrExpression122=xOrExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, xOrExpression122.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop35;
+				}
+			}
+
+			loop35:
+				;
+
+			} finally { DebugExitSubRule(35); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("singleExpression", 40);
+			LeaveRule("singleExpression", 40);
+			LeaveRule_singleExpression();
+		}
+		DebugLocation(228, 1);
+		} finally { DebugExitRule(GrammarFileName, "singleExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "singleExpression"
+
+	partial void EnterRule_xOrExpression();
+	partial void LeaveRule_xOrExpression();
+
+	// $ANTLR start "xOrExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:230:1: xOrExpression : andExpression ( XOR andExpression )* ;
+	[GrammarRule("xOrExpression")]
+	private AstParserRuleReturnScope<object, IToken> xOrExpression()
+	{
+		EnterRule_xOrExpression();
+		EnterRule("xOrExpression", 41);
+		TraceIn("xOrExpression", 41);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken XOR124 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> andExpression123 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> andExpression125 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object XOR124_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "xOrExpression");
+		DebugLocation(230, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:231:2: ( andExpression ( XOR andExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:231:4: andExpression ( XOR andExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(231, 4);
+			PushFollow(Follow._andExpression_in_xOrExpression927);
+			andExpression123=andExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, andExpression123.Tree);
+			DebugLocation(231, 18);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:231:18: ( XOR andExpression )*
+			try { DebugEnterSubRule(36);
+			while (true)
+			{
+				int alt36=2;
+				try { DebugEnterDecision(36, false);
+				int LA36_0 = input.LA(1);
+
+				if ((LA36_0==XOR))
+				{
+					alt36 = 1;
+				}
+
+
+				} finally { DebugExitDecision(36); }
+				switch ( alt36 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:231:19: XOR andExpression
+					{
+					DebugLocation(231, 19);
+					XOR124=(IToken)Match(input,XOR,Follow._XOR_in_xOrExpression930); 
+					XOR124_tree = (object)adaptor.Create(XOR124);
+					adaptor.AddChild(root_0, XOR124_tree);
+					DebugLocation(231, 23);
+					PushFollow(Follow._andExpression_in_xOrExpression932);
+					andExpression125=andExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, andExpression125.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop36;
+				}
+			}
+
+			loop36:
+				;
+
+			} finally { DebugExitSubRule(36); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("xOrExpression", 41);
+			LeaveRule("xOrExpression", 41);
+			LeaveRule_xOrExpression();
+		}
+		DebugLocation(232, 1);
+		} finally { DebugExitRule(GrammarFileName, "xOrExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "xOrExpression"
+
+	partial void EnterRule_andExpression();
+	partial void LeaveRule_andExpression();
+
+	// $ANTLR start "andExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:234:1: andExpression : notExpression ( AND notExpression )* ;
+	[GrammarRule("andExpression")]
+	private AstParserRuleReturnScope<object, IToken> andExpression()
+	{
+		EnterRule_andExpression();
+		EnterRule("andExpression", 42);
+		TraceIn("andExpression", 42);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken AND127 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> notExpression126 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> notExpression128 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object AND127_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "andExpression");
+		DebugLocation(234, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:235:2: ( notExpression ( AND notExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:235:4: notExpression ( AND notExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(235, 4);
+			PushFollow(Follow._notExpression_in_andExpression946);
+			notExpression126=notExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, notExpression126.Tree);
+			DebugLocation(235, 18);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:235:18: ( AND notExpression )*
+			try { DebugEnterSubRule(37);
+			while (true)
+			{
+				int alt37=2;
+				try { DebugEnterDecision(37, false);
+				int LA37_0 = input.LA(1);
+
+				if ((LA37_0==AND))
+				{
+					alt37 = 1;
+				}
+
+
+				} finally { DebugExitDecision(37); }
+				switch ( alt37 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:235:19: AND notExpression
+					{
+					DebugLocation(235, 19);
+					AND127=(IToken)Match(input,AND,Follow._AND_in_andExpression949); 
+					AND127_tree = (object)adaptor.Create(AND127);
+					adaptor.AddChild(root_0, AND127_tree);
+					DebugLocation(235, 23);
+					PushFollow(Follow._notExpression_in_andExpression951);
+					notExpression128=notExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, notExpression128.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop37;
+				}
+			}
+
+			loop37:
+				;
+
+			} finally { DebugExitSubRule(37); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("andExpression", 42);
+			LeaveRule("andExpression", 42);
+			LeaveRule_andExpression();
+		}
+		DebugLocation(236, 1);
+		} finally { DebugExitRule(GrammarFileName, "andExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "andExpression"
+
+	partial void EnterRule_notExpression();
+	partial void LeaveRule_notExpression();
+
+	// $ANTLR start "notExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:238:1: notExpression : ( NOT )? equalExpression ;
+	[GrammarRule("notExpression")]
+	private AstParserRuleReturnScope<object, IToken> notExpression()
+	{
+		EnterRule_notExpression();
+		EnterRule("notExpression", 43);
+		TraceIn("notExpression", 43);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken NOT129 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> equalExpression130 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object NOT129_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "notExpression");
+		DebugLocation(238, 1);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:239:2: ( ( NOT )? equalExpression )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:239:4: ( NOT )? equalExpression
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(239, 4);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:239:4: ( NOT )?
+			int alt38=2;
+			try { DebugEnterSubRule(38);
+			try { DebugEnterDecision(38, false);
+			int LA38_0 = input.LA(1);
+
+			if ((LA38_0==NOT))
+			{
+				alt38 = 1;
+			}
+			} finally { DebugExitDecision(38); }
+			switch (alt38)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:239:4: NOT
+				{
+				DebugLocation(239, 4);
+				NOT129=(IToken)Match(input,NOT,Follow._NOT_in_notExpression966); 
+				NOT129_tree = (object)adaptor.Create(NOT129);
+				adaptor.AddChild(root_0, NOT129_tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(38); }
+
+			DebugLocation(239, 9);
+			PushFollow(Follow._equalExpression_in_notExpression969);
+			equalExpression130=equalExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, equalExpression130.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("notExpression", 43);
+			LeaveRule("notExpression", 43);
+			LeaveRule_notExpression();
+		}
+		DebugLocation(240, 1);
+		} finally { DebugExitRule(GrammarFileName, "notExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "notExpression"
+
+	partial void EnterRule_equalExpression();
+	partial void LeaveRule_equalExpression();
+
+	// $ANTLR start "equalExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:242:1: equalExpression : relExpression ( equalOp relExpression )* ;
+	[GrammarRule("equalExpression")]
+	private AstParserRuleReturnScope<object, IToken> equalExpression()
+	{
+		EnterRule_equalExpression();
+		EnterRule("equalExpression", 44);
+		TraceIn("equalExpression", 44);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> relExpression131 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> equalOp132 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> relExpression133 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "equalExpression");
+		DebugLocation(242, 62);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:242:19: ( relExpression ( equalOp relExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:242:23: relExpression ( equalOp relExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(242, 23);
+			PushFollow(Follow._relExpression_in_equalExpression983);
+			relExpression131=relExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, relExpression131.Tree);
+			DebugLocation(242, 37);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:242:37: ( equalOp relExpression )*
+			try { DebugEnterSubRule(39);
+			while (true)
+			{
+				int alt39=2;
+				try { DebugEnterDecision(39, false);
+				int LA39_0 = input.LA(1);
+
+				if ((LA39_0==61||LA39_0==72))
+				{
+					alt39 = 1;
+				}
+
+
+				} finally { DebugExitDecision(39); }
+				switch ( alt39 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:242:39: equalOp relExpression
+					{
+					DebugLocation(242, 39);
+					PushFollow(Follow._equalOp_in_equalExpression987);
+					equalOp132=equalOp();
+					PopFollow();
+
+					adaptor.AddChild(root_0, equalOp132.Tree);
+					DebugLocation(242, 47);
+					PushFollow(Follow._relExpression_in_equalExpression989);
+					relExpression133=relExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, relExpression133.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop39;
+				}
+			}
+
+			loop39:
+				;
+
+			} finally { DebugExitSubRule(39); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("equalExpression", 44);
+			LeaveRule("equalExpression", 44);
+			LeaveRule_equalExpression();
+		}
+		DebugLocation(242, 62);
+		} finally { DebugExitRule(GrammarFileName, "equalExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "equalExpression"
+
+	partial void EnterRule_relExpression();
+	partial void LeaveRule_relExpression();
+
+	// $ANTLR start "relExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:243:1: relExpression : shiftExpression ( relOp shiftExpression )? ;
+	[GrammarRule("relExpression")]
+	private AstParserRuleReturnScope<object, IToken> relExpression()
+	{
+		EnterRule_relExpression();
+		EnterRule("relExpression", 45);
+		TraceIn("relExpression", 45);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> shiftExpression134 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> relOp135 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> shiftExpression136 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "relExpression");
+		DebugLocation(243, 60);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:243:17: ( shiftExpression ( relOp shiftExpression )? )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:243:21: shiftExpression ( relOp shiftExpression )?
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(243, 21);
+			PushFollow(Follow._shiftExpression_in_relExpression1003);
+			shiftExpression134=shiftExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, shiftExpression134.Tree);
+			DebugLocation(243, 37);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:243:37: ( relOp shiftExpression )?
+			int alt40=2;
+			try { DebugEnterSubRule(40);
+			try { DebugEnterDecision(40, false);
+			int LA40_0 = input.LA(1);
+
+			if ((LA40_0==68||LA40_0==70||(LA40_0>=73 && LA40_0<=74)))
+			{
+				alt40 = 1;
+			}
+			} finally { DebugExitDecision(40); }
+			switch (alt40)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:243:38: relOp shiftExpression
+				{
+				DebugLocation(243, 38);
+				PushFollow(Follow._relOp_in_relExpression1006);
+				relOp135=relOp();
+				PopFollow();
+
+				adaptor.AddChild(root_0, relOp135.Tree);
+				DebugLocation(243, 44);
+				PushFollow(Follow._shiftExpression_in_relExpression1008);
+				shiftExpression136=shiftExpression();
+				PopFollow();
+
+				adaptor.AddChild(root_0, shiftExpression136.Tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(40); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("relExpression", 45);
+			LeaveRule("relExpression", 45);
+			LeaveRule_relExpression();
+		}
+		DebugLocation(243, 60);
+		} finally { DebugExitRule(GrammarFileName, "relExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "relExpression"
+
+	partial void EnterRule_shiftExpression();
+	partial void LeaveRule_shiftExpression();
+
+	// $ANTLR start "shiftExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:244:1: shiftExpression : bitOrExpression ( shiftOp bitOrExpression )* ;
+	[GrammarRule("shiftExpression")]
+	private AstParserRuleReturnScope<object, IToken> shiftExpression()
+	{
+		EnterRule_shiftExpression();
+		EnterRule("shiftExpression", 46);
+		TraceIn("shiftExpression", 46);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> bitOrExpression137 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> shiftOp138 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> bitOrExpression139 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "shiftExpression");
+		DebugLocation(244, 66);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:244:19: ( bitOrExpression ( shiftOp bitOrExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:244:23: bitOrExpression ( shiftOp bitOrExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(244, 23);
+			PushFollow(Follow._bitOrExpression_in_shiftExpression1021);
+			bitOrExpression137=bitOrExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, bitOrExpression137.Tree);
+			DebugLocation(244, 39);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:244:39: ( shiftOp bitOrExpression )*
+			try { DebugEnterSubRule(41);
+			while (true)
+			{
+				int alt41=2;
+				try { DebugEnterDecision(41, false);
+				int LA41_0 = input.LA(1);
+
+				if ((LA41_0==69||LA41_0==71||(LA41_0>=75 && LA41_0<=76)))
+				{
+					alt41 = 1;
+				}
+
+
+				} finally { DebugExitDecision(41); }
+				switch ( alt41 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:244:41: shiftOp bitOrExpression
+					{
+					DebugLocation(244, 41);
+					PushFollow(Follow._shiftOp_in_shiftExpression1025);
+					shiftOp138=shiftOp();
+					PopFollow();
+
+					adaptor.AddChild(root_0, shiftOp138.Tree);
+					DebugLocation(244, 49);
+					PushFollow(Follow._bitOrExpression_in_shiftExpression1027);
+					bitOrExpression139=bitOrExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, bitOrExpression139.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop41;
+				}
+			}
+
+			loop41:
+				;
+
+			} finally { DebugExitSubRule(41); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("shiftExpression", 46);
+			LeaveRule("shiftExpression", 46);
+			LeaveRule_shiftExpression();
+		}
+		DebugLocation(244, 66);
+		} finally { DebugExitRule(GrammarFileName, "shiftExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "shiftExpression"
+
+	partial void EnterRule_bitOrExpression();
+	partial void LeaveRule_bitOrExpression();
+
+	// $ANTLR start "bitOrExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:245:1: bitOrExpression : bitXorExpression ( 'or4b' bitXorExpression )* ;
+	[GrammarRule("bitOrExpression")]
+	private AstParserRuleReturnScope<object, IToken> bitOrExpression()
+	{
+		EnterRule_bitOrExpression();
+		EnterRule("bitOrExpression", 47);
+		TraceIn("bitOrExpression", 47);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken string_literal141 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> bitXorExpression140 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> bitXorExpression142 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object string_literal141_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "bitOrExpression");
+		DebugLocation(245, 67);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:245:19: ( bitXorExpression ( 'or4b' bitXorExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:245:23: bitXorExpression ( 'or4b' bitXorExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(245, 23);
+			PushFollow(Follow._bitXorExpression_in_bitOrExpression1041);
+			bitXorExpression140=bitXorExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, bitXorExpression140.Tree);
+			DebugLocation(245, 40);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:245:40: ( 'or4b' bitXorExpression )*
+			try { DebugEnterSubRule(42);
+			while (true)
+			{
+				int alt42=2;
+				try { DebugEnterDecision(42, false);
+				int LA42_0 = input.LA(1);
+
+				if ((LA42_0==81))
+				{
+					alt42 = 1;
+				}
+
+
+				} finally { DebugExitDecision(42); }
+				switch ( alt42 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:245:42: 'or4b' bitXorExpression
+					{
+					DebugLocation(245, 42);
+					string_literal141=(IToken)Match(input,81,Follow._81_in_bitOrExpression1045); 
+					string_literal141_tree = (object)adaptor.Create(string_literal141);
+					adaptor.AddChild(root_0, string_literal141_tree);
+					DebugLocation(245, 49);
+					PushFollow(Follow._bitXorExpression_in_bitOrExpression1047);
+					bitXorExpression142=bitXorExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, bitXorExpression142.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop42;
+				}
+			}
+
+			loop42:
+				;
+
+			} finally { DebugExitSubRule(42); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("bitOrExpression", 47);
+			LeaveRule("bitOrExpression", 47);
+			LeaveRule_bitOrExpression();
+		}
+		DebugLocation(245, 67);
+		} finally { DebugExitRule(GrammarFileName, "bitOrExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "bitOrExpression"
+
+	partial void EnterRule_bitXorExpression();
+	partial void LeaveRule_bitXorExpression();
+
+	// $ANTLR start "bitXorExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:246:1: bitXorExpression : bitAndExpression ( 'xor4b' bitAndExpression )* ;
+	[GrammarRule("bitXorExpression")]
+	private AstParserRuleReturnScope<object, IToken> bitXorExpression()
+	{
+		EnterRule_bitXorExpression();
+		EnterRule("bitXorExpression", 48);
+		TraceIn("bitXorExpression", 48);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken string_literal144 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> bitAndExpression143 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> bitAndExpression145 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object string_literal144_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "bitXorExpression");
+		DebugLocation(246, 69);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:246:20: ( bitAndExpression ( 'xor4b' bitAndExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:246:24: bitAndExpression ( 'xor4b' bitAndExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(246, 24);
+			PushFollow(Follow._bitAndExpression_in_bitXorExpression1061);
+			bitAndExpression143=bitAndExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, bitAndExpression143.Tree);
+			DebugLocation(246, 41);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:246:41: ( 'xor4b' bitAndExpression )*
+			try { DebugEnterSubRule(43);
+			while (true)
+			{
+				int alt43=2;
+				try { DebugEnterDecision(43, false);
+				int LA43_0 = input.LA(1);
+
+				if ((LA43_0==83))
+				{
+					alt43 = 1;
+				}
+
+
+				} finally { DebugExitDecision(43); }
+				switch ( alt43 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:246:43: 'xor4b' bitAndExpression
+					{
+					DebugLocation(246, 43);
+					string_literal144=(IToken)Match(input,83,Follow._83_in_bitXorExpression1065); 
+					string_literal144_tree = (object)adaptor.Create(string_literal144);
+					adaptor.AddChild(root_0, string_literal144_tree);
+					DebugLocation(246, 51);
+					PushFollow(Follow._bitAndExpression_in_bitXorExpression1067);
+					bitAndExpression145=bitAndExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, bitAndExpression145.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop43;
+				}
+			}
+
+			loop43:
+				;
+
+			} finally { DebugExitSubRule(43); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("bitXorExpression", 48);
+			LeaveRule("bitXorExpression", 48);
+			LeaveRule_bitXorExpression();
+		}
+		DebugLocation(246, 69);
+		} finally { DebugExitRule(GrammarFileName, "bitXorExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "bitXorExpression"
+
+	partial void EnterRule_bitAndExpression();
+	partial void LeaveRule_bitAndExpression();
+
+	// $ANTLR start "bitAndExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:247:1: bitAndExpression : bitNotExpression ( 'and4b' bitNotExpression )* ;
+	[GrammarRule("bitAndExpression")]
+	private AstParserRuleReturnScope<object, IToken> bitAndExpression()
+	{
+		EnterRule_bitAndExpression();
+		EnterRule("bitAndExpression", 49);
+		TraceIn("bitAndExpression", 49);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken string_literal147 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> bitNotExpression146 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> bitNotExpression148 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object string_literal147_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "bitAndExpression");
+		DebugLocation(247, 69);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:247:20: ( bitNotExpression ( 'and4b' bitNotExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:247:24: bitNotExpression ( 'and4b' bitNotExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(247, 24);
+			PushFollow(Follow._bitNotExpression_in_bitAndExpression1081);
+			bitNotExpression146=bitNotExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, bitNotExpression146.Tree);
+			DebugLocation(247, 41);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:247:41: ( 'and4b' bitNotExpression )*
+			try { DebugEnterSubRule(44);
+			while (true)
+			{
+				int alt44=2;
+				try { DebugEnterDecision(44, false);
+				int LA44_0 = input.LA(1);
+
+				if ((LA44_0==77))
+				{
+					alt44 = 1;
+				}
+
+
+				} finally { DebugExitDecision(44); }
+				switch ( alt44 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:247:43: 'and4b' bitNotExpression
+					{
+					DebugLocation(247, 43);
+					string_literal147=(IToken)Match(input,77,Follow._77_in_bitAndExpression1085); 
+					string_literal147_tree = (object)adaptor.Create(string_literal147);
+					adaptor.AddChild(root_0, string_literal147_tree);
+					DebugLocation(247, 51);
+					PushFollow(Follow._bitNotExpression_in_bitAndExpression1087);
+					bitNotExpression148=bitNotExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, bitNotExpression148.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop44;
+				}
+			}
+
+			loop44:
+				;
+
+			} finally { DebugExitSubRule(44); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("bitAndExpression", 49);
+			LeaveRule("bitAndExpression", 49);
+			LeaveRule_bitAndExpression();
+		}
+		DebugLocation(247, 69);
+		} finally { DebugExitRule(GrammarFileName, "bitAndExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "bitAndExpression"
+
+	partial void EnterRule_bitNotExpression();
+	partial void LeaveRule_bitNotExpression();
+
+	// $ANTLR start "bitNotExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:248:1: bitNotExpression : ( 'not4b' )? addExpression ;
+	[GrammarRule("bitNotExpression")]
+	private AstParserRuleReturnScope<object, IToken> bitNotExpression()
+	{
+		EnterRule_bitNotExpression();
+		EnterRule("bitNotExpression", 50);
+		TraceIn("bitNotExpression", 50);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken string_literal149 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> addExpression150 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object string_literal149_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "bitNotExpression");
+		DebugLocation(248, 43);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:248:20: ( ( 'not4b' )? addExpression )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:248:22: ( 'not4b' )? addExpression
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(248, 22);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:248:22: ( 'not4b' )?
+			int alt45=2;
+			try { DebugEnterSubRule(45);
+			try { DebugEnterDecision(45, false);
+			int LA45_0 = input.LA(1);
+
+			if ((LA45_0==80))
+			{
+				alt45 = 1;
+			}
+			} finally { DebugExitDecision(45); }
+			switch (alt45)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:248:22: 'not4b'
+				{
+				DebugLocation(248, 22);
+				string_literal149=(IToken)Match(input,80,Follow._80_in_bitNotExpression1099); 
+				string_literal149_tree = (object)adaptor.Create(string_literal149);
+				adaptor.AddChild(root_0, string_literal149_tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(45); }
+
+			DebugLocation(248, 31);
+			PushFollow(Follow._addExpression_in_bitNotExpression1102);
+			addExpression150=addExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, addExpression150.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("bitNotExpression", 50);
+			LeaveRule("bitNotExpression", 50);
+			LeaveRule_bitNotExpression();
+		}
+		DebugLocation(248, 43);
+		} finally { DebugExitRule(GrammarFileName, "bitNotExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "bitNotExpression"
+
+	partial void EnterRule_addExpression();
+	partial void LeaveRule_addExpression();
+
+	// $ANTLR start "addExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:249:1: addExpression : mulExpression ( addOp mulExpression )* ;
+	[GrammarRule("addExpression")]
+	private AstParserRuleReturnScope<object, IToken> addExpression()
+	{
+		EnterRule_addExpression();
+		EnterRule("addExpression", 51);
+		TraceIn("addExpression", 51);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> mulExpression151 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> addOp152 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> mulExpression153 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "addExpression");
+		DebugLocation(249, 58);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:249:17: ( mulExpression ( addOp mulExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:249:21: mulExpression ( addOp mulExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(249, 21);
+			PushFollow(Follow._mulExpression_in_addExpression1113);
+			mulExpression151=mulExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, mulExpression151.Tree);
+			DebugLocation(249, 35);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:249:35: ( addOp mulExpression )*
+			try { DebugEnterSubRule(46);
+			while (true)
+			{
+				int alt46=2;
+				try { DebugEnterDecision(46, false);
+				int LA46_0 = input.LA(1);
+
+				if ((LA46_0==MINUS||LA46_0==62||LA46_0==64))
+				{
+					alt46 = 1;
+				}
+
+
+				} finally { DebugExitDecision(46); }
+				switch ( alt46 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:249:37: addOp mulExpression
+					{
+					DebugLocation(249, 37);
+					PushFollow(Follow._addOp_in_addExpression1117);
+					addOp152=addOp();
+					PopFollow();
+
+					adaptor.AddChild(root_0, addOp152.Tree);
+					DebugLocation(249, 43);
+					PushFollow(Follow._mulExpression_in_addExpression1119);
+					mulExpression153=mulExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, mulExpression153.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop46;
+				}
+			}
+
+			loop46:
+				;
+
+			} finally { DebugExitSubRule(46); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("addExpression", 51);
+			LeaveRule("addExpression", 51);
+			LeaveRule_addExpression();
+		}
+		DebugLocation(249, 58);
+		} finally { DebugExitRule(GrammarFileName, "addExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "addExpression"
+
+	partial void EnterRule_mulExpression();
+	partial void LeaveRule_mulExpression();
+
+	// $ANTLR start "mulExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:250:1: mulExpression : unaryExpression ( multiplyOp unaryExpression )* ;
+	[GrammarRule("mulExpression")]
+	private AstParserRuleReturnScope<object, IToken> mulExpression()
+	{
+		EnterRule_mulExpression();
+		EnterRule("mulExpression", 52);
+		TraceIn("mulExpression", 52);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> unaryExpression154 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> multiplyOp155 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> unaryExpression156 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "mulExpression");
+		DebugLocation(250, 67);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:250:17: ( unaryExpression ( multiplyOp unaryExpression )* )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:250:21: unaryExpression ( multiplyOp unaryExpression )*
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(250, 21);
+			PushFollow(Follow._unaryExpression_in_mulExpression1133);
+			unaryExpression154=unaryExpression();
+			PopFollow();
+
+			adaptor.AddChild(root_0, unaryExpression154.Tree);
+			DebugLocation(250, 37);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:250:37: ( multiplyOp unaryExpression )*
+			try { DebugEnterSubRule(47);
+			while (true)
+			{
+				int alt47=2;
+				try { DebugEnterDecision(47, false);
+				int LA47_0 = input.LA(1);
+
+				if ((LA47_0==63||LA47_0==67||LA47_0==79||LA47_0==82))
+				{
+					alt47 = 1;
+				}
+
+
+				} finally { DebugExitDecision(47); }
+				switch ( alt47 )
+				{
+				case 1:
+					DebugEnterAlt(1);
+					// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:250:39: multiplyOp unaryExpression
+					{
+					DebugLocation(250, 39);
+					PushFollow(Follow._multiplyOp_in_mulExpression1137);
+					multiplyOp155=multiplyOp();
+					PopFollow();
+
+					adaptor.AddChild(root_0, multiplyOp155.Tree);
+					DebugLocation(250, 50);
+					PushFollow(Follow._unaryExpression_in_mulExpression1139);
+					unaryExpression156=unaryExpression();
+					PopFollow();
+
+					adaptor.AddChild(root_0, unaryExpression156.Tree);
+
+					}
+					break;
+
+				default:
+					goto loop47;
+				}
+			}
+
+			loop47:
+				;
+
+			} finally { DebugExitSubRule(47); }
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("mulExpression", 52);
+			LeaveRule("mulExpression", 52);
+			LeaveRule_mulExpression();
+		}
+		DebugLocation(250, 67);
+		} finally { DebugExitRule(GrammarFileName, "mulExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "mulExpression"
+
+	partial void EnterRule_unaryExpression();
+	partial void LeaveRule_unaryExpression();
+
+	// $ANTLR start "unaryExpression"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:251:1: unaryExpression : ( unaryOp )? primary ;
+	[GrammarRule("unaryExpression")]
+	private AstParserRuleReturnScope<object, IToken> unaryExpression()
+	{
+		EnterRule_unaryExpression();
+		EnterRule("unaryExpression", 53);
+		TraceIn("unaryExpression", 53);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> unaryOp157 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> primary158 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "unaryExpression");
+		DebugLocation(251, 38);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:251:19: ( ( unaryOp )? primary )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:251:23: ( unaryOp )? primary
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(251, 23);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:251:23: ( unaryOp )?
+			int alt48=2;
+			try { DebugEnterSubRule(48);
+			try { DebugEnterDecision(48, false);
+			int LA48_0 = input.LA(1);
+
+			if ((LA48_0==MINUS||LA48_0==64))
+			{
+				alt48 = 1;
+			}
+			} finally { DebugExitDecision(48); }
+			switch (alt48)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:251:23: unaryOp
+				{
+				DebugLocation(251, 23);
+				PushFollow(Follow._unaryOp_in_unaryExpression1153);
+				unaryOp157=unaryOp();
+				PopFollow();
+
+				adaptor.AddChild(root_0, unaryOp157.Tree);
+
+				}
+				break;
+
+			}
+			} finally { DebugExitSubRule(48); }
+
+			DebugLocation(251, 32);
+			PushFollow(Follow._primary_in_unaryExpression1156);
+			primary158=primary();
+			PopFollow();
+
+			adaptor.AddChild(root_0, primary158.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("unaryExpression", 53);
+			LeaveRule("unaryExpression", 53);
+			LeaveRule_unaryExpression();
+		}
+		DebugLocation(251, 38);
+		} finally { DebugExitRule(GrammarFileName, "unaryExpression"); }
+		return retval;
+
+	}
+	// $ANTLR end "unaryExpression"
+
+	partial void EnterRule_primary();
+	partial void LeaveRule_primary();
+
+	// $ANTLR start "primary"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:252:1: primary : ( value | ( LPAREN singleExpression RPAREN ) );
+	[GrammarRule("primary")]
+	private AstParserRuleReturnScope<object, IToken> primary()
+	{
+		EnterRule_primary();
+		EnterRule("primary", 54);
+		TraceIn("primary", 54);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken LPAREN160 = default(IToken);
+		IToken RPAREN162 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> value159 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> singleExpression161 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object LPAREN160_tree = default(object);
+		object RPAREN162_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "primary");
+		DebugLocation(252, 54);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:252:11: ( value | ( LPAREN singleExpression RPAREN ) )
+			int alt49=2;
+			try { DebugEnterDecision(49, false);
+			int LA49_0 = input.LA(1);
+
+			if ((LA49_0==ID||LA49_0==NUMBER))
+			{
+				alt49 = 1;
+			}
+			else if ((LA49_0==LPAREN))
+			{
+				alt49 = 2;
+			}
+			else
+			{
+				NoViableAltException nvae = new NoViableAltException("", 49, 0, input);
+				DebugRecognitionException(nvae);
+				throw nvae;
+			}
+			} finally { DebugExitDecision(49); }
+			switch (alt49)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:252:15: value
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(252, 15);
+				PushFollow(Follow._value_in_primary1167);
+				value159=value();
+				PopFollow();
+
+				adaptor.AddChild(root_0, value159.Tree);
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:252:23: ( LPAREN singleExpression RPAREN )
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(252, 23);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:252:23: ( LPAREN singleExpression RPAREN )
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:252:24: LPAREN singleExpression RPAREN
+				{
+				DebugLocation(252, 24);
+				LPAREN160=(IToken)Match(input,LPAREN,Follow._LPAREN_in_primary1172); 
+				LPAREN160_tree = (object)adaptor.Create(LPAREN160);
+				adaptor.AddChild(root_0, LPAREN160_tree);
+				DebugLocation(252, 31);
+				PushFollow(Follow._singleExpression_in_primary1174);
+				singleExpression161=singleExpression();
+				PopFollow();
+
+				adaptor.AddChild(root_0, singleExpression161.Tree);
+				DebugLocation(252, 48);
+				RPAREN162=(IToken)Match(input,RPAREN,Follow._RPAREN_in_primary1176); 
+				RPAREN162_tree = (object)adaptor.Create(RPAREN162);
+				adaptor.AddChild(root_0, RPAREN162_tree);
+
+				}
+
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("primary", 54);
+			LeaveRule("primary", 54);
+			LeaveRule_primary();
+		}
+		DebugLocation(252, 54);
+		} finally { DebugExitRule(GrammarFileName, "primary"); }
+		return retval;
+
+	}
+	// $ANTLR end "primary"
+
+	partial void EnterRule_addOp();
+	partial void LeaveRule_addOp();
+
+	// $ANTLR start "addOp"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:253:1: addOp : ( '+' | '-' | stringOp );
+	[GrammarRule("addOp")]
+	private AstParserRuleReturnScope<object, IToken> addOp()
+	{
+		EnterRule_addOp();
+		EnterRule("addOp", 55);
+		TraceIn("addOp", 55);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken char_literal163 = default(IToken);
+		IToken char_literal164 = default(IToken);
+		AstParserRuleReturnScope<object, IToken> stringOp165 = default(AstParserRuleReturnScope<object, IToken>);
+
+		object char_literal163_tree = default(object);
+		object char_literal164_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "addOp");
+		DebugLocation(253, 33);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:253:9: ( '+' | '-' | stringOp )
+			int alt50=3;
+			try { DebugEnterDecision(50, false);
+			switch (input.LA(1))
+			{
+			case 64:
+				{
+				alt50 = 1;
+				}
+				break;
+			case MINUS:
+				{
+				alt50 = 2;
+				}
+				break;
+			case 62:
+				{
+				alt50 = 3;
+				}
+				break;
+			default:
+				{
+					NoViableAltException nvae = new NoViableAltException("", 50, 0, input);
+					DebugRecognitionException(nvae);
+					throw nvae;
+				}
+			}
+
+			} finally { DebugExitDecision(50); }
+			switch (alt50)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:253:14: '+'
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(253, 14);
+				char_literal163=(IToken)Match(input,64,Follow._64_in_addOp1189); 
+				char_literal163_tree = (object)adaptor.Create(char_literal163);
+				adaptor.AddChild(root_0, char_literal163_tree);
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:253:20: '-'
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(253, 20);
+				char_literal164=(IToken)Match(input,MINUS,Follow._MINUS_in_addOp1193); 
+				char_literal164_tree = (object)adaptor.Create(char_literal164);
+				adaptor.AddChild(root_0, char_literal164_tree);
+
+				}
+				break;
+			case 3:
+				DebugEnterAlt(3);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:253:26: stringOp
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(253, 26);
+				PushFollow(Follow._stringOp_in_addOp1197);
+				stringOp165=stringOp();
+				PopFollow();
+
+				adaptor.AddChild(root_0, stringOp165.Tree);
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("addOp", 55);
+			LeaveRule("addOp", 55);
+			LeaveRule_addOp();
+		}
+		DebugLocation(253, 33);
+		} finally { DebugExitRule(GrammarFileName, "addOp"); }
+		return retval;
+
+	}
+	// $ANTLR end "addOp"
+
+	partial void EnterRule_multiplyOp();
+	partial void LeaveRule_multiplyOp();
+
+	// $ANTLR start "multiplyOp"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:254:1: multiplyOp : ( '*' | '/' | 'mod' | 'rem' );
+	[GrammarRule("multiplyOp")]
+	private AstParserRuleReturnScope<object, IToken> multiplyOp()
+	{
+		EnterRule_multiplyOp();
+		EnterRule("multiplyOp", 56);
+		TraceIn("multiplyOp", 56);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set166 = default(IToken);
+
+		object set166_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "multiplyOp");
+		DebugLocation(254, 43);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:254:14: ( '*' | '/' | 'mod' | 'rem' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(254, 14);
+
+			set166=(IToken)input.LT(1);
+			if (input.LA(1)==63||input.LA(1)==67||input.LA(1)==79||input.LA(1)==82)
+			{
+				input.Consume();
+				adaptor.AddChild(root_0, (object)adaptor.Create(set166));
+				state.errorRecovery=false;
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				throw mse;
+			}
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("multiplyOp", 56);
+			LeaveRule("multiplyOp", 56);
+			LeaveRule_multiplyOp();
+		}
+		DebugLocation(254, 43);
+		} finally { DebugExitRule(GrammarFileName, "multiplyOp"); }
+		return retval;
+
+	}
+	// $ANTLR end "multiplyOp"
+
+	partial void EnterRule_unaryOp();
+	partial void LeaveRule_unaryOp();
+
+	// $ANTLR start "unaryOp"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:255:1: unaryOp : ( '+' | '-' );
+	[GrammarRule("unaryOp")]
+	private AstParserRuleReturnScope<object, IToken> unaryOp()
+	{
+		EnterRule_unaryOp();
+		EnterRule("unaryOp", 57);
+		TraceIn("unaryOp", 57);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set167 = default(IToken);
+
+		object set167_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "unaryOp");
+		DebugLocation(255, 24);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:255:11: ( '+' | '-' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(255, 11);
+
+			set167=(IToken)input.LT(1);
+			if (input.LA(1)==MINUS||input.LA(1)==64)
+			{
+				input.Consume();
+				adaptor.AddChild(root_0, (object)adaptor.Create(set167));
+				state.errorRecovery=false;
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				throw mse;
+			}
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("unaryOp", 57);
+			LeaveRule("unaryOp", 57);
+			LeaveRule_unaryOp();
+		}
+		DebugLocation(255, 24);
+		} finally { DebugExitRule(GrammarFileName, "unaryOp"); }
+		return retval;
+
+	}
+	// $ANTLR end "unaryOp"
+
+	partial void EnterRule_relOp();
+	partial void LeaveRule_relOp();
+
+	// $ANTLR start "relOp"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:256:1: relOp : ( '<' | '>' | '>=' | '<=' );
+	[GrammarRule("relOp")]
+	private AstParserRuleReturnScope<object, IToken> relOp()
+	{
+		EnterRule_relOp();
+		EnterRule("relOp", 58);
+		TraceIn("relOp", 58);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set168 = default(IToken);
+
+		object set168_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "relOp");
+		DebugLocation(256, 36);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:256:9: ( '<' | '>' | '>=' | '<=' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(256, 9);
+
+			set168=(IToken)input.LT(1);
+			if (input.LA(1)==68||input.LA(1)==70||(input.LA(1)>=73 && input.LA(1)<=74))
+			{
+				input.Consume();
+				adaptor.AddChild(root_0, (object)adaptor.Create(set168));
+				state.errorRecovery=false;
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				throw mse;
+			}
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("relOp", 58);
+			LeaveRule("relOp", 58);
+			LeaveRule_relOp();
+		}
+		DebugLocation(256, 36);
+		} finally { DebugExitRule(GrammarFileName, "relOp"); }
+		return retval;
+
+	}
+	// $ANTLR end "relOp"
+
+	partial void EnterRule_equalOp();
+	partial void LeaveRule_equalOp();
+
+	// $ANTLR start "equalOp"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:257:1: equalOp : ( '==' | '!=' );
+	[GrammarRule("equalOp")]
+	private AstParserRuleReturnScope<object, IToken> equalOp()
+	{
+		EnterRule_equalOp();
+		EnterRule("equalOp", 59);
+		TraceIn("equalOp", 59);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set169 = default(IToken);
+
+		object set169_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "equalOp");
+		DebugLocation(257, 26);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:257:11: ( '==' | '!=' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(257, 11);
+
+			set169=(IToken)input.LT(1);
+			if (input.LA(1)==61||input.LA(1)==72)
+			{
+				input.Consume();
+				adaptor.AddChild(root_0, (object)adaptor.Create(set169));
+				state.errorRecovery=false;
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				throw mse;
+			}
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("equalOp", 59);
+			LeaveRule("equalOp", 59);
+			LeaveRule_equalOp();
+		}
+		DebugLocation(257, 26);
+		} finally { DebugExitRule(GrammarFileName, "equalOp"); }
+		return retval;
+
+	}
+	// $ANTLR end "equalOp"
+
+	partial void EnterRule_stringOp();
+	partial void LeaveRule_stringOp();
+
+	// $ANTLR start "stringOp"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:258:1: stringOp : '&' ;
+	[GrammarRule("stringOp")]
+	private AstParserRuleReturnScope<object, IToken> stringOp()
+	{
+		EnterRule_stringOp();
+		EnterRule("stringOp", 60);
+		TraceIn("stringOp", 60);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken char_literal170 = default(IToken);
+
+		object char_literal170_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "stringOp");
+		DebugLocation(258, 19);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:258:12: ( '&' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:258:17: '&'
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(258, 17);
+			char_literal170=(IToken)Match(input,62,Follow._62_in_stringOp1289); 
+			char_literal170_tree = (object)adaptor.Create(char_literal170);
+			adaptor.AddChild(root_0, char_literal170_tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("stringOp", 60);
+			LeaveRule("stringOp", 60);
+			LeaveRule_stringOp();
+		}
+		DebugLocation(258, 19);
+		} finally { DebugExitRule(GrammarFileName, "stringOp"); }
+		return retval;
+
+	}
+	// $ANTLR end "stringOp"
+
+	partial void EnterRule_shiftOp();
+	partial void LeaveRule_shiftOp();
+
+	// $ANTLR start "shiftOp"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:259:1: shiftOp : ( '<<' | '>>' | '<@' | '@>' );
+	[GrammarRule("shiftOp")]
+	private AstParserRuleReturnScope<object, IToken> shiftOp()
+	{
+		EnterRule_shiftOp();
+		EnterRule("shiftOp", 61);
+		TraceIn("shiftOp", 61);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken set171 = default(IToken);
+
+		object set171_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "shiftOp");
+		DebugLocation(259, 40);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:259:11: ( '<<' | '>>' | '<@' | '@>' )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(259, 11);
+
+			set171=(IToken)input.LT(1);
+			if (input.LA(1)==69||input.LA(1)==71||(input.LA(1)>=75 && input.LA(1)<=76))
+			{
+				input.Consume();
+				adaptor.AddChild(root_0, (object)adaptor.Create(set171));
+				state.errorRecovery=false;
+			}
+			else
+			{
+				MismatchedSetException mse = new MismatchedSetException(null,input);
+				DebugRecognitionException(mse);
+				throw mse;
+			}
+
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("shiftOp", 61);
+			LeaveRule("shiftOp", 61);
+			LeaveRule_shiftOp();
+		}
+		DebugLocation(259, 40);
+		} finally { DebugExitRule(GrammarFileName, "shiftOp"); }
+		return retval;
+
+	}
+	// $ANTLR end "shiftOp"
+
+	partial void EnterRule_value();
+	partial void LeaveRule_value();
+
+	// $ANTLR start "value"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:260:1: value : ( predefinedValue | referencedValue );
+	[GrammarRule("value")]
+	private AstParserRuleReturnScope<object, IToken> value()
+	{
+		EnterRule_value();
+		EnterRule("value", 62);
+		TraceIn("value", 62);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> predefinedValue172 = default(AstParserRuleReturnScope<object, IToken>);
+		AstParserRuleReturnScope<object, IToken> referencedValue173 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "value");
+		DebugLocation(260, 41);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:260:7: ( predefinedValue | referencedValue )
+			int alt51=2;
+			try { DebugEnterDecision(51, false);
+			int LA51_0 = input.LA(1);
+
+			if ((LA51_0==NUMBER))
+			{
+				alt51 = 1;
+			}
+			else if ((LA51_0==ID))
+			{
+				alt51 = 2;
+			}
+			else
+			{
+				NoViableAltException nvae = new NoViableAltException("", 51, 0, input);
+				DebugRecognitionException(nvae);
+				throw nvae;
+			}
+			} finally { DebugExitDecision(51); }
+			switch (alt51)
+			{
+			case 1:
+				DebugEnterAlt(1);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:260:9: predefinedValue
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(260, 9);
+				PushFollow(Follow._predefinedValue_in_value1320);
+				predefinedValue172=predefinedValue();
+				PopFollow();
+
+				adaptor.AddChild(root_0, predefinedValue172.Tree);
+
+				}
+				break;
+			case 2:
+				DebugEnterAlt(2);
+				// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:260:27: referencedValue
+				{
+				root_0 = (object)adaptor.Nil();
+
+				DebugLocation(260, 27);
+				PushFollow(Follow._referencedValue_in_value1324);
+				referencedValue173=referencedValue();
+				PopFollow();
+
+				adaptor.AddChild(root_0, referencedValue173.Tree);
+
+				}
+				break;
+
+			}
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("value", 62);
+			LeaveRule("value", 62);
+			LeaveRule_value();
+		}
+		DebugLocation(260, 41);
+		} finally { DebugExitRule(GrammarFileName, "value"); }
+		return retval;
+
+	}
+	// $ANTLR end "value"
+
+	partial void EnterRule_predefinedValue();
+	partial void LeaveRule_predefinedValue();
+
+	// $ANTLR start "predefinedValue"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:261:1: predefinedValue : NUMBER ;
+	[GrammarRule("predefinedValue")]
+	private AstParserRuleReturnScope<object, IToken> predefinedValue()
+	{
+		EnterRule_predefinedValue();
+		EnterRule("predefinedValue", 63);
+		TraceIn("predefinedValue", 63);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		IToken NUMBER174 = default(IToken);
+
+		object NUMBER174_tree = default(object);
+		try { DebugEnterRule(GrammarFileName, "predefinedValue");
+		DebugLocation(261, 9);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:262:2: ( NUMBER )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:262:4: NUMBER
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(262, 4);
+			NUMBER174=(IToken)Match(input,NUMBER,Follow._NUMBER_in_predefinedValue1332); 
+			NUMBER174_tree = (object)adaptor.Create(NUMBER174);
+			adaptor.AddChild(root_0, NUMBER174_tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("predefinedValue", 63);
+			LeaveRule("predefinedValue", 63);
+			LeaveRule_predefinedValue();
+		}
+		DebugLocation(262, 9);
+		} finally { DebugExitRule(GrammarFileName, "predefinedValue"); }
+		return retval;
+
+	}
+	// $ANTLR end "predefinedValue"
+
+	partial void EnterRule_referencedValue();
+	partial void LeaveRule_referencedValue();
+
+	// $ANTLR start "referencedValue"
+	// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:263:1: referencedValue : extendedIdentifier ;
+	[GrammarRule("referencedValue")]
+	private AstParserRuleReturnScope<object, IToken> referencedValue()
+	{
+		EnterRule_referencedValue();
+		EnterRule("referencedValue", 64);
+		TraceIn("referencedValue", 64);
+		AstParserRuleReturnScope<object, IToken> retval = new AstParserRuleReturnScope<object, IToken>();
+		retval.Start = (IToken)input.LT(1);
+
+		object root_0 = default(object);
+
+		AstParserRuleReturnScope<object, IToken> extendedIdentifier175 = default(AstParserRuleReturnScope<object, IToken>);
+
+		try { DebugEnterRule(GrammarFileName, "referencedValue");
+		DebugLocation(263, 21);
+		try
+		{
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:264:2: ( extendedIdentifier )
+			DebugEnterAlt(1);
+			// C:\\dev\\ims\\ttcn3\\csharp\\TTCN3.g:264:4: extendedIdentifier
+			{
+			root_0 = (object)adaptor.Nil();
+
+			DebugLocation(264, 4);
+			PushFollow(Follow._extendedIdentifier_in_referencedValue1340);
+			extendedIdentifier175=extendedIdentifier();
+			PopFollow();
+
+			adaptor.AddChild(root_0, extendedIdentifier175.Tree);
+
+			}
+
+			retval.Stop = (IToken)input.LT(-1);
+
+			retval.Tree = (object)adaptor.RulePostProcessing(root_0);
+			adaptor.SetTokenBoundaries(retval.Tree, retval.Start, retval.Stop);
+
+		}
+		catch (RecognitionException re)
+		{
+			ReportError(re);
+			Recover(input,re);
+		retval.Tree = (object)adaptor.ErrorNode(input, retval.Start, input.LT(-1), re);
+
+		}
+		finally
+		{
+			TraceOut("referencedValue", 64);
+			LeaveRule("referencedValue", 64);
+			LeaveRule_referencedValue();
+		}
+		DebugLocation(264, 21);
+		} finally { DebugExitRule(GrammarFileName, "referencedValue"); }
+		return retval;
+
+	}
+	// $ANTLR end "referencedValue"
 	#endregion Rules
 
 
 	#region Follow sets
 	private static class Follow
 	{
-		public static readonly BitSet _TYPE_in_typeDef41 = new BitSet(new ulong[]{0x200000UL});
-		public static readonly BitSet _structuredTypeDef_in_typeDef43 = new BitSet(new ulong[]{0x2UL});
-		public static readonly BitSet _recordDef_in_structuredTypeDef56 = new BitSet(new ulong[]{0x2UL});
-		public static readonly BitSet _RECORD_in_recordDef68 = new BitSet(new ulong[]{0x2000UL});
-		public static readonly BitSet _structDefBody_in_recordDef70 = new BitSet(new ulong[]{0x2UL});
-		public static readonly BitSet _ID_in_structDefBody81 = new BitSet(new ulong[]{0x10000UL});
-		public static readonly BitSet _LBRACKET_in_structDefBody83 = new BitSet(new ulong[]{0x1480F0UL});
-		public static readonly BitSet _structFieldDef_in_structDefBody86 = new BitSet(new ulong[]{0x4100000UL});
-		public static readonly BitSet _26_in_structDefBody89 = new BitSet(new ulong[]{0x480F0UL});
-		public static readonly BitSet _structFieldDef_in_structDefBody91 = new BitSet(new ulong[]{0x4100000UL});
-		public static readonly BitSet _RBRACKET_in_structDefBody97 = new BitSet(new ulong[]{0x2UL});
-		public static readonly BitSet _type_in_structFieldDef108 = new BitSet(new ulong[]{0x2000UL});
-		public static readonly BitSet _ID_in_structFieldDef110 = new BitSet(new ulong[]{0x80002UL});
-		public static readonly BitSet _OPTIONAL_in_structFieldDef112 = new BitSet(new ulong[]{0x2UL});
-		public static readonly BitSet _predefinedType_in_type125 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _typeDef_in_typeDefs78 = new BitSet(new ulong[]{0x80000000000002UL});
+		public static readonly BitSet _MODULE_in_moduleDef99 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _ID_in_moduleDef101 = new BitSet(new ulong[]{0x100000000UL});
+		public static readonly BitSet _LBRACKET_in_moduleDef103 = new BitSet(new ulong[]{0x87000008C08000UL});
+		public static readonly BitSet _moduleDefinitionsList_in_moduleDef105 = new BitSet(new ulong[]{0x4000000000000UL});
+		public static readonly BitSet _RBRACKET_in_moduleDef108 = new BitSet(new ulong[]{0x20000000000002UL});
+		public static readonly BitSet _SEMICOLON_in_moduleDef110 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _moduleDefinition_in_moduleDefinitionsList134 = new BitSet(new ulong[]{0xA3000008C08002UL});
+		public static readonly BitSet _SEMICOLON_in_moduleDefinitionsList136 = new BitSet(new ulong[]{0x83000008C08002UL});
+		public static readonly BitSet _visibility_in_moduleDefinition157 = new BitSet(new ulong[]{0x80000008008000UL});
+		public static readonly BitSet _typeDef_in_moduleDefinition161 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _importDef_in_moduleDefinition165 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _constDef_in_moduleDefinition169 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _PUBLIC_in_moduleDefinition177 = new BitSet(new ulong[]{0x800000UL});
+		public static readonly BitSet _groupDef_in_moduleDefinition180 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _CONST_in_constDef190 = new BitSet(new ulong[]{0x80084003C00UL});
+		public static readonly BitSet _type_in_constDef192 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _constList_in_constDef194 = new BitSet(new ulong[]{0x20000000000000UL});
+		public static readonly BitSet _SEMICOLON_in_constDef196 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _singleConstDef_in_constList208 = new BitSet(new ulong[]{0x2UL,0x2UL});
+		public static readonly BitSet _65_in_constList211 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _singleConstDef_in_constList213 = new BitSet(new ulong[]{0x2UL,0x2UL});
+		public static readonly BitSet _ID_in_singleConstDef227 = new BitSet(new ulong[]{0x80UL});
+		public static readonly BitSet _ASSIGNCHAR_in_singleConstDef229 = new BitSet(new ulong[]{0x51404000000UL,0x10001UL});
+		public static readonly BitSet _constantExpression_in_singleConstDef231 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _singleExpression_in_constantExpression242 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _GROUP_in_groupDef251 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _ID_in_groupDef253 = new BitSet(new ulong[]{0x100000000UL});
+		public static readonly BitSet _LBRACKET_in_groupDef255 = new BitSet(new ulong[]{0x87000008C08000UL});
+		public static readonly BitSet _moduleDefinitionsList_in_groupDef257 = new BitSet(new ulong[]{0x4000000000000UL});
+		public static readonly BitSet _RBRACKET_in_groupDef260 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _IMPORT_in_importDef282 = new BitSet(new ulong[]{0x0UL,0x4000UL});
+		public static readonly BitSet _78_in_importDef284 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _ID_in_importDef286 = new BitSet(new ulong[]{0x20000000000010UL});
+		public static readonly BitSet _ALL_in_importDef288 = new BitSet(new ulong[]{0x20000000000000UL});
+		public static readonly BitSet _SEMICOLON_in_importDef291 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _TYPE_in_typeDef331 = new BitSet(new ulong[]{0x408880084043C00UL});
+		public static readonly BitSet _typeDefBody_in_typeDef333 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _structuredTypeDef_in_typeDefBody352 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _subTypeDef_in_typeDefBody356 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _recordDef_in_structuredTypeDef367 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _unionDef_in_structuredTypeDef371 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _enumDef_in_structuredTypeDef375 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _portDef_in_structuredTypeDef379 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _PORT_in_portDef389 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _portDefBody_in_portDef391 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _ID_in_portDefBody402 = new BitSet(new ulong[]{0x800000000UL});
+		public static readonly BitSet _portDefAttribs_in_portDefBody404 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _messageAttribs_in_portDefAttribs416 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _MESSAGE_in_messageAttribs428 = new BitSet(new ulong[]{0x100000000UL});
+		public static readonly BitSet _LBRACKET_in_messageAttribs430 = new BitSet(new ulong[]{0x400020000000UL});
+		public static readonly BitSet _messageList_in_messageAttribs434 = new BitSet(new ulong[]{0x24400020000000UL});
+		public static readonly BitSet _SEMICOLON_in_messageAttribs437 = new BitSet(new ulong[]{0x4400020000000UL});
+		public static readonly BitSet _RBRACKET_in_messageAttribs443 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _direction_in_messageList455 = new BitSet(new ulong[]{0x80084003C10UL});
+		public static readonly BitSet _allOrTypeList_in_messageList457 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _ALL_in_allOrTypeList485 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _typeList_in_allOrTypeList489 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _type_in_typeList498 = new BitSet(new ulong[]{0x2UL,0x2UL});
+		public static readonly BitSet _65_in_typeList501 = new BitSet(new ulong[]{0x80084003C00UL});
+		public static readonly BitSet _type_in_typeList503 = new BitSet(new ulong[]{0x2UL,0x2UL});
+		public static readonly BitSet _type_in_subTypeDef516 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _ID_in_subTypeDef518 = new BitSet(new ulong[]{0x600000002UL});
+		public static readonly BitSet _subTypeSpec_in_subTypeDef520 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _allowedValuesSpec_in_subTypeSpec534 = new BitSet(new ulong[]{0x200000002UL});
+		public static readonly BitSet _stringLength_in_subTypeSpec536 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _stringLength_in_subTypeSpec542 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _LENGTH_in_stringLength554 = new BitSet(new ulong[]{0x400000000UL});
+		public static readonly BitSet _LPAREN_in_stringLength556 = new BitSet(new ulong[]{0x51404000000UL,0x10001UL});
+		public static readonly BitSet _singleExpression_in_stringLength558 = new BitSet(new ulong[]{0x10000000010000UL});
+		public static readonly BitSet _DOTDOT_in_stringLength561 = new BitSet(new ulong[]{0x51444000100UL,0x10001UL});
+		public static readonly BitSet _bound_in_stringLength563 = new BitSet(new ulong[]{0x10000000000000UL});
+		public static readonly BitSet _RPAREN_in_stringLength567 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _LPAREN_in_allowedValuesSpec579 = new BitSet(new ulong[]{0x51444000100UL,0x10001UL});
+		public static readonly BitSet _rangeDef_in_allowedValuesSpec581 = new BitSet(new ulong[]{0x10000000000000UL});
+		public static readonly BitSet _RPAREN_in_allowedValuesSpec583 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _bound_in_rangeDef601 = new BitSet(new ulong[]{0x10000UL});
+		public static readonly BitSet _DOTDOT_in_rangeDef603 = new BitSet(new ulong[]{0x51444000100UL,0x10001UL});
+		public static readonly BitSet _bound_in_rangeDef605 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _BANG_in_bound623 = new BitSet(new ulong[]{0x51404000000UL,0x10001UL});
+		public static readonly BitSet _singleExpression_in_bound626 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _MINUS_in_bound632 = new BitSet(new ulong[]{0x40000000UL});
+		public static readonly BitSet _INFINITY_in_bound635 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _RECORD_in_recordDef648 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _structDefBody_in_recordDef650 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _UNION_in_unionDef659 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _structDefBody_in_unionDef661 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _ENUMERATED_in_enumDef671 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _ID_in_enumDef673 = new BitSet(new ulong[]{0x100000000UL});
+		public static readonly BitSet _LBRACKET_in_enumDef675 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _enumerationList_in_enumDef677 = new BitSet(new ulong[]{0x4000000000000UL});
+		public static readonly BitSet _RBRACKET_in_enumDef679 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _enumeration_in_enumerationList700 = new BitSet(new ulong[]{0x2UL,0x2UL});
+		public static readonly BitSet _65_in_enumerationList703 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _enumeration_in_enumerationList705 = new BitSet(new ulong[]{0x2UL,0x2UL});
+		public static readonly BitSet _ID_in_enumeration724 = new BitSet(new ulong[]{0x400000002UL});
+		public static readonly BitSet _LPAREN_in_enumeration727 = new BitSet(new ulong[]{0x41000000000UL});
+		public static readonly BitSet _MINUS_in_enumeration729 = new BitSet(new ulong[]{0x40000000000UL});
+		public static readonly BitSet _NUMBER_in_enumeration732 = new BitSet(new ulong[]{0x10000000000000UL});
+		public static readonly BitSet _RPAREN_in_enumeration734 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _ID_in_structDefBody760 = new BitSet(new ulong[]{0x100000000UL});
+		public static readonly BitSet _LBRACKET_in_structDefBody762 = new BitSet(new ulong[]{0x4080084003C00UL});
+		public static readonly BitSet _structFieldDef_in_structDefBody765 = new BitSet(new ulong[]{0x4000000000000UL,0x2UL});
+		public static readonly BitSet _65_in_structDefBody768 = new BitSet(new ulong[]{0x80084003C00UL});
+		public static readonly BitSet _structFieldDef_in_structDefBody770 = new BitSet(new ulong[]{0x4000000000000UL,0x2UL});
+		public static readonly BitSet _RBRACKET_in_structDefBody776 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _type_in_structFieldDef794 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _ID_in_structFieldDef796 = new BitSet(new ulong[]{0x100600000002UL});
+		public static readonly BitSet _subTypeSpec_in_structFieldDef798 = new BitSet(new ulong[]{0x100000000002UL});
+		public static readonly BitSet _OPTIONAL_in_structFieldDef801 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _predefinedType_in_type830 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _referencedType_in_type834 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _extendedIdentifier_in_referencedType845 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _ID_in_extendedIdentifier857 = new BitSet(new ulong[]{0x2UL,0x4UL});
+		public static readonly BitSet _66_in_extendedIdentifier860 = new BitSet(new ulong[]{0x4000000UL});
+		public static readonly BitSet _ID_in_extendedIdentifier862 = new BitSet(new ulong[]{0x2UL,0x4UL});
+		public static readonly BitSet _xOrExpression_in_singleExpression908 = new BitSet(new ulong[]{0x200000000002UL});
+		public static readonly BitSet _OR_in_singleExpression911 = new BitSet(new ulong[]{0x51404000000UL,0x10001UL});
+		public static readonly BitSet _xOrExpression_in_singleExpression913 = new BitSet(new ulong[]{0x200000000002UL});
+		public static readonly BitSet _andExpression_in_xOrExpression927 = new BitSet(new ulong[]{0x1000000000000002UL});
+		public static readonly BitSet _XOR_in_xOrExpression930 = new BitSet(new ulong[]{0x51404000000UL,0x10001UL});
+		public static readonly BitSet _andExpression_in_xOrExpression932 = new BitSet(new ulong[]{0x1000000000000002UL});
+		public static readonly BitSet _notExpression_in_andExpression946 = new BitSet(new ulong[]{0x42UL});
+		public static readonly BitSet _AND_in_andExpression949 = new BitSet(new ulong[]{0x51404000000UL,0x10001UL});
+		public static readonly BitSet _notExpression_in_andExpression951 = new BitSet(new ulong[]{0x42UL});
+		public static readonly BitSet _NOT_in_notExpression966 = new BitSet(new ulong[]{0x41404000000UL,0x10001UL});
+		public static readonly BitSet _equalExpression_in_notExpression969 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _relExpression_in_equalExpression983 = new BitSet(new ulong[]{0x2000000000000002UL,0x100UL});
+		public static readonly BitSet _equalOp_in_equalExpression987 = new BitSet(new ulong[]{0x41404000000UL,0x10001UL});
+		public static readonly BitSet _relExpression_in_equalExpression989 = new BitSet(new ulong[]{0x2000000000000002UL,0x100UL});
+		public static readonly BitSet _shiftExpression_in_relExpression1003 = new BitSet(new ulong[]{0x2UL,0x650UL});
+		public static readonly BitSet _relOp_in_relExpression1006 = new BitSet(new ulong[]{0x41404000000UL,0x10001UL});
+		public static readonly BitSet _shiftExpression_in_relExpression1008 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _bitOrExpression_in_shiftExpression1021 = new BitSet(new ulong[]{0x2UL,0x18A0UL});
+		public static readonly BitSet _shiftOp_in_shiftExpression1025 = new BitSet(new ulong[]{0x41404000000UL,0x10001UL});
+		public static readonly BitSet _bitOrExpression_in_shiftExpression1027 = new BitSet(new ulong[]{0x2UL,0x18A0UL});
+		public static readonly BitSet _bitXorExpression_in_bitOrExpression1041 = new BitSet(new ulong[]{0x2UL,0x20000UL});
+		public static readonly BitSet _81_in_bitOrExpression1045 = new BitSet(new ulong[]{0x41404000000UL,0x10001UL});
+		public static readonly BitSet _bitXorExpression_in_bitOrExpression1047 = new BitSet(new ulong[]{0x2UL,0x20000UL});
+		public static readonly BitSet _bitAndExpression_in_bitXorExpression1061 = new BitSet(new ulong[]{0x2UL,0x80000UL});
+		public static readonly BitSet _83_in_bitXorExpression1065 = new BitSet(new ulong[]{0x41404000000UL,0x10001UL});
+		public static readonly BitSet _bitAndExpression_in_bitXorExpression1067 = new BitSet(new ulong[]{0x2UL,0x80000UL});
+		public static readonly BitSet _bitNotExpression_in_bitAndExpression1081 = new BitSet(new ulong[]{0x2UL,0x2000UL});
+		public static readonly BitSet _77_in_bitAndExpression1085 = new BitSet(new ulong[]{0x41404000000UL,0x10001UL});
+		public static readonly BitSet _bitNotExpression_in_bitAndExpression1087 = new BitSet(new ulong[]{0x2UL,0x2000UL});
+		public static readonly BitSet _80_in_bitNotExpression1099 = new BitSet(new ulong[]{0x41404000000UL,0x1UL});
+		public static readonly BitSet _addExpression_in_bitNotExpression1102 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _mulExpression_in_addExpression1113 = new BitSet(new ulong[]{0x4000001000000002UL,0x1UL});
+		public static readonly BitSet _addOp_in_addExpression1117 = new BitSet(new ulong[]{0x41404000000UL,0x1UL});
+		public static readonly BitSet _mulExpression_in_addExpression1119 = new BitSet(new ulong[]{0x4000001000000002UL,0x1UL});
+		public static readonly BitSet _unaryExpression_in_mulExpression1133 = new BitSet(new ulong[]{0x8000000000000002UL,0x48008UL});
+		public static readonly BitSet _multiplyOp_in_mulExpression1137 = new BitSet(new ulong[]{0x41404000000UL,0x1UL});
+		public static readonly BitSet _unaryExpression_in_mulExpression1139 = new BitSet(new ulong[]{0x8000000000000002UL,0x48008UL});
+		public static readonly BitSet _unaryOp_in_unaryExpression1153 = new BitSet(new ulong[]{0x40404000000UL});
+		public static readonly BitSet _primary_in_unaryExpression1156 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _value_in_primary1167 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _LPAREN_in_primary1172 = new BitSet(new ulong[]{0x51404000000UL,0x10001UL});
+		public static readonly BitSet _singleExpression_in_primary1174 = new BitSet(new ulong[]{0x10000000000000UL});
+		public static readonly BitSet _RPAREN_in_primary1176 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _64_in_addOp1189 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _MINUS_in_addOp1193 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _stringOp_in_addOp1197 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _62_in_stringOp1289 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _predefinedValue_in_value1320 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _referencedValue_in_value1324 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _NUMBER_in_predefinedValue1332 = new BitSet(new ulong[]{0x2UL});
+		public static readonly BitSet _extendedIdentifier_in_referencedValue1340 = new BitSet(new ulong[]{0x2UL});
 	}
 	#endregion Follow sets
 }
